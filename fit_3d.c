@@ -425,6 +425,9 @@ private  BOOLEAN  this_is_unique_edge(
 
 private  void  create_image_coefficients(
     Volume                      volume,
+    voxel_coef_struct           *voxel_lookup,
+    bitlist_3d_struct           *done_bits,
+    bitlist_3d_struct           *surface_bits,
     boundary_definition_struct  *boundary,
     Real                        tangent_weight,
     Real                        max_outward,
@@ -471,7 +474,8 @@ private  void  create_image_coefficients(
                     parameters[IJ(node,Y,3)],
                     parameters[IJ(node,Z,3)] );
 
-        if( !find_boundary_in_direction( volume, NULL, NULL, NULL, NULL,
+        if( !find_boundary_in_direction( volume, NULL, voxel_lookup,
+                                         done_bits, surface_bits,
                                          0.0, &origin, &normal, &normal,
                                          max_outward, max_inward, 0,
                                          boundary, &dist ) )
@@ -658,7 +662,8 @@ private  void  create_image_coefficients(
                                           (1.0 - alpha) * RPoint_z(p1) +
                                                  alpha  * RPoint_z(p2) );
 
-                if( !find_boundary_in_direction( volume, NULL, NULL, NULL, NULL,
+                if( !find_boundary_in_direction( volume, NULL, voxel_lookup,
+                                                 done_bits, surface_bits,
                                                  0.0, &search_point,
                                                  &search_normal, &search_normal,
                                                  max_outward, max_inward, 0,
@@ -810,10 +815,15 @@ private  void   fit_polygons(
     int                         n_image_per_point;
     int                         n_oversample_equations, n_bound_nodes;
     int                         n_image_points;
+    int                         sizes[N_DIMENSIONS];
     ftype                       *constants, **node_weights;
     Real                        *parameters;
     polygons_struct             save_p;
     boundary_definition_struct  boundary;
+    voxel_coef_struct           voxel_lookup;
+    bitlist_3d_struct           done_bits, surface_bits;
+    bitlist_3d_struct           *done_bits_ptr, *surface_bits_ptr;
+
 
     set_boundary_definition( &boundary, threshold, threshold, -1.0, 90.0,
                              normal_direction, 1.0e-4 );
@@ -947,10 +957,24 @@ private  void   fit_polygons(
         parameters[IJ(point,Z,3)] = RPoint_z(surface_points[point]);
     }
 
+    initialize_lookup_volume_coeficients( &voxel_lookup );
+    get_volume_sizes( volume, sizes );
+
+    done_bits_ptr = &done_bits;
+    surface_bits_ptr = &surface_bits;
+
+    if( done_bits_ptr != NULL )
+    {
+        create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &done_bits );
+        create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &surface_bits );
+    }
+
     iter = 0;
     while( iter < n_iters )
     {
-        create_image_coefficients( volume, &boundary, tangent_weight,
+        create_image_coefficients( volume, &voxel_lookup,
+                                   done_bits_ptr, surface_bits_ptr,
+                                   &boundary, tangent_weight,
                                    max_outward, max_inward, fit_this_node,
                                    floating_flag, oversample,
                                    n_points, n_neighbours, neighbours,
