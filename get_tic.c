@@ -8,7 +8,12 @@ private  void  usage(
 Usage: %s filename.mnc  x y z v|w [radius1] [radius2] [radius3]\n\
 \n\
      Computes the min, max, mean, standard deviation, and median or a set\n\
-     of spherical regions in the specified volume.\n\n";
+     of spherical regions in the specified volume.\n\
+\n\
+     If the fifth argument is 'v', then the previous three arguments are voxel\n\
+     positions, in the same order as the dimensions are specified in the file,\n\
+     which is not necessarily in xyz order.  If the fifth argument is 'w',\n\
+     the previous three arguments are in world space.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -18,6 +23,8 @@ int  main(
     char  *argv[] )
 {
     STRING               volume_filename, voxel_flag_string;
+    STRING               component_string;
+    char                 buffer[EXTREMELY_LARGE_STRING_SIZE];
     Real                 mean, median, std_dev, value, pos[N_DIMENSIONS];
     Real                 min_sample_value, max_sample_value;
     Volume               volume;
@@ -31,6 +38,7 @@ int  main(
     Real                 voxel_centre[MAX_DIMENSIONS];
     Real                 min_pos, max_pos;
     BOOLEAN              median_is_exact, done, use_world_space;
+    BOOLEAN              is_spatial_dim[MAX_DIMENSIONS];
     int                  n_samples;
     int                  sizes[MAX_DIMENSIONS], voxel[MAX_DIMENSIONS];
     int                  dim, n_spatial_dims, spatial_dims[N_DIMENSIONS];
@@ -44,8 +52,8 @@ int  main(
         !get_real_argument( 0.0, &pos[2] ) ||
         !get_string_argument( NULL, &voxel_flag_string ) ||
         string_length( voxel_flag_string ) != 1 ||
-        voxel_flag_string[0] != 'v' && voxel_flag_string[1] != 'w' &&
-        voxel_flag_string[0] != 'V' && voxel_flag_string[1] != 'W' )
+        voxel_flag_string[0] != 'v' && voxel_flag_string[0] != 'w' &&
+        voxel_flag_string[0] != 'V' && voxel_flag_string[0] != 'W' )
     {
         usage( argv[0] );
         return( 1 );
@@ -72,11 +80,13 @@ int  main(
             ++n_spatial_dims;
             start_voxel[dim] = 0;
             end_voxel[dim] = 0;
+            is_spatial_dim[dim] = TRUE;
         }
         else
         {
             start_voxel[dim] = 0;
             end_voxel[dim] = sizes[dim]-1;
+            is_spatial_dim[dim] = FALSE;
         }
     }
 
@@ -99,12 +109,17 @@ int  main(
         return( 1 );
     }
 
-    use_world_space = (voxel_flag_string[1] == 'w' ||
-                       voxel_flag_string[1] == 'W');
+    use_world_space = (voxel_flag_string[0] == 'w' ||
+                       voxel_flag_string[0] == 'W');
 
     if( use_world_space )
     {
         convert_world_to_voxel( volume, pos[0], pos[1], pos[2], voxel_centre );
+for_less( dim, 0, n_dims )
+{
+    print( " %g", voxel_centre[dim] );
+}
+print( "\n" );
     }
     else
     {
@@ -115,8 +130,8 @@ int  main(
             voxel_centre[spatial_dims[dim]] = pos[dim] - 1.0;
     }
 
-    print( "  Radius       Min         Max        Median       Mean      Std Dev \n" );
-    print( "---------   ---------   ---------   ---------   ---------   ---------\n" );
+    print( "Radius    Comp       Min        Max       Median     Mean      Std Dev \n" );
+    print( "------  --------  ---------  ---------  ---------  ---------  ---------\n" );
 
     while( get_real_argument( 0.0, &radius ) )
     {
@@ -131,13 +146,8 @@ int  main(
         {
             voxel_index = spatial_dims[dim];
 
-            if( use_world_space )
-            {
-                voxel_radius[voxel_index] = radius /
-                                           ABS(separations[voxel_index]);
-            }
-            else
-                voxel_radius[voxel_index] = radius;
+            voxel_radius[voxel_index] = radius /
+                                       ABS(separations[voxel_index]);
 
             min_pos = voxel_centre[voxel_index] - voxel_radius[voxel_index];
             max_pos = voxel_centre[voxel_index] + voxel_radius[voxel_index];
@@ -219,9 +229,35 @@ int  main(
 
             terminate_statistics( &stats );
 
-            print( "%9g   %9g   %9g   %9g   %9g   %9g\n",
-                   radius, min_sample_value, max_sample_value, median,
-                   mean, std_dev );
+            component_string = create_string( NULL );
+
+            if( n_dims != n_spatial_dims )
+            {
+                for_less( dim, 0, n_dims )
+                {
+                    if( !is_spatial_dim[dim] )
+                    {
+                        (void) sprintf( buffer, "[%d]", voxel[dim] );
+                        concat_to_string( &component_string, buffer );
+                    }
+                }
+            }
+
+            if( n_samples < 1 )
+                print( "%5g   %8s     n/a        n/a        n/a        n/a        n/a\n",
+                        radius, component_string );
+            else
+            {
+                print( "%5g   %8s  %9g  %9g  %9g  %9g",
+                       radius, component_string,
+                       min_sample_value, max_sample_value, median,
+                       mean );
+
+                if( n_samples == 1 )
+                    print( "     n/a   \n" );
+                else
+                    print( "  %9g\n", std_dev );
+            }
         }
     }
 
