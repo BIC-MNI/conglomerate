@@ -320,12 +320,15 @@ private  void  get_spline_fit(
     int                    p, i, off, b;
     linear_least_squares   lsq;
     Real                   **basis, *coefs, u, x, y, weight, power, h;
+    Real                   len;
 
     ALLOC2D( basis, 4, 4 );
 
     get_cubic_spline_coefs( basis );
 
     ALLOC( coefs, n_cvs-2 );
+
+    len = RPoint_x(points[n_points-1]) - RPoint_x(points[0]);
 
     initialize_linear_least_squares( &lsq, n_cvs - 2 );
 
@@ -377,7 +380,7 @@ private  void  get_spline_fit(
         add_to_linear_least_squares( &lsq, coefs, y );
     }
 
-    h = 1.0 / (Real) (n_cvs-3);
+    h = len / (Real) (n_cvs-3);
     smoothness_weight *= sqrt( (Real) n_points / (Real) (n_cvs-4) ) / h / h;
 
     for_less( p, 1, n_cvs-3 )
