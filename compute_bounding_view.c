@@ -25,11 +25,9 @@ int  main(
     int                 point, n_points, n_objects, dim, i;
     Real                min_position[N_DIMENSIONS];
     Real                max_position[N_DIMENSIONS];
-    Real                x_centre, y_centre, z_centre;
-    Real                x_width, y_width, z_width, pos;
+    Real                x_width, y_width, z_width, min_pos, max_pos;
     Point               *points, centre;
     Vector              x_axis, y_axis, z_axis;
-    Vector              x_offset, y_offset, z_offset;
     Vector              axis[N_DIMENSIONS];
     File_formats        format;
     object_struct       **object_list;
@@ -80,45 +78,49 @@ int  main(
         {
             for_less( dim, 0, N_DIMENSIONS )
             {
-                pos = DOT_VECTORS( axis[dim], points[point] );
+                min_pos = DOT_VECTORS( axis[dim], points[point] );
+                max_pos = min_pos;
+                if( get_object_type(object_list[i]) == LINES )
+                {
+                    min_pos -= get_lines_ptr(object_list[i])->
+                                               line_thickness / 2.0;
+                    max_pos += get_lines_ptr(object_list[i])->
+                                               line_thickness / 2.0;
+                }
+
                 if( first )
                 {
-                    min_position[dim] = pos;
-                    max_position[dim] = pos;
+                    min_position[dim] = min_pos;
+                    max_position[dim] = max_pos;
                 }
                 else
                 {
-                    if( pos < min_position[dim] )
-                        min_position[dim] = pos;
-                    else if( pos > max_position[dim])
-                        max_position[dim] = pos;
+                    if( min_pos < min_position[dim] )
+                        min_position[dim] = min_pos;
+                    if( max_pos > max_position[dim])
+                        max_position[dim] = max_pos;
                 }
             }
 
             first = FALSE;
         }
+
+        if( get_object_type(object_list[i]) == LINES )
+        {
+            for_less( dim, 0, N_DIMENSIONS )
+            {
+                min_position[dim] -= get_lines_ptr(object_list[i])->
+                                           line_thickness / 2.0;
+                max_position[dim] += get_lines_ptr(object_list[i])->
+                                           line_thickness / 2.0;
+            }
+        }
     }
 
-    x_centre = (min_position[0] + max_position[0]) / 2.0;
-    y_centre = (min_position[1] + max_position[1]) / 2.0;
-    z_centre = (min_position[2] + max_position[2]) / 2.0;
-    x_width = max_position[0] - min_position[0];
-    y_width = max_position[1] - min_position[1];
-    z_width = max_position[2] - min_position[2];
-
-    SCALE_VECTOR( x_offset, x_axis, x_centre );
-    SCALE_VECTOR( y_offset, y_axis, y_centre );
-    SCALE_VECTOR( z_offset, z_axis, z_centre );
-
-    ADD_VECTORS( centre, x_offset, y_offset );
-    ADD_VECTORS( centre, centre, z_offset );
-
-    print( "Centre: %g %g %g\n", RPoint_x(centre), RPoint_y(centre),
-           RPoint_z(centre) );
     print( "Bounding_box: %g %g %g %g %g %g\n",
-           -x_width / 2.0, x_width / 2.0,
-           -y_width / 2.0, y_width / 2.0,
-           -z_width / 2.0, z_width / 2.0 );
+           min_position[0], max_position[0],
+           min_position[1], max_position[1],
+           min_position[2], max_position[2] );
 
     delete_object_list( n_objects, object_list );
 
