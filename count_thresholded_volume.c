@@ -56,7 +56,7 @@ int  main(
             for_less( z, 0, mask_sizes[Z] )
             {
                 mask_voxel[Z] = (Real) z;
-                GET_VALUE_3D( mask_value, mask_volume, x, y, z );
+                mask_value = get_volume_real_value( mask_volume, x, y, z, 0, 0);
                 if( mask_value != 0.0 )
                 {
                     convert_voxel_to_world( mask_volume, mask_voxel,
