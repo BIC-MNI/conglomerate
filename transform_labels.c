@@ -24,10 +24,12 @@ int  main(
     int                  xs, ys, zs, super_sample;
     int                  n_samples;
     int                  degrees_continuity;
+    int                  x_voxel, y_voxel, z_voxel;
     Real                 weighted_n_voxels;
     Volume               labels, new_labels, like_volume;
     Real                 separations[MAX_DIMENSIONS];
-    Real                 label, target_label, sum, xw, yw, zw;
+    Real                 label, target_label, sum;
+    Real                 x_voxel2, y_voxel2, z_voxel2;
     int                  n_found;
     progress_struct      progress;
     General_transform    *labels_trans, *like_trans;
@@ -129,24 +131,40 @@ int  main(
 
             for_less( xs, 0, super_sample )
             {
-                voxel[X] = x - 0.5 + ((Real) xs + 0.5) / (Real) super_sample;
+                x_voxel2 = x - 0.5 + ((Real) xs + 0.5) / (Real) super_sample;
                 for_less( ys, 0, super_sample )
                 {
-                    voxel[Y] = y - 0.5 + ((Real) ys + 0.5) / (Real)super_sample;
+                    y_voxel2 = y - 0.5 + ((Real) ys + 0.5) / (Real)super_sample;
                     for_less( zs, 0, super_sample )
                     {
-                        voxel[Z] = z - 0.5 + ((Real) zs + 0.5) /
+                        z_voxel2 = z - 0.5 + ((Real) zs + 0.5) /
                                               (Real) super_sample;
 
-                        convert_voxel_to_world( new_labels, voxel,
-                                                &xw, &yw, &zw );
+                        transform_point( &new_labels_to_labels,
+                                         x_voxel2, y_voxel2, z_voxel2,
+                                         &voxel[X], &voxel[Y], &voxel[Z] );
 
-                        evaluate_volume_in_world( labels, xw, yw, zw,
-                                                  degrees_continuity, TRUE,
-                                                  0.0, &label,
-                                                  NULL, NULL, NULL,
-                                                  NULL, NULL, NULL,
-                                                  NULL, NULL, NULL );
+                        if( degrees_continuity < 0 )
+                        {
+                            x_voxel = ROUND( voxel[X] );
+                            y_voxel = ROUND( voxel[Y] );
+                            z_voxel = ROUND( voxel[Z] );
+                            if( x_voxel >= 0 && x_voxel < label_sizes[X] &&
+                                y_voxel >= 0 && y_voxel < label_sizes[Y] &&
+                                z_voxel >= 0 && z_voxel < label_sizes[Z] )
+                            {
+                                label = get_volume_real_value( labels,
+                                              x_voxel, y_voxel, z_voxel, 0, 0 );
+                            }
+                            else
+                                label = 0.0;
+                        }
+                        else
+                        {
+                            evaluate_volume( labels, voxel, NULL,
+                                             degrees_continuity, TRUE, 0.0,
+                                             &label, NULL, NULL );
+                        }
 
                         sum += label;
                     }
