@@ -7,8 +7,9 @@ private  void  map_colours_to_sphere_topology(
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
     Point             *origin,
-    Point             *equator );
-
+    Real              origin_u,
+    Real              origin_v,
+    Real              rot_angle );
 private  void  evaluate_volume_by_voting(
     Volume    volume,
     Real      x,
@@ -28,9 +29,9 @@ int  main(
     object_struct        **object_list;
     polygons_struct      *polygons;
     Real                 origin_x, origin_y, origin_z;
-    Real                 equator_x, equator_y, equator_z;
+    Real                 origin_u, origin_v, rot_angle;
     BOOLEAN              origin_specified;
-    Point                origin, equator;
+    Point                origin;
     STRING               dim_names[4] = { MIxspace,
                                           MIyspace,
                                           MIzspace,
@@ -48,15 +49,15 @@ int  main(
     }
 
     (void) get_int_argument( -2, &continuity );
+
     (void) get_real_argument( 1.0, &origin_x );
     (void) get_real_argument( 0.0, &origin_y );
     (void) get_real_argument( 0.0, &origin_z );
-    (void) get_real_argument( 0.0, &equator_x );
-    (void) get_real_argument( 1.0, &equator_y );
-    origin_specified = get_real_argument( 0.0, &equator_z );
+    (void) get_real_argument( 0.0, &origin_u );
+    (void) get_real_argument( 1.0, &origin_v );
+    origin_specified = get_real_argument( 0.0, &rot_angle );
 
     fill_Point( origin, origin_x, origin_y, origin_z );
-    fill_Point( equator, equator_x, equator_y, equator_z );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK )
@@ -91,7 +92,7 @@ int  main(
 
     map_colours_to_sphere_topology( volume, continuity,
                                     polygons, origin_specified,
-                                    &origin, &equator );
+                                    &origin, origin_u, origin_v, rot_angle );
 
     (void) output_graphics_file( output_filename, format, n_objects,
                                  object_list );
@@ -99,33 +100,64 @@ int  main(
     return( 0 );
 }
 
-private  void  convert_sphere_point_to_2d(
-    Point    *origin,
-    Point    *equator_point,
-    Point    *point,
-    Real     *u,
-    Real     *v )
+private  void  get_sphere_transform(
+    Point      *pos,
+    Real       u,
+    Real       v,
+    Real       angle,
+    Transform  *transform )
 {
-    Real    angle_up, angle_around, cos_angle_up;
-    Vector  up_dir, hor_dir, vert_dir, non_hor_dir;
+    Real       z_angle, vert_angle, x, y, z;
+    Vector     axis, vert, up, up_transformed;
+    Transform  about_point, vert_rot, z_rot;
 
-    CONVERT_POINT_TO_VECTOR( hor_dir, *origin );
-    CONVERT_POINT_TO_VECTOR( non_hor_dir, *equator_point );
-    CROSS_VECTORS( up_dir, hor_dir, non_hor_dir );
-    CROSS_VECTORS( vert_dir, up_dir, hor_dir );
+    CONVERT_POINT_TO_VECTOR( axis, *pos );
 
-    NORMALIZE_VECTOR( hor_dir, hor_dir );
-    NORMALIZE_VECTOR( vert_dir, vert_dir );
-    NORMALIZE_VECTOR( up_dir, up_dir );
+    make_rotation_about_axis( &axis, -angle * DEG_TO_RAD, &about_point );
 
-    cos_angle_up = DOT_POINT_VECTOR( *point, up_dir );
-    angle_up = acos( cos_angle_up );
+    create_two_orthogonal_vectors( &axis, &vert, &up );
+    NORMALIZE_VECTOR( vert, vert );
+    NORMALIZE_VECTOR( up, up );
+
+    vert_angle = INTERPOLATE( v, -PI/2.0, PI/2.0 );
+
+    make_rotation_about_axis( &vert, vert_angle, &vert_rot );
+
+    transform_point( &vert_rot,
+                     (Real) Vector_x(up),
+                     (Real) Vector_y(up),
+                     (Real) Vector_z(up), &x, &y, &z );
+
+    fill_Vector( up_transformed, x, y, z );
+    NORMALIZE_VECTOR( up_transformed, up_transformed );
+
+    z_angle = 2.0 * PI * u;
+
+    make_rotation_about_axis( &up_transformed, -z_angle, &z_rot );
+
+    concat_transforms( transform, &about_point, &vert_rot );
+    concat_transforms( transform, &z_rot, transform );
+}
+
+private  void  convert_sphere_point_to_2d(
+    Transform  *transform,
+    Point      *point,
+    Real       *u,
+    Real       *v )
+{
+    Real    x, y, z;
+    Real    angle_up, angle_around;
+
+    transform_point( transform,
+                     (Real) Point_x(*point),
+                     (Real) Point_y(*point),
+                     (Real) Point_z(*point), &x, &y, &z );
+
+    angle_up = acos( z );
 
     *v = 1.0 - angle_up / PI;
 
-    angle_around = compute_clockwise_rotation(
-                         DOT_POINT_VECTOR(*point,hor_dir),
-                         -DOT_POINT_VECTOR(*point,vert_dir) );
+    angle_around = compute_clockwise_rotation( x, -y );
 
     *u = angle_around / (2.0*PI);
 }
@@ -148,13 +180,16 @@ private  void  map_colours_to_sphere_topology(
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
     Point             *origin,
-    Point             *equator )
+    Real              origin_u,
+    Real              origin_v,
+    Real              rot_angle )
 {
     int              point_index, sizes[MAX_DIMENSIONS];
     Real             u, v, voxel[MAX_DIMENSIONS], value[3];
     Real             min_value, max_value, r, g, b;
-    Point            centre, unit_origin, unit_equator;
+    Point            centre, unit_origin;
     polygons_struct  unit_sphere;
+    Transform        transform;
     BOOLEAN          interpolating[4] = { TRUE, TRUE, TRUE, FALSE };
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
@@ -169,26 +204,30 @@ private  void  map_colours_to_sphere_topology(
     {
         map_point_to_unit_sphere( polygons, origin, &unit_sphere,
                                   &unit_origin );
-        map_point_to_unit_sphere( polygons, equator, &unit_sphere,
-                                  &unit_equator );
         print( "Used unit origin: %g %g %g\n",
                Point_x(unit_origin),
                Point_y(unit_origin),
                Point_z(unit_origin) );
-        print( "Used unit equator: %g %g %g\n",
-               Point_x(unit_equator),
-               Point_y(unit_equator),
-               Point_z(unit_equator) );
     }
     else
     {
         fill_Point( unit_origin, 1.0, 0.0, 0.0 );
-        fill_Point( unit_equator, 0.0, 1.0, 0.0 );
+        origin_u = 0.0;
+        origin_v = 0.5;
+        rot_angle = 0.0;
     }
+
+    get_sphere_transform( &unit_origin, origin_u, origin_v, rot_angle,
+                          &transform );
+
+    convert_sphere_point_to_2d( &transform,
+                                &unit_origin, &u, &v );
+
+    print( "%g %g %g %g\n", origin_u, origin_v, u, v );
 
     for_less( point_index, 0, polygons->n_points )
     {
-        convert_sphere_point_to_2d( &unit_origin, &unit_equator,
+        convert_sphere_point_to_2d( &transform,
                                     &unit_sphere.points[point_index], &u, &v );
 
         convert_uv_to_volume_position( sizes, u, v, voxel );
