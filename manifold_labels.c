@@ -147,25 +147,151 @@ private  int  dilate(
     return( n_changed );
 }
 
-private  BOOLEAN  can_delete_voxel(
-    Volume    volume,
-    int       v0,
-    int       v1,
-    int       v2,
-    int       n_dirs,
-    int       dx[],
-    int       dy[],
-    int       dz[] )
-{
-    return( TRUE );
-}
-
 typedef  struct
 {
     unsigned short  v0;
     unsigned short  v1;
     unsigned short  v2;
 } voxel_struct;
+
+private  void    get_connected_components(
+    BOOLEAN   inside[3][3][3],
+    int       components[3][3][3] )
+{
+    int                            dx, dy, dz, n_components;
+    int                            dim, dir;
+    int                            voxel[N_DIMENSIONS];
+    QUEUE_STRUCT( voxel_struct )   queue;
+    voxel_struct                   entry;
+
+    for_less( dx, 0, 3 )
+    for_less( dy, 0, 3 )
+    for_less( dz, 0, 3 )
+    {
+        components[dx][dy][dz] = -1;
+    }
+
+    n_components = 0;
+    for_less( dx, 0, 3 )
+    for_less( dy, 0, 3 )
+    for_less( dz, 0, 3 )
+    {
+        if( !inside[dx][dy][dz] && components[dx][dy][dz] < 0 )
+        {
+            components[dx][dy][dz] = n_components;
+            INITIALIZE_QUEUE( queue );
+            entry.v0 = (unsigned short) dx;
+            entry.v1 = (unsigned short) dy;
+            entry.v2 = (unsigned short) dz;
+
+            INSERT_IN_QUEUE( queue, entry );
+
+            while( !IS_QUEUE_EMPTY( queue ) )
+            {
+                REMOVE_FROM_QUEUE( queue, entry );
+                voxel[0] = (int) entry.v0;
+                voxel[1] = (int) entry.v1;
+                voxel[2] = (int) entry.v2;
+
+                for_less( dim, 0, 3 )
+                for( dir = -1;  dir <= 1;  dir += 2 )
+                {
+                    voxel[dim] += dir;
+                    if( voxel[dim] >= 0 && voxel[dim] <= 2 &&
+                        !inside[voxel[0]][voxel[1]][voxel[2]] &&
+                        components[voxel[0]][voxel[1]][voxel[2]] < 0 )
+                    {
+                        components[voxel[0]][voxel[1]][voxel[2]] = n_components;
+                        entry.v0 = (unsigned short) voxel[0];
+                        entry.v1 = (unsigned short) voxel[1];
+                        entry.v2 = (unsigned short) voxel[2];
+                        INSERT_IN_QUEUE( queue, entry );
+                    }
+                    voxel[dim] -= dir;
+                }
+            }
+
+            DELETE_QUEUE( queue );
+
+            ++n_components;
+        }
+    }
+}
+
+private  BOOLEAN  can_delete_voxel(
+    Volume    volume,
+    int       sizes[],
+    int       v0,
+    int       v1,
+    int       v2 )
+{
+    int       dx, dy, dz, t0, t1, t2;
+    int       voxel[N_DIMENSIONS], dim, dir;
+    int       components[3][3][3], component, this_component;
+    BOOLEAN   inside[3][3][3];
+
+    for_less( dx, 0, 3 )
+    for_less( dy, 0, 3 )
+    for_less( dz, 0, 3 )
+    {
+        t0 = v0 + dx - 1;
+        t1 = v1 + dy - 1;
+        t2 = v2 + dz - 1;
+        if( t0 < 0 || t0 >= sizes[0] ||
+            t1 < 0 || t1 >= sizes[1] ||
+            t2 < 0 || t2 >= sizes[2] ||
+            get_volume_real_value(volume,t0,t1,t2,0,0) == 0.0 )
+        {
+            inside[dx][dy][dz] = FALSE;
+        }
+        else
+        {
+            inside[dx][dy][dz] = TRUE;
+        }
+    }
+
+/*
+    if( inside[2][1][1] && inside[1][2][1] && !inside[2][2][1] ||
+        inside[0][1][1] && inside[1][0][1] && !inside[0][0][1] ||
+        inside[2][1][1] && inside[1][0][1] && !inside[2][0][1] ||
+        inside[0][1][1] && inside[1][2][1] && !inside[0][2][1] ||
+        inside[2][1][1] && inside[1][1][2] && !inside[2][1][2] ||
+        inside[0][1][1] && inside[1][1][2] && !inside[0][1][2] ||
+        inside[0][1][1] && inside[1][1][0] && !inside[0][1][0] ||
+        inside[2][1][1] && inside[1][1][0] && !inside[2][1][0] ||
+        inside[1][2][1] && inside[1][1][2] && !inside[1][2][2] ||
+        inside[1][0][1] && inside[1][1][2] && !inside[1][0][2] ||
+        inside[1][0][1] && inside[1][1][0] && !inside[1][0][0] ||
+        inside[1][2][1] && inside[1][1][0] && !inside[1][2][0] )
+        return( FALSE );
+*/
+
+    get_connected_components( inside, components );
+
+    voxel[0] = 1;
+    voxel[1] = 1;
+    voxel[2] = 1;
+
+    component = -1;
+    for_less( dim, 0, 3 )
+    for( dir = -1;  dir <= 1;  dir += 2 )
+    {
+        voxel[dim] += dir;
+        this_component = components[voxel[0]][voxel[1]][voxel[2]];
+        if( this_component >= 0 )
+        {
+            if( component >= 0 && component != this_component )
+                return( FALSE );
+            component = this_component;
+        }
+        voxel[dim] -= dir;
+    }
+
+    if( component < 0 )
+        return( FALSE );
+
+    return( TRUE );
+}
 
 private  int  erode(
     Volume    volume,
@@ -175,8 +301,8 @@ private  int  erode(
     int       dz[] )
 {
     int           v0, v1, v2, v3, v4, t0, t1, t2;
-    int           dir, n_eroded, sizes[N_DIMENSIONS];
-    Real          value, priority;
+    int           dir, n_eroded, sizes[N_DIMENSIONS], n_iters, increment;
+    Real          value, priority, prev_time, diff_time, this_time;
     PRIORITY_QUEUE_STRUCT( voxel_struct )   queue;
     voxel_struct                            entry;
     Smallest_int  ***in_queue;
@@ -223,6 +349,10 @@ private  int  erode(
 
     END_ALL_VOXELS
 
+    n_iters = 0;
+    increment = 1;
+    prev_time = current_realtime_seconds();
+
     while( !IS_PRIORITY_QUEUE_EMPTY( queue ) )
     {
         REMOVE_FROM_PRIORITY_QUEUE( queue, entry, priority );
@@ -232,7 +362,7 @@ private  int  erode(
         v2 = (int) entry.v2;
         in_queue[v0][v1][v2] = FALSE;
 
-        if( can_delete_voxel( volume, v0, v1, v2, n_dirs, dx, dy, dz ) )
+        if( can_delete_voxel( volume, sizes, v0, v1, v2 ) )
         {
             set_volume_real_value( volume, v0, v1, v2, 0, 0, 0.0 );
             ++n_eroded;
@@ -259,6 +389,20 @@ private  int  erode(
                     }
                 }
             }
+        }
+
+        ++n_iters;
+        if( n_iters % increment == 0 )
+        {
+            print( "Iter %d: queue size = %d\n", n_iters,
+                   NUMBER_IN_PRIORITY_QUEUE(queue) );
+
+            this_time = current_realtime_seconds();
+            diff_time = this_time - prev_time;
+            if( diff_time < 1.0 )
+                increment *= 10;
+            else if( diff_time > 20.0 && increment > 1 )
+                increment /= 10;
         }
     }
 
