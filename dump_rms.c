@@ -9,7 +9,7 @@ int  main(
     STRING           input1_filename, input2_filename, output_filename;
     int              i, n_objects, n_points1, n_points2;
     Real             dx, dy, dz, dist_sq, rms;
-    Real             sum_x, sum_xx, std_dev, avg_dist;
+    Real             sum_x, sum_xx, std_dev, avg_dist, min_dist, max_dist;
     File_formats     format;
     object_struct    **object_list;
     Point            *points1, *points2;
@@ -58,6 +58,8 @@ int  main(
 
     sum_x = 0.0;
     sum_xx = 0.0;
+    min_dist = 0.0;
+    max_dist = 0.0;
 
     for_less( i, 0, n_points1 )
     {
@@ -66,6 +68,11 @@ int  main(
         dz = (Real) Point_z(points1[i]) - (Real) Point_z(points2[i]);
 
         dist_sq = dx * dx + dy * dy + dz * dz;
+
+        if( i == 0 || dist_sq < min_dist )
+            min_dist = dist_sq;
+        if( i == 0 || dist_sq > max_dist )
+            max_dist = dist_sq;
 
         if( output_flag )
         {
@@ -83,6 +90,12 @@ int  main(
     if( output_flag )
         (void) close_file( file );
 
+    if( min_dist > 0.0 )
+        min_dist = sqrt( min_dist );
+
+    if( max_dist > 0.0 )
+        max_dist = sqrt( max_dist );
+
     rms = sqrt( sum_xx / (Real) n_points1 );
     avg_dist = sum_x / (Real) n_points1;
     std_dev = (sum_xx - sum_x * sum_x / (Real) n_points1) /
@@ -93,6 +106,8 @@ int  main(
     print( "Rms over the %d points: %g\n", n_points1, rms );
     print( "Average           dist: %g\n", avg_dist );
     print( "Std dev           dist: %g\n", std_dev );
+    print( "Min               dist: %g\n", min_dist );
+    print( "Max               dist: %g\n", max_dist );
 
     return( 0 );
 }
