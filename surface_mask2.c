@@ -261,7 +261,7 @@ int main ( int argc, char *argv[] )
    */
 
   if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
-                    NC_BYTE, FALSE, 0.0, 0.0, TRUE, 
+                    MI_ORIGINAL_TYPE, FALSE, 0.0, 0.0, TRUE, 
                     &binary_volume, NULL ) != OK )
     return( 1 );
 

@@ -1,3 +1,10 @@
+2003-08-29  Jason Lerch    <jason@bic.mni.mcgill.ca>
+
+	* fixed a bug in surface_mask2 which caused it to fail when the
+	histogram of the input volume was skewed and the volume had a
+	datatype other than NC_BYTE. Now reads in volume using
+	MI_ORIGINAL_TYPE. 
+
 2003-04-30  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* average_objects.c: Completed the code.
