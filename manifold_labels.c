@@ -1,6 +1,9 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+private  BOOLEAN  ones_surrounded(
+    Volume    volume );
+
 private  int  dilate(
     Volume    volume,
     Volume    out_volume,
@@ -12,6 +15,9 @@ private  int  dilate(
 
 private  int  erode(
     Volume    volume,
+    int       c0,
+    int       c1,
+    int       c2,
     int       n_dirs,
     int       dx[],
     int       dy[],
@@ -38,6 +44,7 @@ int  main(
     int                  v1, v2, v3, v4, v5, n_changed, value, n_neighs;
     int                  n_dirs, *dx, *dy, *dz, max_label;
     int                  total_added, n_eroded;
+    int                  c1, c2, c3, n_non_empty;
     Real                 voxel;
     Neighbour_types      connectivity;
 
@@ -67,10 +74,32 @@ int  main(
                       NULL ) != OK )
         return( 1 );
 
+    c1 = 0;
+    c2 = 0;
+    c3 = 0;
+    n_non_empty = 0;
+    BEGIN_ALL_VOXELS( volume, v1, v2, v3, v4, v5 )
+        voxel = get_volume_voxel_value( volume, v1, v2, v3, v4, v5);
+        if( voxel > 0.0 )
+        {
+            c1 += v1;
+            c2 += v2;
+            c3 += v3;
+            ++n_non_empty;
+        }
+    END_ALL_VOXELS
+
+    c1 /= n_non_empty;
+    c2 /= n_non_empty;
+    c3 /= n_non_empty;
+
     out_volume = copy_volume( volume );
+    total_added = 0;
+
+    n_changed = 1;
 
     value = 2;
-    do
+    while( /* !ones_surrounded( volume ) && */ n_changed > 0 && value < max_label )
     {
         if( value > 2 )
         {
@@ -86,11 +115,10 @@ int  main(
         print( "Dilated %d: %d\n", value, n_changed );
         ++value;
     }
-    while( n_changed > 0 && value < max_label );
 
     delete_volume( volume );
 
-    n_eroded = erode( out_volume, n_dirs, dx, dy, dz );
+    n_eroded = erode( out_volume, c1, c2, c3, n_dirs, dx, dy, dz );
 
     print( "Initially changed: %d\n", total_added );
     print( "Final changed: %d\n", total_added - n_eroded );
@@ -100,6 +128,39 @@ int  main(
                                    "Dilated\n", NULL );
 
     return( 0 );
+}
+
+private  BOOLEAN  ones_surrounded(
+    Volume    volume )
+{
+    int   v0, v1, v2, v3, v4, sizes[N_DIMENSIONS];
+    int   t0, t1, t2, s0, s1, s2, e0, e1, e2;
+
+    get_volume_sizes( volume, sizes );
+
+    BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
+
+        if( get_volume_real_value( volume,v0,v1,v2,0,0 ) != 1.0 )
+            continue;
+
+        s0 = MAX( 0, v0 - 1 );
+        e0 = MIN( sizes[0]-1, v0 + 1 );
+        s1 = MAX( 0, v1 - 1 );
+        e1 = MIN( sizes[1]-1, v1 + 1 );
+        s2 = MAX( 0, v2 - 1 );
+        e2 = MIN( sizes[2]-1, v2 + 1 );
+
+        for_inclusive( t0, s0, e0 )
+        for_inclusive( t1, s1, e1 )
+        for_inclusive( t2, s2, e2 )
+        {
+            if( get_volume_real_value( volume,t0,t1,t2,0,0 ) == 0.0 )
+                return( FALSE );
+        }
+
+    END_ALL_VOXELS
+
+    return( TRUE );
 }
 
 private  int  dilate(
@@ -163,6 +224,7 @@ private  void    get_connected_components(
     int                            voxel[N_DIMENSIONS];
     QUEUE_STRUCT( voxel_struct )   queue;
     voxel_struct                   entry;
+    BOOLEAN                        inside_flag;
 
     for_less( dx, 0, 3 )
     for_less( dy, 0, 3 )
@@ -176,8 +238,9 @@ private  void    get_connected_components(
     for_less( dy, 0, 3 )
     for_less( dz, 0, 3 )
     {
-        if( !inside[dx][dy][dz] && components[dx][dy][dz] < 0 )
+        if( components[dx][dy][dz] < 0 && (dx != 1 || dy != 1 || dz != 1) )
         {
+            inside_flag = inside[dx][dy][dz];
             components[dx][dy][dz] = n_components;
             INITIALIZE_QUEUE( queue );
             entry.v0 = (unsigned short) dx;
@@ -198,7 +261,7 @@ private  void    get_connected_components(
                 {
                     voxel[dim] += dir;
                     if( voxel[dim] >= 0 && voxel[dim] <= 2 &&
-                        !inside[voxel[0]][voxel[1]][voxel[2]] &&
+                        inside[voxel[0]][voxel[1]][voxel[2]] == inside_flag &&
                         components[voxel[0]][voxel[1]][voxel[2]] < 0 )
                     {
                         components[voxel[0]][voxel[1]][voxel[2]] = n_components;
@@ -221,7 +284,7 @@ private  void    get_connected_components(
 private  BOOLEAN    creates_diagonal_touching(
     BOOLEAN   inside[3][3][3] )
 {
-    int   dim, a1, a2, dir0, dir1, dir2;
+    int   dir0, dir1, dir2;
     int   v0, v1, v2, s0, s1, s2, e0, e1, e2, d0, d1, d2, count;
     int   voxel[N_DIMENSIONS];
 
@@ -270,7 +333,10 @@ private  BOOLEAN  can_delete_voxel(
 {
     int       dx, dy, dz, t0, t1, t2;
     int       voxel[N_DIMENSIONS], dim, dir;
-    int       components[3][3][3], component, this_component;
+    int       prev_components[3][3][3];
+    int       post_components[3][3][3];
+    int       prev_component;
+    int       post_component;
     BOOLEAN   inside[3][3][3];
 
     for_less( dx, 0, 3 )
@@ -310,43 +376,47 @@ private  BOOLEAN  can_delete_voxel(
     if( creates_diagonal_touching( inside ) )
         return( FALSE );
 
-    get_connected_components( inside, components );
+    get_connected_components( inside, prev_components );
+
+    inside[1][1][1] = FALSE;
+
+    get_connected_components( inside, post_components );
 
     voxel[0] = 1;
     voxel[1] = 1;
     voxel[2] = 1;
 
-    component = -1;
     for_less( dim, 0, 3 )
     for( dir = -1;  dir <= 1;  dir += 2 )
     {
         voxel[dim] += dir;
-        this_component = components[voxel[0]][voxel[1]][voxel[2]];
-        if( this_component >= 0 )
+        prev_component = prev_components[voxel[0]][voxel[1]][voxel[2]];
+        post_component = post_components[voxel[0]][voxel[1]][voxel[2]];
+        if( prev_component != post_component )
         {
-            if( component >= 0 && component != this_component )
-                return( FALSE );
-            component = this_component;
+            return( FALSE );
         }
         voxel[dim] -= dir;
     }
-
-    if( component < 0 )
-        return( FALSE );
 
     return( TRUE );
 }
 
 private  int  erode(
     Volume    volume,
+    int       c0,
+    int       c1,
+    int       c2,
     int       n_dirs,
     int       dx[],
     int       dy[],
     int       dz[] )
 {
     int           v0, v1, v2, v3, v4, t0, t1, t2;
+    int           d0, d1, d2;
     int           dir, n_eroded, sizes[N_DIMENSIONS], n_iters, increment;
     Real          value, priority, prev_time, diff_time, this_time;
+    Real          dist;
     PRIORITY_QUEUE_STRUCT( voxel_struct )   queue;
     voxel_struct                            entry;
     Smallest_int  ***in_queue;
@@ -387,7 +457,11 @@ private  int  erode(
             entry.v0 = (unsigned short) v0;
             entry.v1 = (unsigned short) v1;
             entry.v2 = (unsigned short) v2;
-            INSERT_IN_PRIORITY_QUEUE( queue, entry, value );
+            d0 = v0 - c0;
+            d1 = v1 - c1;
+            d2 = v2 - c2;
+            dist = (Real) (d0 * d0 + d1 * d1 + d2 * d2);
+            INSERT_IN_PRIORITY_QUEUE( queue, entry, dist );
             in_queue[v0][v1][v2] = TRUE;
         }
 
@@ -428,7 +502,11 @@ private  int  erode(
                         entry.v0 = (unsigned short) t0;
                         entry.v1 = (unsigned short) t1;
                         entry.v2 = (unsigned short) t2;
-                        INSERT_IN_PRIORITY_QUEUE( queue, entry, value );
+                        d0 = t0 - c0;
+                        d1 = t1 - c1;
+                        d2 = t2 - c2;
+                        dist = (Real) (d0 * d0 + d1 * d1 + d2 * d2);
+                        INSERT_IN_PRIORITY_QUEUE( queue, entry, dist );
                         in_queue[t0][t1][t2] = TRUE;
                     }
                 }
