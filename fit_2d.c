@@ -93,10 +93,10 @@ private  void  create_model_coefficients(
     Real             *weights[2][2], cons[2];
     BOOLEAN          ignoring;
 
-    ALLOC( weights[0][0], MAX_POINTS_PER_POLYGON );
-    ALLOC( weights[0][1], MAX_POINTS_PER_POLYGON );
-    ALLOC( weights[1][0], MAX_POINTS_PER_POLYGON );
-    ALLOC( weights[1][1], MAX_POINTS_PER_POLYGON );
+    ALLOC( weights[0][0], 2 );
+    ALLOC( weights[0][1], 2 );
+    ALLOC( weights[1][0], 2 );
+    ALLOC( weights[1][1], 2 );
 
     eq = 0;
     for_less( node, 0, n_nodes )
@@ -109,6 +109,8 @@ private  void  create_model_coefficients(
         xs[1] = RPoint_x(model_points[next]);
         ys[1] = RPoint_y(model_points[next]);
 
+        ignoring = FALSE;
+
         if( !get_prediction_weights_2d( RPoint_x(model_points[node]),
                                         RPoint_y(model_points[node]),
                                         2, xs, ys,
@@ -118,6 +120,14 @@ private  void  create_model_coefficients(
             print_error( "Error in interpolation weights, ignoring..\n" );
             ignoring = TRUE;
         }
+
+#ifdef DEBUG
+        print( "%d: %g %g %g %g %g    %g %g %g %g %g\n",
+                node, cons[0], weights[0][0][0], weights[0][0][1],
+                               weights[0][1][0], weights[0][1][1],
+                      cons[1], weights[1][0][0], weights[1][0][1],
+                               weights[1][1][0], weights[1][1][1] );
+#endif
 
         if( ignoring )
         {
@@ -157,12 +167,13 @@ private  void  create_model_coefficients(
 #ifdef DEBUG
 #define DEBUG
 #undef DEBUG
-    for_less( eq, 0, n_equations )
+    for_less( eq, 0, 2 * n_nodes )
     {
-        print( "%3d: %g : ", eq, (*constants)[eq] );
-        for_less( p, 0, (*n_parms_involved)[eq] )
+        int  p;
+        print( "%3d: %g : ", eq, constants[eq] );
+        for_less( p, 0, n_parms_involved[eq] )
         {
-            print( " %d:%g ", (*parm_list)[eq][p], (*node_weights)[eq][p] );
+            print( " %d:%g ", parm_list[eq][p], node_weights[eq][p] );
         }
         print( "\n" );
     }
@@ -307,6 +318,22 @@ private  void  deform_line(
                                    &parm_list[n_model_equations],
                                    &constants[n_model_equations],
                                    &node_weights[n_model_equations] );
+#ifdef DEBUG
+#define DEBUG
+#undef DEBUG
+{
+    int  eq, n;
+    for_less( eq, 0, n_equations )
+    {
+        print( "%d: %g : ", eq, constants[eq] );
+        for_less( n, 0, n_parms_involved[eq] )
+        {
+            print( " %d:%g", parm_list[eq][n], node_weights[eq][n] );
+        }
+        print( "\n" );
+    }
+}
+#endif
 
         (void) minimize_lsq( 2 * n_points, n_equations,
                              n_parms_involved, parm_list, constants,
