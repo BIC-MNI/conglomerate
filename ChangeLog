@@ -1,5 +1,7 @@
 2003-11-17  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
+	* COPYING: New.  License text copied from bicpl.
+
 	* ParseArgv.c:
 	* ParseArgv.h: Remove.  These files are now installed as part of minc.
 	

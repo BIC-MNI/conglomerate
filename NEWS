@@ -1,6 +1,8 @@
 	New in Release 1.3
 	------------------
 
+* New option for surface_mask2: -output_binary_mask.
+* ascii_binary removed to package "bicpl".
 * average_objects now works.
 
 

@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT
 AC_CONFIG_SRCDIR([surface_mask2.c])
 AM_INIT_AUTOMAKE(conglomerate, 1.3)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 smr_WITH_BUILD_PATH
 
