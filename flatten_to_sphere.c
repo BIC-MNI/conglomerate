@@ -138,17 +138,28 @@ private  int  create_coefficients(
     Real             *constants[],
     Real             **node_weights[] )
 {
-    int              n_equations, node, p, eq, dim, n_nodes_in, max_neighbours;
+    int              node, p, eq, dim, max_neighbours;
     int              neigh, ind, dim1;
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             x_sphere[MAX_POINTS_PER_POLYGON];
+    Real             x_sphere[MAX_POINTS_PER_POLYGON], x, y, z;
     Real             y_sphere[MAX_POINTS_PER_POLYGON];
     Real             z_sphere[MAX_POINTS_PER_POLYGON];
-    Real             *weights[N_DIMENSIONS][N_DIMENSIONS];
-    Real             radius;
+    Real             *weights[3][3];
+    Real             radius, con;
+    int              nodes[100];
+    Real             eq_weights[100];
     BOOLEAN          found, ignoring;
+    progress_struct  progress;
 
-    radius = sqrt( get_polygons_surface_area( polygons ) / 4.0 * PI );
+Point  centre = { 0.0f, 0.0f, 0.0f };
+polygons_struct  unit_sphere;
+
+    radius = sqrt( get_polygons_surface_area( polygons ) / 4.0 / PI );
+
+    print( "Radius: %g\n", radius );
+
+create_tetrahedral_sphere( &centre, radius, radius, radius, polygons->n_items,
+                           &unit_sphere );
 
     max_neighbours = 0;
     for_less( node, 0, polygons->n_points )
@@ -161,49 +172,52 @@ private  int  create_coefficients(
         ALLOC( weights[2][dim], max_neighbours );
     }
 
-    n_equations = 0;
+    *n_nodes_involved = NULL;
+    *constants = NULL;
+    *node_weights = NULL;
+    *node_list = NULL;
+
+    eq = 0;
+
+    initialize_progress_report( &progress, FALSE, polygons->n_points,
+                                "Creating Coefficients" );
     for_less( node, 0, polygons->n_points )
     {
         found = to_parameters[node] >= 0;
+
         for_less( p, 0, n_neighbours[node] )
         {
             if( to_parameters[neighbours[node][p]] >= 0 )
-            {
                 found = TRUE;
-                break;
-            }
-        }
-        if( found && n_neighbours[node] >= 3 )
-            ++n_equations;
-    }
-
-    n_equations *= 3;
-
-    ALLOC( *n_nodes_involved, n_equations );
-    ALLOC( *constants, n_equations );
-    ALLOC( *node_weights, n_equations );
-    ALLOC( *node_list, n_equations );
-
-    eq = 0;
-    for_less( node, 0, polygons->n_points )
-    {
-        n_nodes_in = 0;
-        if( to_parameters[node] >= 0 )
-            ++n_nodes_in;
-
-        for_less( p, 0, n_neighbours[node] )
-        {
-            if( to_parameters[neighbours[node][p]] >= 0 )
-                n_nodes_in += N_DIMENSIONS;
         }
 
-
-        if( n_nodes_in == 0 || n_neighbours[node] < 3 )
+        if( !found )
             continue;
 
         for_less( p, 0, n_neighbours[node] )
             neigh_points[p] = polygons->points[neighbours[node][p]];
 
+        for_less( p, 0, n_neighbours[node] )
+        {
+            x_sphere[p] = RPoint_x(unit_sphere.points[neighbours[node][p]]);
+            y_sphere[p] = RPoint_y(unit_sphere.points[neighbours[node][p]]);
+            z_sphere[p] = RPoint_z(unit_sphere.points[neighbours[node][p]]);
+        }
+
+        x = RPoint_x( unit_sphere.points[node] );
+        y = RPoint_y( unit_sphere.points[node] );
+        z = RPoint_z( unit_sphere.points[node] );
+
+        if( !get_prediction_weights_3d( x, y, z,
+                                        n_neighbours[node],
+                                        x_sphere, y_sphere, z_sphere,
+                                        weights[0], weights[1], weights[2] ) )
+                                         
+        {
+            print_error( "Error in interpolation weights, ignoring..\n" );
+            ignoring = TRUE;
+        }
+/*
         flatten_around_vertex_to_sphere( radius, &polygons->points[node],
                                          n_neighbours[node], neigh_points,
                                          x_sphere, y_sphere, z_sphere );
@@ -218,6 +232,7 @@ private  int  create_coefficients(
             print_error( "Error in interpolation weights, ignoring..\n" );
             ignoring = TRUE;
         }
+*/
 
         if( !ignoring )
         {
@@ -235,54 +250,21 @@ private  int  create_coefficients(
         }
 
         if( ignoring )
-        {
-            for_less( dim, 0, N_DIMENSIONS )
-            {
-                (*n_nodes_involved)[eq] = 0;
-                (*constants)[eq] = 0.0;
-                ++eq;
-            }
             continue;
-        }
-
-#ifdef DEBUG
-#define DEBUG
-        for_less( dim, 0, N_DIMENSIONS )
-        {
-            Real  value;
-            value = 0.0;
-            for_less( p, 0, n_neighbours[node] )
-                value += weights[p] * (RPoint_coord(neigh_points[p],dim) - RPoint_coord(polygons->points[node],dim));
-
-            if( !numerically_close( value, 0.0, 1.0e-4 ) )
-            {
-                print_error( "Error: %g %g\n", value, 0.0 );
-                value = 0.0;
-                for_less( p, 0, n_neighbours[node] )
-                    value += weights[p];
-                for_less( p, 0, n_neighbours[node] )
-                    print( " %g", weights[p] );
-                print( " : %g\n", value );
-            }
-        }
-#endif
 
         for_less( dim, 0, N_DIMENSIONS )
         {
-            (*n_nodes_involved)[eq] = n_nodes_in;
-            ALLOC( (*node_list)[eq], (*n_nodes_involved)[eq] );
-            ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
-
             ind = 0;
+
             if( to_parameters[node] >= 0 )
             {
-                (*node_list)[eq][ind] = 3 * to_parameters[node] + dim;
-                (*node_weights)[eq][ind] = 1.0;
+                nodes[ind] = 3 * to_parameters[node] + dim;
+                eq_weights[ind] = 1.0;
                 ++ind;
-                (*constants)[eq] = 0.0;
+                con = 0.0;
             }
             else
-                (*constants)[eq] = fixed_pos[dim][to_fixed_index[node]];
+                con = fixed_pos[dim][to_fixed_index[node]];
 
             for_less( p, 0, n_neighbours[node] )
             {
@@ -291,33 +273,56 @@ private  int  create_coefficients(
                 {
                     for_less( dim1, 0, N_DIMENSIONS )
                     {
-                        (*node_list)[eq][ind] = 3 * to_parameters[neigh] + dim1;
-                        (*node_weights)[eq][ind] = -weights[dim][dim1][p];
-                        ++ind;
+                        if( weights[dim][dim1][p] != 0.0 )
+                        {
+                            nodes[ind] = 3 * to_parameters[neigh] + dim1;
+                            eq_weights[ind] = -weights[dim][dim1][p];
+                            ++ind;
+                        }
                     }
                 }
                 else
                 {
                     for_less( dim1, 0, N_DIMENSIONS )
                     {
-                        (*constants)[eq] = -weights[dim][dim1][p] *
-                                       fixed_pos[dim1][to_fixed_index[neigh]];
+                        con += -weights[dim][dim1][p] *
+                              fixed_pos[dim1][to_fixed_index[neigh]];
                     }
                 }
             }
 
-            ++eq;
+            if( ind > 0 )
+            {
+                SET_ARRAY_SIZE( *n_nodes_involved, eq,eq+1,DEFAULT_CHUNK_SIZE );
+                SET_ARRAY_SIZE( *node_list, eq,eq+1,DEFAULT_CHUNK_SIZE );
+                SET_ARRAY_SIZE( *node_weights, eq,eq+1,DEFAULT_CHUNK_SIZE );
+                SET_ARRAY_SIZE( *constants, eq,eq+1,DEFAULT_CHUNK_SIZE );
+                (*n_nodes_involved)[eq] = ind;
+                (*constants)[eq] = con;
+                ALLOC( (*node_list)[eq], (*n_nodes_involved)[eq] );
+                ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
+                for_less( ind, 0, (*n_nodes_involved)[eq] )
+                {
+                    (*node_list)[eq][ind] = nodes[ind];
+                    (*node_weights)[eq][ind] = eq_weights[ind];
+                }
+                ++eq;
+            }
         }
+
+        update_progress_report( &progress, node + 1 );
     }
+
+    terminate_progress_report( &progress );
 
 #ifdef DEBUG
 #define DEBUG
     {
-        for_less( eq, 0, n_equations )
+        for_less( ind, 0, eq )
         {
-            print( "%d: %g : ", eq, (*constants)[eq] );
-            for_less( p, 0, (*n_nodes_involved)[eq] )
-                print( " %d:%g", (*node_list)[eq][p], (*node_weights)[eq][p] );
+            print( "%d: %g : ", ind, (*constants)[ind] );
+            for_less( p, 0, (*n_nodes_involved)[ind] )
+                print( " %d:%g", (*node_list)[ind][p], (*node_weights)[ind][p] );
             print( "\n" );
         }
     }
@@ -331,7 +336,9 @@ private  int  create_coefficients(
         FREE( weights[2][dim] );
     }
 
-    return( n_equations );
+delete_polygons( &unit_sphere );
+
+    return( eq );
 }
 
 private  void  flatten_polygons(
@@ -350,9 +357,7 @@ private  void  flatten_polygons(
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
 
-/*
     expand_neighbours( polygons->n_points, n_neighbours, neighbours );
-*/
 
     size = GET_OBJECT_SIZE( *polygons, 0 );
     n_fixed = size;
@@ -367,7 +372,7 @@ private  void  flatten_polygons(
                            POINT_INDEX(polygons->end_indices,0,i)];
         for_less( dim, 0, N_DIMENSIONS )
             fixed_pos[dim][i] = RPoint_coord(
-                           polygons->points[fixed_indices[i]], dim );
+                                   polygons->points[fixed_indices[i]], dim );
     }
 
     ALLOC( to_parameters, polygons->n_points );
@@ -415,6 +420,27 @@ private  void  flatten_polygons(
             parameters[3*to_parameters[point]+2] = RPoint_z(init_points[point]);
         }
     }
+
+#ifdef DEBUG
+#define DEBUG
+    {
+    int eq;
+    Real value;
+        for_less( eq, 0, n_equations )
+        {
+            value = constants[eq];
+            for_less( point, 0, n_nodes_per_equation[eq] )
+            {
+                value += node_weights[eq][point] *
+                         parameters[node_list[eq][point]];
+            }
+
+            if( value > 1e-6 )
+                print( "%d: %g\n", eq, value );
+        }
+    }
+#endif
+
 
     (void) minimize_lsq( 3 * (polygons->n_points - n_fixed), n_equations,
                          n_nodes_per_equation, node_list, constants,
