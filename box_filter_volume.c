@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char   usage_str[] = "\n\
+    STRING   usage_str = "\n\
 Usage: %s input.mnc output.mnc x_width y_width z_width\n\
            [world|voxel] [byte]\n\
 \n\
@@ -23,8 +23,8 @@ int  main(
     Real       x_width, y_width, z_width, separations[MAX_DIMENSIONS];
     nc_type    data_type;
     BOOLEAN    world_space, byte_flag;
-    char       *input_filename, *output_filename, *history, *dummy;
-    char       *space_text;
+    STRING     input_filename, output_filename, history, dummy;
+    STRING     space_text;
     static     int  axis_ordering[] = { X, Y, Z };
 
     initialize_argument_processing( argc, argv );
@@ -41,7 +41,7 @@ int  main(
     (void) get_real_argument( 3.0, &z_width );
 
     world_space = get_string_argument( "", &space_text ) &&
-                  strcmp( space_text, "world" ) == 0;
+                  equal_strings( space_text, "world" );
     byte_flag = get_string_argument( "", &dummy );
 
     if( byte_flag )

@@ -5,14 +5,14 @@ private  void  usage(
     STRING   executable )
 {
     static  STRING  usage_str = "\n\
-Usage: %s  volume.mnc  input.tag|input.mnc|none  [dump_file|none] [nomedian]\n\
+Usage: %s  volume.mnc  input.tag|input.mnc|none  [dump_file|none] [median]\n\
 \n\
      Computes the statistics for the volume intensity of the volume.  If\n\
      an input tag or label file is specified, then only those voxels in\n\
      in the region of the tags or mask volume or considered.   If a\n\
      third argument (other than the word none) is specified, all the\n\
      intensities are placed in the file.  If a fourth argument is specified,\n\
-     then the median is not computed, which saves some time.\n\n";
+     then the median is also computed, which increases the time required.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -26,7 +26,7 @@ int  main(
     Real                 mean, median, std_dev, value;
     Real                 min_sample_value, max_sample_value;
     Volume               volume, label_volume;
-    BOOLEAN              no_median_required;
+    BOOLEAN              median_required;
     Real                 separations[MAX_DIMENSIONS];
     Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
     Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
@@ -48,7 +48,7 @@ int  main(
 
     dumping = get_string_argument( NULL, &dump_filename ) &&
               !equal_strings( dump_filename, "none" );
-    no_median_required = get_string_argument( NULL, &dummy );
+    median_required = get_string_argument( NULL, &dummy );
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -165,7 +165,7 @@ int  main(
         get_statistics( &stats, &n_samples, &mean, &median, &median_is_exact,
                         &min_sample_value, &max_sample_value, &std_dev );
 
-        if( !no_median_required && !median_is_exact )
+        if( median_required && !median_is_exact )
             restart_statistics_with_narrower_median_range( &stats );
         else
             done = TRUE;
@@ -186,7 +186,8 @@ int  main(
         print( "Min      : %g\n", min_sample_value );
         print( "Max      : %g\n", max_sample_value );
         print( "Mean     : %g\n", mean );
-        print( "Median   : %g\n", median );
+        if( median_is_exact )
+            print( "Median   : %g\n", median );
         print( "Std Dev  : %g\n", std_dev );
         print( "Voxel Rng:" );
         for_less( c, 0, N_DIMENSIONS )

@@ -50,7 +50,6 @@ int  main(
         return( 1 );
     }
 
-
     switch( n_neighs )
     {
     case 6:   connectivity = FOUR_NEIGHBOURS;  break;
@@ -69,6 +68,12 @@ int  main(
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &mask_volume,
                           (minc_input_options *) NULL ) != OK )
             return( 1 );
+
+        if( !volumes_are_same_grid( mask_volume, volume ) )
+        {
+            print_error( "Mask volume must be on same grid as volume.\n" );
+            return( 1 );
+        }
     }
     else
     {
@@ -79,11 +84,11 @@ int  main(
 
     for_less( i, 0, n_dilations )
     {
-        n_changed = dilate_labeled_voxels_3d( mask_volume, volume,
-                                  (int) value_to_dilate, (int) value_to_dilate,
-                                  0.0, -1.0,
-                                  0, -1, min_mask, max_mask,
-                                  (int) value_to_dilate, connectivity );
+        n_changed = dilate_voxels_3d( mask_volume, volume,
+                                      value_to_dilate, value_to_dilate,
+                                      0.0, -1.0,
+                                      0.0, -1.0, min_mask, max_mask,
+                                      value_to_dilate, connectivity );
         print( "%d\n", n_changed );
     }
 
