@@ -1,7 +1,9 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  BINTREE_FACTOR  0.5
+#define  TOLERANCE  1.0e-3
+
+#define  BINTREE_FACTOR  0.0
 
 int  main(
     int   argc,
@@ -15,8 +17,8 @@ int  main(
     BOOLEAN              inside;
     File_formats         format;
     Volume               volume;
-    int                  c, x, y, z, n_objects, obj_index;
-    int                  sizes[MAX_DIMENSIONS], n_intersects;
+    int                  i, j, c, x, y, z, n_objects, obj_index, n_set;
+    int                  sizes[MAX_DIMENSIONS], n_intersects, save_n_int;
     int                  n_points, int_index, next_z;
     Real                 xw, yw, zw, dist, *distances, limits[2][3];
     Real                 voxel[MAX_DIMENSIONS];
@@ -58,7 +60,11 @@ int  main(
 
     polygons = get_polygons_ptr( objects[0] );
 
-    create_polygons_bintree( polygons, polygons->n_items * BINTREE_FACTOR );
+    if( BINTREE_FACTOR > 0.0 )
+    {
+        create_polygons_bintree( polygons,
+                                 polygons->n_items * BINTREE_FACTOR + 1);
+    }
 
     n_points = get_object_points( objects[0], &points );
     get_range_points( n_points, points, &point_range[0], &point_range[1] );
@@ -92,6 +98,8 @@ int  main(
 
     get_volume_sizes( volume, sizes );
 
+    n_set = 0;
+
     for_less( x, 0, sizes[X] )
     {
         voxel[X] = (Real) x;
@@ -114,37 +122,22 @@ int  main(
                                       objects[0], &obj_index,
                                       &dist, &distances );
 
+            save_n_int = n_intersects;
+            i = 0;
+            while( i < n_intersects-1 )
+            {
+                if( distances[i+1] - distances[i] <= TOLERANCE )
+                {
+                    --n_intersects;
+                    for_less( j, i+1, n_intersects )
+                        distances[j] = distances[j+1];
+                }
+                else
+                    ++i;
+            }
+
 if( n_intersects != 0 && n_intersects != 2 )
-{
-    int             i, true_n_intersects;
-    Real            true_dist, *true_distances;
-    bintree_struct  *bintree;
-
-    print( "n_intersects: %d\n", n_intersects );
-    bintree = polygons->bintree;
-    true_n_intersects = intersect_ray_with_object(
-                                      &ray_origin, &ray_direction,
-                                      objects[0], &obj_index,
-                                      &true_dist, &true_distances );
-
-    if( true_n_intersects == n_intersects )
-    {
-        for_less( i, 0, n_intersects )
-        {
-            if( distances[i] != true_distances[i] )
-                break;
-        }
-    }
-
-    if( true_n_intersects != n_intersects || true_dist != dist ||
-        i != n_intersects )
-    {
-        handle_internal_error( "bintree" );
-    }
-
-    if( true_n_intersects > 0 )
-        FREE( true_distances );
-}
+    print( "N intersects: %d\n", n_intersects );
 
             inside = FALSE;
             int_index = -1;
@@ -175,13 +168,18 @@ if( n_intersects != 0 && n_intersects != 2 )
                 }
 
                 if( inside )
+                {
                     set_volume_real_value( volume, x, y, z, 0, 0, value_to_set);
+                    ++n_set;
+                }
             }
                            
-            if( n_intersects > 0 )
+            if( save_n_int > 0 )
                 FREE( distances );
         }
     }
+
+    print( "Set %d out of %d\n", n_set, sizes[X] * sizes[Y] * sizes[Z] );
     
     (void) strcpy( history, "Inside surface labeled." );
 
