@@ -46,6 +46,7 @@ int  main( argc, argv )
     initialize_argument_processing( argc, argv );
 
     initialize_deformation_parameters( &deform );
+    deform.movement_threshold = 0.01;
 
     if( !get_string_argument( "", &volume_filename ) ||
         !get_string_argument( "", &activity_filename ) ||
