@@ -1,0 +1,64 @@
+radius := 8.53572;
+cx1 := (x1 + x2 + x3) / 3;
+cx2 := (x1 + x3 + x4) / 3;
+cy1 := (y1 + y2 + y3) / 3;
+cy2 := (y1 + y3 + y4) / 3;
+cz1 := (z1 + z2 + z3) / 3;
+cz2 := (z1 + z3 + z4) / 3;
+
+nx1 := (y2 - y1) * (z3 - z1) - (y3 - y1) * (z2 - z1);
+nx2 := (y3 - y1) * (z4 - z1) - (y4 - y1) * (z3 - z1);
+ny1 := (z2 - z1) * (x3 - x1) - (z3 - z1) * (x2 - x1);
+ny2 := (z3 - z1) * (x4 - x1) - (z4 - z1) * (x3 - x1);
+nz1 := (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
+nz2 := (x3 - x1) * (y4 - y1) - (x4 - x1) * (y3 - y1);
+
+len1 := 53.5918;
+len2 := 53.5918;
+#len1 := sqrt( nx1 * nx1 + ny1 * ny1 + nz1 * nz1 );
+#len2 := sqrt( nx2 * nx2 + ny2 * ny2 + nz2 * nz2 );
+
+dx := (cx1 - nx1 * radius / len1) - (cx2 - nx2 * radius / len2);
+dy := (cy1 - ny1 * radius / len1) - (cy2 - ny2 * radius / len2);
+dz := (cz1 - nz1 * radius / len1) - (cz2 - nz2 * radius / len2);
+
+f := dx * dx + dy * dy + dz * dz;
+
+a1 := diff( f, x1 );
+b1 := diff( f, y1 );
+c1 := diff( f, z1 );
+a2 := diff( f, x2 );
+b2 := diff( f, y2 );
+c2 := diff( f, z2 );
+a3 := diff( f, x3 );
+b3 := diff( f, y3 );
+c3 := diff( f, z3 );
+a4 := diff( f, x4 );
+b4 := diff( f, y4 );
+c4 := diff( f, z4 );
+
+x1 := 9;
+y1 := 0;
+z1 := 0;
+x2 := 7.07107;
+y2 := 0;
+z2 := -7.07107;
+x3 := 7.07107;
+y3 := 7.07107;
+z3 := 0;
+x4 := 7.07107;
+y4 := 0;
+z4 := 7.07107;
+
+a1;
+b1;
+c1;
+a2;
+b2;
+c2;
+a3;
+b3;
+c3;
+a4;
+b4;
+c4;
