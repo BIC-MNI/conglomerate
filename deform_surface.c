@@ -17,7 +17,7 @@ private  void  usage(
     (void) fprintf( stderr, "   max_search_distance degrees_continuity\n" );
     (void) fprintf( stderr, "   min_isovalue max_isovalue +/-/n\n" );
     (void) fprintf( stderr, "   gradient_threshold angle tolerance\n" );
-    (void) fprintf( stderr, "   max_iterations  stop_threshold\n" );
+    (void) fprintf( stderr, "   max_iterations  movement_threshold stop_threshold\n" );
 }
 
 int  main( argc, argv )
@@ -46,7 +46,6 @@ int  main( argc, argv )
     initialize_argument_processing( argc, argv );
 
     initialize_deformation_parameters( &deform );
-    deform.movement_threshold = 0.01;
 
     if( !get_string_argument( "", &volume_filename ) ||
         !get_string_argument( "", &activity_filename ) ||
@@ -92,6 +91,7 @@ int  main( argc, argv )
         !get_real_argument( 0.0, &angle ) ||
         !get_real_argument( 0.0, &tolerance ) ||
         !get_int_argument( 0, &deform.max_iterations ) ||
+        !get_real_argument( 0.0, &deform.movement_threshold ) ||
         !get_real_argument( 0.0, &deform.stop_threshold ) )
     {
         usage( argv[0] );
