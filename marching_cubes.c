@@ -1,4 +1,5 @@
-#include  <module.h>
+#include  <internal_volume_io.h>
+#include  <marching.h>
 
 #define  CHUNK_SIZE   1000000
 
@@ -39,6 +40,19 @@ private  void  extract_surface(
 static  char    *dimension_names_3D[] = { MIzspace, MIyspace, MIxspace };
 static  char    *dimension_names[] = { MIyspace, MIxspace };
 
+private  void  usage(
+    char   executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: marching_cubes  input.mnc  output.obj  threshold\n\
+       marching_cubes  input.mnc  output.obj  min_threshold max_threshold\n\
+\n\
+     Creates a polygonal surface of either the thresholded volume, or the\n\
+     boundary of the region of values between min and max threshold.\n\n";
+
+    print_error( usage_str, executable );
+}
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -61,10 +75,7 @@ int  main(
     if( !get_string_argument( "", &input_volume_filename ) ||
         !get_string_argument( "", &output_filename ) )
     {
-        print( "Usage: %s  volume_file  object_file  min_thresh max_thresh\n",
-               argv[0] );
-        print( "       [valid_low  valid_high]\n" );
-        print( "       [label_volume  valid_low  valid_high]\n" );
+        usage( argv[0] );
         return( 1 );
     }
 
@@ -465,16 +476,16 @@ private  void  extract_surface(
             {
                 corners[tx][ty][tz] = slices[tz][x+tx][y+ty];
 
-                if( (corners[tx][ty][tz] < min_threshold ||
+                if( valid_low <= valid_high &&
+                    (corners[tx][ty][tz] < min_threshold ||
                     corners[tx][ty][tz] > max_threshold) &&
-                    valid_low <= valid_high &&
                     (corners[tx][ty][tz] < valid_low ||
                      corners[tx][ty][tz] > valid_high) )
                     valid = FALSE;
 
                 if( min_label <= max_label &&
-                    (label_slices[tx][ty][tz] < min_label ||
-                     label_slices[tx][ty][tz] > max_label) )
+                    (label_slices[tz][x+tx][y+ty] < min_label ||
+                     label_slices[tz][x+tx][y+ty] > max_label) )
                     valid = FALSE;
             }
 
