@@ -36,7 +36,6 @@ int  main( argc, argv )
     Real              x_filter_width, y_filter_width, z_filter_width;
     int               i, n_models, up_to_n_points;
     deform_struct     deform;
-    FILE              *file;
     File_formats      file_format;
     int               n_objects;
     object_struct     **object_list;
@@ -110,19 +109,6 @@ int  main( argc, argv )
                            &volume, (minc_input_options *) NULL );
 
     label_volume = (Volume) NULL;
-
-    if( strcmp( activity_filename, "none" ) != 0 )
-    {
-        label_volume = create_label_volume( volume );
-
-        status = open_file_with_default_suffix( activity_filename, "act",
-                                        READ_FILE, BINARY_FORMAT, &file );
-
-        if( status == OK )
-            status = io_volume_activity_bit( file, READ_FILE, label_volume );
-
-        status = close_file( file );
-    }
 
     if( x_filter_width > 0.0 && y_filter_width > 0.0 && z_filter_width > 0.0 )
     {

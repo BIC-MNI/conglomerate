@@ -25,6 +25,8 @@ int  main(
     {
         print( "%s  example_volume  input.tag  output_file  [structure_id]\n",
                argv[0] );
+        print( "\n" );
+        print( "     Converts a tag file to a MINC volume, given an example MINC volume.\n" );
         return( 1 );
     }
 

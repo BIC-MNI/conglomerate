@@ -6,6 +6,9 @@ private  void  usage(
     print( "Usage: %s  input_filename  output_filename\n", executable_name );
 }
 
+#undef   TWO_DIMENSIONS
+#define   TWO_DIMENSIONS
+
 #define  X_SIZE   200
 #define  Y_SIZE   200
 
@@ -17,10 +20,11 @@ private  void  usage(
 
 private  void  create_gradient_lines(
     Volume          volume,
-    Boolean         value_range_present,
+    BOOLEAN         value_range_present,
     int             min_value,
     int             max_value,
     Real            scaling,
+    Real            deriv2_scaling,
     int             continuity,
     lines_struct    *lines );
 
@@ -28,14 +32,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Boolean              value_range_present;
+    BOOLEAN              value_range_present;
     Status               status;
     int                  min_value, max_value, continuity;
-    Real                 scaling;
+    Real                 scaling, deriv2_scaling;
     char                 *input_filename;
     char                 *output_filename;
     Volume               volume;
-    static String        dim_names[] = { MIxspace, MIyspace, MIzspace };
+    static STRING        dim_names[] = { MIxspace, MIyspace, MIzspace };
     object_struct        *object;
 
     initialize_argument_processing( argc, argv );
@@ -53,6 +57,7 @@ int  main(
         value_range_present = FALSE;
 
     (void) get_real_argument( 1.0, &scaling );
+    (void) get_real_argument( 1.0, &deriv2_scaling );
     (void) get_int_argument( 0, &continuity );
 
     /* read the input volume */
@@ -63,7 +68,8 @@ int  main(
     object = create_object( LINES );
 
     create_gradient_lines( volume, value_range_present, min_value, max_value,
-                           scaling, continuity, get_lines_ptr(object) );
+                           scaling, deriv2_scaling, continuity,
+                           get_lines_ptr(object) );
 
     status = output_graphics_file( output_filename, BINARY_FORMAT,
                                    1, &object );
@@ -80,7 +86,6 @@ private  void  make_arrow(
     Point   p;
 
     start_new_line( lines );
-
     add_point_to_line( lines, centre );
     ADD_POINT_VECTOR( p, *centre, *deriv );
     add_point_to_line( lines, &p );
@@ -91,20 +96,49 @@ private  void  make_arrow(
     add_point_to_line( lines, &p );
 }
 
+private  void  compute_curvature(
+    Real   dx,
+    Real   dy,
+    Real   dxx,
+    Real   dxy,
+    Real   dyy,
+    Real   *x_tangent,
+    Real   *y_tangent,
+    Real   *x_normal,
+    Real   *y_normal )
+{
+    Real   tx, ty, mag_tangent;
+
+    *x_tangent = -dy;
+    *y_tangent = dx;
+
+    mag_tangent = sqrt( *x_tangent * *x_tangent + *y_tangent * *y_tangent );
+
+    if( mag_tangent == 0.0 )
+        mag_tangent = 1.0;
+
+    tx = *x_tangent / mag_tangent * dxx + *y_tangent / mag_tangent * dxy;
+    ty = *x_tangent / mag_tangent * dxy + *y_tangent / mag_tangent * dyy;
+
+    *x_normal = -ty;
+    *y_normal = tx;
+}
+
 private  void  create_gradient_lines(
     Volume          volume,
-    Boolean         value_range_present,
+    BOOLEAN         value_range_present,
     int             min_value,
     int             max_value,
     Real            scaling,
+    Real            deriv2_scaling,
     int             continuity,
     lines_struct    *lines )
 {
-    Boolean          within_range;
+    BOOLEAN          within_range;
     int              x, y;
     Point            centre;
     Vector           deriv, deriv2;
-    Real             dx, dy, dz, value;
+    Real             dx, dy, dz, value, ignore;
     Real             dxx, dxy, dxz, dyy, dyz, dzz;
     Real             grad_mag, dgx, dgy, dgz;
     Real             x_world, y_world, z_world;
@@ -123,10 +157,20 @@ private  void  create_gradient_lines(
             y_world = Y_MIN + (Y_MAX - Y_MIN) * (Real) y / (Real) (Y_SIZE-1);
             z_world = Z_PLANE;
 
+#ifdef TWO_DIMENSIONS
+            (void) evaluate_slice_in_world( volume,
+                      x_world, y_world, z_world, FALSE,
+                      &value, &dx, &dy, &dxx, &dxy, &dyy );
+            dz = 0.0;
+            dxz = 0.0;
+            dyz = 0.0;
+            dzz = 0.0;
+#else
             (void) evaluate_volume_in_world( volume,
                       x_world, y_world, z_world, continuity, FALSE,
                       &value, &dx, &dy, &dz,
                       &dxx, &dxy, &dxz, &dyy, &dyz, &dzz );
+#endif
 
             if( value_range_present )
             {
@@ -135,6 +179,26 @@ private  void  create_gradient_lines(
             else
                 within_range = TRUE;
 
+#ifdef TWO_DIMENSIONS
+            if( within_range )
+            {
+                compute_curvature( dx, dy, dxx, dxy, dyy,
+                                   &ignore, &ignore, &dgx, &dgy );
+
+                dx *= scaling;
+                dy *= scaling;
+                dz = 0.0;
+                dgx *= deriv2_scaling;
+                dgy *= deriv2_scaling;
+                dgz = 0.0;
+
+                fill_Point( centre, x_world, y_world, z_world );
+                fill_Vector( deriv, dx, dy, dz );
+                fill_Vector( deriv2, dgx, dgy, dgz );
+
+                make_arrow( lines, &centre, &deriv, &deriv2 );
+            }
+#else
             if( within_range )
             {
                 grad_mag = dx * dx + dy * dy + dz * dz;
@@ -151,19 +215,20 @@ private  void  create_gradient_lines(
                       dy / grad_mag * dyz +
                       dz / grad_mag * dzz;
 
-                dgx *= scaling;
-                dgy *= scaling;
-                dgz *= scaling;
+                dgx *= deriv2_scaling;
+                dgy *= deriv2_scaling;
+                dgz *= deriv2_scaling;
                 dx *= scaling;
                 dy *= scaling;
                 dz *= scaling;
 
                 fill_Point( centre, x_world, y_world, z_world );
-                fill_Point( deriv, dx, dy, dz );
-                fill_Point( deriv2, dgx, dgy, dgz );
+                fill_Vector( deriv, dx, dy, dz );
+                fill_Vector( deriv2, dgx, dgy, dgz );
 
                 make_arrow( lines, &centre, &deriv, &deriv2 );
             }
+#endif
         }
 
         update_progress_report( &progress, x + 1 );

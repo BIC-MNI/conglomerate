@@ -6,14 +6,22 @@ private  Status  add_polygons(
     polygons_struct   *polygons,
     BOOLEAN           first_flag )
 {
-    int     i;
+    int     i, n_colours;
     Point   scaled;
+    Colour  scaled_colour;
 
     if( first_flag )
     {
         copy_polygons( polygons, summed_polygons );
         for_less( i, 0, summed_polygons->n_points )
             fill_Point( summed_polygons->points[i], 0.0, 0.0, 0.0 );
+
+        n_colours = get_n_colours( polygons->colour_flag,
+                                   polygons->n_points,
+                                   polygons->n_items );
+
+        for_less( i, 0, n_colours )
+            summed_polygons->colours[i] = BLACK;
     }
     else if( !polygons_are_same_topology( summed_polygons, polygons ) )
     {
@@ -27,6 +35,22 @@ private  Status  add_polygons(
         ADD_POINTS( summed_polygons->points[i], summed_polygons->points[i],
                     scaled );
     }
+
+    if( summed_polygons->colour_flag == polygons->colour_flag )
+    {
+        n_colours = get_n_colours( polygons->colour_flag,
+                                   polygons->n_points,
+                                   polygons->n_items );
+
+        for_less( i, 0, n_colours )
+        {
+            scaled_colour = SCALE_COLOUR( polygons->colours[i], weight );
+            ADD_COLOURS( summed_polygons->colours[i],
+                         summed_polygons->colours[i], scaled_colour );
+        }
+    }
+    else
+        print( "Warning:  Polygons colour flags do not match. Colours will not be added properly\n" );
 
     return( OK );
 }

@@ -17,24 +17,24 @@ private  void  usage(
     print( "Usage: %s  input_filename  output_prefix\n", executable_name );
 }
 
-private  void  create_gradient_volume(
-    volume_struct   *volume,
-    Boolean         value_range_present,
+private  Volume  create_gradient_volume(
+    Volume          volume,
+    BOOLEAN         value_range_present,
     int             min_value,
     int             max_value,
-    Real            scaling,
-    volume_struct   *gradient_volume );
+    Real            scaling );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    Boolean              value_range_present;
+    BOOLEAN              value_range_present;
     int                  min_value, max_value;
     Real                 scaling;
     char                 *input_filename;
     char                 *output_prefix;
-    volume_struct        volume, gradient_volume;
+    int                  axis_index[3] = { Z, Y, X };
+    Volume               volume, gradient_volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -59,47 +59,49 @@ int  main(
 
     /* create the gradient volume */
 
-    create_gradient_volume( &volume, value_range_present, min_value, max_value,
-                            scaling, &gradient_volume );
+    gradient_volume = create_gradient_volume( volume, value_range_present,
+                                              min_value, max_value, scaling );
 
     /* output the gradient volume */
 
-    (void) output_volume( output_prefix, &gradient_volume,
-                          gradient_volume.axis_index_from_file );
+    (void) output_volume( output_prefix, gradient_volume, axis_index );
 
     return( 0 );
 }
 
-private  void  create_gradient_volume(
-    volume_struct   *volume,
-    Boolean         value_range_present,
+private  Volume  create_gradient_volume(
+    Volume          volume,
+    BOOLEAN         value_range_present,
     int             min_value,
     int             max_value,
-    Real            scaling,
-    volume_struct   *gradient_volume )
+    Real            scaling )
 {
-    Boolean          within_range;
+    BOOLEAN          within_range;
+    int              sizes[N_DIMENSIONS], gradient_sizes[N_DIMENSIONS];
+    Real             thickness[N_DIMENSIONS];
     Real             value;
     Real             xv, yv, zv;
     int              x, y, z;
     Real             dx, dy, dz;
     Real             grad;
     progress_struct  progress;
+    volume_struct    *gradient_volume;
 
-    *gradient_volume = *volume;
+    get_volume_sizes( volume, sizes );
+    get_volume_separations( volume, thickness );
 
-    gradient_volume->sizes[X] = NX;
-    gradient_volume->sizes[Y] = NY;
-    gradient_volume->sizes[Z] = NZ;
+    gradient_volume = create_volume( 3, (STRING *) NULL, volume->nc_data_type,
+                                     volume->signed_flag, 0.0, 0.0 );
 
-    gradient_volume->thickness[X] = volume->thickness[X] * (X_MAX - X_MIN) /
-                                    (Real) NX;
-    gradient_volume->thickness[Y] = volume->thickness[Y] * (Y_MAX - Y_MIN) /
-                                    (Real) NY;
-    gradient_volume->thickness[Z] = volume->thickness[Z] * (Z_MAX - Z_MIN) /
-                                    (Real) NZ;
+    gradient_sizes[X] = NX;
+    gradient_sizes[Y] = NY;
+    gradient_sizes[Z] = NZ;
 
-    alloc_volume( gradient_volume );
+    set_volume_size( gradient_volume, NC_UNSPECIFIED, FALSE, gradient_sizes );
+
+    gradient_volume->separation[X] = thickness[X] * (X_MAX - X_MIN) / (Real) NX;
+    gradient_volume->separation[Y] = thickness[Y] * (Y_MAX - Y_MIN) / (Real) NY;
+    gradient_volume->separation[Z] = thickness[Z] * (Z_MAX - Z_MIN) / (Real) NZ;
 
     initialize_progress_report( &progress, FALSE, NX * NY,
                                 "Creating Gradient" );
@@ -137,7 +139,7 @@ private  void  create_gradient_volume(
                 else
                     grad = 0.0;
 
-                ASSIGN_VOLUME_DATA( *gradient_volume, x, y, z, ROUND( grad ) );
+                SET_VOXEL_3D( gradient_volume, x, y, z, ROUND( grad ) );
             }
 
             update_progress_report( &progress, x * NY + y + 1 );
@@ -145,4 +147,6 @@ private  void  create_gradient_volume(
     }
 
     terminate_progress_report( &progress );
+
+    return( gradient_volume );
 }

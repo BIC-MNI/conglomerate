@@ -1,5 +1,4 @@
-#include  <def_mni.h>
-#include  <minc.h>
+#include  <mni.h>
 
 private  void  usage(
     char   executable[] )
@@ -22,7 +21,6 @@ int  main(
     marker_struct        *marker;
     Volume               volume;
     volume_input_struct  volume_input;
-    static STRING        in_dim_names[] = {MIxspace, MIyspace, MIzspace};
 
     initialize_argument_processing( argc, argv );
 
@@ -39,8 +37,12 @@ int  main(
     {
         if( get_string_argument( "", &volume_filename ) )
         {
-            status = start_volume_input( volume_filename, in_dim_names,
-                                         FALSE, &volume, &volume_input );
+            status = start_volume_input( volume_filename, 3,
+                                         XYZ_dimension_names,
+                                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                                         TRUE, &volume,
+                                         (minc_input_options *) NULL,
+                                         &volume_input );
         }
         else
         {

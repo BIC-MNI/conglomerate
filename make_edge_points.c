@@ -17,10 +17,11 @@ private  void  usage(
 
 private  void  create_gradient_lines(
     Volume          volume,
-    Boolean         value_range_present,
+    BOOLEAN         value_range_present,
     int             min_value,
     int             max_value,
     Real            gradient_threshold,
+    BOOLEAN         deriv2_present,
     Real            deriv2_threshold,
     int             continuity,
     lines_struct    *lines );
@@ -29,14 +30,15 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Boolean              value_range_present;
+    BOOLEAN              value_range_present;
     Status               status;
     int                  min_value, max_value, continuity;
     Real                 gradient_threshold, deriv2_threshold;
+    BOOLEAN              deriv2_present;
     char                 *input_filename;
     char                 *output_filename;
     Volume               volume;
-    static String        dim_names[] = { MIxspace, MIyspace, MIzspace };
+    static STRING        dim_names[] = { MIxspace, MIyspace, MIzspace };
     object_struct        *object;
 
     initialize_argument_processing( argc, argv );
@@ -54,7 +56,7 @@ int  main(
         value_range_present = FALSE;
 
     (void) get_real_argument( 1.0, &gradient_threshold );
-    (void) get_real_argument( 0.0, &deriv2_threshold );
+    deriv2_present = get_real_argument( 0.0, &deriv2_threshold );
     (void) get_int_argument( 2, &continuity );
 
     /* read the input volume */
@@ -65,7 +67,8 @@ int  main(
     object = create_object( LINES );
 
     create_gradient_lines( volume, value_range_present, min_value, max_value,
-                           gradient_threshold, deriv2_threshold, continuity,
+                           gradient_threshold, deriv2_present,
+                           deriv2_threshold, continuity,
                            get_lines_ptr(object) );
 
     status = output_graphics_file( output_filename, BINARY_FORMAT,
@@ -76,21 +79,22 @@ int  main(
 
 private  void  create_gradient_lines(
     Volume          volume,
-    Boolean         value_range_present,
+    BOOLEAN         value_range_present,
     int             min_value,
     int             max_value,
     Real            gradient_threshold,
+    BOOLEAN         deriv2_present,
     Real            deriv2_threshold,
     int             continuity,
     lines_struct    *lines )
 {
-    Boolean          within_range, add_point;
+    BOOLEAN          within_range, add_point;
     int              x, y, sizes[N_DIMENSIONS];
-    Real             dx, dy, dz, value;
+    Real             dx, dy, dz, value, dot_product, prev_dot_product;
     Real             dxx, dxy, dxz, dyy, dyz, dzz;
     Real             grad, new_grad;
     Real             x_world, y_world, z_world;
-    Real             grad_mag, prev_grad, dgx, dgy, dgz;
+    Real             grad_mag, prev_grad, dgx, dgy, dgz, mag_deriv2;
     Real             *dxx_ptr;
     Point            point;
     progress_struct  progress;
@@ -100,7 +104,7 @@ private  void  create_gradient_lines(
     initialize_progress_report( &progress, FALSE, X_SIZE,
                                 "Creating Gradient Lines" );
 
-    if( deriv2_threshold > 0.0 )
+    if( deriv2_present )
         dxx_ptr = &dxx;
     else
         dxx_ptr = (Real *) NULL;
@@ -108,6 +112,7 @@ private  void  create_gradient_lines(
     get_volume_sizes( volume, sizes );
     grad = 0.0;
     prev_grad = 0.0;
+    prev_dot_product = 0.0;
 
     for_less( x, 0, X_SIZE )
     {
@@ -147,30 +152,55 @@ private  void  create_gradient_lines(
 
             grad = grad_mag - gradient_threshold;
 
+            if( grad >= 0.0 && deriv2_present )
+            {
+                if( grad_mag == 0.0 )
+                    grad_mag = 1.0;
+
+                dgx = dx / grad_mag * dxx +
+                      dy / grad_mag * dxy +
+                      dz / grad_mag * dxz;
+                dgy = dx / grad_mag * dxy +
+                      dy / grad_mag * dyy +
+                      dz / grad_mag * dyz;
+                dgz = dx / grad_mag * dxz +
+                      dy / grad_mag * dyz +
+                      dz / grad_mag * dzz;
+
+                mag_deriv2 = sqrt( dgx * dgx + dgy * dgy + dgz * dgz );
+                if( mag_deriv2 == 0.0 )
+                    mag_deriv2 = 1.0;
+
+                dot_product = (dgx * dx +
+                               dgy * dy +
+                               dgz * dz) / mag_deriv2 / grad_mag -
+                               deriv2_threshold;
+            }
+
             add_point = FALSE;
 
             if( prev_grad * grad <= 0.0 )
             {
-                if( deriv2_threshold > 0.0 )
+                if( deriv2_present )
                 {
-                    dgx = dx / grad_mag * dxx +
-                          dy / grad_mag * dxy +
-                          dz / grad_mag * dxz;
-                    dgy = dx / grad_mag * dxy +
-                          dy / grad_mag * dyy +
-                          dz / grad_mag * dyz;
-                    dgz = dx / grad_mag * dxz +
-                          dy / grad_mag * dyz +
-                          dz / grad_mag * dzz;
-                    new_grad = (dx + dgx) * (dx + dgx) +
-                               (dy + dgy) * (dy + dgy) +
-                               (dz + dgz) * (dz + dgz);
-                    if( new_grad >= deriv2_threshold * grad_mag * grad_mag )
+                    if( grad >= 0.0 && dot_product >= 0.0 ||
+                        prev_grad >= 0.0 && prev_dot_product >= 0.0 )
                         add_point = TRUE;
                 }
                 else
                     add_point = TRUE;
             }
+            else if( grad >= 0.0 )
+            {
+                if( deriv2_present &&
+                    grad >= 0.0 && dot_product >= 0.0 ||
+                    prev_grad >= 0.0 && prev_dot_product >= 0.0 )
+                    add_point = TRUE;
+            }
+
+            add_point = FALSE;
+            if( grad >= 0.0 && (!deriv2_present || dot_product >= 0.0) )
+                add_point = TRUE;
 
             if( add_point )
             {
@@ -180,6 +210,7 @@ private  void  create_gradient_lines(
             }
 
             prev_grad = grad;
+            prev_dot_product = dot_product;
         }
 
         update_progress_report( &progress, x + 1 );

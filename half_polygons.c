@@ -1,5 +1,5 @@
-#include <def_mni.h>
-#include <def_module.h>
+#include <mni.h>
+#include <module.h>
 
 public  Status  process_object(
     object_struct  *object )

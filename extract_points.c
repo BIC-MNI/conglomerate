@@ -1,5 +1,5 @@
-#include  <def_mni.h>
-#include  <def_module.h>
+#include  <mni.h>
+#include  <module.h>
 
 int  main(
     int    argc,

@@ -8,20 +8,20 @@ private  void   fit_line_to_points(
     int            n_points,
     Point          points[],
     int            max_points,
-    Boolean        subdivide,
+    BOOLEAN        subdivide,
     lines_struct   *lines );
 private  int  create_curve_approximating_points(
     int            n_tags,
     Point          tags[],
     int            max_points,
-    Boolean        subdivide,
+    BOOLEAN        subdivide,
     Point          *curve_points[] );
 private  Real  fit_curve(
     int     n_tags,
     Point   tags[],
     int     n_points,
     Point   curve[] );
-private  Boolean  should_step(
+private  BOOLEAN  should_step(
     Real   delta_energy,
     Real   temperature );
 private  Real  evaluate_energy(
@@ -66,7 +66,7 @@ int   main(
     char           *input_filename, *output_filename, *dummy;
     int            n_objects, n_points, max_points;
     Point          *points;
-    Boolean        subdivide;
+    BOOLEAN        subdivide;
     object_struct  **object_list, *object;
 
     initialize_argument_processing( argc, argv );
@@ -131,7 +131,7 @@ private  void   fit_line_to_points(
     int            n_points,
     Point          points[],
     int            max_points,
-    Boolean        subdivide,
+    BOOLEAN        subdivide,
     lines_struct   *lines )
 {
     int    i, n_curve_points;
@@ -147,17 +147,17 @@ private  void   fit_line_to_points(
         add_point_to_line( lines, &curve_points[i] );
 }
 
-#define  MAX_ERROR     (0.9 * 0.9)
+#define  MAX_ERROR     (0.4 * 0.4)
 
 private  int  create_curve_approximating_points(
     int            n_tags,
     Point          tags[],
     int            max_points,
-    Boolean        subdivide,
+    BOOLEAN        subdivide,
     Point          *curve_points[] )
 {
     int      i, c, n_points;
-    Boolean  first_time;
+    BOOLEAN  first_time;
     Point    *curve, *tmp;
     Real     rms_error;
 
@@ -404,7 +404,7 @@ private  Real  fit_curve(
     return( rms_error );
 }
 
-private  Boolean  should_step(
+private  BOOLEAN  should_step(
     Real   delta_energy,
     Real   temperature )
 {
@@ -516,7 +516,7 @@ private  Real  evaluate_delta_avg_rms(
 {
     int     i, c, n_subpoints, start_point, new_nearest_segment;
     Point   min_box, max_box;
-    Boolean possible_change, tag_rms_changed;
+    BOOLEAN possible_change, tag_rms_changed;
     Real    delta_rms, current_rms, new_rms;
 
     min_box = curve[index_changed];

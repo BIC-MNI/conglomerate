@@ -13,7 +13,8 @@ int  main(
     Real                 voxel[N_DIMENSIONS];
     Real                 min_voxel[N_DIMENSIONS];
     Real                 max_voxel[N_DIMENSIONS];
-    Boolean              first;
+    char                 history[10000];
+    BOOLEAN              first;
     Point                min_point, max_point;
     Volume               volume, new_volume;
     volume_input_struct  volume_input;
@@ -24,8 +25,8 @@ int  main(
     int                  offset[N_DIMENSIONS];
     marker_struct        *marker;
     progress_struct      progress;
-    static String        in_dim_names[] = { MIxspace, MIyspace, MIzspace };
-    Transform            voxel_to_world_transform;
+    static STRING        in_dim_names[] = { MIxspace, MIyspace, MIzspace };
+    General_transform    *voxel_to_world_transform;
     Transform            translation;
 
     initialize_argument_processing( argc, argv );
@@ -43,7 +44,7 @@ int  main(
 
     get_volume_sizes( volume, src_sizes );
     get_volume_separations( volume, separations );
-    voxel_to_world_transform = volume->voxel_to_world_transform;
+    voxel_to_world_transform = get_voxel_to_world_transform( volume );
 
     if( filename_extension_matches( landmark_filename,
                                 get_default_landmark_file_suffix() ) )
@@ -173,8 +174,15 @@ int  main(
 
     print( "Writing %s\n", output_filename );
 
-    status = output_volume( output_filename, 3, in_dim_names,
-                            dest_sizes, NC_BYTE, FALSE, new_volume );
+    (void) strcpy( history, "Created by:  " );
+
+    for_less( i, 0, argc )
+    {
+        (void) strcat( history, " " );
+        (void) strcat( history, argv[i] );
+    }
+
+    status = output_volume( output_filename, TRUE, new_volume, history );
 
     print_ellipse_parameters( &min_point, &max_point );
 

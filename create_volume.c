@@ -1,4 +1,4 @@
-#include  <def_mni.h>
+#include  <mni.h>
 
 #define  X_SIZE   50
 #define  Y_SIZE   50
@@ -34,12 +34,13 @@ int  main(
         return( 1 );
     }
 
-    volume = create_volume( 3, XYZ_dimension_names, NC_BYTE, FALSE );
+    volume = create_volume( 3, XYZ_dimension_names, NC_BYTE, FALSE,
+                            0.0, 255.0 );
 
     sizes[X] = X_SIZE;
     sizes[Y] = Y_SIZE;
     sizes[Z] = Z_SIZE;
-    set_volume_size( volume, NC_UNSPECIFIED, FALSE, sizes );
+    set_volume_sizes( volume, sizes );
 
     set_volume_voxel_range( volume, 0.0, 255.0 );
     set_volume_real_range( volume, 0.0, (Real) X_SIZE );
@@ -78,7 +79,8 @@ int  main(
         (void) strcat( history, argv[i] );
     }
 
-    status = output_volume( output_filename, FALSE, volume, history );
+    status = output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                            volume, history, (minc_output_options *) NULL );
 
     return( status != OK );
 }
@@ -131,18 +133,20 @@ private  void  scan_segment_to_volume(
     Real     y2 )
 {
     int   x, y, z, sizes[N_DIMENSIONS];
-    Real  x_w, y_w, z_w, dist, voxel, value;
+    Real  x_w, y_w, z_w, dist, voxel, value, voxel_pos[N_DIMENSIONS];
 
     get_volume_sizes( volume, sizes );
 
     for_less( x, 0, sizes[X] )
     {
+        voxel_pos[X] = (Real) x;
         for_less( y, 0, sizes[Y] )
         {
+            voxel_pos[Y] = (Real) y;
             for_less( z, 0, sizes[Z] )
             {
-                convert_voxel_to_world( volume, (Real) x, (Real) y, (Real) z,
-                                        &x_w, &y_w, &z_w );
+                voxel_pos[Z] = (Real) z;
+                convert_voxel_to_world( volume, voxel_pos, &x_w, &y_w, &z_w );
 
                 dist = get_distance_from_segment( x_w, y_w, x1, y1, x2, y2 );
 

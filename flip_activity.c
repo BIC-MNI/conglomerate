@@ -1,5 +1,7 @@
 #include  <def_mni.h>
 
+#define UK
+
 #ifdef UK
 private  int  sizes[] = { 256, 124, 172 };
 #else
@@ -28,7 +30,7 @@ int  main(
     create_bitlist_3d( sizes[0], sizes[1], sizes[2], &input_bitlist );
 
 #ifdef UK
-    create_bitlist_3d( sizes[0], sizes[2], sizes[1], &output_bitlist );
+    create_bitlist_3d( sizes[0], sizes[1], sizes[2], &output_bitlist );
 #else
     create_bitlist_3d( sizes[0], sizes[1], sizes[2], &output_bitlist );
 #endif
@@ -47,7 +49,7 @@ int  main(
     {
 #ifdef UK
         if( get_bitlist_bit_3d( &input_bitlist, x, y, z ) )
-            set_bitlist_bit_3d( &output_bitlist, x, sizes[2]-1-z, y, TRUE );
+            set_bitlist_bit_3d( &output_bitlist, x, y, sizes[2]-1-z, TRUE );
 #else
         if( get_bitlist_bit_3d( &input_bitlist, x, y, z ) )
             set_bitlist_bit_3d( &output_bitlist, x, sizes[1]-1-y, z, TRUE );

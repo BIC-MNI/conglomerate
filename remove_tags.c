@@ -7,7 +7,7 @@ int  main(
     Status               status;
     char                 *input_volume_filename, *input_tag_filename;
     char                 *output_tag_filename;
-    Real                 threshold;
+    Real                 min_threshold, max_threshold;
     Volume               volume;
     Real                 value;
     int                  i, c, ind[MAX_DIMENSIONS];
@@ -22,12 +22,13 @@ int  main(
 
     if( !get_string_argument( "", &input_volume_filename ) ||
         !get_string_argument( "", &input_tag_filename ) ||
-        !get_real_argument( 0.0, &threshold ) ||
+        !get_real_argument( 0.0, &min_threshold ) ||
+        !get_real_argument( 0.0, &max_threshold ) ||
         !get_string_argument( "", &output_tag_filename ) )
     {
-        print( "Usage:  %s  input_volume input_tags threshold output_tags.\n\n",
+        print( "Usage:  %s  input_volume input_tags min_threshold max_threshold output_tags.\n\n",
                argv[0] );
-        print( "Example:   %s  patient1.mnc  tag_points.tag  105.5  new_tag_points.tag\n",
+        print( "Example:   %s  patient1.mnc  tag_points.tag  105.5 256  new_tag_points.tag\n",
                argv[0] );
         return( 1 );
     }
@@ -61,7 +62,7 @@ int  main(
         if( int_voxel_is_within_volume( volume, ind ) )
         {
             GET_VALUE_3D( value, volume, ind[X], ind[Y], ind[Z] );
-            if( value >= threshold )
+            if( value >= min_threshold && value <= max_threshold )
             {
                 if( new_n_tags != i )
                 {

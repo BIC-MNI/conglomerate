@@ -112,13 +112,18 @@ private  int   find_left_right_error(
             id = marker->structure_id;
             if( id >= 1000 ) id -= 1000;
 
-            if( id != 1 )
             if( left && !is_left_id( id ) || !left && !is_right_id( id ) )
             {
                 ++id_errors[id];
                 ++n_errors;
             }
         }
+    }
+
+    if( id_errors[1] < n_objects )
+    {
+        n_errors -= id_errors[1];
+        id_errors[1] = 0;
     }
 
     return( n_errors );
@@ -129,7 +134,7 @@ int  main(
     char  *argv[] )
 {
     Status               status;
-    char                 *landmark_filename, *freq_filename, *error_filename;
+    char                 *landmark_filename, *error_filename;
     Real                 *x_mins, *x_maxs, *y_mins, *y_maxs, *z_mins, *z_maxs;
     Real                 *x_means, *y_means, *z_means;
     Real                 x_min, x_max, y_min, y_max, z_min, z_max;
@@ -137,7 +142,7 @@ int  main(
     Real                 min_value, max_value, mean, std_dev, median;
     Real                 y_min_range, y_max_range;
     BOOLEAN              left;
-    FILE                 *left_right_errors, *frequency_file;
+    FILE                 *left_right_errors;
     char                 *format;
     STRING               *filenames;
     int                  id_errors[MAX_IDS];
@@ -153,10 +158,9 @@ int  main(
     if( !get_int_argument( 0, &structure_id ) ||
         !get_real_argument( 0.0, &y_min_range ) ||
         !get_real_argument( 0.0, &y_max_range ) ||
-        !get_string_argument( "", &error_filename ) ||
-        !get_string_argument( "", &freq_filename ) )
+        !get_string_argument( "", &error_filename ) )
     {
-        print( "Usage:  %s  structure_id  y_min y_max error_file freq_file landmark [landmark] ...\n", argv[0] );
+        print( "Usage:  %s  structure_id  y_min y_max error_file landmark [landmark] ...\n", argv[0] );
         return( 1 );
     }
 
@@ -191,9 +195,6 @@ int  main(
 
     status = open_file( error_filename, WRITE_FILE, ASCII_FORMAT,
                         &left_right_errors );
-
-    status = open_file( freq_filename, WRITE_FILE, ASCII_FORMAT,
-                        &frequency_file );
 
     for_less( p, 0, n_files )
     {
@@ -233,52 +234,48 @@ int  main(
         if( status != OK )
             return( 1 );
 
-        n_in_file = get_stats_for_one_file( n_objects, object_list,
-                                    structure_id,
-                                    y_min_range, y_max_range,
-                                    &x_min, &x_max, &x_mean,
-                                    &y_min, &y_max, &y_mean,
-                                    &z_min, &z_max, &z_mean, &total_in_file );
 
-        if( n_in_file > 0 )
-        {
-            SET_ARRAY_SIZE( x_mins, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( x_maxs, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( x_means, n_samples, n_samples+1,DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( y_mins, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( y_maxs, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( y_means, n_samples, n_samples+1,DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( z_mins, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( z_maxs, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
-            SET_ARRAY_SIZE( z_means, n_samples, n_samples+1,DEFAULT_CHUNK_SIZE);
-
-            x_mins[n_samples] = x_min;
-            x_maxs[n_samples] = x_max;
-            x_means[n_samples] = x_mean;
-            y_mins[n_samples] = y_min;
-            y_maxs[n_samples] = y_max;
-            y_means[n_samples] = y_mean;
-            z_mins[n_samples] = z_min;
-            z_maxs[n_samples] = z_max;
-            z_means[n_samples] = z_mean;
-
-            ++n_samples;
-        }
-
-        if( left && is_left_id(structure_id) ||
+        if( structure_id < 0 ||
+            left && is_left_id(structure_id) ||
             !left && is_right_id(structure_id) )
         {
-            (void) output_int( frequency_file, n_in_file );
-            (void) output_real( frequency_file, (Real) n_in_file /
-                                         (Real) total_in_file);
-            (void) output_newline( frequency_file );
+            n_in_file = get_stats_for_one_file( n_objects, object_list,
+                                        structure_id,
+                                        y_min_range, y_max_range,
+                                        &x_min, &x_max, &x_mean,
+                                        &y_min, &y_max, &y_mean,
+                                        &z_min, &z_max, &z_mean,
+                                        &total_in_file );
+            if( n_in_file > 0 )
+            {
+                SET_ARRAY_SIZE( x_mins, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( x_maxs, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( x_means, n_samples, n_samples+1,DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( y_mins, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( y_maxs, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( y_means, n_samples, n_samples+1,DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( z_mins, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( z_maxs, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
+                SET_ARRAY_SIZE( z_means, n_samples, n_samples+1,DEFAULT_CHUNK_SIZE);
+
+                x_mins[n_samples] = x_min;
+                x_maxs[n_samples] = x_max;
+                x_means[n_samples] = x_mean;
+                y_mins[n_samples] = y_min;
+                y_maxs[n_samples] = y_max;
+                y_means[n_samples] = y_mean;
+                z_mins[n_samples] = z_min;
+                z_maxs[n_samples] = z_max;
+                z_means[n_samples] = z_mean;
+
+                ++n_samples;
+            }
         }
 
         delete_object_list( n_objects, object_list );
     }
 
     status = close_file( left_right_errors );
-    status = close_file( frequency_file );
 
     if( volume != (Volume) NULL )
         cancel_volume_input( volume, &volume_input );

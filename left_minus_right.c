@@ -3,7 +3,7 @@
 private  void  usage(
     char   executable_name[] )
 {
-    print( "Usage: %s  input_filename  output_filename\n", executable_name );
+    print( "Usage: %s  input_filename  [input_filename2]  output_filename\n", executable_name );
 }
 
 int  main(
@@ -11,60 +11,86 @@ int  main(
     char   *argv[] )
 {
     Status               status;
-    int                  sizes[3], x, y, z, right_x;
-    Real                 left_value, right_value, min_value, max_value;
+    int                  sizes1[MAX_DIMENSIONS], sizes2[MAX_DIMENSIONS];
+    int                  x, y, z, right_x;
+    Real                 left_value, right_value, min_value1, max_value1;
+    Real                 min_value2, max_value2;
     Real                 new_min, new_max, value;
-    Real                 separations[MAX_DIMENSIONS];
-    char                 *input_filename;
+    char                 *input_filename1, *input_filename2;
     char                 *output_filename;
-    Volume               volume, new_volume;
+    Volume               volume1, volume2, new_volume;
     progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &input_filename ) ||
-        !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( "", &input_filename1 ) ||
+        !get_string_argument( "", &input_filename2 ) )
     {
         usage( argv[0] );
         return( 1 );
     }
 
+    if( !get_string_argument( "", &output_filename ) )
+    {
+        output_filename = input_filename2;
+        input_filename2 = (char *) NULL;
+    }
+
     /* read the input volume */
 
-    if( input_volume( input_filename, 3, XYZ_dimension_names, NC_UNSPECIFIED, FALSE,
-                    0.0, 0.0, TRUE, &volume, (minc_input_options *) 0 ) != OK )
+    if( input_volume( input_filename1, 3, XYZ_dimension_names, NC_UNSPECIFIED, FALSE,
+                    0.0, 0.0, TRUE, &volume1, (minc_input_options *) 0 ) != OK )
         return( 1 );
 
-    get_volume_sizes( volume, sizes );
-    get_volume_real_range( volume, &min_value, &max_value );
-    get_volume_separations( volume, separations );
+    if( input_filename2 != (char *) NULL )
+    {
+        if( input_volume( input_filename2, 3, XYZ_dimension_names, NC_UNSPECIFIED, FALSE,
+                    0.0, 0.0, TRUE, &volume2, (minc_input_options *) 0 ) != OK )
+        return( 1 );
+    }
+    else
+        volume2 = volume1;
 
-    new_max = max_value - min_value;
+    get_volume_sizes( volume1, sizes1 );
+    get_volume_sizes( volume2, sizes2 );
+
+    if( sizes1[X] != sizes2[X] || sizes1[Y] != sizes2[Y] ||
+        sizes1[Z] != sizes2[Z] )
+    {
+        print( "Sizes do not match.\n" );
+        return( 1 );
+    }
+
+    get_volume_real_range( volume1, &min_value1, &max_value1 );
+    get_volume_real_range( volume2, &min_value2, &max_value2 );
+
+    new_max = MAX( max_value1 - min_value2, max_value2 - min_value1 );
     new_min = -new_max;
 
-    new_volume = copy_volume_definition( volume, NC_BYTE, FALSE, 0.0, 255.0 );
+    new_volume = copy_volume_definition( volume1, NC_BYTE, FALSE, 0.0, 255.0 );
 
     set_volume_voxel_range( new_volume, 0.0, 255.0 );
     set_volume_real_range( new_volume, new_min, new_max );
 
     alloc_volume_data( new_volume );
 
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+    initialize_progress_report( &progress, FALSE,
+                                (sizes1[X] / 2 +1) * sizes1[Y],
                                 "Subtracting" );
 
-    for_less( x, 0, sizes[X] / 2 + 1 )
+    for_less( x, 0, sizes1[X] / 2 + 1 )
     {
-        right_x = sizes[X] + 1 - x;
-        if( right_x >= sizes[X] )
+        right_x = sizes1[X] + 1 - x;
+        if( right_x >= sizes1[X] )
             right_x = x;
-        for_less( y, 0, sizes[Y] )
+        for_less( y, 0, sizes1[Y] )
         {
-            for_less( z, 0, sizes[Z] )
+            for_less( z, 0, sizes1[Z] )
             {
-                GET_VOXEL_3D( left_value, volume, x, y, z );
-                left_value = CONVERT_VOXEL_TO_VALUE( volume, left_value );
-                GET_VOXEL_3D( right_value, volume, right_x, y, z );
-                right_value = CONVERT_VOXEL_TO_VALUE( volume, right_value );
+                GET_VOXEL_3D( left_value, volume1, x, y, z );
+                left_value = CONVERT_VOXEL_TO_VALUE( volume1, left_value );
+                GET_VOXEL_3D( right_value, volume2, right_x, y, z );
+                right_value = CONVERT_VOXEL_TO_VALUE( volume2, right_value );
 
                 value = CONVERT_VALUE_TO_VOXEL( new_volume,
                                                 left_value - right_value );
@@ -75,7 +101,7 @@ int  main(
                 SET_VOXEL_3D( new_volume, right_x, y, z, value );
             }
 
-            update_progress_report( &progress, x * sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * sizes1[Y] + y + 1 );
         }
     }
 

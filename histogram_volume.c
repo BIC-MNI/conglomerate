@@ -142,12 +142,20 @@ int  main(
     }
 
     gray_min = 0;
-    if( maxs[0] < mins[0] )
+    while( mins[gray_min] < maxs[0] )
         ++gray_min;
 
+    end_gray_index = mins[gray_min+1];
+    start_gray_index = end_gray_index - 1;
+    while( start_gray_index >= mins[gray_min] &&
+           counts[start_gray_index] >= counts[end_gray_index] )
+    {
+         --start_gray_index;
+    }
+
     print( "Gray matter: %g %g\n",
-            scale * (Real) (mins[gray_min] + maxs[gray_min]) / 2.0 + trans,
-            scale * (Real) mins[gray_min+1] + trans );
+            scale * (Real) start_gray_index + trans,
+            scale * (Real) end_gray_index + trans );
 
     FREE( counts );
 

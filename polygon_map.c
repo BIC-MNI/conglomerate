@@ -1,5 +1,7 @@
 #include  <module.h>
 
+#define  BINTREE_FACTOR  0.5
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -42,6 +44,10 @@ int  main(
     if( input_graphics_file( input_filename,
                              &format, &n_objects, &objects ) != OK )
         return( 1 );
+
+    create_polygons_bintree( get_polygons_ptr(src_objects[0]),
+                         get_polygons_ptr(src_objects[0])->n_items *
+                         BINTREE_FACTOR );
 
     for_less( i, 0, n_objects )
     {

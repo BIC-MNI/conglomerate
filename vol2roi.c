@@ -48,6 +48,7 @@ int  main(
     char             *axis_name;
     char             *volume_filename, *output_roi_filename;
     Volume           volume;
+    BOOLEAN          min_present, max_present;
     progress_struct  progress;
     contour_struct   *contours;
 
@@ -56,14 +57,14 @@ int  main(
     if( !get_string_argument( "", &volume_filename ) ||
         !get_string_argument( "", &output_roi_filename ) )
     {
-        print( "Usage: %s  volume_file  roi_output   [threshold]  [x|y|z]\n",
+        print( "Usage: %s  volume_file  roi_output   [min_threshold]  [max_threshold] [x|y|z]\n",
                argv[0] );
         return( 1 );
     }
 
     axis = Z;
-    min_threshold = 0.0;
-    max_threshold = -1.0;
+    min_present = FALSE;
+    max_present = FALSE;
 
     while( get_string_argument( "", &axis_name ) )
     {
@@ -71,12 +72,30 @@ int  main(
             axis = (int) (axis_name[0] - 'x');
         else if( axis_name[0] >= 'X' && axis_name[0] <= 'Z' )
             axis = (int) (axis_name[0] - 'X');
-        else
+        else if( !min_present )
         {
             (void) sscanf( axis_name, "%lf", &min_threshold );
-            max_threshold = min_threshold;
+            min_present = TRUE;
+        }
+        else if( !max_present )
+        {
+            (void) sscanf( axis_name, "%lf", &max_threshold );
+            max_present = TRUE;
+        }
+        else
+        {
+            print( "Too many thresholds on command line.\n" );
+            return( 1 );
         }
     }
+
+    if( !min_present )
+    {
+        min_threshold = 0.0;
+        max_threshold = -1.0;
+    }
+    else if( !max_present )
+        max_threshold = min_threshold;
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,

@@ -131,10 +131,11 @@ private  void  mask_volume(
     Real              distance,
     Real              value_to_set )
 {
-    intersection_struct     **intersections[N_DIMENSIONS];
+    bitlist_3d_struct       bitlists[N_DIMENSIONS];
     int                     c, a1, a2, i, j, sizes[N_DIMENSIONS];
-    int                     x, y, z, vox[N_DIMENSIONS];
+    int                     x, y, z, n_intersects;
     Real                    voxel[N_DIMENSIONS], xw, yw, zw;
+    Real                    *distances;
     Point                   ray_origin, ray_dest;
     Vector                  ray_direction;
 
@@ -142,10 +143,10 @@ private  void  mask_volume(
 
     for_less( c, 0, N_DIMENSIONS )
     {
+        create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &bitlists[c] );
+
         a1 = (c + 1) % N_DIMENSIONS;
         a2 = (c + 2) % N_DIMENSIONS;
-
-        ALLOC2D( intersections[c], sizes[a1], sizes[a2] );
 
         for_less( i, 0, sizes[a1] )
         {
@@ -164,32 +165,37 @@ private  void  mask_volume(
                 SUB_POINTS( ray_direction, ray_dest, ray_origin );
                 NORMALIZE_VECTOR( ray_direction, ray_direction );
 
-                create_intersections( &ray_origin, &ray_direction,
-                                      polygons, sign, distance,
-                                      &intersections[c][i][j] );
+                n_intersections = intersect_ray_with_bintree(
+                                     &ray_origin, &ray_direction,
+                                     polygons->bintree, polygons,
+                                     (int *) NULL, &distances );
+
+                
+
+                if( n_intersects > 0 )
+                    FREE( distances );
             }
         }
     }
 
-    for_less( vox[X], 0, sizes[X] )
+    for_less( x, 0, sizes[X] )
     {
-        for_less( vox[Y], 0, sizes[Y] )
+        for_less( y, 0, sizes[Y] )
         {
-            for_less( vox[Z], 0, sizes[Z] )
+            for_less( z, 0, sizes[Z] )
             {
                 for_less( c, 0, N_DIMENSIONS )
                 {
-                    a1 = (c + 1) % N_DIMENSIONS;
-                    a2 = (c + 2) % N_DIMENSIONS;
-
-                    if( !should_zero( &intersections[c][vox[a1]][vox[a2]],
-                                      vox[c] ) )
+                    if( get_bitlist_bit_3d( &bitlists[c], x, y, z ) )
                         break;
                 }
 
                 if( c == N_DIMENSIONS )
-                    SET_VOXEL_3D( volume, vox[X], vox[Y], vox[Z], value_to_set);
+                    SET_VOXEL_3D( volume, x, y, z, value_to_set);
             }
         }
     }
+
+    for_less( c, 0, N_DIMENSIONS )
+        delete_bitlist_3d( &bitlists[c] );
 }

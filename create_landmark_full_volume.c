@@ -21,6 +21,30 @@ private  void  increment_voxel_count(
     SET_VOXEL_3D( volume, x, y, z, value );
 }
 
+private  BOOLEAN  is_left_id(
+    int   id )
+{
+    if( id >= 1000 )
+        id -= 1000;
+
+    return( id >= 10 && id <= 19 || id == 30 );
+}
+
+private  BOOLEAN  is_right_id(
+    int   id )
+{
+    if( id >= 1000 )
+        id -= 1000;
+
+    return( id >= 20 && id <= 29 || id == 40 );
+}
+
+private  BOOLEAN  is_left_filename(
+    char   filename[] )
+{
+    return( strstr( filename, "cing_l" ) != (char *) NULL );
+}
+
 extern  int  get_filename_arguments( STRING *[] );
 
 int  main(
@@ -54,7 +78,7 @@ int  main(
         !get_int_argument( 0, &structure_id ) ||
         !get_real_argument( 0.0, &radius ) )
     {
-        print( "Need arguments.\n" );
+        print( "%s  example_volume  output_volume  structure_id|-1  radius of tags  tag_file1 tag_file2 [tag_file3] ...\n", argv[0] );
         return( 1 );
     }
 
@@ -83,8 +107,17 @@ int  main(
 
     max_value = 0.0;
 
+    n_patients = 0;
+
     for_less( p, 0, n_files )
     {
+        if( is_left_id(structure_id) && !is_left_filename(filenames[p]) )
+            continue;
+        if( is_right_id(structure_id) && is_left_filename(filenames[p]) )
+            continue;
+
+        ++n_patients;
+
         print( "[%d/%d] Reading %s\n", p+1, n_files, filenames[p] );
         (void) flush_file( stdout );
 
@@ -175,7 +208,11 @@ int  main(
 
     delete_bitlist_3d( &bitlist );
 
-    n_patients = n_files / 2;
+    if( structure_id != -1 && structure_id != 1 &&
+        !is_left_id(structure_id) && !is_right_id(structure_id) )
+        n_patients /= 2;
+
+    print( "Number subjects: %d\n", n_patients );
 
     SET_VOXEL_3D( new_volume, 0, 0, 0, n_patients * SCALE_FACTOR );
 

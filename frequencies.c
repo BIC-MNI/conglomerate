@@ -148,10 +148,10 @@ int  main(
     }
 
     print( 
-"  Subject      10   11   12   13   30   32     20   21   22   23   40   42\n" );
+" Subject    10   11   12   13   30   32   38    20   21   22   23   40   42   48\n" );
 /*
     print( 
-"----------  ---- ---- ---- ---- ---- ----   ---- ---- ---- ---- ---- ----\n" );
+"-------- ---- ---- ---- ---- ---- ---- ----  ---- ---- ---- ---- ---- ---- ----\n" );
     print( "\n" );
 */
 
@@ -162,7 +162,7 @@ int  main(
                             GREEN, 1.0, BOX_MARKER,
                             &n_left_objects, &left_object_list ) == ERROR )
         {
-            n_left_objects = 0;
+            n_left_objects = -1;
         }
 
         if( strlen( right_filenames[p] ) == 0 ||
@@ -170,7 +170,7 @@ int  main(
                             GREEN, 1.0, BOX_MARKER,
                             &n_right_objects, &right_object_list ) == ERROR )
         {
-            n_right_objects = 0;
+            n_right_objects = -1;
         }
 
         if( strlen( right_filenames[p] ) == 0 )
@@ -182,7 +182,7 @@ int  main(
         while( s > 0 && dir[s] != '/' )
             --s;
         dir[s] = (char) 0;
-        s -= 10;
+        s -= 8;
         if( s < 0 )  s = 0;
  
         for_inclusive( divide, FALSE, FALSE )
@@ -195,7 +195,7 @@ int  main(
             else
                 n_printed = 0;
 
-            for_less( i, n_printed, 11 )
+            for_less( i, n_printed, 8 )
                 print( " " );
 
             print_stats( n_left_objects, left_object_list, 10, 0.0, 0.0,
@@ -210,8 +210,10 @@ int  main(
                          divide );
             print_stats( n_left_objects, left_object_list, 30, 12.0, 30.0,
                          divide );
+            print_stats( n_left_objects, left_object_list, 30, 12.0, 48.0,
+                         divide );
 
-            print( "  " );
+            print( " " );
 
             print_stats( n_right_objects, right_object_list, 20, 0.0, 0.0,
                          divide );
@@ -224,6 +226,8 @@ int  main(
             print_stats( n_right_objects, right_object_list, 40, 0.0, 0.0,
                          divide );
             print_stats( n_right_objects, right_object_list, 40, 12.0, 30.0,
+                         divide );
+            print_stats( n_right_objects, right_object_list, 40, 12.0, 48.0,
                          divide );
 
             print( "\n" );
@@ -272,7 +276,7 @@ private  void  print_stats(
         }
     }
 
-    if( n_objects == 0 )
+    if( n_objects < 0 )
         print( "    M" );
     else if( divide )
         print( "%5.1f", 100.0 * (Real) n_match / (Real) n_in_file );
