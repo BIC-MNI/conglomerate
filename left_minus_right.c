@@ -88,15 +88,15 @@ int  main(
             for_less( z, 0, sizes1[Z] )
             {
                 GET_VOXEL_3D( left_value, volume1, x, y, z );
-                left_value = CONVERT_VOXEL_TO_VALUE( volume1, left_value );
+                left_value = convert_voxel_to_value( volume1, left_value );
                 GET_VOXEL_3D( right_value, volume2, right_x, y, z );
-                right_value = CONVERT_VOXEL_TO_VALUE( volume2, right_value );
+                right_value = convert_voxel_to_value( volume2, right_value );
 
-                value = CONVERT_VALUE_TO_VOXEL( new_volume,
+                value = convert_value_to_voxel( new_volume,
                                                 left_value - right_value );
                 SET_VOXEL_3D( new_volume, x, y, z, value );
 
-                value = CONVERT_VALUE_TO_VOXEL( new_volume,
+                value = convert_value_to_voxel( new_volume,
                                                 right_value - left_value );
                 SET_VOXEL_3D( new_volume, right_x, y, z, value );
             }

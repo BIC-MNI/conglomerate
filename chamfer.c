@@ -56,7 +56,7 @@ private  Volume  create_chamfer_volume(
                 min_diff = 0.0;
 
                 GET_VOXEL_3D( voxel, volume, ind[X], ind[Y], ind[Z] );
-                value = CONVERT_VOXEL_TO_VALUE( volume, voxel );
+                value = convert_voxel_to_value( volume, voxel );
 
                 neigh[X] = ind[X];
                 neigh[Y] = ind[Y];
@@ -72,7 +72,7 @@ private  Volume  create_chamfer_volume(
                         {
                             GET_VOXEL_3D( neigh_voxel, volume,
                                           neigh[X], neigh[Y], neigh[Z] );
-                            neigh_value = CONVERT_VOXEL_TO_VALUE( volume,
+                            neigh_value = convert_voxel_to_value( volume,
                                                                   neigh_voxel );
 
                             if( value <= threshold && neigh_voxel >= threshold||

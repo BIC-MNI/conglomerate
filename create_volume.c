@@ -154,7 +154,7 @@ private  void  scan_segment_to_volume(
 
                 if( dist < value )
                 {
-                    voxel = CONVERT_VALUE_TO_VOXEL( volume, dist );
+                    voxel = convert_value_to_voxel( volume, dist );
                     if( voxel > 255.0 )
                         voxel = 255.0;
 

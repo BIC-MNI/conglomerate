@@ -57,16 +57,16 @@ int  main(
 
     get_volume_voxel_range( volume, &min_voxel, &max_voxel );
 
-    set_low = CONVERT_VALUE_TO_VOXEL( volume, min_threshold );
+    set_low = convert_value_to_voxel( volume, min_threshold );
     set_low = ROUND( set_low );
-    while( CONVERT_VOXEL_TO_VALUE( volume, set_low ) > min_threshold )
+    while( convert_voxel_to_value( volume, set_low ) > min_threshold )
         set_low -= 1.0;
     if( set_low < min_voxel )
         set_low = min_voxel;
 
-    set_high = CONVERT_VALUE_TO_VOXEL( volume, max_threshold );
+    set_high = convert_value_to_voxel( volume, max_threshold );
     set_high = ROUND( set_high );
-    while( CONVERT_VOXEL_TO_VALUE( volume, set_high ) < max_threshold )
+    while( convert_voxel_to_value( volume, set_high ) < max_threshold )
         set_high += 1.0;
     if( set_high > max_voxel )
         set_high = max_voxel;

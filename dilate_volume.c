@@ -44,7 +44,7 @@ int  main(
 
     if( mask_volume_present &&
         !get_real_argument( 0.0, &min_mask ) ||
-        !get_real_argument( 0.0, &mask_mask ) )
+        !get_real_argument( 0.0, &max_mask ) )
     {
         usage( argv[0] );
         return( 1 );
@@ -65,7 +65,7 @@ int  main(
 
     if( mask_volume_present )
     {
-        if( input_volume( mask_volume, 3, XYZ_dimension_names,
+        if( input_volume( mask_filename, 3, XYZ_dimension_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &mask_volume,
                           (minc_input_options *) NULL ) != OK )
             return( 1 );

@@ -61,7 +61,7 @@ int  main(
                 }
 
                 avg /= (Real) n_voxels;
-                voxel_value = CONVERT_VALUE_TO_VOXEL( volume, avg );
+                voxel_value = convert_value_to_voxel( volume, avg );
 
                 /*--- store the average in the block of voxels */
 

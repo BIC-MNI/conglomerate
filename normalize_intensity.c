@@ -259,7 +259,7 @@ private  void  normalize_intensities(
                 answer[0] * (x-cx) + answer[1] * (y-cy) + answer[2] * (z-cz);
         trans = answer[3] * (x-cx) + answer[4] * (y-cy) + answer[5] * (z-cz);
         v1 = scale * v1 + trans;
-        voxel = CONVERT_VALUE_TO_VOXEL( volume, v1 );
+        voxel = convert_value_to_voxel( volume, v1 );
         if( voxel < min_voxel )
             voxel = min_voxel;
         else if( voxel > max_voxel )
