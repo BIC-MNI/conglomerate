@@ -53,12 +53,14 @@ int  main(
 
     polygons = get_polygons_ptr( object_list[0] );
 
+    check_polygons_neighbours_computed( polygons );
+
 #ifdef DEBUG
+#define DEBUG
 {
     int   poly, size, v, neighbours[10], n, n_neigh;
     BOOLEAN  interior;
 
-    check_polygons_neighbours_computed( polygons );
 
     for_less( poly, 0, polygons->n_items )
     {
@@ -267,6 +269,64 @@ private  void  flatten_polygons(
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, &interior_flags, NULL );
 
+#ifdef DEBUG
+#define DEBUG
+{
+    int   poly, size, v, p1, p2;
+
+    for_less( poly, 0, polygons->n_items )
+    {
+        size = GET_OBJECT_SIZE( *polygons, poly );
+        for_less( v, 0, size )
+        {
+            p1 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,v)];
+            p2 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,(v+1)%size)];
+            for_less( i, 0, n_neighbours[p1] )
+                if( neighbours[p1][i] == p2 )
+                    break;
+            if( i >= n_neighbours[p1] )
+                handle_internal_error( "flatten" );
+
+            for_less( i, 0, n_neighbours[p2] )
+                if( neighbours[p2][i] == p1 )
+                    break;
+            if( i >= n_neighbours[p2] )
+                handle_internal_error( "flatten" );
+        }
+    }
+
+    for_less( poly, 0, polygons->n_items )
+    {
+        size = GET_OBJECT_SIZE( *polygons, poly );
+        for_less( v, 0, size )
+        {
+            p1 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,v)];
+            p2 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,(v+1)%size)];
+            for_less( i, 0, n_neighbours[p1] )
+                if( neighbours[p1][i] == p2 )
+                    break;
+
+            neighbours[p1][i] = -1;
+
+            for_less( i, 0, n_neighbours[p2] )
+                if( neighbours[p2][i] == p1 )
+                    break;
+
+            neighbours[p2][i] = -1;
+        }
+    }
+
+    for_less( point, 0, polygons->n_points )
+    {
+        for_less( n, 0, n_neighbours[point] )
+            if( neighbours[point][n] >= 0 )
+                handle_internal_error( "unaccounted" );
+    }
+    abort();
+}
+#endif
+
+
     for_less( which, 0, polygons->n_points )
     {
         if( n_neighbours[which] > 2 )
@@ -291,6 +351,8 @@ private  void  flatten_polygons(
     flatten_around_vertex( &polygons->points[which], n_neighbours[which],
                            neigh_points, (BOOLEAN) interior_flags[which],
                            &fixed_pos[0][1], &fixed_pos[1][1] );
+
+    n_fixed = 3;
 
     ALLOC( to_parameters, polygons->n_points );
     ALLOC( to_fixed_index, polygons->n_points );
@@ -326,8 +388,16 @@ private  void  flatten_polygons(
 
     if( init_points == NULL )
     {
-        for_less( point, 0, 2 * (polygons->n_points - n_fixed) )
-            parameters[point] = 0.0;
+        for_less( point, 0, polygons->n_points )
+        {
+            if( to_parameters[point] >= 0 )
+            {
+                parameters[2*to_parameters[point]] =
+                                    RPoint_x(polygons->points[point]);
+                parameters[2*to_parameters[point]+1] =
+                                    RPoint_y(polygons->points[point]);
+            }
+        }
     }
     else
     {
@@ -421,6 +491,7 @@ private  void  flatten_polygons(
         scale = sum_xy / sum_xx;
     }
 
+scale = 1.0;
     for_less( point, 0, polygons->n_points )
     {
         SCALE_POINT( polygons->points[point], new_points[point], scale );
