@@ -41,6 +41,9 @@ private  Status  input_triangular_mesh(
     File_formats     format,
     tri_mesh_struct  *mesh );
 
+private  void  print_mesh_levels(
+    tri_mesh_struct  *mesh );
+
 private  BOOLEAN  set_mesh_points(
     tri_mesh_struct   *mesh,
     int               n_points,
@@ -99,9 +102,9 @@ Usage: %s  input.obj|input.msh  model.obj input.obj output.msh output.obj\n\
          [-coal_node_value min_value max_value values.txt]\n\
          [-max_sub max_sub]\n\
 \n\
-     Subdivides the triangular mesh.\n\h";
+     Subdivides the triangular mesh.\n\n";
 
-    print_error( usage_str, executable, executable );
+    print_error( usage_str, executable );
 }
 
 int  main(
@@ -258,6 +261,8 @@ int  main(
     new_n_polys = polygons->n_items;
 
     print( "Resampled into %d polygons.\n", new_n_polys );
+
+    print_mesh_levels( &mesh );
 
     (void) output_graphics_file( output_filename, format, 1, &object );
 
@@ -1179,4 +1184,53 @@ private   void   mesh_coalesce_on_node_values(
                                         min_value, max_value,
                                         n_values, values );
     }
+}
+
+private  void   count_on_level(
+    tri_mesh_struct   *mesh,
+    tri_node_struct   *node,
+    int               *n_levels,
+    int               *n_in_level[],
+    int               level )
+{
+    int   l;
+
+    if( node->children[0] == NULL )
+    {
+        if( level >= *n_levels )
+        {
+            SET_ARRAY_SIZE( *n_in_level, *n_levels, level+1, 100 );
+            for_less( l, *n_levels, level+1 )
+                (*n_in_level)[l] = 0;
+            *n_levels = level+1;
+        }
+        ++(*n_in_level)[level];
+    }
+    else
+    {
+        count_on_level( mesh, node->children[0], n_levels, n_in_level, level+1);
+        count_on_level( mesh, node->children[1], n_levels, n_in_level, level+1);
+        count_on_level( mesh, node->children[2], n_levels, n_in_level, level+1);
+        count_on_level( mesh, node->children[3], n_levels, n_in_level, level+1);
+    }
+}
+
+private  void  print_mesh_levels(
+    tri_mesh_struct  *mesh )
+{
+    int   tri, n_levels, *n_in_level, level;
+
+    n_levels = 0;
+    n_in_level = NULL;
+
+    for_less( tri, 0, mesh->n_triangles )
+        count_on_level( mesh, &mesh->triangles[tri], &n_levels, &n_in_level,
+                        0 );
+
+    for_less( level, 0, n_levels )
+        print( " %d", n_in_level[level] );
+    print( "\n" );
+
+    if( n_levels > 0 )
+        FREE( n_in_level );
 }
