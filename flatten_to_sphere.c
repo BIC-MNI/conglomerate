@@ -55,74 +55,191 @@ int  main(
 
     flatten_polygons( polygons, init_points, n_iters );
 
-    (void) output_graphics_file( dest_filename, format, 1, object_list );
+    if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
+        print_error( "Error outputting: %s\n", dest_filename );
 
     return( 0 );
 }
 
-private  void   expand_neighbours(
-    int    n_nodes,
+private  int   get_neighbours_neighbours(
+    int    node,
     int    n_neighbours[],
-    int    *neighbours[] )
+    int    *neighbours[],
+    int    neigh_indices[] )
 {
-    int   node, n, new_n, *new_n_neighbours, **new_neighbours, *buffer;
+    int   n, n_nn;
     int   i, nn, neigh, neigh_neigh;
 
-    ALLOC( buffer, n_nodes );
+    n_nn = 0;
 
-    ALLOC( new_neighbours, n_nodes );
-    ALLOC( new_n_neighbours, n_nodes );
-
-    for_less( node, 0, n_nodes )
+    for_less( n, 0, n_neighbours[node] )
     {
-        new_n = 0;
-        for_less( n, 0, n_neighbours[node] )
+        neigh = neighbours[node][n];
+        for_less( nn, 0, n_neighbours[neigh] )
         {
-            buffer[new_n] = neighbours[node][n];
-            ++new_n;
-        }
+            neigh_neigh = neighbours[neigh][nn];
+            if( neigh_neigh == node )
+                continue;
 
-        for_less( n, 0, n_neighbours[node] )
-        {
-            neigh = neighbours[node][n];
-            for_less( nn, 0, n_neighbours[neigh] )
+            for_less( i, 0, n_neighbours[node] )
             {
-                neigh_neigh = neighbours[neigh][nn];
-                if( neigh_neigh == node )
-                    continue;
+                if( neighbours[node][i] == neigh_neigh )
+                    break;
+            }
 
-                for_less( i, 0, new_n )
-                {
-                    if( buffer[i] == neigh_neigh )
-                        break;
-                }
+            if( i < n_neighbours[node] )
+                continue;
 
-                if( i >= new_n )
-                {
-                    buffer[new_n] = neigh_neigh;
-                    ++new_n;
-                }
+            for_less( i, 0, n_nn )
+            {
+                if( neigh_indices[i] == neigh_neigh )
+                    break;
+            }
+
+            if( i >= n_nn )
+            {
+                neigh_indices[n_nn] = neigh_neigh;
+                ++n_nn;
             }
         }
-
-        ALLOC( new_neighbours[node], new_n );
-        for_less( n, 0, new_n )
-            new_neighbours[node][n] = buffer[n];
-        new_n_neighbours[node] = new_n;
     }
 
-    FREE( buffer );
-
-    for_less( node, 0, n_nodes )
-    {
-        n_neighbours[node] = new_n_neighbours[node];
-        FREE( neighbours[node] );
-        neighbours[node] = new_neighbours[node];
-    }
-
-    FREE( new_n_neighbours );
-    FREE( new_neighbours );
+    return( n_nn );
 }
+
+private  int   flatten_patches_to_sphere(
+    Real             radius,
+    polygons_struct  *polygons,
+    int              node,
+    int              n_neighbours[],
+    int              **neighbours,
+    int              neigh_indices[],
+    Real             x_sphere[],
+    Real             y_sphere[],
+    Real             z_sphere[] )
+{
+    int              n_nn, neigh, neigh_neigh, i, p, n, which;
+    int              counts[MAX_POINTS_PER_POLYGON];
+    Point            neigh_points[MAX_POINTS_PER_POLYGON];
+    Point            neigh_neigh_points[MAX_POINTS_PER_POLYGON];
+    Real             x_sphere1[MAX_POINTS_PER_POLYGON], x, y, z;
+    Real             y_sphere1[MAX_POINTS_PER_POLYGON];
+    Real             z_sphere1[MAX_POINTS_PER_POLYGON], len, factor;
+    Vector           x_axis, y_axis, z_axis;
+    Point            origin;
+    Transform        transform, from, to;
+    
+    for_less( n, 0, n_neighbours[node] )
+    {
+        neigh_indices[n] = neighbours[node][n];
+        neigh_points[n] = polygons->points[neighbours[node][n]];
+    }
+
+    flatten_around_vertex_to_sphere( radius, &polygons->points[node],
+                                     n_neighbours[node], neigh_points,
+                                     x_sphere, y_sphere, z_sphere );
+
+    n_nn = get_neighbours_neighbours( node, n_neighbours, neighbours,
+                                      &neigh_indices[n_neighbours[node]] );
+
+    for_less( i, 0, n_nn )
+    {
+        x_sphere[n_neighbours[node]+i] = 0.0;
+        y_sphere[n_neighbours[node]+i] = 0.0;
+        z_sphere[n_neighbours[node]+i] = 0.0;
+        counts[i] = 0;
+    }
+
+    for_less( n, 0, n_neighbours[node] )
+    {
+        neigh = neighbours[node][n];
+        for_less( p, 0, n_neighbours[neigh] )
+            neigh_neigh_points[p] = polygons->points[neighbours[neigh][p]];
+
+        flatten_around_vertex_to_sphere( radius, &polygons->points[neigh],
+                                         n_neighbours[neigh],
+                                         neigh_neigh_points,
+                                         x_sphere1, y_sphere1, z_sphere1 );
+
+        for_less( which, 0, n_neighbours[neigh] )
+            if( neighbours[neigh][which] == node )
+                break;
+
+        fill_Vector( z_axis, 0.0, 0.0, 1.0 );
+        fill_Point( origin, 0.0, 0.0, 0.0 );
+        fill_Vector( x_axis, x_sphere1[which], y_sphere1[which],
+                     z_sphere1[which] );
+        CROSS_VECTORS( y_axis, z_axis, x_axis );
+        CROSS_VECTORS( z_axis, x_axis, y_axis );
+        NORMALIZE_VECTOR( x_axis, x_axis );
+        NORMALIZE_VECTOR( y_axis, y_axis );
+        NORMALIZE_VECTOR( z_axis, z_axis );
+
+        make_change_from_bases_transform( &origin, &x_axis, &y_axis, &z_axis,
+                                          &from );
+
+        fill_Vector( z_axis, 0.0, 0.0, 1.0 );
+        fill_Point( origin, x_sphere[n], y_sphere[n], z_sphere[n] );
+        fill_Vector( x_axis, -x_sphere[n], -y_sphere[n], -z_sphere[n] );
+        CROSS_VECTORS( y_axis, z_axis, x_axis );
+        CROSS_VECTORS( z_axis, x_axis, y_axis );
+        NORMALIZE_VECTOR( x_axis, x_axis );
+        NORMALIZE_VECTOR( y_axis, y_axis );
+        NORMALIZE_VECTOR( z_axis, z_axis );
+
+        make_change_to_bases_transform( &origin, &x_axis, &y_axis, &z_axis,
+                                        &to );
+
+        concat_transforms( &transform, &from, &to );
+
+        for_less( p, 0, n_neighbours[neigh] )
+        {
+            neigh_neigh = neighbours[neigh][p];
+
+            for_less( which, 0, n_nn )
+            {
+                if( neigh_neigh == neigh_indices[n_neighbours[node]+which] )
+                    break;
+            }
+
+            if( which >= n_nn )
+                continue;
+
+            transform_point( &transform, x_sphere1[p], y_sphere1[p],
+                             z_sphere1[p], &x, &y, &z );
+
+            x_sphere[n_neighbours[node]+which] += x;
+            y_sphere[n_neighbours[node]+which] += y;
+            z_sphere[n_neighbours[node]+which] += z;
+            ++counts[which];
+        }
+    }
+
+    for_less( i, 0, n_nn )
+    {
+        x_sphere[n_neighbours[node]+i] /= (Real) counts[i];
+        y_sphere[n_neighbours[node]+i] /= (Real) counts[i];
+        z_sphere[n_neighbours[node]+i] /= (Real) counts[i];
+
+        len = x_sphere[n_neighbours[node]+i] * x_sphere[n_neighbours[node]+i] +
+              y_sphere[n_neighbours[node]+i] * y_sphere[n_neighbours[node]+i] +
+              (z_sphere[n_neighbours[node]+i] + radius) *
+              (z_sphere[n_neighbours[node]+i] + radius);
+
+        if( len == 0.0 )
+            handle_internal_error( "len = 0.0" );
+
+        factor = radius / sqrt( len );
+        x_sphere[n_neighbours[node]+i] *= factor;
+        y_sphere[n_neighbours[node]+i] *= factor;
+        z_sphere[n_neighbours[node]+i] = (z_sphere[n_neighbours[node]+i] +
+                                          radius) * factor - radius;
+    }
+
+    return( n_neighbours[node] + n_nn );
+}
+
+#define SPHERE
 
 private  int  create_coefficients(
     polygons_struct  *polygons,
@@ -139,31 +256,36 @@ private  int  create_coefficients(
     Real             **node_weights[] )
 {
     int              node, p, eq, dim, max_neighbours;
-    int              neigh, ind, dim1;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             x_sphere[MAX_POINTS_PER_POLYGON], x, y, z;
-    Real             y_sphere[MAX_POINTS_PER_POLYGON];
-    Real             z_sphere[MAX_POINTS_PER_POLYGON];
+    int              neigh, ind, dim1, n_neighs;
+    Real             x_sphere[100];
+    Real             y_sphere[100];
+    Real             z_sphere[100];
+    int              neigh_indices[100];
     Real             *weights[3][3];
     Real             radius, con;
     int              nodes[100];
     Real             eq_weights[100];
     BOOLEAN          found, ignoring;
     progress_struct  progress;
-
-Point  centre = { 0.0f, 0.0f, 0.0f };
-polygons_struct  unit_sphere;
+#ifdef SPHERE
+    polygons_struct  unit_sphere;
+    static  Point            centre = { 0.0f, 0.0f, 0.0f };
+#endif
 
     radius = sqrt( get_polygons_surface_area( polygons ) / 4.0 / PI );
 
-    print( "Radius: %g\n", radius );
+#ifdef SPHERE
+    radius = 10.0;
+    create_tetrahedral_sphere( &centre, radius, radius, radius, polygons->n_items, &unit_sphere );
+#endif
 
-create_tetrahedral_sphere( &centre, radius, radius, radius, polygons->n_items,
-                           &unit_sphere );
+    print( "Radius: %g\n", radius );
 
     max_neighbours = 0;
     for_less( node, 0, polygons->n_points )
         max_neighbours = MAX( max_neighbours, n_neighbours[node] );
+
+    max_neighbours = MIN((1+max_neighbours)*max_neighbours,polygons->n_points );
 
     for_less( dim, 0, N_DIMENSIONS )
     {
@@ -194,37 +316,26 @@ create_tetrahedral_sphere( &centre, radius, radius, radius, polygons->n_items,
         if( !found )
             continue;
 
-        for_less( p, 0, n_neighbours[node] )
-            neigh_points[p] = polygons->points[neighbours[node][p]];
-
-        for_less( p, 0, n_neighbours[node] )
+        n_neighs = flatten_patches_to_sphere(
+                                    radius, polygons, node,
+                                    n_neighbours, neighbours,
+                                    neigh_indices,
+                                    x_sphere, y_sphere, z_sphere );
+#ifdef SPHERE
+        for_less( p, 0, n_neighs )
         {
-            x_sphere[p] = RPoint_x(unit_sphere.points[neighbours[node][p]]);
-            y_sphere[p] = RPoint_y(unit_sphere.points[neighbours[node][p]]);
-            z_sphere[p] = RPoint_z(unit_sphere.points[neighbours[node][p]]);
+            x_sphere[p] = RPoint_x(unit_sphere.points[neigh_indices[p]]) -
+                          RPoint_x(unit_sphere.points[node]);
+            y_sphere[p] = RPoint_y(unit_sphere.points[neigh_indices[p]]) -
+                          RPoint_y(unit_sphere.points[node]);
+            z_sphere[p] = RPoint_z(unit_sphere.points[neigh_indices[p]]) -
+                          RPoint_z(unit_sphere.points[node]);
         }
-
-        x = RPoint_x( unit_sphere.points[node] );
-        y = RPoint_y( unit_sphere.points[node] );
-        z = RPoint_z( unit_sphere.points[node] );
-
-        if( !get_prediction_weights_3d( x, y, z,
-                                        n_neighbours[node],
-                                        x_sphere, y_sphere, z_sphere,
-                                        weights[0], weights[1], weights[2] ) )
-                                         
-        {
-            print_error( "Error in interpolation weights, ignoring..\n" );
-            ignoring = TRUE;
-        }
-/*
-        flatten_around_vertex_to_sphere( radius, &polygons->points[node],
-                                         n_neighbours[node], neigh_points,
-                                         x_sphere, y_sphere, z_sphere );
+#endif
 
         ignoring = FALSE;
         if( !get_prediction_weights_3d( 0.0, 0.0, 0.0,
-                                        n_neighbours[node],
+                                        n_neighs,
                                         x_sphere, y_sphere, z_sphere,
                                         weights[0], weights[1], weights[2] ) )
                                          
@@ -232,13 +343,12 @@ create_tetrahedral_sphere( &centre, radius, radius, radius, polygons->n_items,
             print_error( "Error in interpolation weights, ignoring..\n" );
             ignoring = TRUE;
         }
-*/
 
         if( !ignoring )
         {
             for_less( dim, 0, N_DIMENSIONS )
             for_less( dim1, 0, N_DIMENSIONS )
-            for_less( p, 0, n_neighbours[node] )
+            for_less( p, 0, n_neighs )
             {
                 if( FABS( weights[dim][dim1][p] ) > 100.0 )
                 {
@@ -264,11 +374,13 @@ create_tetrahedral_sphere( &centre, radius, radius, radius, polygons->n_items,
                 con = 0.0;
             }
             else
-                con = fixed_pos[dim][to_fixed_index[node]];
-
-            for_less( p, 0, n_neighbours[node] )
             {
-                neigh = neighbours[node][p];
+                con = fixed_pos[dim][to_fixed_index[node]];
+            }
+
+            for_less( p, 0, n_neighs )
+            {
+                neigh = neigh_indices[p];
                 if( to_parameters[neigh] >= 0 )
                 {
                     for_less( dim1, 0, N_DIMENSIONS )
@@ -336,8 +448,6 @@ create_tetrahedral_sphere( &centre, radius, radius, radius, polygons->n_items,
         FREE( weights[2][dim] );
     }
 
-delete_polygons( &unit_sphere );
-
     return( eq );
 }
 
@@ -356,8 +466,6 @@ private  void  flatten_polygons(
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
-
-    expand_neighbours( polygons->n_points, n_neighbours, neighbours );
 
     size = GET_OBJECT_SIZE( *polygons, 0 );
     n_fixed = size;
@@ -423,6 +531,7 @@ private  void  flatten_polygons(
 
 #ifdef DEBUG
 #define DEBUG
+#undef DEBUG
     {
     int eq;
     Real value;
