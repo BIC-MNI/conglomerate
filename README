@@ -18,6 +18,22 @@ The parameter curvature_distance defaults to 4.
 
 
 
+		evaluate
+		--------
+
+  evaluate  volume.mnc  input.obj  output.txt [degree]
+
+degree is an integer, passed to evaluate_volume_in_world(), where 
+-1 = nearest-neighbour, otherwise use an order-(degree+1) 
+polynomial to interpolate
+
+Typically used for vertex colouring of objects.  For each vertex of the
+geometrical object, the point is located in the volume.  The volume values 
+are written to the output text file in the order that the vertices are 
+visited.  Each object in the BIC obj file is processed in sequence.
+
+
+
 		make_slice
 		----------
 
