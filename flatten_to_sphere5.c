@@ -98,9 +98,9 @@ private  Real  evaluate_fit(
     int     *neighbours[] )
 {
     int     p, n_points, max_neighbours, n, neigh, p_index, n_index;
-    Real    fit, diff, height, actual_height;
-    Point   *neigh_points, centroid, this_point;
-    Vector  offset, normal;
+    Real    fit, height, dx, dy, dz;
+    Point   *neigh_points, centroid, this_point, model_point;
+    Vector  normal;
 
     fit = 0.0;
 
@@ -130,13 +130,13 @@ private  Real  evaluate_fit(
 
         get_points_centroid( n_neighbours[p], neigh_points, &centroid );
         find_polygon_normal( n_neighbours[p], neigh_points, &normal );
-
         height = (Real) heights[p];
+        GET_POINT_ON_RAY( model_point, centroid, normal, height );
            
-        SUB_POINTS( offset, this_point, centroid );
-        actual_height = DOT_VECTORS( offset, normal );
-        diff = actual_height - height;
-        fit += diff * diff;
+        dx = RPoint_x(this_point) - RPoint_x(model_point);
+        dy = RPoint_y(this_point) - RPoint_y(model_point);
+        dz = RPoint_z(this_point) - RPoint_z(model_point);
+        fit += dx * dx + dy * dy + dz * dz;
     }
 
     FREE( neigh_points );
@@ -153,9 +153,10 @@ private  void  evaluate_fit_derivative(
     dtype    deriv[] )
 {
     int    p, n_points, n, neigh, p_index, n_index, max_neighbours;
-    Real   diff, factor, nx, ny, nz, actual_height, height;
-    Point  *neigh_points, this_point, centroid;
-    Vector offset, normal;
+    Real   height;
+    Real   dx, dy, dz;
+    Point  *neigh_points, this_point, centroid, model_point;
+    Vector normal;
 
     for_less( p, 0, n_parameters )
         deriv[p] = (dtype) 0.0;
@@ -188,29 +189,27 @@ private  void  evaluate_fit_derivative(
         find_polygon_normal( n_neighbours[p], neigh_points, &normal );
 
         height = (Real) heights[p];
+        GET_POINT_ON_RAY( model_point, centroid, normal, height );
+           
+        dx = RPoint_x(this_point) - RPoint_x(model_point);
+        dy = RPoint_y(this_point) - RPoint_y(model_point);
+        dz = RPoint_z(this_point) - RPoint_z(model_point);
 
-        SUB_POINTS( offset, this_point, centroid );
-        actual_height = DOT_VECTORS( offset, normal );
-        diff = actual_height - height;
+        deriv[p_index+0] += (dtype) (2.0 * dx);
+        deriv[p_index+1] += (dtype) (2.0 * dy);
+        deriv[p_index+2] += (dtype) (2.0 * dz);
 
-        factor = 2.0 * diff;
-        nx = RVector_x(normal);
-        ny = RVector_y(normal);
-        nz = RVector_z(normal);
-
-        deriv[p_index+0] += (dtype) (factor * nx);
-        deriv[p_index+1] += (dtype) (factor * ny);
-        deriv[p_index+2] += (dtype) (factor * nz);
-
-        factor /= (Real) n_neighbours[p];
+        dx /= (Real) n_neighbours[p];
+        dy /= (Real) n_neighbours[p];
+        dz /= (Real) n_neighbours[p];
 
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
             n_index = IJ(neigh,0,3);
-            deriv[n_index+0] += (dtype) (-factor * nx);
-            deriv[n_index+1] += (dtype) (-factor * ny);
-            deriv[n_index+2] += (dtype) (-factor * nz);
+            deriv[n_index+0] += (dtype) (-2.0 * dx);
+            deriv[n_index+1] += (dtype) (-2.0 * dy);
+            deriv[n_index+2] += (dtype) (-2.0 * dz);
         }
     }
 
