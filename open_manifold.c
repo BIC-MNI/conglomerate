@@ -391,6 +391,7 @@ private  int  convert_manifold_to_sheet(
     int               *n_neighbours, **neighbours;
     int               p, n_points, poly, new_n_points, *new_ids;
     float             **distances;
+    Real              y, total_length, current_length;
     int               total_neighbours;
     int               *path, path_size;
     int               size, vertex, p1;
@@ -457,23 +458,35 @@ private  int  convert_manifold_to_sheet(
         (*new_points)[n_points+p-1] = points[path[p]];
     }
 
-    *n_fixed = 6;
+    *n_fixed = 2 + 2 * (path_size-2);
     ALLOC( *fixed_list, *n_fixed );
     (*fixed_list)[0] = north_pole;
-    (*fixed_list)[1] = path[1];
-    (*fixed_list)[2] = new_ids[path[1]];
-    (*fixed_list)[3] = south_pole;
-    (*fixed_list)[4] = path[path_size-2];
-    (*fixed_list)[5] = new_ids[path[path_size-2]];
+    (*fixed_list)[1] = south_pole;
+    for_less( p, 1, path_size-1 )
+    {
+        (*fixed_list)[2*p] = path[p];
+        (*fixed_list)[2*p+1] = new_ids[path[p]];
+    }
 
     for_less( p, 0, new_n_points )
         fill_Point( (*new_flat_points)[p], 0.5, 0.5, 0.0 );
     fill_Point( (*new_flat_points)[south_pole], 0.5, 0.0, 0.0 );
     fill_Point( (*new_flat_points)[north_pole], 0.5, 1.0, 0.0 );
-    fill_Point( (*new_flat_points)[path[1]], 0.0, 0.95, 0.0 );
-    fill_Point( (*new_flat_points)[new_ids[path[1]]], 1.0, 0.95, 0.0 );
-    fill_Point( (*new_flat_points)[path[path_size-2]], 0.0, 0.05, 0.0 );
-    fill_Point( (*new_flat_points)[new_ids[path[path_size-2]]], 1.0, 0.05, 0.0);
+
+    total_length = 0.0;
+    for_less( p, 0, path_size-1 )
+        total_length += distance_between_points( &polygons->points[path[p]],
+                                                 &polygons->points[path[p+1]] );
+
+    current_length = 0.0;
+    for_less( p, 1, path_size-1 )
+    {
+        current_length += distance_between_points( &polygons->points[path[p-1]],
+                                                   &polygons->points[path[p]] );
+        y = 1.0 - current_length / total_length;
+        fill_Point( (*new_flat_points)[path[p]], 0.0, y, 0.0 );
+        fill_Point( (*new_flat_points)[new_ids[path[p]]], 1.0, y, 0.0 );
+    }
 
     for_less( poly, 0, polygons->n_items )
     {
