@@ -1,0 +1,13 @@
+readlib( C );
+
+f1 := c1+a*x1+b*y1+r2;
+f2 := c2+a*x2+b*y2+r2;
+f3 := c3+a*x3+b*y3+r2;
+A := solve( {f1,f2,f3},{a,b,r2} );
+
+assign( A );
+
+C(a);
+C(b);
+C(r2);
+quit;

@@ -1,0 +1,10 @@
+solve( {(r-a+d)^2-d^2=r^2-b^2}, {d} );
+solve( {u^2+h^2-d2-((r-a+u)^2+h^2-r^2)}, {u} );
+
+t := solve( {oo + 2*a*oh+2*b*ov=r2-d2}, {a} );
+assign( t );
+
+solve( {aa^2*hh + 2*aa*b*vh + b^2*vv = d2}, {b} );
+
+a := s + m * b;
+solve( {a^2*hh + 2*a*b*vh + b^2*vv = d2}, {b} );

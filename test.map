@@ -1,0 +1,11 @@
+f2 := (x + t*dx)^2 + 
+     (y + t*dy)^2 + 
+     (z + t*dz)^2 - dist;
+simplify( f2 );
+f := f2 * f2;
+
+c0 := diff(diff(diff(diff(f,t),t),t),t) / 24;
+
+f1 := f - c0 * t^4;
+
+c1 := diff(diff(diff(f1,t),t),t) / 6;

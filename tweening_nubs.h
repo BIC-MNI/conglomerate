@@ -1,0 +1,2 @@
+
+#define MAX_BSPLINE_ORDER 4

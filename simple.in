@@ -1,0 +1,23 @@
+dx2 := x2 - x1;
+dy2 := y2 - y1;
+dz2 := z2 - z1;
+
+dx3 := x3 - x1;
+dy3 := y3 - y1;
+dz3 := z3 - z1;
+
+dx4 := x4 - x1;
+dy4 := y4 - y1;
+dz4 := z4 - z1;
+
+cx := dy2 * dz3 - dz2 * dy3;
+cy := dz2 * dx3 - dx2 * dz3;
+cz := dx2 * dy3 - dy2 * dx3;
+
+vol := cx * dx4 + cy * dy4 + cz * dz4;
+d := vol - volumes[ind];
+
+diff( d, x1 );
+diff( d, x2 );
+diff( d, x3 );
+diff( d, x4 );

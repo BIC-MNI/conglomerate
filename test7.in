@@ -1,0 +1,28 @@
+cx := (x2 + x3 + x4 + x5) / 3;
+cy := (y2 + y3 + y4 + y5) / 3;
+cz := (z2 + z3 + z4 + z5) / 3;
+
+nx := y3 * z2 - y2 * z3 +
+      y4 * z3 - y3 * z4 +
+      y5 * z4 - y4 * z5 +
+      y2 * z5 - y5 * z2;
+
+ny := z3 * x2 - z2 * x3 +
+      z4 * x3 - z3 * x4 +
+      z5 * x4 - z4 * x5 +
+      z2 * x5 - z5 * x2;
+
+nz := x3 * y2 - x2 * y3 +
+      x4 * y3 - x3 * y4 +
+      x5 * y4 - x4 * y5 +
+      x2 * y5 - x5 * y2;
+
+vol := nx * (x1 - cx) + ny * (y1 - cy) + nz * (z1 - cz);
+
+d := vol - v;
+
+diff( d, x1 );
+diff( d, x3 );
+diff( cx, x3 );
+diff( ny, x3 );
+diff( nz, x3 );
