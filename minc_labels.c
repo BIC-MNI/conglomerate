@@ -55,14 +55,14 @@ public  BOOLEAN  get_label_lookup_var(
 ---------------------------------------------------------------------------- */
 
 public  BOOLEAN  read_label_lookup(
-    int    minc_id,
-    int    *n_labels,
-    int    *values[],
-    char   **labels[] )
+    int      minc_id,
+    int      *n_labels,
+    int      *values[],
+    STRING   *labels[] )
 {
     BOOLEAN   okay;
     int       i, start_index, end_index;
-    char      *label_strings;
+    STRING    label_strings;
     int       label_var, save_opts, length_label_strings, length;
     nc_type   type;
 
@@ -71,7 +71,7 @@ public  BOOLEAN  read_label_lookup(
     okay = TRUE;
     *n_labels = 0;
     *values = (int *) NULL;
-    *labels = (char **) NULL;
+    *labels = (STRING *) NULL;
 
     label_strings = (char *) NULL;
 
@@ -97,7 +97,7 @@ public  BOOLEAN  read_label_lookup(
 
     if( okay && type != NC_LONG )
     {
-        (void) fprintf( stderr, "Error: label values are not long integers.\n");
+        print_error( "Error: label values are not long integers.\n" );
         okay = FALSE;
     }
 
@@ -124,7 +124,7 @@ public  BOOLEAN  read_label_lookup(
 
     if( okay && type != NC_CHAR )
     {
-        (void) fprintf( stderr, "Error: label strings are not char type.\n");
+        print_error( "Error: label strings are not char type.\n" );
         okay = FALSE;
     }
 
@@ -132,11 +132,10 @@ public  BOOLEAN  read_label_lookup(
 
     if( okay && length_label_strings > 0 )
     {
-        ALLOC( label_strings, length_label_strings );
+        label_strings = alloc_string( length_label_strings );
 
         if( ncattget( minc_id, label_var, MIlabel_strings,
-                      (void *) label_strings )
-            == MI_ERROR )
+                      (void *) label_strings ) == MI_ERROR )
             okay = FALSE;
     }
 
@@ -162,31 +161,30 @@ public  BOOLEAN  read_label_lookup(
             end_index = start_index;
             while( end_index < length_label_strings &&
                    label_strings[end_index] != '\n' &&
-                   label_strings[end_index] != (char) 0 )
+                   label_strings[end_index] != END_OF_STRING )
                 ++end_index;
 
             /* --- now that the length of the string is known, allocate
                    memory for it, and copy it */
 
 
-            ALLOC( (*labels)[i], end_index - start_index + 1 );
+            (*labels)[i] = alloc_string( end_index - start_index );
             if( end_index > start_index )
             {
                 (void) strncpy( (*labels)[i], &label_strings[start_index],
-                                end_index - start_index );
+                                (size_t) (end_index - start_index) );
             }
 
             /* --- add the ending null character */
 
-            (*labels)[i][end_index - start_index + 1] = (char) 0;
+            (*labels)[i][end_index - start_index + 1] = END_OF_STRING;
             start_index = end_index + 1;
         }
     }
 
     /* --- free the label strings read from the file */
 
-    if( length_label_strings > 0 && label_strings != NULL )
-        FREE( label_strings );
+    delete_string( label_strings );
 
     /* --- if not successful, free up any memory allocated to be passed back */
 
@@ -195,7 +193,7 @@ public  BOOLEAN  read_label_lookup(
         if( *labels != (char **) NULL )
         {
             for( i = 0;  i < *n_labels;  ++i )
-                FREE( (*labels)[i] );
+                delete_string( (*labels)[i] );
             FREE( *labels );
         }
 
@@ -231,28 +229,31 @@ public  BOOLEAN  read_label_lookup(
 ---------------------------------------------------------------------------- */
 
 public  BOOLEAN  write_label_lookup(
-    int    minc_id,
-    int    n_labels,
-    int    values[],
-    char   *labels[] )
+    int      minc_id,
+    int      n_labels,
+    int      values[],
+    STRING   labels[] )
 {
     BOOLEAN   okay;
     int       i, c, start_index, len;
-    char      *label_strings;
+    STRING    label_strings;
     int       label_var, save_opts, length_label_strings;
 
     /* --- initialize the labels to null */
 
     okay = TRUE;
 
+    if( n_labels == 0 )
+        return( TRUE );
+
     /* --- find the total length of all label strings */
 
     length_label_strings = 0;
 
     for_less( i, 0, n_labels )
-        length_label_strings += 1 + strlen( labels[i] );
+        length_label_strings += 1 + string_length( labels[i] );
 
-    ALLOC( label_strings, length_label_strings );
+    label_strings = alloc_string( length_label_strings );
 
     /* --- merge the label strings into a single newline-delimited array */
 
@@ -261,7 +262,7 @@ public  BOOLEAN  write_label_lookup(
     {
         /* --- copy the label into place, changing newlines to spaces */
 
-        len = strlen( labels[i] );
+        len = string_length( labels[i] );
         for_less( c, 0, len )
         {
             if( labels[i][c] == '\n' )
@@ -310,8 +311,7 @@ public  BOOLEAN  write_label_lookup(
 
     /* --- free the label strings read from the file */
 
-    if( length_label_strings > 0 )
-        FREE( label_strings );
+    delete_string( label_strings );
 
     /* --- restore the netcdf options */
 
@@ -367,14 +367,14 @@ private  int   lookup_label_value(
 ---------------------------------------------------------------------------- */
 
 private  int   lookup_label(
-    int    n_labels,
-    char   *labels[],
-    char   label[] )
+    int      n_labels,
+    STRING   labels[],
+    STRING   label )
 {
     int   i;
 
     for_less( i, 0, n_labels )
-        if( strcmp( labels[i], label ) == 0 )
+        if( equal_strings( labels[i], label ) )
             return( i );
 
     return( -1 );
@@ -401,11 +401,11 @@ private  int   lookup_label(
 ---------------------------------------------------------------------------- */
 
 public  void  add_label_to_list(
-    int    *n_labels,
-    int    *values[],
-    char   **labels[],
-    int    value_to_add,
-    char   label_to_add[] )
+    int      *n_labels,
+    int      *values[],
+    STRING   *labels[],
+    int      value_to_add,
+    STRING   label_to_add )
 {
     int    ind;
 
@@ -421,12 +421,58 @@ public  void  add_label_to_list(
         ++(*n_labels);
     }
     else
-        FREE( (*labels)[ind] );
+        delete_string( (*labels)[ind] );
  
     (*values)[ind] = value_to_add;
+    (*labels)[ind] = create_string( label_to_add );
+}
 
-    ALLOC( (*labels)[ind], strlen( label_to_add ) + 1 );
-    (void) strcpy( (*labels)[ind], label_to_add );
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : delete_label_from_list
+@INPUT      : n_labels
+              values
+              labels
+              value_to_delete
+@OUTPUT     : 
+@RETURNS    : TRUE if deleted
+@DESCRIPTION: Deletes the value-label pair from the list of values and labels.
+              If the value does not exist in the list, nothing is done, and
+              the return value is FALSE.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Dec. 5, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+public  BOOLEAN  delete_label_from_list(
+    int      *n_labels,
+    int      *values[],
+    STRING   *labels[],
+    int      value_to_delete )
+{
+    int    i, ind;
+
+    /* --- see if the value is already in the list */
+
+    ind = lookup_label_value( *n_labels, *values, value_to_delete );
+
+    if( ind >= 0 )
+    {
+        delete_string( (*labels)[ind] );
+
+        for_less( i, ind, *n_labels - 1 )
+        {
+            (*values)[i] = (*values)[i+1];
+            (*labels)[i] = (*labels)[i+1];
+        }
+
+        SET_ARRAY_SIZE( (*values), *n_labels, *n_labels-1, 1 );
+        SET_ARRAY_SIZE( (*labels), *n_labels, *n_labels-1, 1 );
+        --(*n_labels);
+    }
+
+    return( ind >= 0 );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -447,11 +493,11 @@ public  void  add_label_to_list(
 ---------------------------------------------------------------------------- */
 
 public  BOOLEAN  lookup_value_for_label(
-    int    n_labels,
-    int    values[],
-    char   *labels[],
-    char   label[],
-    int    *value )
+    int      n_labels,
+    int      values[],
+    STRING   labels[],
+    STRING   label,
+    int      *value )
 {
     int   i;
 
@@ -459,6 +505,8 @@ public  BOOLEAN  lookup_value_for_label(
 
     if( i >= 0 )
         *value = values[i];
+    else
+        *value = -1;
 
     return( i >= 0 );
 }
@@ -481,11 +529,11 @@ public  BOOLEAN  lookup_value_for_label(
 ---------------------------------------------------------------------------- */
 
 public  BOOLEAN  lookup_label_for_value(
-    int    n_labels,
-    int    values[],
-    char   *labels[],
-    int    value,
-    char   *label[] )
+    int      n_labels,
+    int      values[],
+    STRING   labels[],
+    int      value,
+    STRING   *label )
 {
     int   i;
 
@@ -493,13 +541,36 @@ public  BOOLEAN  lookup_label_for_value(
 
     if( i >= 0 )
         *label = labels[i];
+    else
+        *label = NULL;
 
     return( i >= 0 );
 }
 
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : print_label
+@INPUT      : value
+              label
+@OUTPUT     : 
+@RETURNS    : 
+@DESCRIPTION: Prints the value and corresponding label.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
 public  void  print_label(
-    int    value,
-    char   label[] )
+    int      value,
+    STRING   label )
 {
-    print( "%6d %s\n", value, label );
+    STRING   l;
+
+    if( label == NULL )
+        l = "";
+    else
+        l = label;
+
+    print( "%6d \"%s\"\n", value, l );
 }

@@ -1,3 +1,7 @@
+2001-09-24  Jason Lerch   <jason@bic.mni.mcgill.ca>
+
+	* minc_to_rgb.c: Changed UNSIGNED_LONG to UNSIGNED_INT
+
 2001-09-06  Jason Lerch   <jason@bic.mni.mcgill.ca>
 
 	* surface_mask2: Changed the logic so that an explicity binary

@@ -54,7 +54,7 @@ int  main(
                       TRUE, &volume, &options ) != OK )
         return( 1 );
 
-    if( get_volume_data_type(volume) != UNSIGNED_LONG )
+    if( get_volume_data_type(volume) != UNSIGNED_INT )
     {
         print_error( "Volume is not an RGB Minc file.\n" );
         return( 1 );
