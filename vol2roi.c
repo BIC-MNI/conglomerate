@@ -214,11 +214,12 @@ private  void  extract_contour(
     int             x_size,
     int             y_size,
     float           **slice,
+    Smallest_int    **done,
     int             x_start,
     int             y_start,
     contour_struct  *contour )
 {
-    int         i, x, y, dir, nx, ny;
+    int         i, x, y, dir, nx, ny, out_x, out_y;
     xy_struct   xy;
     float       value;
     static  int new_dirs[N_DIRECTIONS] = { 6, 6, 0, 0, 2, 2, 4, 4 };
@@ -240,29 +241,60 @@ private  void  extract_contour(
         }
     }
 
+    out_x = x_start + Delta_x[dir];
+    out_y = y_start + Delta_y[dir];
+    dir = (dir + N_DIRECTIONS / 2) % N_DIRECTIONS;
+
     do
     {
-        ADD_ELEMENT_TO_ARRAY( contour->pixels, contour->n_pixels, xy,
-                              DEFAULT_CHUNK_SIZE );
-
-        for_less( i, 0, N_DIRECTIONS-1 )
+        for_less( i, 0, N_DIRECTIONS )
         {
-            ++dir;
-            if( dir >= N_DIRECTIONS )
-                dir = 0;
+            xy.x = out_x + Delta_x[dir];
+            xy.y = out_y + Delta_y[dir];
 
-            nx = xy.x + Delta_x[dir];
-            ny = xy.y + Delta_y[dir];
-
-            if( get_value( x_size, y_size, slice, nx, ny ) == value )
-            {
-                xy.x = nx;
-                xy.y = ny;
+            if( get_value( x_size, y_size, slice, xy.x, xy.y ) != value )
                 break;
-            }
+
+            ADD_ELEMENT_TO_ARRAY( contour->pixels, contour->n_pixels, xy,
+                                  DEFAULT_CHUNK_SIZE );
+            done[xy.x][xy.y] = TRUE;
+
+            if( contour->n_pixels > 10000 )
+                HANDLE_INTERNAL_ERROR( "dfaf" );
+
+            dir = (dir + 1) % N_DIRECTIONS;
         }
 
-        dir = new_dirs[dir];
+        if( i == N_DIRECTIONS )
+            break;
+
+        dir = (dir + N_DIRECTIONS - 1) % N_DIRECTIONS;
+
+        xy.x = out_x + Delta_x[dir];
+        xy.y = out_y + Delta_y[dir];
+
+        dir = (dir + N_DIRECTIONS / 2) % N_DIRECTIONS;
+
+        for_less( i, 0, N_DIRECTIONS )
+        {
+            out_x = xy.x + Delta_x[dir];
+            out_y = xy.y + Delta_y[dir];
+
+            if( get_value( x_size, y_size, slice, out_x, out_y ) == value )
+                break;
+
+            dir = (dir + N_DIRECTIONS - 1) % N_DIRECTIONS;
+        }
+
+        if( i == N_DIRECTIONS )
+            break;
+
+        dir = (dir + 1) % N_DIRECTIONS;
+
+        out_x = xy.x + Delta_x[dir];
+        out_y = xy.y + Delta_y[dir];
+
+        dir = (dir + N_DIRECTIONS / 2 + 1) % N_DIRECTIONS;
     }
     while( xy.x != x_start || xy.y != y_start );
 
@@ -333,7 +365,8 @@ private  int  extract_contours(
                 is_boundary_pixel( sizes[a1], sizes[a2], values, x, y ) &&
                                    !done[x][y] )
             {
-                extract_contour( sizes[a1], sizes[a2], values, x, y, &contour );
+                extract_contour( sizes[a1], sizes[a2], values, done,
+                                 x, y, &contour );
                 ADD_ELEMENT_TO_ARRAY( *contours, n_contours, contour, 1 );
             }
         }
