@@ -4,7 +4,6 @@
 private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
-    Point             new_points[],
     Real              movement_threshold,
     int               n_iters );
 
@@ -16,7 +15,6 @@ int  main(
     STRING               input_filename, output_filename;
     File_formats         src_format, model_format;
     int                  n_src_objects, n_model_objects;
-    Point                *new_points;
     object_struct        **model_objects, **src_objects;
     polygons_struct      *original, *model;
     Real                 movement_threshold;
@@ -67,12 +65,7 @@ int  main(
         return( 1 );
     }
 
-    ALLOC( new_points, original->n_points );
-
-    reparameterize( original, model, new_points, movement_threshold, n_iters );
-
-    FREE( original->points );
-    original->points = new_points;
+    reparameterize( original, model, movement_threshold, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
                               src_objects ) != OK )
@@ -81,16 +74,58 @@ int  main(
     return( 0 );
 }
 
+private  Real  perturb_vertices(
+    polygons_struct   *original,
+    Real              model_lengths[],
+    int               n_neighbours[],
+    int               *neighbours[],
+    Real              (*new_points)[N_DIMENSIONS],
+    int               which_triangle[] )
+{
+    int    d, point_index, max_neighbours, n, ind;
+    Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
+
+    max_neighbours = 0;
+    for_less( point_index, 0, original->n_points )
+        max_neighbours = MAX( max_neighbours, n_neighbours[point_index] );
+
+    ALLOC( points, max_neighbours );
+    ALLOC( lengths, max_neighbours );
+
+    max_movement = 0.0;
+    ind = 0;
+    for_less( point_index, 0, original->n_points )
+    {
+        for_less( n, 0, n_neighbours[point_index] )
+        {
+            lengths[n] = model_lengths[ind];
+            ++ind;
+            for_less( d, 0, N_DIMENSIONS )
+                points[n][d] = new_points[neighbours[point_index][n]][d];
+        }
+
+        movement = optimize_vertex( original,
+                                    n_neighbours[point_index],
+                                    lengths, new_points[point_index], points );
+
+        max_movement = MAX( max_movement, movement );
+    }
+
+    FREE( points );
+    FREE( lengths );
+
+    return( max_movement );
+}
+
 private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
-    Point             new_points[],
     Real              movement_threshold,
     int               n_iters )
 {
-    int   total_neighbours, ind, p1, n, *n_neighbours, **neighbours;
+    int   total_neighbours, ind, point, n, *n_neighbours, **neighbours;
     int   *which_triangle, size, vertex, poly, iter;
-    Real  *model_lengths, movement;
+    Real  *model_lengths, movement, (*new_points)[N_DIMENSIONS];
 
     create_polygon_point_neighbours( original, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -98,35 +133,37 @@ private  void  reparameterize(
     check_polygons_neighbours_computed( original );
 
     total_neighbours = 0;
-    for_less( p1, 0, original->n_points )
-        total_neighbours += n_neighbours[p1];
+    for_less( point, 0, original->n_points )
+        total_neighbours += n_neighbours[point];
 
     ALLOC( model_lengths, total_neighbours );
     ind = 0;
 
-    for_less( p1, 0, original->n_points )
+    for_less( point, 0, original->n_points )
     {
-        for_less( n, 0, n_neighbours[p1] )
+        for_less( n, 0, n_neighbours[point] )
         {
-            model_lengths[ind] = distance_between_points( &model->points[p1],
-                                   &model->points[neighbours[p1][n]] );
+            model_lengths[ind] = distance_between_points( &model->points[point],
+                                   &model->points[neighbours[point][n]] );
             ++ind;
         }
     }
 
+    ALLOC( new_points, original->n_points );
+
     ALLOC( which_triangle, original->n_points );
-    for_less( p1, 0, original->n_points )
-        which_triangle[p1] = -1;
+    for_less( point, 0, original->n_points )
+        which_triangle[point] = -1;
 
     for_less( poly, 0, original->n_items )
     {
         size = GET_OBJECT_SIZE( *original, poly );
         for_less( vertex, 0, size )
         {
-            p1 = original->indices[
+            point = original->indices[
                    POINT_INDEX(original->end_indices,poly,vertex)];
-            if( which_triangle[p1] < 0 )
-                which_triangle[p1] = poly;
+            if( which_triangle[point] < 0 )
+                which_triangle[point] = poly;
         }
     }
 
@@ -134,10 +171,9 @@ private  void  reparameterize(
     movement = -1.0;
     while( iter < n_iters && movement > movement_threshold )
     {
-/*
         movement = perturb_vertices( original, model_lengths,
+                                     n_neighbours, neighbours,
                                      new_points, which_triangle );
-*/
         ++iter;
         print( "%3d: %g\n", iter, movement );
     }
@@ -145,5 +181,13 @@ private  void  reparameterize(
     delete_polygon_point_neighbours( original, n_neighbours,
                                      neighbours, NULL, NULL );
 
+    for_less( point, 0, original->n_points )
+    {
+        fill_Point( original->points[point],
+                    new_points[point][X], new_points[point][Y],
+                    new_points[point][Z] );
+    }
+
     FREE( model_lengths );
+    FREE( new_points );
 }
