@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: tagtominc  example_volume.mnc  input.tag  output.mnc  [structure_id]\n\
 \n\
      Converts a tag file to a MINC volume with values equal the tags'\n\
@@ -20,10 +20,10 @@ int  main(
     char  *argv[] )
 {
     Status               status;
-    char                 *volume_filename, *tag_filename;
-    char                 *output_filename;
+    STRING               volume_filename, tag_filename;
+    STRING               output_filename;
     Real                 voxel[MAX_DIMENSIONS];
-    char                 history[10000];
+    STRING               history;
     Volume               volume, new_volume;
     volume_input_struct  volume_input;
     int                  structure_id, n_tag_points, n_volumes, *structure_ids;
@@ -95,12 +95,12 @@ int  main(
     free_tag_points( n_volumes, n_tag_points, tags1, tags2, NULL,
                      structure_ids, NULL, NULL );
 
-    (void) strcpy( history, "Created by:  " );
+    history = create_string( "Created by:  " );
 
     for_less( i, 0, argc )
     {
-        (void) strcat( history, " " );
-        (void) strcat( history, argv[i] );
+        concat_to_string( &history, " " );
+        concat_to_string( &history, argv[i] );
     }
 
     status = output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,

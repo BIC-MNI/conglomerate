@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char  executable[] )
+    STRING  executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s  volume  output.tag\n\
        %s  volume  output.tag  id\n\
        %s  volume  output.tag  min_id  max_id\n\
@@ -21,7 +21,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *volume_filename, *tag_filename;
+    STRING               volume_filename, tag_filename;
     Volume               volume;
     Real                 min_id, max_id, value, xw, yw, zw;
     int                  x, y, z;
