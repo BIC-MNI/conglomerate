@@ -1,4 +1,16 @@
+#include  <internal_volume_io.h>
 #include  <bicpl.h>
+
+private  void  usage(
+    STRING   executable )
+{
+    STRING  usage_str = "\n\
+Usage: %s  src.obj values_file dest.obj\n\
+           gray|hot|spectral|blue|green|red|user [user.map] low high\n\
+           [under] [over] [opacity]\n\n";
+
+    print_error( usage_str, executable );
+}
 
 #define  GRAY_STRING       "gray"
 #define  HOT_STRING        "hot"
@@ -6,6 +18,7 @@
 #define  RED_STRING        "red"
 #define  GREEN_STRING      "green"
 #define  BLUE_STRING       "blue"
+#define  USER_STRING       "user"
 
 int  main(
     int    argc,
@@ -15,6 +28,7 @@ int  main(
     Status               status;
     STRING               src_filename, dest_filename, values_filename;
     STRING               under_colour_name, over_colour_name;
+    STRING               user_def_filename;
     int                  i, p, n_objects, n_points, n_values, value_index;
     Point                *points;
     File_formats         format;
@@ -33,14 +47,9 @@ int  main(
     if( !get_string_argument( NULL, &src_filename ) ||
         !get_string_argument( NULL, &values_filename ) ||
         !get_string_argument( NULL, &dest_filename ) ||
-        !get_string_argument( NULL, &coding_type_string ) ||
-        !get_real_argument( 0.0, &low ) ||
-        !get_real_argument( 0.0, &high ) )
+        !get_string_argument( NULL, &coding_type_string ) )
     {
-        print_error( "Usage: %s  src.obj values_file dest.obj\n",
-                     argv[0] );
-        print_error( "           gray|hot|spectral low high\n" );
-        print_error( "           [under] [over] [opacity]\n" );
+        usage( argv[0] );
         return( 1 );
     }
 
@@ -58,10 +67,26 @@ int  main(
         coding_type = GREEN_COLOUR_MAP;
     else if( equal_strings( coding_type_string, BLUE_STRING ) )
         coding_type = BLUE_COLOUR_MAP;
+    else if( equal_strings( coding_type_string, USER_STRING ) )
+    {
+        coding_type = USER_DEFINED_COLOUR_MAP;
+        if( !get_string_argument( NULL, &user_def_filename ) )
+        {
+            usage( argv[0] );
+            print_error( "Error in user def colour coding argument.\n");                    return( 1 );
+        }
+    }
     else
     {
         coding_type = SINGLE_COLOUR_SCALE;
         default_over = coding_type_string;
+    }
+
+    if( !get_real_argument( 0.0, &low ) ||
+        !get_real_argument( 0.0, &high ) )
+    {
+        usage( argv[0] );
+        return( 1 );
     }
 
     (void) get_string_argument( "BLACK", &under_colour_name );
@@ -74,6 +99,16 @@ int  main(
 
     initialize_colour_coding( &colour_coding, coding_type,
                               under_colour, over_colour, low, high );
+
+    if( coding_type == USER_DEFINED_COLOUR_MAP )
+    {
+        if( input_user_defined_colour_coding( &colour_coding,
+                                              user_def_filename ) != OK)                {
+            print_error( "Error in user defined colour map: %s\n",
+                          user_def_filename );
+            return( 1 );
+        }
+    }
 
     if( input_graphics_file( src_filename, &format, &n_objects,
                              &object_list ) != OK )
