@@ -344,7 +344,7 @@ private  void  extract_isosurface(
         ALLOC2D( label_slices[1], x_size, y_size );
     }
 
-    max_edges = get_max_marching_edges();
+    max_edges = get_max_marching_edges( method );
 
     ALLOC3D( point_ids[0], x_size+2, y_size+2, max_edges );
     ALLOC3D( point_ids[1], x_size+2, y_size+2, max_edges );
@@ -440,6 +440,7 @@ private  int   get_point_index(
     polygons_struct     *polygons )
 {
     int            voxel[N_DIMENSIONS], edge, point_index;
+    int            edge_voxel[N_DIMENSIONS];
     Real           v[N_DIMENSIONS];
     Point          world_point;
     Point_classes  point_class;
@@ -452,13 +453,15 @@ private  int   get_point_index(
     point_index = point_ids[voxel[Z]][voxel[X]+1][voxel[Y]+1][edge];
     if( point_index < 0 )
     {
-        point_class = get_isosurface_point( corners, point,
+        edge_voxel[X] = point->coord[X];
+        edge_voxel[Y] = point->coord[Y];
+        edge_voxel[Z] = point->coord[Z];
+        point_class = get_isosurface_point( corners, edge_voxel, edge,
                                             binary_flag,
                                             min_threshold, max_threshold, v );
 
         get_world_point( v[Z] + (Real) slice_index,
-                         v[X] + (Real) x,
-                         v[Y] + (Real) y,
+                         v[X] + (Real) x, v[Y] + (Real) y,
                          spatial_axes, voxel_to_world_transform, &world_point );
 
         point_index = polygons->n_points;

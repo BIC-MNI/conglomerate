@@ -1,3 +1,10 @@
+2002-04-06  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* marching_cubes.c: Copied the RCS file
+	~david/Source/Marching_cubes/RCS/marching_cubes.c,v to the CVS
+	repository.  After checkout, copied the (unchecked-in)
+	marching_cubes.c file overtop.
+
 2001-11-12  Jason Lerch       <jason@bic.mni.mcgill.ca>
 
 	* added ParseArgv.{c,h}
