@@ -11,9 +11,12 @@ typedef  float  ftype;
 typedef  Real   ftype;
 #endif
 
-private  void  fit_polygons(
-    polygons_struct    *surface,
-    polygons_struct    *model_surface,
+private  void   fit_polygons(
+    int                n_points,
+    int                n_neighbours[],
+    int                *neighbours[],
+    Point              surface_points[],
+    Point              model_points[],
     Real               model_weight,
     Volume             volume,
     Real               threshold,
@@ -42,11 +45,13 @@ int  main(
     STRING               input_filename, output_filename, model_filename;
     STRING               surface_direction, volume_filename;
     int                  n_objects, n_m_objects;
-    int                  n_iters, n_iters_recompute;
+    int                  n_iters, n_iters_recompute, n_points;
+    int                  *n_neighbours, **neighbours;
     File_formats         format;
     object_struct        **object_list, **m_object_list;
     polygons_struct      *surface, *model_surface;
     Volume               volume;
+    Point                *surface_points, *model_points;
     Real                 threshold, model_weight;
     Real                 max_outward, max_inward, tangent_weight;
 
@@ -76,6 +81,12 @@ int  main(
         return( 1 );
 
     surface = get_polygons_ptr( object_list[0] );
+    create_polygon_point_neighbours( surface, FALSE, &n_neighbours,
+                                     &neighbours, NULL, NULL );
+    n_points = surface->n_points;
+    surface_points = surface->points;
+    ALLOC( surface->points, 1 );
+    delete_object_list( n_objects, object_list );
 
     if( input_graphics_file( model_filename, &format, &n_m_objects,
                              &m_object_list ) != OK || n_m_objects != 1 ||
@@ -83,15 +94,28 @@ int  main(
         return( 1 );
 
     model_surface = get_polygons_ptr( m_object_list[0] );
+    model_points = model_surface->points;
+    ALLOC( model_surface->points, 1 );
+    delete_object_list( n_m_objects, m_object_list );
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, NULL ) != OK )
         return( 1 );
 
-    fit_polygons( surface, model_surface, model_weight, volume, threshold,
+    fit_polygons( n_points, n_neighbours, neighbours, surface_points,
+                  model_points, model_weight, volume, threshold,
                   surface_direction[0], tangent_weight, max_outward, max_inward,
                   n_iters, n_iters_recompute );
+
+    if( input_graphics_file( input_filename, &format, &n_objects,
+                             &object_list ) != OK || n_objects != 1 ||
+        get_object_type(object_list[0]) != POLYGONS )
+        return( 1 );
+
+    surface = get_polygons_ptr( object_list[0] );
+    FREE( surface->points );
+    surface->points = surface_points;
 
     (void) output_graphics_file( output_filename, format, 1, object_list );
 
@@ -138,7 +162,8 @@ private  int   get_neighbours_neighbours(
 }
 
 private  void  create_model_coefficients(
-    polygons_struct  *model_surface,
+    int              n_nodes,
+    Point            model_points[],
     int              n_neighbours[],
     int              *neighbours[],
     int              n_parms_involved[],
@@ -146,7 +171,7 @@ private  void  create_model_coefficients(
     ftype            constants[],
     ftype            *node_weights[] )
 {
-    int              node, eq, dim, dim1, n_nodes, n, ind;
+    int              node, eq, dim, dim1, n, ind;
     FILE             *file;
     Real             *x_flat;
     Real             *y_flat;
@@ -155,8 +180,6 @@ private  void  create_model_coefficients(
     BOOLEAN          ignoring;
     Real             *weights[N_DIMENSIONS][N_DIMENSIONS];
     progress_struct  progress;
-
-    n_nodes = model_surface->n_points;
 
     if( getenv( "LOAD_MODEL_COEFS" ) != NULL &&
         open_file( getenv( "LOAD_MODEL_COEFS" ), READ_FILE, BINARY_FORMAT,
@@ -220,15 +243,15 @@ private  void  create_model_coefficients(
 
         for_less( n, 0, n_nn )
         {
-            x_flat[n] = RPoint_x( model_surface->points[neigh_indices[n]] );
-            y_flat[n] = RPoint_y( model_surface->points[neigh_indices[n]] );
-            z_flat[n] = RPoint_z( model_surface->points[neigh_indices[n]] );
+            x_flat[n] = RPoint_x( model_points[neigh_indices[n]] );
+            y_flat[n] = RPoint_y( model_points[neigh_indices[n]] );
+            z_flat[n] = RPoint_z( model_points[neigh_indices[n]] );
         }
 
         ignoring = FALSE;
-        if( !get_prediction_weights_3d( RPoint_x(model_surface->points[node]),
-                                        RPoint_y(model_surface->points[node]),
-                                        RPoint_z(model_surface->points[node]),
+        if( !get_prediction_weights_3d( RPoint_x(model_points[node]),
+                                        RPoint_y(model_points[node]),
+                                        RPoint_z(model_points[node]),
                                         n_nn, x_flat, y_flat, z_flat,
                                         weights[0], weights[1], weights[2] ) )
 
@@ -448,9 +471,12 @@ private  void  create_image_coefficients(
     }
 }
 
-private  void  fit_polygons(
-    polygons_struct    *surface,
-    polygons_struct    *model_surface,
+private  void   fit_polygons(
+    int                n_points,
+    int                n_neighbours[],
+    int                *neighbours[],
+    Point              surface_points[],
+    Point              model_points[],
     Real               model_weight,
     Volume             volume,
     Real               threshold,
@@ -461,18 +487,14 @@ private  void  fit_polygons(
     int                n_iters,
     int                n_iters_recompute )
 {
-    int              eq, point, n, iter, n_points, which;
-    int              n_model_equations, n_image_equations;
-    int              n_equations, *n_parms_involved, **parm_list;
-    int              *n_neighbours, **neighbours, n_image_per_point;
-    ftype            *constants, **node_weights;
-    Real             *parameters;
+    int                         eq, point, n, iter, which;
+    int                         n_model_equations, n_image_equations;
+    int                         n_equations, *n_parms_involved, **parm_list;
+    int                         n_image_per_point;
+    ftype                       *constants, **node_weights;
+    Real                        *parameters;
+    polygons_struct             save_p;
     boundary_definition_struct  boundary;
-
-    n_points = surface->n_points;
-
-    create_polygon_point_neighbours( surface, FALSE, &n_neighbours,
-                                     &neighbours, NULL, NULL );
 
     set_boundary_definition( &boundary, threshold, threshold, -1.0, 90.0,
                              normal_direction, 1.0e-4 );
@@ -493,9 +515,11 @@ private  void  fit_polygons(
     ALLOC( node_weights, n_equations );
     ALLOC( parm_list, n_equations );
 
-    create_model_coefficients( model_surface, n_neighbours, neighbours,
+    create_model_coefficients( n_points, model_points, n_neighbours, neighbours,
                                n_parms_involved,
                                parm_list, constants, node_weights );
+
+    FREE( model_points );
 
     model_weight = sqrt( model_weight );
     for_less( eq, 0, n_model_equations )
@@ -523,9 +547,9 @@ private  void  fit_polygons(
 
     for_less( point, 0, n_points )
     {
-        parameters[IJ(point,X,3)] = RPoint_x(surface->points[point]);
-        parameters[IJ(point,Y,3)] = RPoint_y(surface->points[point]);
-        parameters[IJ(point,Z,3)] = RPoint_z(surface->points[point]);
+        parameters[IJ(point,X,3)] = RPoint_x(surface_points[point]);
+        parameters[IJ(point,Y,3)] = RPoint_y(surface_points[point]);
+        parameters[IJ(point,Z,3)] = RPoint_z(surface_points[point]);
     }
 
     iter = 0;
@@ -575,13 +599,14 @@ private  void  fit_polygons(
 
     for_less( point, 0, n_points )
     {
-        fill_Point( surface->points[point],
+        fill_Point( surface_points[point],
                     parameters[IJ(point,X,3)],
                     parameters[IJ(point,Y,3)],
                     parameters[IJ(point,Z,3)] )
     }
 
-    delete_polygon_point_neighbours( surface, n_neighbours,
+    save_p.n_points = n_points;
+    delete_polygon_point_neighbours( &save_p, n_neighbours,
                                      neighbours, NULL, NULL );
 
     FREE( parameters );
