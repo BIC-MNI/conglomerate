@@ -1,3 +1,23 @@
+		create_grid
+		-----------
+
+  create_grid out.obj x|y|z slice_position [x|y|z line_position] ...
+
+The file out.obj consists of a set of lines in the specified plane
+X=slice_position (or Y= or Z=).  The set of lines desired are
+specified in the following pairs of arguments.
+
+
+
+		dump_curvatures
+		---------------
+
+  dump_curvatures  object_file  output_file  [curvature_distance]
+
+The parameter curvature_distance defaults to 4.
+
+
+
 		make_slice
 		----------
 
@@ -10,17 +30,6 @@ world coordinate system depending on the 4th parameter.
 The optional parameters "xt" and "yt" specify the number
 of rows and columns in the mesh; the values "2 2" are
 the most useful.
-
-
-
-		create_grid
-		-----------
-
-  create_grid out.obj x|y|z slice_position [x|y|z line_position] ...
-
-The file out.obj consists of a set of lines in the specified plane
-X=slice_position (or Y= or Z=).  The set of lines desired are
-specified in the following pairs of arguments.
 
 
 
