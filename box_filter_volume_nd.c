@@ -84,6 +84,9 @@ private  void  box_filter_1d(
     left_weight = FRACTION( half_width + 0.5 );
     right_weight = 1.0 - left_weight;
 
+    left_weight /= width;
+    right_weight /= width;
+
     current = 0.0;
 
     start = FLOOR( -half_width + 0.5 );
@@ -96,7 +99,7 @@ private  void  box_filter_1d(
 
     for_less( v, 0, size )
     {
-        output[v] = current / width;
+        output[v] = current;
         if( end < size )
             current += right_weight * values[end];
         ++end;
