@@ -1,5 +1,14 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
+#include  <conjugate_min.h>
+
+private  void  fit_curve(
+    int     n_points,
+    Point   points[],
+    Real    stretch_weight,
+    Real    smoothness_weight,
+    int     n_cvs,
+    Point   cvs[] );
 
 private  int  get_minimum_spanning_tree_main_branch(
     int    n_points,
@@ -10,12 +19,12 @@ private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  input_lines.tag  output_lines.obj n_segments_per_mm\n\
-                  [smoothness_weight] [disjoint_distance]\n\
+Usage: %s  input_lines.tag  output_lines.obj n_mm_per_segment\n\
+                  [stretch_weight] [smoothness_weight] [disjoint_distance]\n\
 \n\
      Creates a piecewise linear curve that approximates the set of points in\n\
-     the tag file.  The n_segments_per_mm sets\n\
-     the number of line segments per unit distance\n\n";
+     the tag file.  The n_mm_per_segment sets\n\
+     the number of mm length of the line segments\n\n";
 
     print_error( usage_str, executable );
 }
@@ -25,9 +34,9 @@ int  main(
     char  *argv[] )
 {
     STRING               input_filename, output_filename;
-    Real                 **tags, u, smoothness_weight;
+    Real                 **tags, u, stretch_weight, smoothness_weight;
     Real                 disjoint_distance, sq_disjoint_distance;
-    Real                 n_segments_per_mm, length, pos, delta_length;
+    Real                 n_mm_per_segment, length, pos, delta_length;
     Real                 current_length;
     int                  *tree_indices, n_span, n_segments;
     int                  p, n_piecewise, n_tag_points, n_volumes, axis;
@@ -45,13 +54,14 @@ int  main(
 
     if( !get_string_argument( NULL, &input_filename ) ||
         !get_string_argument( NULL, &output_filename ) ||
-        !get_real_argument( 0.0, &n_segments_per_mm ) )
+        !get_real_argument( 0.0, &n_mm_per_segment ) )
     {
         usage( argv[0] );
         return( 1 );
     }
 
-    (void) get_real_argument( 0.0, &smoothness_weight );
+    (void) get_real_argument( 1.0, &stretch_weight );
+    (void) get_real_argument( 10.0, &smoothness_weight );
     break_up_flag = get_real_argument( 0.0, &disjoint_distance );
 
     if( input_tag_file( input_filename, &n_volumes, &n_tag_points,
@@ -163,7 +173,7 @@ int  main(
                                               &class_points[tree_indices[p+1]]);
         }
 
-        n_segments = ROUND( n_segments_per_mm * length );
+        n_segments = ROUND( length / n_mm_per_segment );
 
         if( n_segments < 1 )
         {
@@ -175,7 +185,8 @@ int  main(
         }
 
         n_cvs = n_segments + 1;
-        ALLOC( cvs, n_cvs );
+        initialize_lines_with_size( lines, WHITE, n_cvs, FALSE );
+
         current_ind = 0;
         current_length = 0.0;
 
@@ -193,15 +204,15 @@ int  main(
 
             if( current_ind == 0 )
             {
-                cvs[i] = class_points[tree_indices[0]];
+                lines->points[i] = class_points[tree_indices[0]];
             }
             else if( current_ind > n_span-1 )
             {
-                cvs[i] = class_points[tree_indices[n_span-1]];
+                lines->points[i] = class_points[tree_indices[n_span-1]];
             }
             else
             {
-                INTERPOLATE_POINTS( cvs[i], class_points
+                INTERPOLATE_POINTS( lines->points[i], class_points
                                     [tree_indices[current_ind-1]],
                                     class_points[tree_indices[current_ind]],
                                     (pos - (current_length - delta_length)) /
@@ -209,58 +220,10 @@ int  main(
             }
         }
 
-        initialize_lines_with_size( lines, WHITE, n_cvs, FALSE );
-
-        for_less( p, 0, n_cvs )
-            lines->points[p] = cvs[p];
-/*
-
-        get_best_line( n_class_points, class_points,
-                       &line_origin, &line_direction, &axis );
-
-        n_cvs = MAX( n_piecewise + 2, 5 );
-
         fit_curve( n_class_points, class_points,
-                   &line_origin, &line_direction, axis,
-                   smoothness_weight, n_cvs, cvs );
+                   stretch_weight, smoothness_weight, n_cvs, lines->points );
 
         FREE( tree_indices );
-
-        initialize_lines_with_size( lines, WHITE,
-                                    n_intervals_per * (n_cvs-3) + 1,
-                                    FALSE );
-
-        ind = 0;
-        for_less( p, 1, n_cvs-2 )
-        {
-            if( p == n_cvs-3 )
-                n = n_intervals_per + 1;
-            else
-                n = n_intervals_per;
-            for_less( i, 0, n )
-            {
-                u = (Real) i / (Real) (n_intervals_per-1);
-                fill_Point( lines->points[ind],
-                        cubic_interpolate( u, RPoint_x(cvs[p-1]),
-                                              RPoint_x(cvs[p+0]),
-                                              RPoint_x(cvs[p+1]),
-                                              RPoint_x(cvs[p+2]) ),
-                        cubic_interpolate( u, RPoint_y(cvs[p-1]),
-                                              RPoint_y(cvs[p+0]),
-                                              RPoint_y(cvs[p+1]),
-                                              RPoint_y(cvs[p+2]) ),
-                        cubic_interpolate( u, RPoint_z(cvs[p-1]),
-                                              RPoint_z(cvs[p+0]),
-                                              RPoint_z(cvs[p+1]),
-                                              RPoint_z(cvs[p+2]) ) );
-                ++ind;
-            }
-        }
-
-        if( ind != lines->n_points )
-            handle_internal_error( " ind != lines->n_points" );
-*/
-        FREE( cvs );
     }
 
     if( output_graphics_file( output_filename, ASCII_FORMAT, n_classes,
@@ -272,345 +235,6 @@ int  main(
     delete_object_list( n_classes, object_list );
 
     return( 0 );
-}
-
-private  BOOLEAN  get_best_line_using_axis_2d(
-    int     n_points,
-    Point   points[],
-    int     axis,
-    Real    vy,
-    Real    vz,
-    Point   *line_origin,
-    Vector  *line_direction,
-    Real    *error )
-{
-    int                    a1, a2, p;
-    Real                   p_dot_p, x, y, z, p_dot_v;
-    Real                   second_deriv, constant;
-    Point                  centroid;
-    Vector                 offset;
-    BOOLEAN                okay;
-
-    get_points_centroid( n_points, points, &centroid );
-
-    a1 = (axis + 1) % N_DIMENSIONS;
-    a2 = (axis + 2) % N_DIMENSIONS;
-
-    second_deriv = 0.0;
-    constant = 0.0;
-
-    for_less( p, 0, n_points )
-    {
-        SUB_POINTS( offset, points[p], centroid );
-        p_dot_p = DOT_VECTORS( offset, offset );
-        x = RVector_coord( offset, axis );
-        y = RVector_coord( offset, a1 );
-        z = RVector_coord( offset, a2 );
-
-        second_deriv += 2.0 * p_dot_p - 2.0 * x * x;
-        constant += -2.0 * x * (y*vy+z*vz);
-    }
-
-    okay = (second_deriv != 0.0);
-
-    if( okay )
-    {
-        *line_origin = centroid;
-        Vector_coord( *line_direction, axis ) = (Point_coord_type)
-                                                (-constant / second_deriv);
-        Vector_coord( *line_direction, a1 ) = (Point_coord_type) vy;
-        Vector_coord( *line_direction, a2 ) = (Point_coord_type) vz;
-
-        *error = 0.0;
-        for_less( p, 0, n_points )
-        {
-            SUB_POINTS( offset, points[p], centroid );
-            p_dot_v = DOT_VECTORS( offset, *line_direction );
-            *error += DOT_VECTORS( offset, offset ) *
-                      DOT_VECTORS( *line_direction, *line_direction ) -
-                      p_dot_v * p_dot_v;
-        }
-    }
-
-    return( okay );
-}
-
-private  BOOLEAN  get_best_line_using_axis(
-    int     n_points,
-    Point   points[],
-    int     axis,
-    Point   *line_origin,
-    Vector  *line_direction,
-    Real    *error )
-{
-    int                    a1, a2, p;
-    Real                   p_dot_p, x, y, z, p_dot_v;
-    Real                   **second_derivs, solution[2], constants[2];
-    Point                  centroid;
-    Vector                 offset;
-    BOOLEAN                okay;
-
-    get_points_centroid( n_points, points, &centroid );
-
-    a1 = (axis + 1) % N_DIMENSIONS;
-    a2 = (axis + 2) % N_DIMENSIONS;
-
-    ALLOC2D( second_derivs, 2, 2 );
-    second_derivs[0][0] = 0.0;
-    second_derivs[0][1] = 0.0;
-    second_derivs[1][0] = 0.0;
-    second_derivs[1][1] = 0.0;
-    constants[0] = 0.0;
-    constants[1] = 0.0;
-
-    for_less( p, 0, n_points )
-    {
-        SUB_POINTS( offset, points[p], centroid );
-        p_dot_p = DOT_VECTORS( offset, offset );
-        x = RVector_coord( offset, a1 );
-        y = RVector_coord( offset, a2 );
-        z = RVector_coord( offset, axis );
-
-        second_derivs[0][0] += 2.0 * p_dot_p - 2.0 * x * x;
-        second_derivs[0][1] += -2.0 * x * y;
-        constants[0] -= -2.0 * x * z * 1.0;
-        second_derivs[1][1] += 2.0 * p_dot_p - 2.0 * y * y;
-        second_derivs[1][0] += -2.0 * x * y;
-        constants[1] -= -2.0 * y * z * 1.0;
-    }
-
-    okay = solve_linear_system( 2, second_derivs, constants, solution );
-
-    FREE2D( second_derivs );
-
-    if( okay )
-    {
-        *line_origin = centroid;
-        Vector_coord( *line_direction, axis ) = (Point_coord_type) 1.0;
-        Vector_coord( *line_direction, a1 ) = (Point_coord_type) solution[0];
-        Vector_coord( *line_direction, a2 ) = (Point_coord_type) solution[1];
-
-        *error = 0.0;
-        for_less( p, 0, n_points )
-        {
-            SUB_POINTS( offset, points[p], centroid );
-            p_dot_v = DOT_VECTORS( offset, *line_direction );
-            *error += DOT_VECTORS( offset, offset ) *
-                      DOT_VECTORS( *line_direction, *line_direction ) -
-                      p_dot_v * p_dot_v;
-        }
-    }
-
-    return( okay );
-}
-
-private  void  get_best_line(
-    int     n_points,
-    Point   points[],
-    Point   *line_origin,
-    Vector  *line_direction,
-    int     *best_axis )
-{
-    int      axis, value;
-    BOOLEAN  found;
-    Real     best_error, error;
-    Point    origin;
-    Vector   direction;
-
-    found = FALSE;
-    best_error = 0.0;
-
-    for_less( axis, 0, N_DIMENSIONS )
-    for_less( value, 0, 2 )
-    {
-        if( get_best_line_using_axis_2d( n_points, points, axis,
-                                         (Real) value, 1.0 - (Real) value,
-                                         &origin, &direction, &error ) )
-        {
-            if( !found || error < best_error )
-            {
-                found = TRUE;
-                best_error = error;
-                *line_origin = origin;
-                *line_direction = direction;
-                if( value == 0 )
-                    *best_axis = (axis + 1) % N_DIMENSIONS;
-                else
-                    *best_axis = (axis + 2) % N_DIMENSIONS;
-            }
-        }
-    }
-
-    if( !found )
-        handle_internal_error( "get_best_line" );
-}
-
-private  void  get_spline_fit(
-    int      n_points,
-    Point    points[],
-    Real     smoothness_weight,
-    int      n_cvs,
-    Point    cvs[] )
-{
-    int                    p, i, off, b;
-    linear_least_squares   lsq;
-    Real                   **basis, *coefs, u, x, y, weight, power, h;
-    Real                   len;
-
-    ALLOC2D( basis, 4, 4 );
-
-    get_cubic_spline_coefs( basis );
-
-    ALLOC( coefs, n_cvs-2 );
-
-    len = RPoint_x(points[n_points-1]) - RPoint_x(points[0]);
-
-    initialize_linear_least_squares( &lsq, n_cvs - 2 );
-
-    for_less( p, 0, n_points )
-    {
-        x = RPoint_x(points[p]);
-        y = RPoint_y(points[p]);
-        i = 1;
-        while( x > RPoint_x(cvs[i+1]) )
-        {
-            ++i;
-        }
-        if( i > n_cvs - 3 || x < RPoint_x(cvs[i]) )
-            handle_internal_error( "get_spline_fit" );
-
-        for_less( b, 0, n_cvs-2 )
-            coefs[b] = 0.0;
-
-        u = (x - RPoint_x(cvs[i])) / (RPoint_x(cvs[i+1])-RPoint_x(cvs[i]));
-
-        for_less( off, -1, 3 )
-        {
-            weight = 0.0;
-            power = 1.0;
-            for_less( b, 0, 4 )
-            {
-                weight += basis[b][off+1] * power;
-                power *= u;
-            }
-
-            if( i + off == 0 )
-            {
-                coefs[0] +=  2.5 * weight;
-                coefs[1] += -2.0 * weight;
-                coefs[2] +=  0.5 * weight;
-            }
-            else if( i + off == n_cvs-1 )
-            {
-                coefs[n_cvs-5] +=  0.5 * weight;
-                coefs[n_cvs-4] += -2.0 * weight;
-                coefs[n_cvs-3] +=  2.5 * weight;
-            }
-            else
-            {
-                coefs[i+off-1] += weight;
-            }
-        }
-
-        add_to_linear_least_squares( &lsq, coefs, y );
-    }
-
-    h = len / (Real) (n_cvs-3);
-    smoothness_weight *= sqrt( (Real) n_points / (Real) (n_cvs-4) ) / h / h;
-
-    for_less( p, 1, n_cvs-3 )
-    {
-        for_less( b, 0, n_cvs-2 )
-            coefs[b] = 0.0;
-
-        coefs[p-1] = 1.0 * smoothness_weight;
-        coefs[p+0] = -2.0 * smoothness_weight;
-        coefs[p+1] = 1.0 * smoothness_weight;
-
-        add_to_linear_least_squares( &lsq, coefs, 0.0 );
-    }
-
-    if( !get_linear_least_squares_solution( &lsq, coefs ) )
-        handle_internal_error( "get_spline_fit" );
-
-    for_less( p, 1, n_cvs-1 )
-    {
-        Point_y(cvs[p]) = (Point_coord_type) coefs[p-1];
-    }
-
-    Point_y(cvs[0]) = (Point_coord_type)
-                      (2.5 * coefs[0] - 2.0 * coefs[1] + 0.5 * coefs[2]);
-    Point_y(cvs[n_cvs-1]) = (Point_coord_type)
-                      (2.5 * coefs[n_cvs-3] - 2.0 * coefs[n_cvs-4] +
-                       0.5 * coefs[n_cvs-5]);
-
-    delete_linear_least_squares( &lsq );
-
-    FREE( coefs );
-    FREE2D( basis );
-}
-
-private  void  fit_curve(
-    int     n_points,
-    Point   points[],
-    Point   *line_origin,
-    Vector  *line_direction,
-    int     axis,
-    Real    smoothness_weight,
-    int     n_cvs,
-    Point   cvs[] )
-{
-    int     p;
-    Real    t_min, t_max, t, x, y;
-    Vector  offset, vert, plane;
-    Point   *aligned_points;
-
-    ALLOC( aligned_points, n_points );
-    fill_Vector( plane, 0.0, 0.0, 0.0 );
-    Vector_coord(plane,axis) = (Point_coord_type) 1.0;
-
-    CROSS_VECTORS( vert, plane, *line_direction );
-    NORMALIZE_VECTOR( vert, vert );
-
-    t_min = 0.0;
-    t_max = 0.0;
-
-    for_less( p, 0, n_points )
-    {
-        SUB_POINTS( offset, points[p], *line_origin );
-        t = DOT_VECTORS( offset, *line_direction ) /
-            DOT_VECTORS( *line_direction, *line_direction );
-
-        if( p == 0 || t < t_min )
-            t_min = t;
-
-        if( p == 0 || t > t_max )
-            t_max = t;
-
-        x = t;
-        y = DOT_VECTORS( offset, vert );
-
-        fill_Point( aligned_points[p], x, y, 0.0 );
-    }
-
-    for_less( p, 0, n_cvs )
-    {
-        x = INTERPOLATE( (Real) (p-1) / (Real) (n_cvs-3), t_min, t_max );
-        fill_Point( cvs[p], x, 0.0, 0.0 );
-    }
-
-    get_spline_fit( n_points, aligned_points, smoothness_weight, n_cvs, cvs );
-
-    for_less( p, 0, n_cvs )
-    {
-        x = RPoint_x(cvs[p]);
-        y = RPoint_y(cvs[p]);
-
-        GET_POINT_ON_RAY( cvs[p], *line_origin, *line_direction, x);
-        GET_POINT_ON_RAY( cvs[p], cvs[p], vert, y );
-    }
-
-    FREE( aligned_points );
 }
 
 private  void  get_minimum_spanning_tree(
@@ -837,4 +461,356 @@ private  int  get_minimum_spanning_tree_main_branch(
     FREE( tree_edges );
 
     return( max_dist+1 );
+}
+
+private  Real  point_segment_dist(
+    Point   *point,
+    Real    seg1[],
+    Real    seg2[],
+    Real    *alpha )
+{
+    Real   dx, dy, dz, len, dot_prod;
+
+    dx = seg2[0] - seg1[0];
+    dy = seg2[1] - seg1[1];
+    dz = seg2[2] - seg1[2];
+
+    len = dx * dx + dy * dy + dz * dz;
+
+    dot_prod = (RPoint_x(*point) - seg1[0]) * dx +
+               (RPoint_y(*point) - seg1[1]) * dy +
+               (RPoint_z(*point) - seg1[2]) * dz;
+
+    if( dot_prod <= 0.0 )
+    {
+        *alpha = 0.0;
+        dx = RPoint_x(*point) - seg1[0];
+        dy = RPoint_y(*point) - seg1[1];
+        dz = RPoint_z(*point) - seg1[2];
+    }
+    else if( dot_prod >= 0.0 )
+    {
+        *alpha = 1.0;
+        dx = RPoint_x(*point) - seg2[0];
+        dy = RPoint_y(*point) - seg2[1];
+        dz = RPoint_z(*point) - seg2[2];
+    }
+    else
+    {
+        *alpha = dot_prod / len;
+
+        dx = (1.0 - *alpha) * seg1[0] + *alpha * seg2[0] - RPoint_x(*point);
+        dy = (1.0 - *alpha) * seg1[1] + *alpha * seg2[1] - RPoint_y(*point);
+        dz = (1.0 - *alpha) * seg1[2] + *alpha * seg2[2] - RPoint_z(*point);
+    }
+
+    return( dx * dx + dy * dy + dz * dz );
+}
+
+private  void  get_point_deriv(
+    Point   *point,
+    Real    seg_point[],
+    Real    deriv[] )
+{
+    deriv[0] = 2.0 * (seg_point[0] - RPoint_x(*point));
+    deriv[1] = 2.0 * (seg_point[1] - RPoint_y(*point));
+    deriv[2] = 2.0 * (seg_point[2] - RPoint_z(*point));
+}
+
+private  void  get_segment_deriv(
+    Point   *point,
+    Real    seg1[],
+    Real    seg2[],
+    Real    deriv[] )
+{
+    int    i;
+    Real   px, py, pz, s1x, s1y, s1z, s2x, s2y, s2z;
+    Real   dot_top, dot_bottom, top_deriv[6], bottom_deriv[6];
+
+    px = RPoint_x(*point);
+    py = RPoint_y(*point);
+    pz = RPoint_z(*point);
+    s1x = seg1[0];
+    s1y = seg1[1];
+    s1z = seg1[2];
+    s2x = seg2[0];
+    s2y = seg2[1];
+    s2z = seg2[2];
+
+    dot_top = (px - s1x) * (s2x - s1x) +
+              (py - s1y) * (s2y - s1y) +
+              (pz - s1z) * (s2z - s1z);
+
+    dot_bottom = (s2x - s1x) * (s2x - s1x) +
+                 (s2y - s1y) * (s2y - s1y) +
+                 (s2z - s1z) * (s2z - s1z);
+
+    top_deriv[0] = 2.0 * dot_top * (-(s2x-s1x)-(px-s1x));
+    top_deriv[1] = 2.0 * dot_top * (-(s2y-s1y)-(py-s1y));
+    top_deriv[2] = 2.0 * dot_top * (-(s2z-s1z)-(pz-s1z));
+    top_deriv[3] = 2.0 * dot_top * 2.0 * (px - s1x);
+    top_deriv[4] = 2.0 * dot_top * 2.0 * (py - s1y);
+    top_deriv[5] = 2.0 * dot_top * 2.0 * (pz - s1z);
+
+    bottom_deriv[0] = -2.0 * (s2x - s1x);
+    bottom_deriv[1] = -2.0 * (s2y - s1y);
+    bottom_deriv[2] = -2.0 * (s2z - s1z);
+    bottom_deriv[3] =  2.0 * (s2x - s1x);
+    bottom_deriv[4] =  2.0 * (s2y - s1y);
+    bottom_deriv[5] =  2.0 * (s2z - s1z);
+
+    deriv[0] = -2.0 * (px - s1x);
+    deriv[1] = -2.0 * (py - s1y);
+    deriv[2] = -2.0 * (pz - s1z);
+    deriv[3] = 0.0;
+    deriv[4] = 0.0;
+    deriv[5] = 0.0;
+
+    for_less( i, 0, 6 )
+    {
+        deriv[i] -= top_deriv[i] / dot_bottom - dot_top * dot_top /
+                       dot_bottom / dot_bottom * bottom_deriv[i];
+    }
+}
+
+private  int   get_closest_segment(
+    Point   *point,
+    int     n_points,
+    Real    parameters[],
+    Real    *best_dist,
+    Real    *best_alpha )
+{
+    Real  dist, alpha;
+    int   seg, best_seg;
+
+    *best_dist = 0.0;
+    for_less( seg, 0, n_points-1 )
+    {
+        dist = point_segment_dist( point, &parameters[3*seg],
+                                          &parameters[3*(seg+1)], &alpha );
+
+        if( seg == 0 || dist < *best_dist )
+        {
+            best_seg = seg;
+            *best_dist = dist;
+            *best_alpha = alpha;
+        }
+    }
+
+    return( best_seg );
+}
+
+private  Real  evaluate_fit(
+    int    n_segments,
+    Real   parameters[],
+    int    n_points,
+    Point  points[],
+    Real   stretch_weight,
+    Real   smoothness_weight )
+{
+    int    p, seg;
+    Real   fit, dist, alpha, fit2, dx, dy, dz, fit3, cx, cy, cz;
+
+    fit = 0.0;
+
+    for_less( p, 0, n_points )
+    {
+        (void) get_closest_segment( &points[p], n_segments+1, parameters,
+                                    &dist, &alpha );
+
+        fit += dist;
+    }
+
+    fit2 = 0.0;
+    for_less( seg, 0, n_segments )
+    {
+        dx = parameters[3*seg+0] - parameters[3*(seg+1)+0];
+        dy = parameters[3*seg+1] - parameters[3*(seg+1)+1];
+        dz = parameters[3*seg+2] - parameters[3*(seg+1)+2];
+
+        fit2 += dx * dx + dy * dy + dz * dz;
+    }
+
+    fit3 = 0.0;
+    for_less( seg, 0, n_segments-1 )
+    {
+        cx = (parameters[3*seg+0] + parameters[3*(seg+2)+0]) / 2.0;
+        cy = (parameters[3*seg+1] + parameters[3*(seg+2)+1]) / 2.0;
+        cz = (parameters[3*seg+2] + parameters[3*(seg+2)+2]) / 2.0;
+        dx = cx - parameters[3*(seg+1)+0];
+        dy = cy - parameters[3*(seg+1)+1];
+        dz = cz - parameters[3*(seg+1)+2];
+
+        fit3 += dx * dx + dy * dy + dz * dz;
+    }
+
+    return( fit + fit2 * stretch_weight + fit3 * smoothness_weight );
+}
+
+private  void  evaluate_fit_deriv(
+    int    n_segments,
+    Real   parameters[],
+    int    n_points,
+    Point  points[],
+    Real   stretch_weight,
+    Real   smoothness_weight,
+    Real   deriv[] )
+{
+    int    p, seg;
+    Real   dist, alpha, point_deriv[3], seg_deriv[6], dx, dy, dz, cx, cy, cz;
+
+    for_less( p, 0, 3 * (n_segments+1) )
+        deriv[p] = 0.0;
+
+    for_less( p, 0, n_points )
+    {
+        seg = get_closest_segment( &points[p], n_segments+1, parameters,
+                                   &dist, &alpha );
+
+        if( alpha <= 0.0 )
+        {
+            get_point_deriv( &points[p], &parameters[3*seg], point_deriv );
+            deriv[3*seg+0] += point_deriv[0];
+            deriv[3*seg+1] += point_deriv[1];
+            deriv[3*seg+2] += point_deriv[2];
+        }
+        else if( alpha >= 1.0 )
+        {
+            get_point_deriv( &points[p], &parameters[3*(seg+1)], point_deriv );
+            deriv[3*(seg+1)+0] += point_deriv[0];
+            deriv[3*(seg+1)+1] += point_deriv[1];
+            deriv[3*(seg+1)+2] += point_deriv[2];
+        }
+        else
+        {
+            get_segment_deriv( &points[p], &parameters[3*seg],
+                               &parameters[3*(seg+1)], seg_deriv );
+            deriv[3*seg+0] += seg_deriv[0];
+            deriv[3*seg+1] += seg_deriv[1];
+            deriv[3*seg+2] += seg_deriv[2];
+            deriv[3*(seg+1)+0] += seg_deriv[3];
+            deriv[3*(seg+1)+1] += seg_deriv[4];
+            deriv[3*(seg+1)+2] += seg_deriv[5];
+        }
+    }
+
+    for_less( seg, 0, n_segments )
+    {
+        dx = parameters[3*seg+0] - parameters[3*(seg+1)+0];
+        dy = parameters[3*seg+1] - parameters[3*(seg+1)+1];
+        dz = parameters[3*seg+2] - parameters[3*(seg+1)+2];
+
+        deriv[3*seg+0] += 2.0 * stretch_weight * dx;
+        deriv[3*seg+1] += 2.0 * stretch_weight * dy;
+        deriv[3*seg+2] += 2.0 * stretch_weight * dz;
+        deriv[3*(seg+1)+0] += -2.0 * stretch_weight * dx;
+        deriv[3*(seg+1)+1] += -2.0 * stretch_weight * dy;
+        deriv[3*(seg+1)+2] += -2.0 * stretch_weight * dz;
+    }
+
+    for_less( seg, 0, n_segments-1 )
+    {
+        cx = (parameters[3*seg+0] + parameters[3*(seg+2)+0]) / 2.0;
+        cy = (parameters[3*seg+1] + parameters[3*(seg+2)+1]) / 2.0;
+        cz = (parameters[3*seg+2] + parameters[3*(seg+2)+2]) / 2.0;
+        dx = cx - parameters[3*(seg+1)+0];
+        dy = cy - parameters[3*(seg+1)+1];
+        dz = cz - parameters[3*(seg+1)+2];
+
+        deriv[3*seg+0] += 2.0 * smoothness_weight * dx / 2.0;
+        deriv[3*seg+1] += 2.0 * smoothness_weight * dy / 2.0;
+        deriv[3*seg+2] += 2.0 * smoothness_weight * dz / 2.0;
+        deriv[3*(seg+2)+0] += 2.0 * smoothness_weight * dx / 2.0;
+        deriv[3*(seg+2)+1] += 2.0 * smoothness_weight * dy / 2.0;
+        deriv[3*(seg+2)+2] += 2.0 * smoothness_weight * dz / 2.0;
+        deriv[3*(seg+1)+0] += -2.0 * smoothness_weight * dx;
+        deriv[3*(seg+1)+1] += -2.0 * smoothness_weight * dy;
+        deriv[3*(seg+1)+2] += -2.0 * smoothness_weight * dz;
+    }
+}
+
+typedef  struct
+{
+    int     n_segments;
+    int     n_points;
+    Point   *points;
+    Real    stretch_weight;
+    Real    smoothness_weight;
+} func_data_struct;
+
+private  Real  function(
+    Real  parameters[],
+    void  *void_ptr )
+{
+    func_data_struct   *data;
+
+    data = (func_data_struct *) void_ptr;
+
+    return( evaluate_fit( data->n_segments, parameters,
+                          data->n_points, data->points,
+                          data->stretch_weight, data->smoothness_weight) );
+}
+
+private  void  function_deriv(
+    Real  parameters[],
+    void  *void_ptr,
+    Real  deriv[] )
+{
+    func_data_struct   *data;
+
+    data = (func_data_struct *) void_ptr;
+
+    evaluate_fit_deriv( data->n_segments, parameters,
+                        data->n_points, data->points, data->stretch_weight,
+                        data->smoothness_weight, deriv );
+}
+
+private  void  fit_curve(
+    int     n_points,
+    Point   points[],
+    Real    stretch_weight,
+    Real    smoothness_weight,
+    int     n_cvs,
+    Point   cvs[] )
+{
+    int                p, n_iterations;
+    Real               *parameters, range_tolerance, domain_tolerance, fit;
+    func_data_struct   data;
+
+    stretch_weight *= (Real) n_points / (Real) (n_cvs-1);
+    smoothness_weight *= (Real) n_points / (Real) (n_cvs-2);
+
+    ALLOC( parameters, 3 * n_cvs );
+
+    for_less( p, 0, n_cvs )
+    {
+        parameters[3*p+0] = RPoint_x(cvs[p]);
+        parameters[3*p+1] = RPoint_y(cvs[p]);
+        parameters[3*p+2] = RPoint_z(cvs[p]);
+    }
+
+    range_tolerance = 1.0e-3;
+    domain_tolerance = 1.0e-3;
+    n_iterations = 300;
+
+    data.n_segments = n_cvs-1;
+    data.n_points = n_points;
+    data.points = points;
+    data.stretch_weight = stretch_weight;
+    data.smoothness_weight = smoothness_weight;
+
+    fit = conjugate_minimize_function( 3 * n_cvs, parameters,
+                                       function, function_deriv,
+                                       (void *) &data, range_tolerance,
+                                       domain_tolerance, n_iterations, 2,
+                                       parameters );
+
+    for_less( p, 0, n_cvs )
+    {
+        fill_Point( cvs[p], parameters[3*p+0],
+                            parameters[3*p+1],
+                            parameters[3*p+2] );
+    }
+
+    FREE( parameters );
 }
