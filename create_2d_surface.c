@@ -1,5 +1,6 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
+#include  <special_geometry.h>
 
 private  void  create_2d_coordinates(
     polygons_struct  *polygons,
@@ -134,8 +135,7 @@ private  void  create_distances(
             {
                 n = neighbours[point][neigh];
                 new_dist = distances[point] +
-                           (float) distance_between_points( &points[point],
-                                                            &points[n] );
+                  (float) distance_between_points( &points[point], &points[n] );
                 if( distances[n] < 0.0f || new_dist < distances[n] )
                 {
                     ++n_changed;
@@ -154,6 +154,7 @@ private  void  create_distances(
     FREE( changed[1] );
 }
 
+#ifdef DEBUG
 private  void  write_values_to_file(
     STRING  filename,
     int     n_points,
@@ -170,6 +171,7 @@ private  void  write_values_to_file(
     }
     (void) close_file( file );
 }
+#endif
 
 private  int  create_path_between_poles(
     int              n_points,
@@ -264,7 +266,7 @@ private  float  get_horizontal_coord(
     float            vertical[] )
 {
     int     ind, path_index, p, p0, p1, poly, current_poly, size, v0, v1;
-    int     current_ind;
+    int     current_ind, start_index;
     float   height, ratio, sum_dist, to_point_dist;
     Point   start_point, prev_point, next_point;
 
@@ -309,36 +311,34 @@ private  float  get_horizontal_coord(
     sum_dist = 0.0f;
     current_poly = poly;
     current_ind = v0;
+    start_index = START_INDEX(polygons->end_indices,current_poly);
 
     do
     {
         ind = current_ind;
-        while( vertical[polygons->indices[POINT_INDEX(polygons->end_indices,
-                                       current_poly,(ind+1)%size)]] <= height )
+        while( vertical[polygons->indices[start_index+(ind+1)%size]] <= height )
         {
             ind = (ind + 1) % size;
         }
 
-        p0 = polygons->indices[POINT_INDEX(polygons->end_indices,
-                                              current_poly,ind)];
-        p1 = polygons->indices[POINT_INDEX(polygons->end_indices,
-                                              current_poly,(ind+1)%size)];
+        p0 = polygons->indices[start_index + ind];
+        p1 = polygons->indices[start_index + (ind+1) % size];
 
         ratio = (height - vertical[p0]) / (vertical[p1] - vertical[p0]);
         INTERPOLATE_POINTS( next_point, polygons->points[p0],
                             polygons->points[p1], ratio );
-        sum_dist += (float) distance_between_points( &prev_point, &next_point);
+        sum_dist += (float)
+                fast_approx_distance_between_points( &prev_point, &next_point);
         if( p0 == point )
             to_point_dist = sum_dist;
 
         prev_point = next_point;
 
-        current_poly = polygons->neighbours[POINT_INDEX(polygons->end_indices,
-                                            current_poly,ind)];
+        current_poly = polygons->neighbours[start_index+ind];
         size = GET_OBJECT_SIZE( *polygons, current_poly );
         current_ind = 0;
-        while( polygons->indices[POINT_INDEX(polygons->end_indices,
-                                             current_poly,current_ind)] != p0 )
+        start_index = START_INDEX(polygons->end_indices,current_poly);
+        while( polygons->indices[start_index + current_ind] != p0 )
             ++current_ind;
     }
     while( current_poly != poly );
@@ -414,10 +414,10 @@ private  void  create_2d_coordinates(
     FREE( n_neighbours );
     FREE( neighbours );
 
-/*
+#ifdef DEBUG
     write_values_to_file( "vertical.txt", polygons->n_points, vertical );
     write_values_to_file( "horizontal.txt", polygons->n_points, horizontal );
-*/
+#endif
 
     for_less( point, 0, polygons->n_points )
     {
