@@ -5,11 +5,10 @@
 
 private  void  reparameterize(
     polygons_struct   *original,
+    object_struct     *initial,
     polygons_struct   *model,
-    int               method,
-    int               grid_size,
-    Real              ratio,
-    Real              movement_threshold,
+    Real              scale,
+    Real              tolerance,
     int               n_iters );
 
 int  main(
@@ -17,17 +16,18 @@ int  main(
     char  *argv[] )
 {
     STRING               input_filename, output_filename;
-    STRING               model_filename;
-    File_formats         src_format, model_format;
-    int                  n_src_objects, n_model_objects;
-    object_struct        **src_objects, **model_objects;
-    polygons_struct      *original, *model;
-    Real                 movement_threshold, ratio;
+    STRING               model_filename, initial_filename;
+    File_formats         init_format, src_format, model_format;
+    int                  n_init_objects, n_src_objects, n_model_objects;
+    object_struct        **src_objects, **model_objects, **init_objects;
+    polygons_struct      *original, *model, *initial;
+    Real                 tolerance, ratio, scale;
     int                  n_iters, method, grid_size;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &input_filename ) ||
+        !get_string_argument( NULL, &initial_filename ) ||
         !get_string_argument( NULL, &model_filename ) ||
         !get_string_argument( NULL, &output_filename ) )
     {
@@ -36,16 +36,22 @@ int  main(
     }
 
     (void) get_int_argument( 1, &n_iters );
-    (void) get_real_argument( 1.0, &ratio );
-    (void) get_int_argument( 0, &method );
-    (void) get_int_argument( 30, &grid_size );
-    (void) get_real_argument( 0.0, &movement_threshold );
+    (void) get_real_argument( 0.0, &tolerance );
+    (void) get_real_argument( 0.0, &scale );
 
     if( input_graphics_file( input_filename, &src_format,
                              &n_src_objects, &src_objects ) != OK ||
         n_src_objects != 1 || get_object_type(src_objects[0]) != POLYGONS )
     {
         print_error( "Error in %s\n", input_filename );
+        return( 1 );
+    }
+
+    if( input_graphics_file( initial_filename, &init_format,
+                             &n_init_objects, &init_objects ) != OK ||
+        n_init_objects != 1 || get_object_type(init_objects[0]) != POLYGONS )
+    {
+        print_error( "Error in %s\n", initial_filename );
         return( 1 );
     }
 
@@ -57,8 +63,9 @@ int  main(
         return( 1 );
     }
 
-    original = get_polygons_ptr( src_objects[0] );
     model = get_polygons_ptr( model_objects[0] );
+    original = get_polygons_ptr( src_objects[0] );
+    initial = get_polygons_ptr( init_objects[0] );
 
     if( !objects_are_same_topology( original->n_points,
                                     original->n_items,
@@ -67,14 +74,22 @@ int  main(
                                     model->n_points,
                                     model->n_items,
                                     model->end_indices,
-                                    model->indices ) )
+                                    model->indices ) ||
+        !objects_are_same_topology( original->n_points,
+                                    original->n_items,
+                                    original->end_indices,
+                                    original->indices,
+                                    initial->n_points,
+                                    initial->n_items,
+                                    initial->end_indices,
+                                    initial->indices ) )
     {
         print_error( "Mismatched topology.\n" );
         return( 1 );
     }
 
-    reparameterize( original, model, method, grid_size, ratio,
-                    movement_threshold, n_iters );
+    reparameterize( original, init_objects[0], model, scale,
+                    tolerance, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
                               src_objects ) != OK )
@@ -556,6 +571,29 @@ private  void  reparameterize_by_minimization(
 }
 #endif
 
+private  void  get_normalized_uv(
+    Real   u,
+    Real   v,
+    Real   *uu,
+    Real   *vv )
+{
+    while( u < 0.0 )
+        u += 1.0;
+    while( u >= 1.0 )
+        u -= 1.0;
+
+    while( v < 0.0 )
+        v += 2.0;
+    while( v >= 2.0 )
+        v -= 2.0;
+
+    if( v > 1.0 )
+        v = 2.0 - v;
+
+    *uu = u;
+    *vv = v;
+}
+
 private  Real  evaluate_fit(
     polygons_struct   *original,
     polygons_struct   *unit_sphere,
@@ -628,6 +666,43 @@ private  Real  evaluate_fit(
     }
 
     FREE( points );
+
+    return( fit );
+}
+
+typedef  struct
+{
+    polygons_struct   *original;
+    polygons_struct   *unit_sphere;
+    int               *n_neighbours;
+    int               **neighbours;
+    Real              *model_lengths;
+} function_data;
+
+private  Real  eval_function(
+    void    *void_data,
+    float   parameters[] )
+{
+    int             p;
+    Real            *real_parameters, fit, u, v;
+    function_data   *data;
+
+    data = (function_data *) void_data;
+
+    ALLOC( real_parameters, 2 * data->original->n_points );
+    for_less( p, 0, data->original->n_points )
+    {
+        get_normalized_uv( (Real) parameters[IJ(p,0,2)],
+                           (Real) parameters[IJ(p,1,2)], &u, &v );
+        real_parameters[IJ(p,0,2)] = u;
+        real_parameters[IJ(p,1,2)] = v;
+    }
+
+    fit = evaluate_fit( data->original, data->unit_sphere,
+                        real_parameters, data->n_neighbours,
+                        data->neighbours, data->model_lengths );
+
+    FREE( real_parameters );
 
     return( fit );
 }
@@ -724,20 +799,28 @@ private  void  evaluate_fit_deriv(
 
 private  void  reparameterize(
     polygons_struct   *original,
+    object_struct     *initial,
     polygons_struct   *model,
-    int               method,
-    int               grid_size,
-    Real              ratio,
-    Real              movement_threshold,
+    Real              scale,
+    Real              tolerance,
     int               n_iters )
 {
-    int               total_neighbours, ind, point, n;
-    int               *n_neighbours, **neighbours, dim;
-    Real              *model_lengths, fit;
+    int               total_neighbours, ind, point, n, obj_index;
+    int               *n_neighbours, **neighbours, dim, iter;
+    Real              *model_lengths, fit, *deltas, u, v;
     Real              *parameters, x, y, z;
-    Real              scale, total_model, total_original;
+    Real              total_model, total_original, test_fit, rms;
     Point             *new_points, unit_sphere_point, centre;
+    Point             original_point;
+    object_struct     *object;
+    int               update_interval;
+    Real              last_update;
     polygons_struct   unit_sphere;
+    amoeba_struct     amoeba;
+    function_data     data;
+
+    object = create_object( POLYGONS );
+    *get_polygons_ptr(object) = *original;
 
     create_polygon_point_neighbours( original, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -767,7 +850,12 @@ private  void  reparameterize(
         }
     }
 
-    scale = total_model / total_original;
+    if( scale <= 0.0 )
+    {
+        scale = total_model / total_original;
+        print( "Scale: %g\n", scale );
+    }
+
     for_less( ind, 0, total_neighbours )
         model_lengths[ind] *= scale;
 
@@ -777,14 +865,31 @@ private  void  reparameterize(
     create_tetrahedral_sphere( &centre, 1.0, 1.0, 1.0, original->n_items,
                                &unit_sphere );
 
+    create_polygons_bintree( &unit_sphere,
+                             ROUND( (Real) unit_sphere.n_items*BINTREE_FACTOR));
+
+    create_polygons_bintree( original,
+                             ROUND( (Real) unit_sphere.n_items*BINTREE_FACTOR));
+
     for_less( point, 0, original->n_points )
     {
-        map_sphere_to_uv( RPoint_x(unit_sphere.points[point]),
-                          RPoint_y(unit_sphere.points[point]),
-                          RPoint_z(unit_sphere.points[point]),
+        (void) find_closest_point_on_object( &get_polygons_ptr(initial)->
+                                              points[point],
+                                             object, &obj_index,
+                                             &original_point );
+
+        map_point_to_unit_sphere( original, &original_point,
+                                  &unit_sphere, &unit_sphere_point );
+                                    
+        map_sphere_to_uv( RPoint_x(unit_sphere_point),
+                          RPoint_y(unit_sphere_point),
+                          RPoint_z(unit_sphere_point),
                           &parameters[IJ(point,0,2)],
                           &parameters[IJ(point,1,2)] );
     }
+
+    delete_bintree( original->bintree );
+    original->bintree = NULL;
 
     fit = evaluate_fit( original, &unit_sphere,
                         parameters, n_neighbours, neighbours,
@@ -792,7 +897,81 @@ private  void  reparameterize(
 
     print( "Initial fit: %.6g\n", fit );
 
-    print( "Final fit: %.6g\n", fit );
+/*
+    ALLOC( deltas, 2 * original->n_points );
+
+    for_less( point, 0, 2 * original->n_points )
+        deltas[point] = 0.01;
+
+    data.original = original;
+    data.unit_sphere = &unit_sphere;
+    data.n_neighbours = n_neighbours;
+    data.neighbours = neighbours;
+    data.model_lengths = model_lengths;
+
+    initialize_amoeba( &amoeba, 2 * original->n_points, parameters,
+                       deltas, eval_function, (void *) &data,
+                       tolerance );
+
+    FREE( deltas );
+
+    for_less( iter, 0, n_iters )
+    {
+        if( !perform_amoeba( &amoeba ) )
+            break;
+    }
+
+    (void) get_amoeba_parameters( &amoeba, parameters );
+
+    terminate_amoeba( &amoeba );
+*/
+
+    ALLOC( deltas, 2 * original->n_points );
+
+    last_update = current_realtime_seconds();
+    update_interval = 1;
+
+    for_less( iter, 0, n_iters )
+    {
+        for_less( point, 0, 2 * original->n_points )
+        {
+            deltas[point] = parameters[point] + (2.0 * get_random_0_to_1() - 1.0)
+                            * tolerance; 
+        }
+
+        for_less( point, 0, original->n_points )
+        {
+            get_normalized_uv( deltas[IJ(point,0,2)],
+                               deltas[IJ(point,1,2)],
+                               &deltas[IJ(point,0,2)],
+                               &deltas[IJ(point,1,2)] );
+        }
+
+        test_fit = evaluate_fit( original, &unit_sphere,
+                                 deltas, n_neighbours, neighbours,
+                                 model_lengths );
+
+        if( test_fit < fit )
+        {
+            fit = test_fit;
+            for_less( point, 0, 2 * original->n_points )
+                parameters[point] = deltas[point];
+        }
+
+        if( iter == n_iters-1 || ((iter+1) % update_interval) == 0 )
+        {
+            if( current_realtime_seconds() - last_update < 1.0 )
+                update_interval *= 10;
+
+            last_update = current_realtime_seconds();
+ 
+            print( "%d: %.8g %.8g\n", iter+1, fit, test_fit );
+        }
+    }
+
+    FREE( deltas );
+
+    print( "After %d iterations: %.6g\n", iter, fit );
 
     delete_polygon_point_neighbours( original, n_neighbours,
                                      neighbours, NULL, NULL );
@@ -803,17 +982,28 @@ private  void  reparameterize(
 
     for_less( point, 0, original->n_points )
     {
-        map_uv_to_sphere( parameters[IJ(point,0,2)],
-                          parameters[IJ(point,1,2)],
-                          &x, &y, &z );
+        get_normalized_uv( parameters[IJ(point,0,2)],
+                           parameters[IJ(point,1,2)], &u, &v );
+        map_uv_to_sphere( u, v, &x, &y, &z );
         fill_Point( unit_sphere_point, x, y, z );
 
         map_unit_sphere_to_point( &unit_sphere, &unit_sphere_point,
                                   original, &new_points[point] );
     }
 
+    rms = 0;
     for_less( point, 0, original->n_points )
+    {
+        rms += sq_distance_between_points( &original->points[point],
+                                           &new_points[point] );
         original->points[point] = new_points[point];
+    }
+
+    rms /= (Real) original->n_points;
+    if( rms > 0.0 )
+        rms = sqrt( rms );
+
+    print( "RMS  %g\n", rms );
 
     delete_polygons( &unit_sphere );
     FREE( parameters );
