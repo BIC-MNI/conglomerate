@@ -12,7 +12,7 @@ int  main(
     char   *argv[] )
 {
     STRING               src_filename, dest_filename;
-    int                  n_objects;
+    int                  n_objects, p;
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
@@ -35,6 +35,17 @@ int  main(
         return( 1 );
 
     polygons = get_polygons_ptr( object_list[0] );
+
+    for_less( p, 0, polygons->n_items )
+        if( GET_OBJECT_SIZE(*polygons,p) != 3 )
+            break;
+
+    if( p < polygons->n_items )
+    {
+        print_error( "Surface must be triangles only.\n" );
+        return( 1 );
+    }
+
     ALLOC( sphere_points, polygons->n_points );
 
     embed_in_sphere( polygons, 1.0, sphere_points );
@@ -90,8 +101,9 @@ public  void  calc_distances_from_point(
 {
     int                                     p, n, point_index;
     int                                     neigh, neigh_index, n_index;
+    int                                     n_index1, n_index2, n_to_do, offset;
     Real                                    dist;
-    float                                   new_dist, neigh_dist;
+    float                                   new_dist, neigh_dist, current_dist;
     entry_struct                            entry;
     PRIORITY_QUEUE_STRUCT( entry_struct )   queue;
 
@@ -109,19 +121,26 @@ public  void  calc_distances_from_point(
 
     if( next_point >= 0 )
     {
-        while( n < n_neighbours[start_point] &&
-               neighbours[start_point][n] != next_point )
-            ++n;
+        n_index1 = get_neigh_index( start_point, n_neighbours, neighbours,
+                                    next_point );
+        n_index2 = get_neigh_index( start_point, n_neighbours, neighbours,
+                                    prev_point );
 
-        if( n >= n_neighbours[start_point] )
-            handle_internal_error(
-                      "compute_distances_from_point(): n > n_neighs" );
+        offset = (n_index1 + 1) % n_neighbours[start_point];
+        n_to_do = (n_index2 - n_index1 + n_neighbours[start_point]) %
+                  n_neighbours[start_point] - 1;
+    }
+    else
+    {
+        offset = 0;
+        n_to_do = n_neighbours[start_point];
     }
 
-    n = (n + 1) % n_neighbours[start_point];
-    while( neighbours[start_point][n] != prev_point )
+    for_less( n, 0, n_to_do )
     {
-        point_index = neighbours[start_point][n];
+        neigh_index = (n + offset) % n_neighbours[start_point];
+
+        point_index = neighbours[start_point][neigh_index];
 
         dist = distance_between_points( &points[start_point],
                                         &points[point_index] );
@@ -143,11 +162,6 @@ public  void  calc_distances_from_point(
             entry.n_index = (Smallest_int) n_index;
             INSERT_IN_PRIORITY_QUEUE( queue, entry, -dist );
         }
-
-        n = (n + 1) % n_neighbours[start_point];
-
-        if( prev_point < 0 && n == 1 )
-            break;
     }
 
     while( !IS_PRIORITY_QUEUE_EMPTY( queue ) )
@@ -159,18 +173,23 @@ public  void  calc_distances_from_point(
         if( n_neighbours[point_index] <= 3 )
             continue;
 
-        n = (n_index + 2) % n_neighbours[point_index];
-        do
+        current_dist = distances[point_index][n_index];
+
+        offset = (n_index + 2) % n_neighbours[point_index];
+        n_to_do = n_neighbours[point_index] - 3;
+
+        for_less( n, 0, n_to_do )
         {
-            neigh = neighbours[point_index][n];
+            n_index = (n + offset) % n_neighbours[point_index];
+
+            neigh = neighbours[point_index][n_index];
             neigh_index = get_neigh_index( neigh, n_neighbours,
                                            neighbours, point_index );
 
             neigh_dist = distances[neigh][neigh_index];
-            if( neigh_dist < 0.0f ||
-                neigh_dist > distances[point_index][n_index] )
+            if( neigh_dist < 0.0f || neigh_dist > current_dist )
             {
-                new_dist = distances[point_index][n_index] +
+                new_dist = current_dist +
                            (float) distance_between_points(
                                                   &points[point_index],
                                                   &points[neigh_index] );
@@ -188,11 +207,7 @@ public  void  calc_distances_from_point(
                     }
                 }
             }
-
-            n = (n + 1) % n_neighbours[point_index];
         }
-        while( n != (n_index-1+n_neighbours[point_index]) %
-                    n_neighbours[point_index] );
     }
 
     DELETE_PRIORITY_QUEUE( queue );
@@ -338,6 +353,12 @@ private  int  get_vertex_on_path(
         ++p;
     }
 
+    if( p == path_size - 1 )
+        --p;
+
+    if( p == 0 )
+        handle_internal_error( "get_vertex_on_path(): the mesh is too small" );
+
     *vertex_index = p;
 
     return( path[p] );
@@ -383,9 +404,11 @@ private  void  assign_used_flags(
 
     NORMALIZE_VECTOR( perp, perp );
 
-    print( "Perp: %g %g %g\n", RVector_x(perp), RVector_y(perp), RVector_z(perp) );
-
     CROSS_VECTORS( vert, perp, v1 );
+
+    NORMALIZE_VECTOR( vert, vert );
+    NORMALIZE_VECTOR( v1, v1 );
+
     x = DOT_VECTORS( v2, v1 );
     y = DOT_VECTORS( v2, vert );
     angle = 2.0 * PI - compute_clockwise_rotation( x, y );
@@ -459,9 +482,11 @@ private  int  cut_off_corners_if_needed(
     int               *neighbours[] )
 {
     int      p, loop_length, prev_index, next_index, n1, n2, prev, next;
+    int      n_iters;
     BOOLEAN  changed;
 
     loop_length = input_loop_length;
+    n_iters = 0;
 
     do
     {
@@ -498,12 +523,19 @@ private  int  cut_off_corners_if_needed(
                 DELETE_ELEMENT_FROM_ARRAY( corner_flags, loop_length, p,
                                            DEFAULT_CHUNK_SIZE );
 
+                if( p > 0 )
+                    --p;
             }
-
-            ++p;
+            else
+                ++p;
         }
+
+        ++n_iters;
     }
     while( changed );
+
+    if( n_iters > 1 )
+        print( "N iterations cutting corners: %d\n", n_iters );
 
     return( loop_length );
 }
@@ -533,6 +565,7 @@ private  void  position_patch(
     if( loop_length <= 3 )
         return;
 
+/*
 for_less( p, 0, loop_length )
 {
     if( corner_flags[p] )
@@ -542,16 +575,18 @@ for_less( p, 0, loop_length )
                RPoint_z(sphere_points[loop[p]]) );
 }
 print( "\n" );
+*/
 
     n_attempts = 100;
 
     for_less( attempt, 0, n_attempts )
     {
         ind1 = get_random_int( loop_length );
-        ind2 = get_random_int( loop_length );
-
-        if( ind1 == ind2 )
-            continue;
+        do
+        {
+            ind2 = get_random_int( loop_length );
+        }
+        while( ind2 == ind1 );
 
         if( ind1 > ind2 )
         {
@@ -594,7 +629,20 @@ print( "\n" );
 
     if( attempt >= n_attempts )
     {
-        print( "Too many attempts.\n" );
+        print( "\nToo many attempts.\n" );
+        for_less( p, 0, loop_length )
+        {
+            if( corner_flags[p] )
+                print( "###   " );
+            else
+                print( "      " );
+
+            print( "%g %g %g\n",
+                       RPoint_x(sphere_points[loop[p]]),
+                       RPoint_y(sphere_points[loop[p]]),
+                       RPoint_z(sphere_points[loop[p]]) );
+        }
+        print( "\n" );
         return;
     }
 
@@ -616,12 +664,12 @@ print( "\n" );
     for_less( p, 0, ind1 )
         new_corner_flags[p] = corner_flags[p];
 
+    new_corner_flags[ind1] = TRUE;
+
+    new_corner_flags[ind1 + path_size-1] = TRUE;
+
     for_less( p, 1, loop_length - ind2 )
         new_corner_flags[ind1+path_size-1+p] = corner_flags[ind2 + p];
-
-    new_corner_flags[0] = TRUE;
-    new_corner_flags[ind1] = TRUE;
-    new_corner_flags[ind1 + path_size-1] = TRUE;
 
     position_patch( n_points, new_loop_size, new_loop, new_corner_flags,
                     n_neighbours, neighbours, used_flags, distances,
@@ -817,7 +865,7 @@ private  void  embed_in_sphere(
     loop_size = 0;
     loop = NULL;
 
-    add_to_loop( &loop_size, &loop, right_size, right_path, TRUE, FALSE );
+    add_to_loop( &loop_size, &loop, left_size, left_path, TRUE, FALSE );
     add_to_loop( &loop_size, &loop, size1, equator1_path, FALSE, FALSE );
     add_to_loop( &loop_size, &loop, equator_index+1, long_path, FALSE, TRUE );
 
@@ -826,8 +874,8 @@ private  void  embed_in_sphere(
         corner_flags[point] = FALSE;
 
     corner_flags[0] = TRUE;
-    corner_flags[right_size-1] = TRUE;
-    corner_flags[right_size-1 + size1-1] = TRUE;
+    corner_flags[left_size-1] = TRUE;
+    corner_flags[left_size-1 + size1-1] = TRUE;
 
     position_patch( n_points, loop_size, loop, corner_flags,
                     n_neighbours, neighbours, used_flags, distances,
