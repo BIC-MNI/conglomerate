@@ -5,7 +5,7 @@ private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  surface.obj  u.txt v.txt  output.obj\n\
+Usage: %s  surface.obj  u.txt v.txt  output.obj [alternate]\n\
 \n\
      .\n\n";
 
@@ -17,7 +17,7 @@ int  main(
     char   *argv[] )
 {
     STRING              surface_filename, output_filename;
-    STRING              u_filename, v_filename;
+    STRING              u_filename, v_filename, dummy;
     File_formats        format;
     int                 n_objects, p;
     Real                u, v, u_off, v_off, x, y, z;
@@ -25,6 +25,7 @@ int  main(
     Point               centre, unit_point, *new_points;
     polygons_struct     *polygons, unit_sphere;
     object_struct       **objects;
+    BOOLEAN             rotate_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -36,6 +37,8 @@ int  main(
         usage( argv[0] );
         return( 1 );
     }
+
+    rotate_flag = get_string_argument( NULL, &dummy );
 
     if( input_graphics_file( surface_filename,
                              &format, &n_objects, &objects ) != OK ||
@@ -72,8 +75,21 @@ int  main(
 
         map_point_to_unit_sphere( polygons, &polygons->points[p],
                                   &unit_sphere, &unit_point );
-        map_sphere_to_uv( RPoint_x(unit_point), RPoint_y(unit_point),
-                          RPoint_z(unit_point), &u, &v );
+
+        if( rotate_flag )
+        {
+            x = -RPoint_z( unit_point );
+            y = RPoint_y( unit_point );
+            z = RPoint_x( unit_point );
+        }
+        else
+        {
+            x = RPoint_x( unit_point );
+            y = RPoint_y( unit_point );
+            z = RPoint_z( unit_point );
+        }
+
+        map_sphere_to_uv( x, y, z, &u, &v );
 
         u += u_off;
         v += v_off;
@@ -88,7 +104,16 @@ int  main(
             v = 1.0;
 
         map_uv_to_sphere( u, v, &x, &y, &z );
-        fill_Point( unit_point, x, y, z );
+
+        if( rotate_flag )
+        {
+            fill_Point( unit_point, z, y, -x );
+        }
+        else
+        {
+            fill_Point( unit_point, x, y, z );
+        }
+
         map_unit_sphere_to_point( &unit_sphere, &unit_point,
                                   polygons, &new_points[p] );
     }
