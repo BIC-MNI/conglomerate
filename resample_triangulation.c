@@ -17,11 +17,11 @@ typedef struct
 } tri_mesh_struct;
 
 private  void  delete_edge_lookup(
-    hash_table_struct  *lookup );
+    hash2_table_struct  *lookup );
 
 private  void  create_edge_lookup(
     tri_mesh_struct    *mesh,
-    hash_table_struct  *lookup );
+    hash2_table_struct  *lookup );
 
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
@@ -56,18 +56,18 @@ private  BOOLEAN  set_mesh_model_points(
 
 private   void   mesh_delete_small_triangles(
     tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
+    hash2_table_struct *edge_lookup,
     Real              min_size );
 
 private   void   mesh_subdivide_large_triangles(
     tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
+    hash2_table_struct *edge_lookup,
     Real              max_size,
     int               max_subdivisions );
 
 private   void   mesh_subdivide_on_node_values(
     tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
+    hash2_table_struct *edge_lookup,
     Real              min_value,
     Real              max_value,
     Real              values[],
@@ -75,7 +75,7 @@ private   void   mesh_subdivide_on_node_values(
 
 private   void   mesh_coalesce_on_node_values(
     tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
+    hash2_table_struct *edge_lookup,
     Real              min_value,
     Real              max_value,
     Real              values[] );
@@ -85,7 +85,7 @@ private  void   delete_unused_nodes(
 
 private   void   mesh_subdivide_on_node_values(
     tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
+    hash2_table_struct *edge_lookup,
     Real              min_value,
     Real              max_value,
     Real              node_values[],
@@ -120,7 +120,7 @@ int  main(
     polygons_struct    *polygons;
     Real               value, max_value, *values;
     tri_mesh_struct    mesh;
-    hash_table_struct  edge_lookup;
+    hash2_table_struct edge_lookup;
 
     max_subdivisions = -1;
 
@@ -634,58 +634,46 @@ private  void   convert_polygons_to_mesh(
     }
 }
 
-private  int  get_key(
-    int  p0,
-    int  p1 )
-{
-    int   k0, k1;
-
-    if( p0 >= (1<<16) || p1 >= (1<<16) )
-        print( "Warning: get_key, too many points.\n" );
-
-    k0 = MIN( p0, p1 );
-    k1 = MAX( p0, p1 );
-
-    return( (k0 << 16) + k1 );
-}
-
 private  void  insert_edge_midpoint(
-    hash_table_struct       *edge_lookup,
+    hash2_table_struct      *edge_lookup,
     int                     p0,
     int                     p1,
     int                     midpoint )
 {
-    int     key;
+    int     k0, k1;
 
-    key = get_key( p0, p1 );
+    k0 = MIN( p0, p1 );
+    k1 = MAX( p0, p1 );
 
-    if( lookup_in_hash_table( edge_lookup, key, (void *) &midpoint ) )
+    if( lookup_in_hash2_table( edge_lookup, k0, k1, (void *) &midpoint ) )
         return;
 
-    insert_in_hash_table( edge_lookup, key, (void *) &midpoint );
+    insert_in_hash2_table( edge_lookup, k0, k1, (void *) &midpoint );
 }
 
 private  BOOLEAN  lookup_edge_midpoint(
-    hash_table_struct    *edge_lookup,
-    int                  p0,
-    int                  p1,
-    int                  *midpoint )
+    hash2_table_struct    *edge_lookup,
+    int                   p0,
+    int                   p1,
+    int                   *midpoint )
 {
-    int     key;
+    int     k0, k1;
 
-    key = get_key( p0, p1 );
+    k0 = MIN( p0, p1 );
+    k1 = MAX( p0, p1 );
 
-    return( lookup_in_hash_table( edge_lookup, key, (void *) midpoint ) );
+    return( lookup_in_hash2_table( edge_lookup, k0, k1, (void *) midpoint ) );
 }
 
 private  int  get_edge_midpoint(
     tri_mesh_struct      *mesh,
-    hash_table_struct    *edge_lookup,
+    hash2_table_struct    *edge_lookup,
     int                  p0,
     int                  p1 )
 {
-    int     key, midpoint;
+    int     midpoint;
     Point   mid, model_mid;
+    int     k0, k1;
 
     midpoint = 0;  /* to avoid compiler message*/
 
@@ -698,15 +686,17 @@ private  int  get_edge_midpoint(
 
     midpoint = tri_mesh_insert_point( mesh, &model_mid, &mid );
 
-    key = get_key( p0, p1 );
-    insert_in_hash_table( edge_lookup, key, (void *) &midpoint );
+    k0 = MIN( p0, p1 );
+    k1 = MAX( p0, p1 );
+
+    insert_in_hash2_table( edge_lookup, k0, k1, (void *) &midpoint );
 
     return( midpoint );
 }
 
 private  void   insert_edge_points(
-    hash_table_struct       *edge_lookup,
-    tri_node_struct         *node )
+    hash2_table_struct       *edge_lookup,
+    tri_node_struct          *node )
 {
     if( node->children[0] == NULL )
         return;
@@ -725,12 +715,12 @@ private  void   insert_edge_points(
 }
 
 private  void  create_edge_lookup(
-    tri_mesh_struct    *mesh,
-    hash_table_struct  *lookup )
+    tri_mesh_struct     *mesh,
+    hash2_table_struct  *lookup )
 {
     int   tri;
 
-    initialize_hash_table( lookup, 10 * mesh->n_points,
+    initialize_hash2_table( lookup, 10 * mesh->n_points,
                            sizeof(int), 0.5, 0.25 );
 
     for_less( tri, 0, mesh->n_triangles )
@@ -738,15 +728,15 @@ private  void  create_edge_lookup(
 }
 
 private  void  delete_edge_lookup(
-    hash_table_struct  *lookup )
+    hash2_table_struct  *lookup )
 {
-    delete_hash_table( lookup );
+    delete_hash2_table( lookup );
 }
 
 private  void  subdivide_tri_node(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    tri_node_struct   *node )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    tri_node_struct    *node )
 {
     int  midpoints[3];
 
@@ -768,11 +758,11 @@ private  void  subdivide_tri_node(
 }
 
 private  void  add_subdivided_edge(
-    hash_table_struct      *edge_lookup,
-    int                    *indices[],
-    int                    *n_indices,
-    int                    p0,
-    int                    p1 )
+    hash2_table_struct      *edge_lookup,
+    int                     *indices[],
+    int                     *n_indices,
+    int                     p0,
+    int                     p1 )
 {
     int   midpoint;
 
@@ -788,14 +778,14 @@ private  void  add_subdivided_edge(
 }
 
 private  void   add_to_polygons(
-    hash_table_struct       *edge_lookup,
-    int                     *end_indices[],
-    int                     *poly,
-    int                     *indices[],
-    int                     *n_indices,
-    int                     p0,
-    int                     p1,
-    int                     p2 )
+    hash2_table_struct       *edge_lookup,
+    int                      *end_indices[],
+    int                      *poly,
+    int                      *indices[],
+    int                      *n_indices,
+    int                      p0,
+    int                      p1,
+    int                      p2 )
 {
     int      mid0, mid1, mid2;
     BOOLEAN  mid0_exists, mid1_exists, mid2_exists;
@@ -877,8 +867,8 @@ private   void   convert_mesh_to_polygons(
     tri_mesh_struct   *mesh,
     polygons_struct   *polygons )
 {
-    int                point, tri, n_indices;
-    hash_table_struct  edge_lookup;
+    int                 point, tri, n_indices;
+    hash2_table_struct  edge_lookup;
 
     initialize_polygons( polygons, WHITE, NULL );
 
@@ -927,10 +917,10 @@ private  Real  get_triangle_size(
 }
 
 private  BOOLEAN   delete_small_triangles(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    tri_node_struct   *node,
-    Real              min_size_sq )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    tri_node_struct    *node,
+    Real               min_size_sq )
 {
     Real      size;
     BOOLEAN   should_delete0, should_delete1, should_delete2, should_delete3;
@@ -973,11 +963,11 @@ private  BOOLEAN   delete_small_triangles(
 }
 
 private  void   subdivide_large_triangles(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    tri_node_struct   *node,
-    Real              max_size_sq,
-    int               max_subdivisions )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    tri_node_struct    *node,
+    Real               max_size_sq,
+    int                max_subdivisions )
 {
     Real   size;
 
@@ -1008,9 +998,9 @@ private  void   subdivide_large_triangles(
 }
 
 private   void   mesh_delete_small_triangles(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    Real              min_size )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    Real               min_size )
 {
     int                tri;
 
@@ -1026,10 +1016,10 @@ private   void   mesh_delete_small_triangles(
 }
 
 private   void   mesh_subdivide_large_triangles(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    Real              max_size,
-    int               max_subdivisions )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    Real               max_size,
+    int                max_subdivisions )
 {
     int                tri;
 
@@ -1046,14 +1036,14 @@ private   void   mesh_subdivide_large_triangles(
 }
 
 private  void   subdivide_on_node_values(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    tri_node_struct   *node,
-    Real              min_value,
-    Real              max_value,
-    int               n_values,
-    Real              values[],
-    int               max_subdivisions )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    tri_node_struct    *node,
+    Real               min_value,
+    Real               max_value,
+    int                n_values,
+    Real               values[],
+    int                max_subdivisions )
 {
     int    child, vertex;
 
@@ -1089,12 +1079,12 @@ private  void   subdivide_on_node_values(
 }
 
 private   void   mesh_subdivide_on_node_values(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    Real              min_value,
-    Real              max_value,
-    Real              values[],
-    int               max_subdivisions )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    Real               min_value,
+    Real               max_value,
+    Real               values[],
+    int                max_subdivisions )
 {
     int                tri, n_values;
 
@@ -1109,13 +1099,13 @@ private   void   mesh_subdivide_on_node_values(
 }
 
 private  void   coalesce_on_node_values(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    tri_node_struct   *node,
-    Real              min_value,
-    Real              max_value,
-    int               n_values,
-    Real              values[] )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    tri_node_struct    *node,
+    Real               min_value,
+    Real               max_value,
+    int                n_values,
+    Real               values[] )
 {
     int       i, list[6];
 
@@ -1168,11 +1158,11 @@ private  void   coalesce_on_node_values(
 }
 
 private   void   mesh_coalesce_on_node_values(
-    tri_mesh_struct   *mesh,
-    hash_table_struct *edge_lookup,
-    Real              min_value,
-    Real              max_value,
-    Real              values[] )
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    Real               min_value,
+    Real               max_value,
+    Real               values[] )
 {
     int                tri, n_values;
 
