@@ -2,59 +2,6 @@
 
 #define  SCALE_FACTOR   1.0
 
-private  BOOLEAN  get_next_filename(
-    char      *filename[] )
-{
-    static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
-    char               *argument;
-    BOOLEAN            found;
-
-    found = FALSE;
-
-    do
-    {
-        if( in_list )
-        {
-            if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
-                 == OK )
-            {
-                *filename = filename_string;
-                found = TRUE;
-            }
-            else
-            {
-                (void) close_file( file );
-                in_list = FALSE;
-            }
-        }
-        else if( get_string_argument( "", &argument ) )
-        {
-            if( filename_extension_matches( argument,
-                                get_default_landmark_file_suffix() )||
-                filename_extension_matches( argument,
-                                get_default_tag_file_suffix() ) ||
-                filename_extension_matches( argument, "obj" ) )
-            {
-                *filename = argument;
-                found = TRUE;
-            }
-            else
-            {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
-                    break;
-                in_list = TRUE;
-            }
-        }
-        else
-            break;
-    }
-    while( !found );
-
-    return( found );
-}
-
 private  void  increment_voxel_count(
     Volume   volume,
     int      x,
@@ -74,12 +21,14 @@ private  void  increment_voxel_count(
     SET_VOXEL_3D( volume, x, y, z, value );
 }
 
+extern  int  get_filename_arguments( STRING *[] );
+
 int  main(
     int   argc,
     char  *argv[] )
 {
     Status               status;
-    char                 *input_filename, *landmark_filename, *output_filename;
+    char                 *input_filename, *output_filename;
     Real                 separations[MAX_DIMENSIONS];
     Real                 voxel[MAX_DIMENSIONS];
     Real                 max_value;
@@ -109,6 +58,8 @@ int  main(
         return( 1 );
     }
 
+    n_files = get_filename_arguments( &filenames );
+
     radius_squared = radius * radius;
 
     status = start_volume_input( input_filename, 3, XYZ_dimension_names,
@@ -129,16 +80,6 @@ int  main(
         for_less( y, 0, sizes[Y] )
             for_less( z, 0, sizes[Z] )
                 SET_VOXEL_3D( new_volume, x, y, z, 0.0 );
-
-    n_files = 0;
-
-    while( get_next_filename( &landmark_filename ) )
-    {
-        SET_ARRAY_SIZE( filenames, n_files, n_files + 1,
-                        DEFAULT_CHUNK_SIZE );
-        (void) strcpy( filenames[n_files], landmark_filename );
-        ++n_files;
-    }
 
     max_value = 0.0;
 
@@ -234,7 +175,7 @@ int  main(
 
     delete_bitlist_3d( &bitlist );
 
-    n_patients = n_files / 3;
+    n_patients = n_files / 2;
 
     SET_VOXEL_3D( new_volume, 0, 0, 0, n_patients * SCALE_FACTOR );
 
