@@ -8,19 +8,6 @@
 
 #define  MAX_POINTS   10
 
-#ifdef OLD
-private  BOOLEAN  is_maximum(
-    Real    counts[],
-    int     i,
-    int     n,
-    int     width );
-private  BOOLEAN  is_minimum(
-    Real    counts[],
-    int     i,
-    int     n,
-    int     width );
-#endif
-
 int  main(
     int   argc,
     char  *argv[] )
@@ -39,13 +26,6 @@ int  main(
     Real                 *counts, pos_low, pos_max_grad, pos_high;
     Real                 scale, trans;
     int                  n, i, min_index, max_index, max_index2;
-#ifdef OLD
-    int                  gray_min;
-    Real                 *counts, width_ratio;
-    int                  n, i, mins[MAX_POINTS], maxs[MAX_POINTS];
-    int                  n_mins, n_maxs, end_gray_index, start_gray_index;
-    int                  int_width;
-#endif
     int                  n_objects;
     object_struct        **objects;
     Volume               volume;
@@ -73,14 +53,13 @@ int  main(
         axis = -1;
 
     (void) get_real_argument( FILTER_WIDTH, &filter_ratio );
-
-#ifdef OLD
-    (void) get_real_argument( WINDOW_WIDTH, &width_ratio );
-#endif
-
     (void) get_int_argument( DEFAULT_N_INTERVALS, &x_size );
     (void) get_int_argument( x_size, &y_size );
     put_x_pos = get_real_argument( 0.0, &x_pos );
+
+    set_n_bytes_cache_threshold( 1 );
+    set_default_max_bytes_in_cache( 1 );
+    set_cache_block_sizes_hint( SLICE_ACCESS );
 
     if( input_volume( input_volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -271,98 +250,5 @@ int  main(
                                      n_objects, objects );
     }
 
-#ifdef OLD
-
-    int_width = ROUND( (Real) x_size * width_ratio / 2.0 );
-    if( int_width < 1 )
-        int_width = 1;
-
-    n_mins = 0;
-    n_maxs = 0;
-    for_less( i, 0, n )
-    {
-        if( is_minimum( counts, i, n, int_width ) )
-        {
-            value = scale * (Real) i + trans;
-            print( "Minimum at %g\n", value );
-            if( n_mins < MAX_POINTS )
-                mins[n_mins] = i;
-            ++n_mins;
-        }
-        else if( is_maximum( counts, i, n, int_width ) )
-        {
-            value = scale * (Real) i + trans;
-            print( "     Maximum at %g\n", value );
-            if( n_maxs < MAX_POINTS )
-                maxs[n_maxs] = i;
-            ++n_maxs;
-        }
-    }
-
-    gray_min = 0;
-    while( mins[gray_min] < maxs[0] )
-        ++gray_min;
-
-    end_gray_index = mins[gray_min+1];
-    start_gray_index = end_gray_index - 1;
-    while( start_gray_index >= mins[gray_min] &&
-           counts[start_gray_index] >= counts[end_gray_index] )
-    {
-         --start_gray_index;
-    }
-
-    print( "Gray matter: %g %g\n",
-            scale * (Real) start_gray_index + trans,
-            scale * (Real) end_gray_index + trans );
-
-    FREE( counts );
-#endif
-
     return( 0 );
 }
-
-#ifdef OLD
-private  BOOLEAN  is_minimum(
-    Real    counts[],
-    int     i,
-    int     n,
-    int     width )
-{
-    int   d, m1, m2;
-
-    if( i != 0 && counts[i-1] <= counts[i] ||
-        i < n-1 && counts[i+1] <= counts[i] )
-        return( FALSE );
-
-    m1 = MAX( 0, i - width );
-    m2 = MIN( n-1, i + width );
-
-    for_inclusive( d, m1, m2 )
-        if( d != i && counts[d] <= counts[i] )
-            return( FALSE );
-
-    return( TRUE );
-}
-
-private  BOOLEAN  is_maximum(
-    Real    counts[],
-    int     i,
-    int     n,
-    int     width )
-{
-    int   d, m1, m2;
-
-    if( i != 0 && counts[i-1] >= counts[i] ||
-        i < n-1 && counts[i+1] >= counts[i] )
-        return( FALSE );
-
-    m1 = MAX( 0, i - width );
-    m2 = MIN( n-1, i + width );
-
-    for_inclusive( d, m1, m2 )
-        if( d != i && counts[d] >= counts[i] )
-            return( FALSE );
-
-    return( TRUE );
-}
-#endif
