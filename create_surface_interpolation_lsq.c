@@ -144,6 +144,7 @@ private  Real  evaluate_fit(
     Real   *fit2 )
 {
     int   node, p, i;
+
     Real  val, diff, f1, f2, avg, avg_dist;
 
     f1 = 0.0;
@@ -202,32 +203,34 @@ private  void  evaluate_fit_along_line(
     Real   *a_ptr,
     Real   *b_ptr )
 {
-    int   node, p, n, n1, i0, i1;
-    Real  avg, avg_dist, a, b, a2, b2;
+    int   node, p, n, i0, i1;
+    Real  avg, avg_dist, a, b, a2, b2, val, weight;
 
     a = 0.0;
     b = 0.0;
 
     for_less( p, 0, n_interp_points )
     {
+        val = 0.0;
+        for_less( i0, 0, n_weights[p] )
+            val += weights[p][i0] * node_values[weighted_points[p][i0]];
+        val -= values[p];
+
         for_less( i0, 0, n_weights[p] )
         {
             n = weighted_points[p][i0];  
-            b += - line_coefs[n] * values[p];
+            weight = weights[p][i0];
+            b += 2.0 * weight * line_coefs[n] * val;
             for_less( i1, 0, n_weights[p] )
             {
-                n1 = weighted_points[p][i1];  
-                b += line_coefs[n] *
-                     weights[p][i1] * node_values[weighted_points[p][i1]];
-
-                a += line_coefs[n] * line_coefs[n1];
+                a += weight * weights[p][i1] *
+                     line_coefs[n] * line_coefs[weighted_points[p][i1]];
             }
         }
     }
 
     a *= interp_weight * interp_weight;
     b *= interp_weight * interp_weight;
-
 
     for_less( node, 0, n_nodes )
     {
@@ -240,21 +243,25 @@ private  void  evaluate_fit_along_line(
             avg += node_values[neighbours[node][p]];
             avg_dist += (Real) distances[node][p];
         }
+        avg /= (Real) n_neighbours[node];
 
         avg_dist /= (Real) n_neighbours[node] * total_length;
 
-        b2 += avg * line_coefs[node];
+        val = node_values[node] - avg;
+
+        b2 += 2.0 * val * line_coefs[node];
+        a2 += line_coefs[node] * line_coefs[node];
 
         for_less( i0, 0, n_neighbours[node] )
         {
             n = neighbours[node][i0];
-            b2 += - avg * line_coefs[n] / (Real) n_neighbours[node];
-            a2 += -line_coefs[node] * line_coefs[n] / (Real) n_neighbours[node];
+            b2 += -2.0 * val * line_coefs[n] / (Real) n_neighbours[node];
+            a2 += 2.0 * -line_coefs[node] * line_coefs[n] /
+                  (Real) n_neighbours[node];
 
             for_less( i1, 0, n_neighbours[node] )
             {
-                n1 = neighbours[node][i1];
-                a2 += line_coefs[n] * line_coefs[n1] /
+                a2 += line_coefs[n] * line_coefs[neighbours[node][i1]] /
                       (Real) n_neighbours[node] / (Real) n_neighbours[node];
             }
         }
@@ -268,6 +275,68 @@ private  void  evaluate_fit_along_line(
 
     *a_ptr = a;
     *b_ptr = b;
+}
+
+private  void  minimize_along_line(
+    int    n_neighbours[],
+    int    *neighbours[],
+    Real   interp_weight,
+    Real   smooth_weight,
+    int    n_interp_points,
+    int    n_weights[],
+    Real   **weights,
+    int    **weighted_points,
+    Real   values[],
+    float  **distances,
+    Real   total_length,
+    int    n_nodes,
+    Point  nodes[],
+    Real   node_values[],
+    Real   line_coefs[] )
+{
+    int   node;
+    Real  step_size, a, b, c, t, *next_values, fit, fit_minus, fit_plus;
+
+    ALLOC( next_values, n_nodes );
+
+    step_size = 1.0;
+
+    fit = evaluate_fit( n_neighbours, neighbours,
+                        interp_weight, smooth_weight, n_interp_points,
+                        n_weights, weights, weighted_points, values,
+                        distances, total_length, n_nodes,
+                        nodes, node_values, NULL, NULL );
+
+    for_less( node, 0, n_nodes )
+        next_values[node] = node_values[node] - step_size * line_coefs[node];
+    fit_minus = evaluate_fit( n_neighbours, neighbours,
+                        interp_weight, smooth_weight, n_interp_points,
+                        n_weights, weights, weighted_points, values,
+                        distances, total_length, n_nodes,
+                        nodes, next_values, NULL, NULL );
+
+    for_less( node, 0, n_nodes )
+        next_values[node] = node_values[node] + step_size * line_coefs[node];
+
+    fit_plus = evaluate_fit( n_neighbours, neighbours,
+                        interp_weight, smooth_weight, n_interp_points,
+                        n_weights, weights, weighted_points, values,
+                        distances, total_length, n_nodes,
+                        nodes, next_values, NULL, NULL );
+
+    FREE( next_values );
+
+    c = fit;
+    b = (fit_plus - fit_minus) / 2.0 / step_size;
+    a = (fit_plus - b * step_size - c) / step_size / step_size;
+
+    if( a == 0.0 )
+        return;
+
+    t = -b / (2.0 * a);
+
+    for_less( node, 0, n_nodes )
+        node_values[node] += t * line_coefs[node];
 }
 
 private  void  evaluate_fit_derivative(
@@ -587,17 +656,59 @@ private  void  minimize_cost(
     int    *neighbours[],
     int    max_neighbours )
 {
-    int     node;
-    Real    *next_values, *derivs, factor, best_fit, fit, len;
+    int     node, n;
+    Real    *next_values, *derivs, factor, best_fit, fit;
+    Real    *save;
 
     ALLOC( derivs, n_nodes );
-    ALLOC( next_values, n_nodes );
 
+/*
     evaluate_fit_derivative( n_neighbours, neighbours,
                              interp_weight, smooth_weight, n_interp_points,
                              n_weights, weights, weighted_points, values,
                              distances, total_length, n_nodes,
                              nodes, node_values, derivs );
+*/
+
+#ifndef OLD
+
+    ALLOC( save, n_nodes );
+    for_less( node, 0, n_nodes )
+        save[node] = node_values[node];
+
+    for_less( node, 0, n_nodes )
+    {
+        for_less( n, 0, n_nodes )
+            derivs[n] = 0.0;
+
+        derivs[node] = 1.0;
+
+        fast_minimize_nodes( node, n_neighbours, neighbours,
+            interp_weight, smooth_weight,
+            n_interp_points, n_weights, weights, weighted_points,
+            values, distances, total_length, n_nodes, nodes, node_values );
+
+/*
+        minimize_along_line( n_neighbours, neighbours,
+                             interp_weight, smooth_weight, n_interp_points,
+                             n_weights, weights, weighted_points, values,
+                             distances, total_length, n_nodes,
+                             nodes, node_values, derivs );
+*/
+    }
+
+    for_less( node, 0, n_nodes )
+        derivs[node] = node_values[node] - save[node];
+
+    minimize_along_line( n_neighbours, neighbours,
+                         interp_weight, smooth_weight, n_interp_points,
+                         n_weights, weights, weighted_points, values,
+                         distances, total_length, n_nodes,
+                         nodes, node_values, derivs );
+
+    FREE( save );
+#else
+    ALLOC( next_values, n_nodes );
 
     best_fit = evaluate_fit( n_neighbours, neighbours,
                              interp_weight, smooth_weight, n_interp_points,
@@ -633,8 +744,10 @@ private  void  minimize_cost(
         factor /= 2.0;
     }
 
-    FREE( derivs );
     FREE( next_values );
+#endif
+
+    FREE( derivs );
 }
 #endif
 
