@@ -24,9 +24,9 @@ int  main(
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
     Colour_flags         *colour_flag_ptr;
-    STRING               coding_type_string;
+    STRING               coding_type_string, dummy;
     Real                 low, high, r, g, b, a, opacity;
-    BOOLEAN              per_vertex;
+    BOOLEAN              per_vertex, dont_composite_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -65,6 +65,7 @@ int  main(
     (void) get_string_argument( "BLACK", &under_colour_name );
     (void) get_string_argument( "WHITE", &over_colour_name );
     (void) get_real_argument( 1.0, &opacity );
+    dont_composite_flag = get_string_argument( NULL, &dummy );
 
     under_colour = convert_string_to_colour( under_colour_name );
     over_colour = convert_string_to_colour( over_colour_name );
@@ -110,7 +111,7 @@ int  main(
 
             col = get_colour_code( &colour_coding, value );
 
-            if( opacity * get_Colour_a_0_1(col) < 1.0 )
+            if( !dont_composite_flag && opacity * get_Colour_a_0_1(col) < 1.0 )
             {
                 if( per_vertex )
                     prev_colour = colours[p];
