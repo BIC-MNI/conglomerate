@@ -3,11 +3,12 @@
 
 #define  DEFAULT_N_INTERVALS  255
 
-#define  FILTER_WIDTH 0.1
+#define  FILTER_WIDTH 0.0
 #define  WINDOW_WIDTH 0.05
 
 #define  MAX_POINTS   10
 
+#ifdef OLD
 private  BOOLEAN  is_maximum(
     Real    counts[],
     int     i,
@@ -18,6 +19,7 @@ private  BOOLEAN  is_minimum(
     int     i,
     int     n,
     int     width );
+#endif
 
 int  main(
     int   argc,
@@ -25,19 +27,26 @@ int  main(
 {
     int                  x, y, z, sizes[N_DIMENSIONS], x_size, y_size;
     int                  start[N_DIMENSIONS], end[N_DIMENSIONS];
-    int                  n, i, slice, axis, int_width;
-    int                  gray_min;
-    Real                 value, width_ratio, min_voxel, max_voxel, window_width;
-    Real                 min_value, max_value, scale, trans, filter_ratio;
-    Real                 *counts;
+    int                  slice, axis;
+    Real                 value, min_voxel, max_voxel, window_width;
+    Real                 min_value, max_value, filter_ratio;
     STRING               input_volume_filename, output_filename;
     STRING               axis_name;
     lines_struct         *lines;
-    object_struct        *object;
     histogram_struct     histogram;
-    int                  mins[MAX_POINTS], maxs[MAX_POINTS];
+#ifdef OLD
+    Real                 scale, trans;
+    int                  gray_min;
+    Real                 *counts, width_ratio;
+    int                  n, i, mins[MAX_POINTS], maxs[MAX_POINTS];
     int                  n_mins, n_maxs, end_gray_index, start_gray_index;
+    int                  int_width;
+#endif
+    int                  n_objects;
+    object_struct        **objects;
     Volume               volume;
+    Real                 x_pos, y_height, pos, min_pos, max_pos;
+    BOOLEAN              put_x_pos;
 
     initialize_argument_processing( argc, argv );
 
@@ -60,9 +69,14 @@ int  main(
         axis = -1;
 
     (void) get_real_argument( FILTER_WIDTH, &filter_ratio );
+
+#ifdef OLD
     (void) get_real_argument( WINDOW_WIDTH, &width_ratio );
+#endif
+
     (void) get_int_argument( DEFAULT_N_INTERVALS, &x_size );
     (void) get_int_argument( x_size, &y_size );
+    put_x_pos = get_real_argument( 0.0, &x_pos );
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -105,14 +119,43 @@ int  main(
 
     window_width = filter_ratio * (max_value - min_value);
 
-    object = create_object( LINES );
+    n_objects = 1;
+    ALLOC( objects, 2 );
 
-    lines = get_lines_ptr( object );
-
+    objects[0] = create_object( LINES );
+    lines = get_lines_ptr( objects[0] );
     create_histogram_line( &histogram, x_size, y_size, window_width, lines );
 
-    (void) output_graphics_file( output_filename, ASCII_FORMAT, 1, &object );
+    if( put_x_pos )
+    {
+        min_pos = (Real) Point_x(lines->points[0]);
+        max_pos = (Real) Point_x(lines->points[lines->n_points-1]);
 
+        ++n_objects;
+        objects[1] = create_object( LINES );
+        lines = get_lines_ptr( objects[1] );
+        initialize_lines( lines, RED );
+        lines->n_points = 2;
+        ALLOC( lines->points, 2 );
+
+        pos = min_pos + (max_pos - min_pos) *
+                        (x_pos - min_value) / (max_value - min_value);
+
+        y_height = 0.05 * (max_pos - min_pos);
+        fill_Point( lines->points[0], pos, -y_height, 0.0 );
+        fill_Point( lines->points[1], pos, y_height, 0.0 );
+        lines->n_items = 1;
+        ALLOC( lines->end_indices, 1 );
+        lines->end_indices[0] = 2;
+        ALLOC( lines->indices, 2 );
+        lines->indices[0] = 0;
+        lines->indices[1] = 1;
+    }
+
+    (void) output_graphics_file( output_filename, ASCII_FORMAT,
+                                 n_objects, objects );
+
+#ifdef OLD
     n = get_histogram_counts( &histogram, &counts, window_width,
                               &scale, &trans );
 
@@ -159,10 +202,12 @@ int  main(
             scale * (Real) end_gray_index + trans );
 
     FREE( counts );
+#endif
 
     return( 0 );
 }
 
+#ifdef OLD
 private  BOOLEAN  is_minimum(
     Real    counts[],
     int     i,
@@ -206,3 +251,4 @@ private  BOOLEAN  is_maximum(
 
     return( TRUE );
 }
+#endif
