@@ -1,3 +1,4 @@
+#include  <math.h>
 #include  <bicpl.h>
 #include  <volume_io/internal_volume_io.h>
 
@@ -58,7 +59,7 @@ int  main(
 
     /* --- create the gradient volume */
 
-    gradient_volume = create_gradient_volume( volume, deriv_number, order - 1 );
+    gradient_volume = create_gradient_volume( volume, order-1, deriv_number );
 
     history = create_string( "make_gradient_volume\n" );
 
@@ -95,11 +96,15 @@ private  Volume  create_gradient_volume(
 
     if( deriv_number == 1 )
     {
+	printf( "Computing first derivative with continuity = %d\n", 
+		continuity );
         ALLOC2D( first_deriv, 1, N_DIMENSIONS );
         second_deriv = NULL;
     }
     else
     {
+	printf( "Computing second derivative with continuity = %d\n", 
+		continuity );
         first_deriv = NULL;
         ALLOC3D( second_deriv, 1, N_DIMENSIONS, N_DIMENSIONS );
     }
@@ -136,19 +141,19 @@ private  Volume  create_gradient_volume(
                     dz = second_deriv[0][2][2];
                 }
 
-                grad = dx * dx + dy * dy + dz * dz;
+                grad = sqrt(dx * dx + dy * dy + dz * dz);
 
                 set_volume_real_value( gradient_volume, x, y, z, 0, 0, grad );
 
                 if( x == 0 && y == 0 && z == 0 )
                 {
-                    min_value = value;
-                    max_value = value;
+                    min_value = grad;
+                    max_value = grad;
                 }
-                else if( value < min_value )
-                    min_value = value;
-                else if( value > max_value )
-                    max_value = value;
+                else if( grad < min_value )
+                    min_value = grad;
+                else if( grad > max_value )
+                    max_value = grad;
             }
 
             update_progress_report( &progress, x * volume_sizes[Y] + y + 1 );

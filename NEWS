@@ -8,4 +8,7 @@
 
 * Bug fixes:
   - tagtominc now correctly interprets the structure_id parameter
+  - make_gradient_volume outputs magnitude rather than squared magnitude
+    of the gradient vectors
+
 
