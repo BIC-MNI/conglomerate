@@ -123,18 +123,32 @@ private  void  evaluate_fit_derivative(
     Real    sphere_weight,
     Real    deriv[] )
 {
-    int    p, n_points, ind, n, neigh;
+    int    p, n_points, ind, n, neigh, p_index, n_index;
     Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
-    Real   x1, y1, z1, x2, y2, z2;
+    Real   x1, y1, z1, x2, y2, z2, weight;
 
     for_less( p, 0, n_parameters )
         deriv[p] = 0.0;
 
     n_points = n_parameters / 3;
+    radius = parameters[n_parameters-1];
 
     ind = 0;
     for_less( p, 0, n_points )
     {
+        p_index = IJ(p,0,3);
+        x1 = parameters[p_index+0];
+        y1 = parameters[p_index+1];
+        z1 = parameters[p_index+2];
+
+        act_dist = x1 * x1 + y1 * y1 + z1 * z1;
+        diff = act_dist - radius * radius;
+        weight = 4.0 * sphere_weight * diff;
+        deriv[p_index+0] += weight * x1;
+        deriv[p_index+1] += weight * y1;
+        deriv[p_index+2] += weight * z1;
+        deriv[n_parameters-1] += -weight * radius;
+
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
@@ -144,9 +158,11 @@ private  void  evaluate_fit_derivative(
             dist = distances[ind];
             ++ind;
 
-            x1 = parameters[IJ(p,0,3)];
-            y1 = parameters[IJ(p,1,3)];
-            z1 = parameters[IJ(p,2,3)];
+            n_index = IJ(neigh,0,3);
+            x2 = parameters[n_index+0];
+            y2 = parameters[n_index+1];
+            z2 = parameters[n_index+2];
+
             x2 = parameters[IJ(neigh,0,3)];
             y2 = parameters[IJ(neigh,1,3)];
             z2 = parameters[IJ(neigh,2,3)];
@@ -154,29 +170,14 @@ private  void  evaluate_fit_derivative(
             dy = y1 - y2;
             dz = z1 - z2;
             act_dist = dx * dx + dy * dy + dz * dz;
-            factor = act_dist - dist;
-            deriv[IJ(p,0,3)] += 2.0 * (x1 - x2) * factor;
-            deriv[IJ(p,1,3)] += 2.0 * (y1 - y2) * factor;
-            deriv[IJ(p,2,3)] += 2.0 * (z1 - z2) * factor;
-            deriv[IJ(neigh,0,3)] += 2.0 * (x2 - x1) * factor;
-            deriv[IJ(neigh,1,3)] += 2.0 * (y2 - y1) * factor;
-            deriv[IJ(neigh,2,3)] += 2.0 * (z2 - z1) * factor;
+            factor = 2.0 * (act_dist - dist);
+            deriv[p_index+0] += dx * factor;
+            deriv[p_index+1] += dy * factor;
+            deriv[p_index+2] += dz * factor;
+            deriv[n_index+0] += -dx * factor;
+            deriv[n_index+1] += -dy * factor;
+            deriv[n_index+2] += -dz * factor;
         }
-    }
-
-    radius = parameters[n_parameters-1];
-
-    for_less( p, 0, n_points )
-    {
-        dx = parameters[IJ(p,0,3)];
-        dy = parameters[IJ(p,1,3)];
-        dz = parameters[IJ(p,2,3)];
-        act_dist = dx * dx + dy * dy + dz * dz;
-        diff = act_dist - radius * radius;
-        deriv[IJ(p,0,3)] += sphere_weight * 4.0 * diff * dx;
-        deriv[IJ(p,1,3)] += sphere_weight * 4.0 * diff * dy;
-        deriv[IJ(p,2,3)] += sphere_weight * 4.0 * diff * dz;
-        deriv[n_parameters-1] += -sphere_weight * 4.0 * diff * radius;
     }
 }
 
@@ -190,8 +191,9 @@ private  void  evaluate_fit_along_line(
     Real    sphere_weight,
     Real    coefs[] )
 {
-    int    p, n_points, ind, n, neigh;
+    int    p, n_points, ind, n, neigh, p_index, n_index;
     Real   dx, dy, dz, dr, dist, radius;
+    Real   dx1, dy1, dz1, x1, y1, z1;
     Real   x, y, z;
     Real   line_coefs[3];
 
@@ -200,9 +202,37 @@ private  void  evaluate_fit_along_line(
 
     n_points = n_parameters / 3;
 
+    radius = parameters[n_parameters-1];
+    dr = delta[n_parameters-1];
+
+    if( sphere_weight > 0.0 )
+        sphere_weight = sqrt( sphere_weight );
+
     ind = 0;
     for_less( p, 0, n_points )
     {
+        p_index = IJ(p,0,3);
+        x1 = parameters[p_index+0];
+        y1 = parameters[p_index+1];
+        z1 = parameters[p_index+2];
+        dx1 = delta[p_index+0];
+        dy1 = delta[p_index+1];
+        dz1 = delta[p_index+2];
+
+        line_coefs[0] = x1 * x1 + y1 * y1 + z1 * z1 - radius * radius;
+        line_coefs[1] = 2.0 * (x1 * dx1 + y1 * dy1 + z1 * dz1 - radius * dr);
+        line_coefs[2] = dx1 * dx1 + dy1 * dy1 + dz1 * dz1 - dr * dr;
+        line_coefs[0] *= sphere_weight;
+        line_coefs[1] *= sphere_weight;
+        line_coefs[2] *= sphere_weight;
+
+        coefs[0] += line_coefs[0] * line_coefs[0];
+        coefs[1] += 2.0 * line_coefs[1] * line_coefs[0];
+        coefs[2] += 2.0 * line_coefs[2] * line_coefs[0] +
+                          line_coefs[1] * line_coefs[1];
+        coefs[3] += 2.0 * line_coefs[2] * line_coefs[1];
+        coefs[4] += line_coefs[2] * line_coefs[2];
+
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
@@ -212,12 +242,13 @@ private  void  evaluate_fit_along_line(
             dist = distances[ind];
             ++ind;
 
-            x = parameters[IJ(p,0,3)] - parameters[IJ(neigh,0,3)];
-            y = parameters[IJ(p,1,3)] - parameters[IJ(neigh,1,3)];
-            z = parameters[IJ(p,2,3)] - parameters[IJ(neigh,2,3)];
-            dx = delta[IJ(p,0,3)] - delta[IJ(neigh,0,3)];
-            dy = delta[IJ(p,1,3)] - delta[IJ(neigh,1,3)];
-            dz = delta[IJ(p,2,3)] - delta[IJ(neigh,2,3)];
+            n_index = IJ(neigh,0,3);
+            x = x1 - parameters[n_index+0];
+            y = y1 - parameters[n_index+1];
+            z = z1 - parameters[n_index+2];
+            dx = dx1 - delta[n_index+0];
+            dy = dy1 - delta[n_index+1];
+            dz = dz1 - delta[n_index+2];
 
             line_coefs[0] = x * x + y * y + z * z - dist;
             line_coefs[1] = 2.0 * (x * dx + y * dy + z * dz);
@@ -230,35 +261,6 @@ private  void  evaluate_fit_along_line(
             coefs[3] += 2.0 * line_coefs[2] * line_coefs[1];
             coefs[4] += line_coefs[2] * line_coefs[2];
         }
-    }
-
-    radius = parameters[n_parameters-1];
-    dr = delta[n_parameters-1];
-
-    if( sphere_weight > 0.0 )
-        sphere_weight = sqrt( sphere_weight );
-
-    for_less( p, 0, n_points )
-    {
-        x = parameters[IJ(p,0,3)];
-        y = parameters[IJ(p,1,3)];
-        z = parameters[IJ(p,2,3)];
-        dx = delta[IJ(p,0,3)];
-        dy = delta[IJ(p,1,3)];
-        dz = delta[IJ(p,2,3)];
-        line_coefs[0] = x * x + y * y + z * z - radius * radius;
-        line_coefs[1] = 2.0 * (x * dx + y * dy + z * dz - radius * dr);
-        line_coefs[2] = dx * dx + dy * dy + dz * dz - dr * dr;
-        line_coefs[0] *= sphere_weight;
-        line_coefs[1] *= sphere_weight;
-        line_coefs[2] *= sphere_weight;
-
-        coefs[0] += line_coefs[0] * line_coefs[0];
-        coefs[1] += 2.0 * line_coefs[1] * line_coefs[0];
-        coefs[2] += 2.0 * line_coefs[2] * line_coefs[0] +
-                          line_coefs[1] * line_coefs[1];
-        coefs[3] += 2.0 * line_coefs[2] * line_coefs[1];
-        coefs[4] += line_coefs[2] * line_coefs[2];
     }
 }
 
@@ -273,7 +275,9 @@ private  void  minimize_along_line(
 {
     int    p, s, n_solutions, best_index;
     Real   coefs[5], deriv[4], *test, t, fit, best_fit, solutions[3];
+/*
     Real   test_fit;
+*/
 
     ALLOC( test, n_parameters );
 
