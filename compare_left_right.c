@@ -5,26 +5,29 @@
 
 #define  THRESHOLD   3.0
 
+#define  REGISTRATION_OFFSET   0.5625
+
 int  main(
     int    argc,
     char   *argv[] )
 {
     STRING           filename, output_filename, *filenames;
     int              i, j, ni, nj, n_objects, n_surfaces, object_index;
-    int              surf, group;
+    int              surf;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons;
     Real             left_x, right_x, y, z, dist;
-    Real             ***samples[2], **means[2], **variance[2], **t_stat;
+    Real             ***samples, **means, **variance, **t_stat;
     Real             sum_x, sum_xx, s, se, min_t, max_t;
-    Real             sx, sy, sz, ox;
+    Real             sx, sy, sz, prob;
     Point            point, ray_origin, min_range, max_range, origin;
     Vector           ray_direction;
     Volume           volume;
     int              sizes[N_DIMENSIONS];
     Transform        linear;
     General_transform  transform;
+    t_stat_struct    stat;
 
     initialize_argument_processing( argc, argv );
 
@@ -44,8 +47,7 @@ int  main(
         ADD_ELEMENT_TO_ARRAY( filenames, n_surfaces, filename, 1 );
     }
 
-    ALLOC3D( samples[0], n_surfaces, ni, nj );
-    ALLOC3D( samples[1], n_surfaces, ni, nj );
+    ALLOC3D( samples, n_surfaces, ni, nj );
 
     for_less( surf, 0, n_surfaces )
     {
@@ -89,7 +91,7 @@ int  main(
                                                &dist, NULL ) )
                 {
                     GET_POINT_ON_RAY( point, ray_origin, ray_direction, dist );
-                    right_x = Point_x( point );
+                    right_x = Point_x( point ) - REGISTRATION_OFFSET;
                 }
                 else
                     right_x = 0.0;
@@ -102,7 +104,7 @@ int  main(
                                                &dist, NULL ) )
                 {
                     GET_POINT_ON_RAY( point, ray_origin, ray_direction, dist );
-                    left_x = -Point_x( point );
+                    left_x = -Point_x( point ) + REGISTRATION_OFFSET;
                 }
                 else
                     left_x = 0.0;
@@ -113,8 +115,7 @@ int  main(
                     right_x = 0.0;
                 }
 
-                samples[0][surf][i][j] = left_x;
-                samples[1][surf][i][j] = right_x;
+                samples[surf][i][j] = left_x - right_x;
             }
 
             print( "%d:  %s\n", surf+1, filenames[surf] );
@@ -123,16 +124,13 @@ int  main(
         }
     }
 
-    ALLOC2D( means[0], ni, nj );
-    ALLOC2D( means[1], ni, nj );
-    ALLOC2D( variance[0], ni, nj );
-    ALLOC2D( variance[1], ni, nj );
+    ALLOC2D( means, ni, nj );
+    ALLOC2D( variance, ni, nj );
     ALLOC2D( t_stat, ni, nj );
 
     min_t = 0.0;
     max_t = 0.0;
 
-    for_less( group, 0, 2 )
     for_less( i, 0, ni )
     for_less( j, 0, nj )
     {
@@ -141,28 +139,26 @@ int  main(
 
         for_less( surf, 0, n_surfaces )
         {
-            sum_x += samples[group][surf][i][j];
-            sum_xx += samples[group][surf][i][j] * samples[group][surf][i][j];
+            sum_x += samples[surf][i][j];
+            sum_xx += samples[surf][i][j] * samples[surf][i][j];
         }
 
-        means[group][i][j] = sum_x / (Real) n_surfaces;
-        variance[group][i][j] = (sum_xx - sum_x * sum_x / (Real) n_surfaces) /
-                               (Real) (n_surfaces-1);
+        means[i][j] = sum_x / (Real) n_surfaces;
+        variance[i][j] = (sum_xx - sum_x * sum_x / (Real) n_surfaces) /
+                         (Real) (n_surfaces-1);
     }
 
     for_less( i, 0, ni )
     for_less( j, 0, nj )
     {
-        s = sqrt( ((Real) (n_surfaces-1) * variance[0][i][j] +
-                   (Real) (n_surfaces-1) * variance[1][i][j]) /
-                  (Real) (n_surfaces + n_surfaces - 2) );
+        s = sqrt( variance[i][j] );
 
-        se = s * sqrt( 1.0 / (Real) n_surfaces + 1.0 / (Real) n_surfaces );
+        se = s / sqrt( (Real) n_surfaces );
 
         if( se == 0.0 )
             t_stat[i][j] = 0.0;
         else
-            t_stat[i][j] = (means[0][i][j] - means[1][i][j]) / se;
+            t_stat[i][j] = means[i][j] / se;
 
         if( i == 0 && j == 0 || t_stat[i][j] < min_t )
             min_t = t_stat[i][j];
@@ -170,7 +166,8 @@ int  main(
             max_t = t_stat[i][j];
     }
 
-    volume = create_volume( 3, XYZ_dimension_names, NC_FLOAT, FALSE, 0.0, 0.0 );
+    volume = create_volume( 3, XYZ_dimension_names, NC_SHORT, FALSE,
+                            0.0, 10000.0 );
     sizes[0] = 2;
     sizes[1] = ni;
     sizes[2] = nj;
@@ -178,25 +175,38 @@ int  main(
     alloc_volume_data( volume );
 
     print( "Min and max: %g %g\n", min_t, max_t );
-    set_volume_voxel_range( volume, min_t, max_t );
+/*
+    set_volume_real_range( volume, 0.0, 1.0 );
+*/
     set_volume_real_range( volume, min_t, max_t );
 
-    create_t_integral( min_t, max_t );
+/*
+    initialize_cumulative_t_stat( &stat, n_surfaces-1 );
+*/
 
     for_less( i, 0, ni )
     for_less( j, 0, nj )
     {
-        set_volume_real_value( volume, 0, i, j, 0, 0, t_stat[i][j] );
-        set_volume_real_value( volume, 1, i, j, 0, 0, t_stat[i][j] );
+/*
+        prob = get_cumulative_t_stat( &stat, t_stat[i][j] );
+*/
+        prob = t_stat[i][j];
+  
+        set_volume_real_value( volume, 0, i, j, 0, 0, prob );
+        set_volume_real_value( volume, 1, i, j, 0, 0, prob );
     }
 
-    sx = (Point_x(max_range) - Point_x(min_range)) / 2.0;
+/*
+    delete_cumulative_t_stat( &stat );
+*/
+
+    sx = (Point_x(max_range) - Point_x(min_range)) / 1.0;
     sy = (Point_y(max_range) - Point_y(min_range)) / (Real) (ni-1);
     sz = (Point_z(max_range) - Point_z(min_range)) / (Real) (nj-1);
-    ox = INTERPOLATE( 0.25, Point_x(min_range), Point_x(max_range) );
 
     make_scale_transform( sx, sy, sz, &linear );
-    fill_Point( origin, ox, Point_y(min_range), Point_z(min_range) );
+    fill_Point( origin, Point_x(min_range), Point_y(min_range),
+                        Point_z(min_range) );
     set_transform_origin( &linear, &origin );
 
     create_linear_transform( &transform, &linear );
