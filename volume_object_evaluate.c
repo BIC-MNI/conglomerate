@@ -1,6 +1,8 @@
 #include  <volume_io/internal_volume_io.h>
 #include  <bicpl.h>
 
+#include  "ParseArgv.h"
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -14,6 +16,31 @@ int  main(
     object_struct        **objects;
     Real                 value;
     FILE                 *file;
+
+    /* argument defaults */
+    int                  degrees_continuity = 0; /* default: linear */
+
+    /* the argument table */
+    ArgvInfo argTable[] = {
+      { "-linear", ARGV_CONSTANT, (char *) 0, 
+        (char *) &degrees_continuity,
+        "Use linear interpolation (Default)." },
+      { "-nearest_neighbour", ARGV_CONSTANT, (char *) -1, 
+        (char *) &degrees_continuity,
+        "Use nearest neighbour interpolation." },
+      { "-cubic", ARGV_CONSTANT, (char *) 2,
+        (char *) &degrees_continuity,
+        "Use cubic interpolation." },
+
+      { NULL, ARGV_END, NULL, NULL, NULL }
+    };
+
+    /* Call ParseArgv */
+    if ( ParseArgv( &argc, argv, argTable, 0 ) || ( argc != 4 ) ) {
+      (void) fprintf( stderr,
+                      "\nUsage: %s [options] <volume.mnc> <object.obj> <output.txt>\n", argv[0] );
+      exit( 1 );
+    }
 
     initialize_argument_processing( argc, argv );
 
@@ -49,7 +76,8 @@ int  main(
                                   RPoint_x(points[point]),
                                   RPoint_y(points[point]),
                                   RPoint_z(points[point]),
-                                  0, FALSE, 0.0,
+                                  degrees_continuity, 
+                                  FALSE, 0.0,
                                   &value,
                                   NULL, NULL, NULL,
                                   NULL, NULL, NULL, NULL, NULL, NULL );

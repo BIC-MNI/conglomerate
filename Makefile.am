@@ -510,6 +510,7 @@ trimesh_to_polygons_SOURCES =  trimesh_to_polygons.c tri_mesh.c
 two_surface_resample_SOURCES =  two_surface_resample.c
 #vol2roi_SOURCES =  vol2roi.c
 #volume_colour_SOURCES =  volume_colour.c
+volume_object_evaluate_SOURCES = volume_object_evaluate.c ParseArgv.c
 #voxelate_landmarks_SOURCES =  voxelate_landmarks.c
 #zoom_gradient_SOURCES =  zoom_gradient.c
 
