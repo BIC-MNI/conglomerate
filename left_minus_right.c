@@ -17,8 +17,7 @@ int  main(
     Real                 separations[MAX_DIMENSIONS];
     char                 *input_filename;
     char                 *output_filename;
-    Volume               volume, output_volume;
-    Minc_file            minc_file;
+    Volume               volume, new_volume;
     static String        dim_names[] = { MIxspace, MIyspace, MIzspace };
 
     initialize_argument_processing( argc, argv );
@@ -36,26 +35,21 @@ int  main(
         return( 1 );
 
     get_volume_sizes( volume, sizes );
-    get_volume_range( volume, &min_value, &max_value );
+    get_volume_real_range( volume, &min_value, &max_value );
     get_volume_separations( volume, separations );
 
     new_max = max_value - min_value;
     new_min = -new_max;
 
-    output_volume = create_volume( 3, dim_names, NC_BYTE, FALSE, 0.0, 0.0 );
-    set_volume_size( output_volume, NC_BYTE, FALSE, sizes );
-    output_volume->separation[X] = separations[X];
-    output_volume->separation[Y] = separations[Y];
-    output_volume->separation[Z] = separations[Z];
-    output_volume->voxel_to_world_transform = volume->voxel_to_world_transform;
-    output_volume->min_voxel = 0.0;
-    output_volume->max_voxel = 255.0;
-    output_volume->value_scale = 1.0;
-    output_volume->value_translation = 0.0;
-    alloc_volume_data( output_volume );
+    new_volume = create_volume( 3, dim_names, NC_BYTE, FALSE );
+    set_volume_size( new_volume, NC_BYTE, FALSE, sizes );
+    set_volume_separations( new_volume, separations );
+    copy_general_transform( get_voxel_to_world_transform(volume),
+                            get_voxel_to_world_transform(new_volume) );
+    set_volume_voxel_range( new_volume, 0.0, 255.0 );
+    set_volume_real_range( new_volume, new_min, new_max );
 
-    output_volume->value_translation = new_min;
-    output_volume->value_scale = (new_max - new_min) / output_volume->max_voxel;
+    alloc_volume_data( new_volume );
 
     for_less( x, 0, sizes[X] / 2 )
     {
@@ -69,31 +63,18 @@ int  main(
                 GET_VOXEL_3D( right_value, volume, right_x, y, z );
                 right_value = CONVERT_VOXEL_TO_VALUE( volume, right_value );
 
-                value = CONVERT_VALUE_TO_VOXEL( output_volume,
+                value = CONVERT_VALUE_TO_VOXEL( new_volume,
                                                 left_value - right_value );
-                SET_VOXEL_3D( output_volume, x, y, z, value );
+                SET_VOXEL_3D( new_volume, x, y, z, value );
 
-                value = CONVERT_VALUE_TO_VOXEL( output_volume,
+                value = CONVERT_VALUE_TO_VOXEL( new_volume,
                                                 right_value - left_value );
-                SET_VOXEL_3D( output_volume, right_x, y, z, value );
+                SET_VOXEL_3D( new_volume, right_x, y, z, value );
             }
         }
     }
 
-    minc_file = initialize_minc_output( output_filename, 3, dim_names,
-                                   sizes,
-                                   output_volume->nc_data_type,
-                                   output_volume->signed_flag,
-                                   0.0, 255.0,
-                                   new_min, new_max,
-                                   &output_volume->voxel_to_world_transform );
-
-    /* --- output the volume */
-
-    status = output_minc_volume( minc_file, output_volume );
-
-    if( status == OK )
-        status = close_minc_output( minc_file );
+    output_volume( output_filename, FALSE, new_volume, (char *) NULL );
 
     if( status != OK )
         print( "Unsuccessful.\n" );
