@@ -11,7 +11,6 @@ private  void   create_surface_interpolation(
     Point            points[],
     Real             values[],
     Real             smoothness,
-    int              max_neighbours,
     int              n_iters,
     BOOLEAN          node_values_initialized,
     Real             node_values[] );
@@ -34,7 +33,7 @@ int  main(
     STRING               output_filename, initial_values;
     File_formats         format;
     FILE                 *file;
-    int                  n_objects, n_points, point, n_iters, max_neighbours;
+    int                  n_objects, n_points, point, n_iters;
     Point                *points;
     Real                 *values, value, x, y, z, *node_values, smoothness;
     object_struct        **objects;
@@ -52,7 +51,6 @@ int  main(
 
     (void) get_real_argument( DEFAULT_SMOOTHNESS, &smoothness );
     (void) get_int_argument( 10, &n_iters );
-    (void) get_int_argument( 1, &max_neighbours );
     (void) get_string_argument( NULL, &initial_values );
 
     if( input_graphics_file( surface_filename,
@@ -102,14 +100,17 @@ int  main(
         for_less( point, 0, polygons->n_points )
         {
             if( input_real( file, &node_values[point] ) != OK )
+            {
+                print_error( "End of file in values file.\n" );
                 return( 1 );
+            }
         }
 
         (void) close_file( file );
     }
 
     create_surface_interpolation( objects[0], n_points, points, values,
-                                  smoothness, max_neighbours, n_iters,
+                                  smoothness, n_iters,
                                   initial_values != NULL, node_values );
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
@@ -247,6 +248,7 @@ private  void  evaluate_fit_derivative(
     }
 }
 
+#ifdef OLD
 private  void  fast_minimize_nodes(
     int     node,
     int     n_equations,
@@ -293,6 +295,7 @@ private  void  fast_minimize_nodes(
 
     node_values[node] = -b / (2.0*a);
 }
+#endif
 
 #define  INCREMENT  1.0e-4
 
@@ -303,11 +306,10 @@ private  void  minimize_cost(
     ftype   constants[],
     ftype   *node_weights[],
     int     n_nodes,
-    Real    node_values[],
-    int     max_neighbours )
+    Real    node_values[] )
 {
     int     n, iter, n_iters;
-    Real    *next_values, *derivs, fit;
+    Real    *next_values, *derivs;
 
     ALLOC( derivs, n_nodes );
     ALLOC( next_values, n_nodes );
@@ -447,7 +449,7 @@ private  int  create_coefficients(
     int              i, n_equations, eq, poly, node, p, size;
     polygons_struct  *polygons;
     Point            polygon_points[MAX_POINTS_PER_POLYGON];
-    Real             weights[MAX_POINTS_PER_POLYGON], dist, avg_dist;
+    Real             weights[MAX_POINTS_PER_POLYGON], dist, avg_dist, weight;
     Point            point_on_surface;
 
     polygons = get_polygons_ptr( object );
@@ -497,7 +499,9 @@ private  int  create_coefficients(
             avg_dist += distance_between_points( &polygons->points[node],
                                 &polygons->points[neighbours[node][p]] );
 
-        avg_dist /= (Real) n_neighbours[node] * total_length;
+        avg_dist /= (Real) n_neighbours[node];
+
+        weight = smooth_weight / sqrt( avg_dist / total_length );
 
         (*constants)[eq] = (ftype) 0.0;
         (*n_nodes_involved)[eq] = 1 + n_neighbours[node];
@@ -505,12 +509,12 @@ private  int  create_coefficients(
         ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
 
         (*node_list)[eq][0] = node;
-        (*node_weights)[eq][0] = 1.0;
+        (*node_weights)[eq][0] = weight;
 
         for_less( p, 0, n_neighbours[node] )
         {
             (*node_list)[eq][1+p] = neighbours[node][p];
-            (*node_weights)[eq][1+p] = (ftype) -1.0 /
+            (*node_weights)[eq][1+p] = (ftype) -weight /
                                        (ftype) n_neighbours[node];
         }
 
@@ -526,13 +530,12 @@ private  void   create_surface_interpolation(
     Point            points[],
     Real             values[],
     Real             smoothness,
-    int              max_neighbours,
     int              n_iters,
     BOOLEAN          node_values_initialized,
     Real             node_values[] )
 {
     polygons_struct   *polygons;
-    Real              total_length, sum_x, sum_xx, std_dev;
+    Real              total_length, sum_x, sum_xx, variance;
     Real              dist, interp_weight, smooth_weight, fit;
     int               point, *n_point_neighbours, **point_neighbours;
     int               iter, neigh, n_edges;
@@ -563,8 +566,6 @@ private  void   create_surface_interpolation(
         }
     }
 
-    total_length /= (Real) n_edges;
-
     sum_x = 0.0;
     sum_xx = 0.0;
     for_less( point, 0, n_points )
@@ -574,15 +575,13 @@ private  void   create_surface_interpolation(
     }
 
     if( n_points == 1 )
-        std_dev = 1.0;
+        variance = 1.0;
     else
-        std_dev = (sum_xx - sum_x * sum_x / (Real) n_points) /
-                  (Real) (n_points - 1);
+        variance = (sum_xx - sum_x * sum_x / (Real) n_points) /
+                   (Real) (n_points - 1);
 
-    if( std_dev == 0.0 )
-        std_dev = 1.0;
-    else
-        std_dev = sqrt( std_dev );
+    if( variance == 0.0 )
+        variance = 1.0;
 
     if( !node_values_initialized )
     {
@@ -590,8 +589,8 @@ private  void   create_surface_interpolation(
             node_values[point] = sum_x / (Real) n_points;
     }
 
-    interp_weight = 1.0 / (Real) n_points / std_dev;
-    smooth_weight = smoothness / (Real) polygons->n_points;
+    interp_weight = 1.0 / (Real) n_points / variance;
+    smooth_weight = smoothness / (Real) polygons->n_points / variance;
 
     interp_weight = sqrt( interp_weight );
     smooth_weight = sqrt( smooth_weight );
@@ -618,7 +617,7 @@ private  void   create_surface_interpolation(
     {
         minimize_cost( n_equations, n_nodes_per_equation,
                        node_list, constants, node_weights,
-                       polygons->n_points, node_values, max_neighbours );
+                       polygons->n_points, node_values );
 
         fit =  evaluate_fit( n_equations, n_nodes_per_equation,
                              node_list, constants, node_weights, node_values );
