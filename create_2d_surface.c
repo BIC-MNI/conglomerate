@@ -246,7 +246,7 @@ private  float  get_horizontal_coord(
         dx = Point_x(next_point) - Point_x(prev_point);
         dy = Point_y(next_point) - Point_y(prev_point);
         dz = Point_z(next_point) - Point_z(prev_point);
-        sum_dist += sqrtf( dx * dx + dy * dy + dz * dz );
+        sum_dist += sqrt( dx * dx + dy * dy + dz * dz );
 
         prev_point = next_point;
 

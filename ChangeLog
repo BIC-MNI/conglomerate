@@ -1,3 +1,6 @@
+2005-03-18  Andrew Janke  <a.janke@gmail.com>
+	* replaced all sqrtf()'s with sqrt() for OSX build
+	
 2005-03-01  Bert Vincent   <bert@bic.mni.mcgill.ca>
 	* Added normalize_pet
 	

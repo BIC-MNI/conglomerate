@@ -174,10 +174,10 @@ private  Real  evaluate_fit(
         if( len == 0.0f )
             continue;
 
-        len = sqrtf( len );
+        len = sqrt( len );
         dist = (x2 + y2 + z2) * factor - cx*cx - cy*cy - cz*cz;
 
-        height = (radius - sqrtf(radius2-dist)) / len;
+        height = (radius - sqrt(radius2-dist)) / len;
 
         p_index = IJ( p, 0, 3 );
         dx = parameters[p_index+0] - (cx + nx * height);

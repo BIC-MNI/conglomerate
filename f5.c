@@ -174,10 +174,10 @@ test = 10000;
         cy *= factor;
         cz *= factor;
 
-        len = sqrtf( nx * nx + ny * ny + nz * nz );
+        len = sqrt( nx * nx + ny * ny + nz * nz );
         dist = (x2 + y2 + z2) * factor - cx*cx - cy*cy - cz*cz;
 
-        height = (radius - sqrtf(radius2-dist)) / len;
+        height = (radius - sqrt(radius2-dist)) / len;
 
         p_index = IJ( p, 0, 3 );
         dx = parameters[p_index+0] - (cx + nx * height);

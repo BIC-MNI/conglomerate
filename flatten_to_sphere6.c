@@ -169,7 +169,7 @@ private  Real  evaluate_fit(
             if( n_len == 0.0f )
                 continue;
 
-            n_len = sqrtf( n_len );
+            n_len = sqrt( n_len );
             x_normals[n] = nx / n_len;
             y_normals[n] = ny / n_len;
             z_normals[n] = nz / n_len;
@@ -271,7 +271,7 @@ private  void  evaluate_fit_derivative(
             if( n_len == 0.0f )
                 continue;
 
-            n_len = sqrtf( n_len );
+            n_len = sqrt( n_len );
             lens[n] = n_len;
             x_normals[n] = nx / n_len;
             y_normals[n] = ny / n_len;

@@ -176,7 +176,9 @@ bin_PROGRAMS = \
 AUTOMAKE_OPTIONS = check-news
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = $(extra_headers) $(m4_files)
+EXTRA_DIST = $(extra_headers) \
+	$(m4_files) \
+	epm-header.in
 
 # These headers are used in one or more of the source files.
 # Eventually the relevant _SOURCES lines should contain the header

@@ -19,5 +19,6 @@ AC_PROG_LIBTOOL
 mni_REQUIRE_BICPL
 
 AC_CONFIG_FILES([Makefile])
-AC_OUTPUT
+AC_OUTPUT(epm-header
+)
 
