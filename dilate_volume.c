@@ -43,8 +43,8 @@ int  main(
     mask_volume_present = get_string_argument( "", &mask_filename );
 
     if( mask_volume_present &&
-        !get_real_argument( 0.0, &min_mask ) ||
-        !get_real_argument( 0.0, &max_mask ) )
+        (!get_real_argument( 0.0, &min_mask ) ||
+         !get_real_argument( 0.0, &max_mask )) )
     {
         usage( argv[0] );
         return( 1 );
@@ -73,16 +73,16 @@ int  main(
     else
     {
         mask_volume = NULL;
-        min_mask = -1.0;
-        max_mask = 0.0;
+        min_mask = 0.0;
+        max_mask = -1.0;
     }
 
     for_less( i, 0, n_dilations )
     {
         dilate_labeled_voxels_3d( mask_volume, volume,
-                                  0, -1,
+                                  (int) value_to_dilate, (int) value_to_dilate,
                                   min_mask, max_mask,
-                                  0, -1, 0.0, -1.0,
+                                  0, -1, min_mask, max_mask,
                                   (int) value_to_dilate, connectivity );
     }
 
