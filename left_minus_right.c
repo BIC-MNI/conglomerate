@@ -1,4 +1,4 @@
-#include  <def_mni.h>
+#include  <mni.h>
 
 private  void  usage(
     char   executable_name[] )
@@ -18,7 +18,7 @@ int  main(
     char                 *input_filename;
     char                 *output_filename;
     Volume               volume, new_volume;
-    static String        dim_names[] = { MIxspace, MIyspace, MIzspace };
+    progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -31,7 +31,8 @@ int  main(
 
     /* read the input volume */
 
-    if( input_volume( input_filename, dim_names, FALSE, &volume ) != OK )
+    if( input_volume( input_filename, 3, XYZ_dimension_names, NC_UNSPECIFIED, FALSE,
+                    0.0, 0.0, TRUE, &volume, (minc_input_options *) 0 ) != OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -41,19 +42,21 @@ int  main(
     new_max = max_value - min_value;
     new_min = -new_max;
 
-    new_volume = create_volume( 3, dim_names, NC_BYTE, FALSE );
-    set_volume_size( new_volume, NC_BYTE, FALSE, sizes );
-    set_volume_separations( new_volume, separations );
-    copy_general_transform( get_voxel_to_world_transform(volume),
-                            get_voxel_to_world_transform(new_volume) );
+    new_volume = copy_volume_definition( volume, NC_BYTE, FALSE, 0.0, 255.0 );
+
     set_volume_voxel_range( new_volume, 0.0, 255.0 );
     set_volume_real_range( new_volume, new_min, new_max );
 
     alloc_volume_data( new_volume );
 
-    for_less( x, 0, sizes[X] / 2 )
+    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+                                "Subtracting" );
+
+    for_less( x, 0, sizes[X] / 2 + 1 )
     {
-        right_x = sizes[X] - 1 - x;
+        right_x = sizes[X] + 1 - x;
+        if( right_x >= sizes[X] )
+            right_x = x;
         for_less( y, 0, sizes[Y] )
         {
             for_less( z, 0, sizes[Z] )
@@ -71,10 +74,16 @@ int  main(
                                                 right_value - left_value );
                 SET_VOXEL_3D( new_volume, right_x, y, z, value );
             }
+
+            update_progress_report( &progress, x * sizes[Y] + y + 1 );
         }
     }
 
-    output_volume( output_filename, FALSE, new_volume, (char *) NULL );
+    terminate_progress_report( &progress );
+
+    status = output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                            new_volume, "left-minus-right",
+                            (minc_output_options *) NULL );
 
     if( status != OK )
         print( "Unsuccessful.\n" );
