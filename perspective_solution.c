@@ -1,5 +1,6 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
+#include  <stdlib.h>
 
 #define  N_PARAMS   12
 
@@ -52,11 +53,11 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    set_random_seed( 8392851 );
+    srand48( 8392851 );
 
     (void) get_int_argument( 100, &n_iters );
     (void) get_int_argument( 1, &n_tries );
-    (void) get_real_argument( 0.05, &error );
+    (void) get_real_argument( 0.0, &error );
     (void) get_int_argument( 20, &n_points );
     (void) get_real_argument( 1.0e-3, &tolerance );
 
@@ -300,7 +301,7 @@ private  void  generate_point(
     for_less( c, 0, N_DIMENSIONS )
     {
         Point_coord(*point,c) = min_box + (max_box - min_box) *
-                                get_random_0_to_1();
+                                drand48();
     }
 }
 
@@ -347,7 +348,7 @@ private  void  generate_transform(
     do
     {
         for_less( c, 0, N_DIMENSIONS )
-            Vector_coord( x_axis, c ) = 2.0 * get_random_0_to_1() - 1.0;
+            Vector_coord( x_axis, c ) = 2.0 * drand48() - 1.0;
     }
     while( DOT_VECTORS( x_axis, z_axis ) == 0.0 );
 
@@ -362,7 +363,7 @@ private  void  generate_transform(
 
     set_transform_origin( transform, &origin );
 
-    make_scale_transform( 1.0, 1.0, 1.0 + get_random_0_to_1() * 10.0,
+    make_scale_transform( 1.0, 1.0, 1.0 + drand48() * 10.0,
                           &scale_transform );
 
     concat_transforms( transform, transform, &scale_transform );
@@ -380,9 +381,9 @@ private  void  generate_screen_points(
 
     for_less( i, 0, n_points )
     {
-        x_error = error_size * (2.0 * get_random_0_to_1() - 1.0);
-        y_error = error_size * (2.0 * get_random_0_to_1() - 1.0);
-        z_error = error_size * (2.0 * get_random_0_to_1() - 1.0);
+        x_error = error_size * (2.0 * drand48() - 1.0);
+        y_error = error_size * (2.0 * drand48() - 1.0);
+        z_error = error_size * (2.0 * drand48() - 1.0);
 
         transform_point( transform,
                          Point_x(world_points[i]) + x_error,
