@@ -13,12 +13,14 @@ int  main(
 {
     FILE             *file;
     STRING           filename, output_filename;
-    int              i, n_objects, n_surfaces[2], group, n_points, s, p, j;
+    int              i, n_objects, n_surfaces[2], group, n_points, s, p;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  polygons;
     Point            *points, *copy_points, **samples[2];
-    Real             **inv_s;
+    Point            *avg1_points, *avg2_points;
+    Vector           offset;
+    Real             **inv_s, tx, ty, tz, mahalanobis;
 
     initialize_argument_processing( argc, argv );
 
@@ -77,26 +79,38 @@ int  main(
         delete_object_list( n_objects, object_list );
     }
 
+    ALLOC( avg1_points, n_points );
+    ALLOC( avg2_points, n_points );
+
     for_less( i, 0, n_points )
-        fill_Point( polygons.points[i], 0.0, 0.0, 0.0 );
+    {
+        fill_Point( avg1_points[i], 0.0, 0.0, 0.0 );
+        fill_Point( avg2_points[i], 0.0, 0.0, 0.0 );
+    }
 
     for_less( s, 0, n_surfaces[0] )
     {
         for_less( i, 0, n_points )
-            ADD_POINTS( polygons.points[i], polygons.points[i],
-                        samples[0][s][i] );
+            ADD_POINTS( avg1_points[i], avg1_points[i], samples[0][s][i] );
     }
 
     for_less( s, 0, n_surfaces[1] )
     {
         for_less( i, 0, n_points )
-            ADD_POINTS( polygons.points[i], polygons.points[i],
-                        samples[1][s][i] );
+            ADD_POINTS( avg2_points[i], avg2_points[i], samples[1][s][i] );
     }
 
     for_less( i, 0, n_points )
+    {
+        ADD_POINTS( polygons.points[i], avg1_points[i], avg2_points[i] );
+
         SCALE_POINT( polygons.points[i], polygons.points[i],
                      1.0 / (Real) (n_surfaces[0] + n_surfaces[1]) );
+        SCALE_POINT( avg1_points[i], avg1_points[i],
+                     1.0 / (Real) n_surfaces[0] );
+        SCALE_POINT( avg2_points[i], avg2_points[i],
+                     1.0 / (Real) n_surfaces[1] );
+    }
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
@@ -106,10 +120,25 @@ int  main(
     for_less( p, 0, polygons.n_points )
     {
         compute_inv_variance( n_surfaces, samples, p, inv_s );
-        for_less( i, 0, 3 )
-        for_less( j, 0, 3 )
-            (void) output_real( file, inv_s[i][j] );
 
+        SUB_POINTS( offset, avg1_points[p], avg2_points[p] );
+
+        tx = Vector_x(offset) * inv_s[0][0] +
+             Vector_y(offset) * inv_s[1][0] +
+             Vector_z(offset) * inv_s[2][0];
+        ty = Vector_x(offset) * inv_s[0][1] +
+             Vector_y(offset) * inv_s[1][1] +
+             Vector_z(offset) * inv_s[2][1];
+        tz = Vector_x(offset) * inv_s[0][2] +
+             Vector_y(offset) * inv_s[1][2] +
+             Vector_z(offset) * inv_s[2][2];
+
+        mahalanobis = tx * Vector_x(offset) +
+                      ty * Vector_y(offset) +
+                      tz * Vector_z(offset);
+
+
+        (void) output_real( file, mahalanobis );
         (void) output_newline( file );
     }
 
