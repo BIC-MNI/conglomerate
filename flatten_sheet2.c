@@ -1,5 +1,5 @@
 #include  <internal_volume_io.h>
-#include  <special_geometry.h>
+#include  <bicpl.h>
 
 #undef   USING_FLOAT
 #define  USING_FLOAT
@@ -255,73 +255,129 @@ private  Real  evaluate_fit(
     return( fit );
 }
 
-private  void  interval_evaluate_fit_derivative(
+private  void   minimize_around_node(
+    int              node,
+    int              n_levels,
+    int              neighs[],
+    int              n_neighbours[],
+    int              *neighbours[],
     int              n_parameters,
-    Interval         parameters[],
     Real             constant_term,
-    LSQ_TYPE         *linear_terms,
-    LSQ_TYPE         *square_terms,
+    float            linear_terms[],
+    float            square_terms[],
     int              n_cross_terms[],
     int              *cross_parms[],
-    LSQ_TYPE         *cross_terms[],
-    Interval         derivs[] )
+    float            *cross_terms[],
+    Real             node_values[] )
 {
-    int        parm, n, neigh_parm;
-    Real       term, val;
-    Interval   parm_val, t;
+    int   nn, neigh, n, n2, n3, prev_nn, *to_parameter;
+    int   i, j, level, m1, m2, parm, neigh_parm, p, c;
+    Real  **first_deriv, *constants, *solution;
 
-    for_less( parm, 0, n_parameters )
-        SET_INTERVAL( derivs[parm], 0.0, 0.0 );
-
-    for_less( parm, 0, n_parameters )
+    nn = 1;
+    neighs[0] = node;
+    for_less( level, 0, n_levels )
     {
-        parm_val = parameters[parm];
-
-        ADD_INTERVAL_REAL( derivs[parm], derivs[parm],
-                           (Real) linear_terms[parm] );
-        val = 2.0 * (Real) square_terms[parm];
-        MULT_INTERVAL_REAL( t, parm_val, val );
-        ADD_INTERVALS( derivs[parm], derivs[parm], t );
-
-        for_less( n, 0, n_cross_terms[parm] )
+        prev_nn = nn;
+        for_less( n, 0, prev_nn )
         {
-            neigh_parm = cross_parms[parm][n];
-            term = (Real) cross_terms[parm][n];
+            for_less( n2, 0, n_neighbours[neighs[n]] )
+            {
+                neigh = neighbours[neighs[n]][n2];
 
-            MULT_INTERVAL_REAL( t, parameters[neigh_parm], term );
-            ADD_INTERVALS( derivs[parm], derivs[parm], t );
-
-            MULT_INTERVAL_REAL( t, parm_val, term );
-            ADD_INTERVALS( derivs[neigh_parm], derivs[neigh_parm], t );
+                if( level == 0 )
+                {
+                    neighs[nn] = neigh;
+                    ++nn;
+                }
+                else
+                {
+                    for_less( n3, 0, nn )
+                    {
+                        if( neighs[n3] == neigh )
+                            break;
+                    }
+                    if( n3 >= nn )
+                    {
+                        neighs[nn] = neigh;
+                        ++nn;
+                    }
+                }
+            }
         }
     }
-}
 
-private  BOOLEAN   reduce_interval(
-    int              parameter,
-    Interval         parameters[],
-    Interval         derivs[] )
-{
-    Real       val;
+    ALLOC2D( first_deriv, nn, nn );
+    ALLOC( constants, nn );
+    ALLOC( to_parameter, n_parameters );
 
-    if( INTERVAL_MAX( derivs[parameter] ) <= 0.0 )
+    for_less( i, 0, nn )
     {
-        val = INTERVAL_MAX( parameters[parameter] );
-        SET_INTERVAL( parameters[parameter], val, val );
-        return( TRUE );
+        constants[i] = 0.0;
+        for_less( j, 0, nn )
+            first_deriv[i][j] = 0.0;
     }
-    else if( INTERVAL_MIN( derivs[parameter] ) >= 0.0 )
+
+    for_less( p, 0, n_parameters )
+        to_parameter[p] = -1;
+
+    for_less( i, 0, nn )
+        to_parameter[neighs[i]] = i;
+
+    for_less( p, 0, n_parameters )
     {
-        val = INTERVAL_MIN( parameters[parameter] );
-        SET_INTERVAL( parameters[parameter], val, val );
-        return( TRUE );
+        parm = to_parameter[p];
+        if( parm >= 0 )
+        {
+            constants[parm] -= (Real) linear_terms[p];
+            first_deriv[parm][parm] += 2.0 * (Real) square_terms[p];
+        }
+
+        for_less( c, 0, n_cross_terms[p] )
+        {
+            neigh = cross_parms[p][c];
+            neigh_parm = to_parameter[neigh];
+            if( parm >= 0 && neigh_parm >= 0 )
+            {
+                m1 = MIN( neigh_parm, parm );
+                m2 = MAX( neigh_parm, parm );
+                first_deriv[m1][m2] += (Real) cross_terms[p][c];
+            }
+            else if( parm >= 0 )
+                constants[parm] -= (Real) cross_terms[p][c] *node_values[neigh];
+            else if( neigh_parm >= 0 )
+                constants[neigh_parm] -= (Real) cross_terms[p][c] *
+                                         node_values[p];
+        }
     }
-    else
-        return( FALSE );
+
+    for_less( i, 0, nn-1 )
+    for_less( j, i+1, nn )
+        first_deriv[j][i] = first_deriv[i][j];
+
+    ALLOC( solution, nn );
+
+    if( !solve_linear_system( nn, first_deriv, constants, solution ) )
+    {
+        print_error(
+             "Could not solve least squares, non-invertible matrix.\n" );
+        for_less( i, 0, nn )
+            solution[i] = 0.0;
+    }
+
+    for_less( i, 0, nn )
+        node_values[neighs[i]] = solution[i];
+
+    FREE2D( first_deriv );
+    FREE( constants );
+    FREE( solution );
+    FREE( to_parameter );
 }
 
 private  void   minimize_lsq_float2(
     int              n_parameters,
+    int              n_neighbours[],
+    int              *neighbours[],
     Real             constant_term,
     float            linear_terms[],
     float            square_terms[],
@@ -332,52 +388,37 @@ private  void   minimize_lsq_float2(
     int              n_iters,
     Real             node_values[] )
 {
-    int           p, n_done;
-    Interval      *parameters, *derivs;
-    Smallest_int  *done_flags;
-    BOOLEAN       change;
+    int              p, n_levels, *neighs;
+    Real             fit;
+    progress_struct  progress;
 
-    ALLOC( parameters, n_parameters );
-    ALLOC( derivs, n_parameters );
-    ALLOC( done_flags, n_parameters );
+    n_levels = ROUND( step_size );
+    ALLOC( neighs, n_parameters );
+
+    initialize_progress_report( &progress, FALSE, n_parameters,
+                                "Minimizing" );
 
     for_less( p, 0, n_parameters )
     {
-        SET_INTERVAL( parameters[p], node_values[p] - step_size,
-                                     node_values[p] + step_size );
-        done_flags[p] = FALSE;
+        minimize_around_node( p, n_levels, neighs, n_neighbours, neighbours,
+                              n_parameters,
+                              constant_term, linear_terms, square_terms,
+                              n_cross_terms, cross_parms, cross_terms,
+                              node_values );
+
+        fit = evaluate_fit(  n_parameters,
+                             constant_term, linear_terms, square_terms,
+                             n_cross_terms, cross_parms, cross_terms,
+                             node_values );
+
+        print( "Parm %d: %g\n", p, fit );
+
+        update_progress_report( &progress, p + 1 );
     }
 
-    n_done = 0;
-    do
-    {
-        interval_evaluate_fit_derivative( n_parameters, parameters,
-                                      constant_term, linear_terms, square_terms,
-                                      n_cross_terms, cross_parms, cross_terms,
-                                      derivs );
+    terminate_progress_report( &progress );
 
-        change = FALSE;
-
-        for_less( p, 0, n_parameters )
-        {
-            if( !done_flags[p] && reduce_interval( p, parameters, derivs ) )
-            {
-                ++n_done;
-                change = TRUE;
-                done_flags[p] = TRUE;
-            }
-        }
-    }
-    while( n_done < n_parameters && change );
-
-    print( "N done:  %d out of %d\n", n_done, n_parameters );
-
-    for_less( p, 0, n_parameters )
-        node_values[p] = INTERVAL_MIDPOINT( parameters[p] );
-
-    FREE( parameters );
-    FREE( derivs );
-    FREE( done_flags );
+    FREE( neighs );
 }
 
 private  void  flatten_polygons(
@@ -489,6 +530,7 @@ private  void  flatten_polygons(
     for_less( iter, 0, n_iters )
     {
         MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed),
+                      n_neighbours, neighbours,
                       constant, linear_terms, square_terms,
                       n_cross_terms, cross_parms, cross_terms,
                       step_size, n_iters, parameters );
