@@ -1,7 +1,7 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  DEFAULT_N_INTERVALS  255
+#define  DEFAULT_N_INTERVALS  100
 
 #define  FILTER_WIDTH 0.0
 #define  WINDOW_WIDTH 0.05
@@ -34,8 +34,11 @@ int  main(
     STRING               axis_name;
     lines_struct         *lines;
     histogram_struct     histogram;
-#ifdef OLD
+    Real                 grad, max_grad;
+    Real                 *counts, pos_low, pos_max_grad, pos_high;
     Real                 scale, trans;
+    int                  n, i, min_index, max_index, max_index2;
+#ifdef OLD
     int                  gray_min;
     Real                 *counts, width_ratio;
     int                  n, i, mins[MAX_POINTS], maxs[MAX_POINTS];
@@ -119,21 +122,73 @@ int  main(
 
     window_width = filter_ratio * (max_value - min_value);
 
+    /*--- find mins and maxes */
+
+    n = get_histogram_counts( &histogram, &counts, window_width,
+                              &scale, &trans );
+
+    max_index = 0;
+    for_less( i, 0, n )
+    {
+        if( i == 0 || counts[i] > counts[max_index] )
+            max_index = i;
+    }
+
+    i = max_index;
+    while( i < n && counts[i] > counts[max_index] / 2.0 )
+        ++i;
+
+    while( i < n && counts[i] > counts[i+1] )
+        ++i;
+
+    max_index2 = i;
+
+    for( ; i < n;  ++i )
+    {
+        if( counts[i] > counts[max_index2] )
+            max_index2 = i;
+    }
+
+    min_index = 0;
+
+    for_less( i, max_index, max_index2 )
+    {
+        if( i == max_index || counts[i] < counts[min_index] )
+            min_index = i;
+    }
+
+    pos_max_grad = 0.0;
+    max_grad = 0.0;
+
+    for_less( i, min_index, max_index2 )
+    {
+        grad = counts[i+1] - counts[i];
+        if( i == min_index || grad > max_grad )
+        {
+            pos_max_grad = scale * ((Real) i + 0.5) + trans;
+            max_grad = grad;
+        }
+    }
+
+    pos_low = scale * (Real) min_index + trans;
+    pos_high = scale * (Real) max_index2 + trans;
+
     n_objects = 1;
-    ALLOC( objects, 2 );
+    ALLOC( objects, 4 );
 
     objects[0] = create_object( LINES );
     lines = get_lines_ptr( objects[0] );
     create_histogram_line( &histogram, x_size, y_size, window_width, lines );
+
+    print( "Positions %g %g %g\n", pos_low, pos_max_grad, pos_high );
 
     if( put_x_pos )
     {
         min_pos = (Real) Point_x(lines->points[0]);
         max_pos = (Real) Point_x(lines->points[lines->n_points-1]);
 
-        ++n_objects;
-        objects[1] = create_object( LINES );
-        lines = get_lines_ptr( objects[1] );
+        objects[n_objects] = create_object( LINES );
+        lines = get_lines_ptr( objects[n_objects] );
         initialize_lines( lines, RED );
         lines->n_points = 2;
         ALLOC( lines->points, 2 );
@@ -150,14 +205,57 @@ int  main(
         ALLOC( lines->indices, 2 );
         lines->indices[0] = 0;
         lines->indices[1] = 1;
+        ++n_objects;
     }
 
-    (void) output_graphics_file( output_filename, ASCII_FORMAT,
-                                 n_objects, objects );
+    objects[n_objects] = create_object( LINES );
+    lines = get_lines_ptr( objects[n_objects] );
+    initialize_lines( lines, BLUE );
+    lines->n_points = 2;
+    ALLOC( lines->points, 2 );
+
+    pos = min_pos + (max_pos - min_pos) *
+                    (pos_low - min_value) / (max_value - min_value);
+
+    y_height = 0.05 * (max_pos - min_pos);
+    fill_Point( lines->points[0], pos, -y_height, 0.0 );
+    fill_Point( lines->points[1], pos, y_height, 0.0 );
+    lines->n_items = 1;
+    ALLOC( lines->end_indices, 1 );
+    lines->end_indices[0] = 2;
+    ALLOC( lines->indices, 2 );
+    lines->indices[0] = 0;
+    lines->indices[1] = 1;
+    ++n_objects;
+
+    objects[n_objects] = create_object( LINES );
+    lines = get_lines_ptr( objects[n_objects] );
+    initialize_lines( lines, GREEN );
+    lines->n_points = 2;
+    ALLOC( lines->points, 2 );
+
+    pos = min_pos + (max_pos - min_pos) *
+                    (pos_high - min_value) / (max_value - min_value);
+
+    y_height = 0.05 * (max_pos - min_pos);
+    fill_Point( lines->points[0], pos, -y_height, 0.0 );
+    fill_Point( lines->points[1], pos, y_height, 0.0 );
+    lines->n_items = 1;
+    ALLOC( lines->end_indices, 1 );
+    lines->end_indices[0] = 2;
+    ALLOC( lines->indices, 2 );
+    lines->indices[0] = 0;
+    lines->indices[1] = 1;
+    ++n_objects;
+
+    if( string_length( output_filename ) > 0 &&
+        !equal_strings( output_filename, "none" ) )
+    {
+        (void) output_graphics_file( output_filename, ASCII_FORMAT,
+                                     n_objects, objects );
+    }
 
 #ifdef OLD
-    n = get_histogram_counts( &histogram, &counts, window_width,
-                              &scale, &trans );
 
     int_width = ROUND( (Real) x_size * width_ratio / 2.0 );
     if( int_width < 1 )
