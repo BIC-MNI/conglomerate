@@ -1,11 +1,16 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  BINTREE_FACTOR  0.5
+private  void  generate_neighbours(
+    polygons_struct   *polygons,
+    int               n_neighbours[],
+    int               *neighbours[] );
 
 private  void  gaussian_blur_offset(
-    polygons_struct   *polygons,
-    polygons_struct   *avg,
+    Point             points[],
+    int               n_neighbours[],
+    int               *neighbours[],
+    Point             avg_points[],
     int               point_index,
     Real              fwhm,
     Real              dist,
@@ -17,6 +22,7 @@ int  main(
 {
     STRING           input_filename, avg_filename, output_filename;
     int              i, n_objects;
+    int              *n_neighbours, **neighbours;
     File_formats     format;
     object_struct    **object_list, **avg_object_list;
     polygons_struct  *polygons, *avg;
@@ -66,6 +72,11 @@ int  main(
 
     check_polygons_neighbours_computed( polygons );
 
+    ALLOC( n_neighbours, polygons->n_points );
+    ALLOC( neighbours, polygons->n_points );
+
+    generate_neighbours( polygons, n_neighbours, neighbours );
+
     ALLOC( smooth_points, polygons->n_points );
 
     initialize_progress_report( &progress, FALSE, polygons->n_points,
@@ -73,7 +84,8 @@ int  main(
 
     for_less( i, 0, polygons->n_points )
     {
-        gaussian_blur_offset( polygons, avg, i, fwhm, distance,
+        gaussian_blur_offset( polygons->points, n_neighbours, neighbours,
+                              avg->points, i, fwhm, distance,
                               &smooth_points[i] );
 
         update_progress_report( &progress, i+1 );
@@ -91,6 +103,57 @@ int  main(
     return( 0 );
 }
 
+#define  MAX_NEIGHBOURS  10000
+
+private  void  generate_neighbours(
+    polygons_struct   *polygons,
+    int               n_neighbours[],
+    int               *neighbours[] )
+{
+    int              i, point_index, poly, vertex_index, total_n_neighs;
+    int              neighs[MAX_NEIGHBOURS], *all_neighs;
+    BOOLEAN          dummy;
+    progress_struct  progress;
+
+    total_n_neighs = 0;
+
+    initialize_progress_report( &progress, FALSE, polygons->n_points,
+                                "Computing Neighbours" );
+
+    for_less( point_index, 0, polygons->n_points )
+    {
+        if( !find_polygon_with_vertex( polygons, point_index,
+                                       &poly, &vertex_index ) )
+            handle_internal_error( "generate_neighbours" );
+
+        n_neighbours[point_index] = get_neighbours_of_point(
+                                     polygons, poly, vertex_index, neighs,
+                                     MAX_NEIGHBOURS, &dummy );
+
+        SET_ARRAY_SIZE( all_neighs, total_n_neighs,
+            total_n_neighs + n_neighbours[point_index], DEFAULT_CHUNK_SIZE );
+
+        for_less( i, 0, n_neighbours[point_index] )
+        {
+            all_neighs[total_n_neighs + i] = neighs[i];
+        }
+
+        total_n_neighs += n_neighbours[point_index];
+
+        update_progress_report( &progress, point_index+1 );
+    }
+
+    terminate_progress_report( &progress );
+
+    total_n_neighs = 0;
+    for_less( point_index, 0, polygons->n_points )
+    {
+        neighbours[point_index] = &all_neighs[total_n_neighs];
+
+        total_n_neighs += n_neighbours[point_index];
+    }
+}
+
 private  Real  evaluate_gaussian(
     Real   x,
     Real   e_const )
@@ -101,14 +164,15 @@ private  Real  evaluate_gaussian(
 #define  MAX_NEIGHBOURS   10000
 
 int  get_points_within_dist(
-    polygons_struct   *polygons,
+    Point             polygon_points[],
+    int               n_neighbours[],
+    int               *neighbours[],
     int               point_index,
     Real              dist,
     int               *points[] )
 {
-    int      current_index, n_points, poly, vertex_index, p, n_neighs;
-    int      i, j, neighbours[MAX_NEIGHBOURS];
-    BOOLEAN  dummy;
+    int      current_index, n_points, p, neigh;
+    int      i, j;
 
     n_points = 0;
     current_index = 0;
@@ -120,28 +184,23 @@ int  get_points_within_dist(
         p = (*points)[current_index];
         ++current_index;
 
-        if( !find_polygon_with_vertex( polygons, p, &poly, &vertex_index ) )
-            handle_internal_error( "get_points_within_dist" );
-
-        n_neighs = get_neighbours_of_point( polygons, poly, vertex_index,
-                                            neighbours, MAX_NEIGHBOURS,
-                                            &dummy );
-
-        for_less( i, 0, n_neighs )
+        for_less( i, 0, n_neighbours[p] )
         {
-            if( distance_between_points( &polygons->points[point_index],
-                                         &polygons->points[neighbours[i]] ) <=
+            neigh = neighbours[p][i];
+
+            if( distance_between_points( &polygon_points[point_index],
+                                         &polygon_points[neigh] ) <=
                 dist )
             {
                 for_less( j, 0, n_points )
                 {
-                    if( (*points)[j] == neighbours[i] )
+                    if( (*points)[j] == neigh )
                         break;
                 }
 
                 if( j == n_points )
                 {
-                    ADD_ELEMENT_TO_ARRAY( *points, n_points, neighbours[i],
+                    ADD_ELEMENT_TO_ARRAY( *points, n_points, neigh,
                                           DEFAULT_CHUNK_SIZE );
                 }
             }
@@ -152,8 +211,10 @@ int  get_points_within_dist(
 }
 
 private  void  gaussian_blur_offset(
-    polygons_struct   *polygons,
-    polygons_struct   *avg,
+    Point             polygon_points[],
+    int               n_neighbours[],
+    int               *neighbours[],
+    Point             avg_points[],
     int               point_index,
     Real              fwhm,
     Real              dist,
@@ -162,8 +223,8 @@ private  void  gaussian_blur_offset(
     Real   sum[3], weight, sum_weight, offset, point_dist, e_const;
     int    i, c, n_points, *points, neigh;
 
-    n_points = get_points_within_dist( polygons, point_index, dist * fwhm,
-                                       &points );
+    n_points = get_points_within_dist( polygon_points, n_neighbours, neighbours,
+                                       point_index, dist * fwhm, &points );
 
     sum[0] = 0.0;
     sum[1] = 0.0;
@@ -176,15 +237,15 @@ private  void  gaussian_blur_offset(
     {
         neigh = points[i];
 
-        point_dist = distance_between_points( &polygons->points[point_index],
-                                              &polygons->points[neigh] );
+        point_dist = distance_between_points( &polygon_points[point_index],
+                                              &polygon_points[neigh] );
 
         weight = evaluate_gaussian( point_dist, e_const );
 
         for_less( c, 0, N_DIMENSIONS )
         {
-            offset = Point_coord(polygons->points[neigh],c) -
-                     Point_coord(avg->points[neigh],c);
+            offset = Point_coord(polygon_points[neigh],c) -
+                     Point_coord(avg_points[neigh],c);
 
             sum[c] += offset * weight;
         }
@@ -194,6 +255,6 @@ private  void  gaussian_blur_offset(
 
     for_less( c, 0, N_DIMENSIONS )
     {
-        Point_coord(*smooth_point,c) = Point_coord(avg->points[point_index],c) +                                       sum[c] / sum_weight;
+        Point_coord(*smooth_point,c) = Point_coord(avg_points[point_index],c) +                                       sum[c] / sum_weight;
     }
 }
