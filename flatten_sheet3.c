@@ -133,11 +133,15 @@ private  void  create_coefficients(
     int              **cross_parms[],
     ftype            **cross_terms[] )
 {
-    int              dim, n_nodes_in, n_parameters, n;
-    int              indices[6], poly, p1, p2, p3, nodes[3], dim2;
+    int              dim, n_nodes_in, n_parameters, n, nn, point;
+    int              max_neighbours, next_n;
+    int              indices[6], nodes[3], dim2;
     Real             con, node_weights[6], x, y;
     Real             weights[2][3][2], len;
+    Real             *flat[2];
     Vector           v12, v13, offset;
+    Point            *neigh_points;
+    BOOLEAN          found;
     progress_struct  progress;
 
     n_parameters = 2 * (polygons->n_points - n_fixed);
@@ -145,81 +149,112 @@ private  void  create_coefficients(
     INITIALIZE_LSQ( n_parameters, constant, linear_terms, square_terms,
                     n_cross_terms, cross_parms, cross_terms );
 
-    initialize_progress_report( &progress, FALSE, polygons->n_items,
+    max_neighbours = 0;
+    for_less( point, 0, polygons->n_points )
+        max_neighbours = MAX( max_neighbours, n_neighbours[point] );
+
+    ALLOC( flat[0], max_neighbours );
+    ALLOC( flat[1], max_neighbours );
+    ALLOC( neigh_points, max_neighbours );
+
+    initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Creating coefficients" );
 
-    for_less( poly, 0, polygons->n_items )
+    for_less( point, 0, polygons->n_points )
     {
-        p1 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,0)];
-        p2 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,1)];
-        p3 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,2)];
+        found = (to_parameters[point] >= 0);
 
-        nodes[0] = p1;
-        nodes[1] = p2;
-        nodes[2] = p3;
-
-        if( to_parameters[p1] < 0 && to_parameters[p2] < 0 &&
-            to_parameters[p3] < 0 )
-            continue;
-
-        SUB_POINTS( v12, polygons->points[p2], polygons->points[p1] );
-        SUB_POINTS( v13, polygons->points[p3], polygons->points[p1] );
-        len = DOT_VECTORS( v12, v12 );
-        x = DOT_VECTORS( v12, v13 ) / len;
-        SCALE_VECTOR( offset, v12, x );
-        SUB_VECTORS( v13, v13, offset );
-        y = MAGNITUDE( v13 ) / sqrt( len );
-
-        weights[0][0][0] = -1.0 + x;
-        weights[0][0][1] = -y;
-        weights[0][1][0] = -x;
-        weights[0][1][1] = y;
-        weights[0][2][0] = 1.0;
-        weights[0][2][1] = 0.0;
-
-        weights[1][0][0] = y;
-        weights[1][0][1] = -1.0 + x;
-        weights[1][1][0] = -y;
-        weights[1][1][1] = -x;
-        weights[1][2][0] = 0.0;
-        weights[1][2][1] = 1.0;
-
-        if( y <= 0.0 )
-            print_error( "Y = %g\n" );
-
-        for_less( dim, 0, 2 )
+        for_less( n, 0, n_neighbours[point] )
         {
-            con = 0.0;
-            n_nodes_in = 0;
-            for_less( n, 0, 3 )
+            if( to_parameters[neighbours[point][n]] >= 0 )
             {
-                for_less( dim2, 0, 2 )
-                {
-                    if( weights[dim][n][dim2] != 0.0 )
-                    {
-                        if( to_parameters[nodes[n]] >= 0 )
-                        {
-                            indices[n_nodes_in] =
-                                           IJ(to_parameters[nodes[n]],dim2,2);
-                            node_weights[n_nodes_in] = weights[dim][n][dim2];
-                            ++n_nodes_in;
-                        }
-                        else
-                            con += weights[dim][n][dim2] *
-                                   fixed_pos[dim2][to_fixed_index[nodes[n]]];
-                    }
-                }
+                found = TRUE;
+                break;
             }
-
-            ADD_TO_LSQ( n_parameters, constant, *linear_terms, *square_terms,
-                        *n_cross_terms, *cross_parms, *cross_terms,
-                        n_nodes_in, indices, node_weights, con, 5 );
         }
 
-        update_progress_report( &progress, poly + 1 );
+        if( !found || n_neighbours[point] < 2 )
+            continue;
+
+        for_less( n, 0, n_neighbours[point] )
+            neigh_points[n] = polygons->points[neighbours[point][n]];
+
+        flatten_around_vertex( &polygons->points[point],
+                               n_neighbours[point], neigh_points,
+                               (BOOLEAN) interior_flags[point],
+                               flat[0], flat[1] );
+
+        for_less( nn, 0, n_neighbours[point] )
+        {
+            next_n = (nn+1) % n_neighbours[point];
+            nodes[0] = point;
+            nodes[1] = neighbours[point][nn];
+            nodes[2] = neighbours[point][next_n];
+
+            fill_Vector( v12, flat[0][nn], flat[1][nn], 0.0 );
+            fill_Vector( v13, flat[0][next_n], flat[1][next_n], 0.0 );
+
+            len = DOT_VECTORS( v12, v12 );
+            x = DOT_VECTORS( v12, v13 ) / len;
+            SCALE_VECTOR( offset, v12, x );
+            SUB_VECTORS( v13, v13, offset );
+            y = MAGNITUDE( v13 ) / sqrt( len );
+
+            weights[0][0][0] = -1.0 + x;
+            weights[0][0][1] = -y;
+            weights[0][1][0] = -x;
+            weights[0][1][1] = y;
+            weights[0][2][0] = 1.0;
+            weights[0][2][1] = 0.0;
+
+            weights[1][0][0] = y;
+            weights[1][0][1] = -1.0 + x;
+            weights[1][1][0] = -y;
+            weights[1][1][1] = -x;
+            weights[1][2][0] = 0.0;
+            weights[1][2][1] = 1.0;
+
+            if( y < 0.0 )
+                print_error( "Y = %g\n" );
+
+            for_less( dim, 0, 2 )
+            {
+                con = 0.0;
+                n_nodes_in = 0;
+                for_less( n, 0, 3 )
+                {
+                    for_less( dim2, 0, 2 )
+                    {
+                        if( weights[dim][n][dim2] != 0.0 )
+                        {
+                            if( to_parameters[nodes[n]] >= 0 )
+                            {
+                                indices[n_nodes_in] =
+                                           IJ(to_parameters[nodes[n]],dim2,2);
+                                node_weights[n_nodes_in] = weights[dim][n][dim2];
+                                ++n_nodes_in;
+                            }
+                            else
+                                con += weights[dim][n][dim2] *
+                                   fixed_pos[dim2][to_fixed_index[nodes[n]]];
+                        }
+                    }
+                }
+
+                ADD_TO_LSQ( n_parameters, constant, *linear_terms, *square_terms,
+                            *n_cross_terms, *cross_parms, *cross_terms,
+                            n_nodes_in, indices, node_weights, con, 5 );
+            }
+        }
+
+        update_progress_report( &progress, point + 1 );
     }
 
     terminate_progress_report( &progress );
+
+    FREE( flat[0] );
+    FREE( flat[1] );
+    FREE( neigh_points );
 
     REALLOC_LSQ( n_parameters, *n_cross_terms, *cross_parms, *cross_terms );
 }
