@@ -80,7 +80,9 @@ int  main(
 
     if( !get_string_argument( "", &output_filename ) )
     {
-        print( "Need output_file  argument.\n" );
+        print_error(
+          "Usage: %s output.obj [weight|input1.mnc] [weight|input2.mnc] ...\n",
+          argv[0] );
         return( 1 );
     }
 
@@ -161,7 +163,7 @@ int  main(
     }
 
     if( n_colours > 0 )
-        FREE2D( colours )
+        FREE2D( colours );
 
     compute_polygon_normals( get_polygons_ptr(out_object) );
 

@@ -20,13 +20,15 @@ int   main(
     nc_type               nc_data_type;          
     Volume                example_volume;
     Real                  **tags1, **tags2, voxel_pos[N_DIMENSIONS];
-    Real                  fraction_done, this_value, opposite_value;
+    Real                  fraction_done, value;
+    BOOLEAN               this_present, opposite_present;
+    int                   ind;
     STRING                file_dim_names[N_DIMENSIONS];
     STRING                output_filename;
-    char                  *suffixes[] = { "not_left_not_right",
-                                          "not_left_right",
-                                          "left_not_right",
-                                          "left_right" };
+    char                  *suffixes[] = { "not_this_not_opposite",
+                                          "not_this_yes_opposite",
+                                          "yes_this_not_opposite",
+                                          "yes_this_yes_opposite" };
     volume_input_struct   input_info;
     Real                  voxel;
     Volume                input_volume, output_volumes[N_OUTPUT], used_volume;
@@ -234,7 +236,7 @@ int   main(
     for_less( slice, 0, n_slices )
     {
         vol = 0;
-        unique_index = 1;
+        unique_index = 0;
         while( vol < n_input_files )
         {
             this_is_tag_file = filename_extension_matches( input_filenames[vol],
@@ -242,6 +244,8 @@ int   main(
 
             if( this_is_tag_file )
             {
+                ++unique_index;
+
                 for_less( offset, 0, 2 )
                 {
                     if( vol >= n_input_files )
@@ -278,7 +282,6 @@ int   main(
                 }
 
                 used_volume = example_volume;
-                ++unique_index;
             }
             else
             {
@@ -308,43 +311,44 @@ int   main(
             BEGIN_ALL_VOXELS( output_volumes[0], v[0], v[1], v[2],v[3],v[4])
                 if( this_is_tag_file )
                 {
-                    this_value = get_volume_voxel_value( used_volume,
-                           v[0], v[1], v[2], v[3], v[4]) == unique_index;
+                    value = get_volume_voxel_value( used_volume,
+                                        v[0], v[1], v[2], v[3], v[4]);
+                    this_present = (ROUND(value) == unique_index);
                 }
                 else
                 {
-                    this_value = get_volume_real_value( used_volume,
-                                            v[0], v[1], v[2], v[3], v[4]);
+                    this_present = get_volume_real_value( used_volume,
+                                        v[0], v[1], v[2], v[3], v[4]) > 0.0;
                 }
 
-                v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
+                v[x_dim] = sizes_2d[x_dim] + 1 - v[x_dim];
 
                 if( this_is_tag_file )
                 {
-                    opposite_value = get_volume_voxel_value( used_volume,
-                           v[0], v[1], v[2], v[3], v[4]) == unique_index;
+                    value = get_volume_voxel_value( used_volume,
+                                           v[0], v[1], v[2], v[3], v[4]);
+                    opposite_present = (ROUND(value) == unique_index);
                 }
                 else
                 {
-                    opposite_value = get_volume_real_value( used_volume,
-                                            v[0], v[1], v[2], v[3], v[4]);
+                    opposite_present = get_volume_real_value( used_volume,
+                                         v[0], v[1], v[2], v[3], v[4]) > 0.0;
                 }
 
-                v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
+                v[x_dim] = sizes_2d[x_dim] + 1 - v[x_dim];
 
-                for_less( i, 0, N_OUTPUT )
-                {
-                    if( (this_value > 0.0) == ((i & 2) != 0) &&
-                        (opposite_value > 0.0) == ((i & 1) != 0) )
-                    {
-                        voxel = get_volume_voxel_value( output_volumes[i],
-                                                v[0], v[1], v[2], v[3], v[4]);
-                        ++voxel;
-                        set_volume_voxel_value( output_volumes[i],
-                                                v[0], v[1], v[2], v[3], v[4],
-                                                voxel );
-                    }
-                }
+                ind = 0;
+
+                if( this_present )
+                    ind |= 2;
+                if( opposite_present )
+                    ind |= 1;
+
+                voxel = get_volume_voxel_value( output_volumes[ind],
+                                        v[0], v[1], v[2], v[3], v[4]);
+                ++voxel;
+                set_volume_voxel_value( output_volumes[ind],
+                                        v[0], v[1], v[2], v[3], v[4], voxel );
             END_ALL_VOXELS
 
             if( n_chunk_dims == 3 )

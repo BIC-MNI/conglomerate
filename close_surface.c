@@ -3,6 +3,8 @@
 
 #define  TOLERANCE  1.0e-2
 
+#define  CONNECTIVITY   FOUR_NEIGHBOURS
+
 #define  BINTREE_FACTOR  0.5
 
 #define  INSIDE_CONVEX_BIT                 128
@@ -53,6 +55,10 @@ private  void  label_connected_to_outside(
     int      y,
     int      z );
 
+private  void  print_convex_boundaries(
+    int                     n_bound,
+    convex_boundary_struct  bounds[] );
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -60,7 +66,7 @@ int  main(
     char                    *input_volume_filename, *input_surface_filename;
     char                    *output_volume_filename;
     int                     i, b, n_objects, n_convex_boundaries;
-    int                     close_threshold, n_to_strip;
+    int                     close_threshold, n_to_strip, max_region_size;
     int                     x_error, y_error, z_error, label_to_set;
     int                     sizes[N_DIMENSIONS], x, y, z, value, n_voxels;
     convex_boundary_struct  *convex_boundaries;
@@ -126,14 +132,7 @@ int  main(
     n_convex_boundaries = label_just_inside_convex_hull( volume,
                                                          &convex_boundaries );
 
-    for_less( i, 0, n_convex_boundaries )
-    {
-        print( "%3d: %d %d %d -- %d voxels\n", i+1,
-               convex_boundaries[i].voxel[X],
-               convex_boundaries[i].voxel[Y],
-               convex_boundaries[i].voxel[Z],
-               convex_boundaries[i].n_voxels );
-    }
+    print_convex_boundaries( n_convex_boundaries, convex_boundaries );
 
     for_less( i, 0, n_to_strip )
     {
@@ -161,45 +160,29 @@ int  main(
         n_convex_boundaries = label_just_inside_convex_hull( volume,
                                                            &convex_boundaries );
 
+        print_convex_boundaries( n_convex_boundaries, convex_boundaries );
+
+        max_region_size = 0;
         for_less( b, 0, n_convex_boundaries )
         {
-            print( "%3d: %d %d %d -- %d voxels\n", b+1,
-                   convex_boundaries[b].voxel[X],
-                   convex_boundaries[b].voxel[Y],
-                   convex_boundaries[b].voxel[Z],
-                   convex_boundaries[b].n_voxels );
+            if( b == 0 || convex_boundaries[b].n_voxels > max_region_size )
+                max_region_size = convex_boundaries[b].n_voxels;
         }
+
+        print( "Largest region: %d\n", max_region_size );
     }
 
-    print( "Labeling voxels connected to outside the convex hull.\n" );
-
-    for_less( i, 0, n_convex_boundaries )
+    max_region_size = 0;
+    for_less( b, 0, n_convex_boundaries )
     {
-        label_connected_to_outside( volume,
-                                    convex_boundaries[i].voxel[X],
-                                    convex_boundaries[i].voxel[Y],
-                                    convex_boundaries[i].voxel[Z] );
+        if( b == 0 || convex_boundaries[b].n_voxels > max_region_size )
+            max_region_size = convex_boundaries[b].n_voxels;
     }
 
-    print( "Filling in air pockets.\n" );
+    print( "Largest region: %d\n", max_region_size );
 
-    n_voxels = 0;
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    for_less( z, 0, sizes[Z] )
-    {
-        value = get_volume_int_value( volume, x, y, z );
-        if( (value & CONNECTED_TO_OUTSIDE_BIT) == 0 &&
-            (value & INSIDE_CONVEX_BIT) != 0 )
-        {
-            value |= label_to_set;
-            set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
-            ++n_voxels;
-        }
-    }
-
-    if( n_voxels > 0 )
-        print( "   filled in %d air pocket voxels.\n", n_voxels );
+    if( close_threshold < 0 )
+        close_threshold = max_region_size;
 
     if( close_threshold > 0 )
     {
@@ -241,6 +224,37 @@ int  main(
             }
         }
     }
+
+    print( "Labeling voxels connected to outside the convex hull.\n" );
+
+    for_less( i, 0, n_convex_boundaries )
+    {
+        label_connected_to_outside( volume,
+                                    convex_boundaries[i].voxel[X],
+                                    convex_boundaries[i].voxel[Y],
+                                    convex_boundaries[i].voxel[Z] );
+    }
+
+    print( "Filling in air pockets.\n" );
+
+    n_voxels = 0;
+    for_less( x, 0, sizes[X] )
+    for_less( y, 0, sizes[Y] )
+    for_less( z, 0, sizes[Z] )
+    {
+        value = get_volume_int_value( volume, x, y, z );
+        if( (value & CONNECTED_TO_OUTSIDE_BIT) == 0 &&
+            (value & INSIDE_CONVEX_BIT) != 0 &&
+            (value & LABEL_MASK) == 0 )
+        {
+            value |= label_to_set;
+            set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+            ++n_voxels;
+        }
+    }
+
+    if( n_voxels > 0 )
+        print( "   filled in %d air pocket voxels.\n", n_voxels );
 
     for_less( x, 0, sizes[X] )
     for_less( y, 0, sizes[Y] )
@@ -495,7 +509,7 @@ private  BOOLEAN  is_on_convex_boundary(
          (value & JUST_INSIDE_CONVEX_HULL_BIT) != 0) )
         return( FALSE );
 
-    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
 
     for_less( i, 0, n_dirs )
     {
@@ -542,7 +556,7 @@ private  int  expand_convex_boundary(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
@@ -635,7 +649,7 @@ private  int  remove_just_inside_label(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
@@ -708,7 +722,7 @@ private  BOOLEAN  fill_inside(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
@@ -778,6 +792,10 @@ private  void  label_connected_to_outside(
     INITIALIZE_QUEUE( queue );
 
     value = get_volume_int_value( volume, x, y, z );
+
+    if( (value & LABEL_MASK) != 0 )
+        return;
+
     value |= CONNECTED_TO_OUTSIDE_BIT;
     set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
 
@@ -785,7 +803,7 @@ private  void  label_connected_to_outside(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
@@ -827,4 +845,52 @@ private  void  label_connected_to_outside(
     }
 
     DELETE_QUEUE( queue );
+}
+
+#define  N_TO_PRINT  10
+
+private  void  print_convex_boundaries(
+    int                     n_bound,
+    convex_boundary_struct  bounds[] )
+{
+    BOOLEAN  first;
+    int      i, order, prev_max, prev_pos, max_pos, n_voxels;
+
+    prev_max = -1;
+    max_pos = -1;
+    prev_max = -1;
+    prev_pos = -1;
+
+    for_less( order, 0, N_TO_PRINT )
+    {
+        first = TRUE;
+        for_less( i, 0, n_bound )
+        {
+            n_voxels = bounds[i].n_voxels;
+            if( order == 0 )
+            {
+                if( i == 0 || n_voxels > bounds[max_pos].n_voxels )
+                    max_pos = i;
+            }
+            else
+            {
+                if( (first || n_voxels > bounds[max_pos].n_voxels) &&
+                    (n_voxels < prev_max ||
+                     n_voxels == prev_max && i > prev_pos) )
+                {
+                    max_pos = i;
+                    first = FALSE;
+                }
+            }
+        }
+
+        prev_pos = max_pos;
+        prev_max = bounds[max_pos].n_voxels;
+
+        print( "%3d: %d %d %d -- %d voxels\n", order+1,
+               bounds[max_pos].voxel[X],
+               bounds[max_pos].voxel[Y],
+               bounds[max_pos].voxel[Z],
+               bounds[max_pos].n_voxels );
+    }
 }

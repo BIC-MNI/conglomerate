@@ -1,4 +1,5 @@
-#include  <module.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
 
 private  void   intersect_planes_with_polygons(
     polygons_struct   *polygons,

@@ -4,6 +4,18 @@
 public  Status  process_object(
     object_struct  *object );
 
+private  void  usage(
+    char   executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: transform_objects  input.obj  input.xfm  [output.obj]\n\
+\n\
+     Transforms the input objects by the input transform, placing output in\n\
+     output.obj if specified, otherwise in input.obj.\n\n";
+
+    print_error( usage_str, executable );
+}
+
 private  void  transform_object(
     Transform      *transform,
     object_struct  *object )
@@ -31,8 +43,10 @@ int  main(
 {
     Status         status;
     char           *input_filename, *output_filename, *transform_filename;
+    char           *dummy;
     int            i, n_objects;
-    Transform      transform;
+    BOOLEAN        invert;
+    Transform      transform, inverse;
     File_formats   format;
     object_struct  **object_list;
 
@@ -43,14 +57,26 @@ int  main(
     if( !get_string_argument( "", &input_filename ) ||
         !get_string_argument( "", &transform_filename ) )
     {
-        (void) fprintf( stderr, "Must have a filename argument.\n" );
+        usage( argv[0] );
         return( 1 );
     }
 
     (void) get_string_argument( input_filename, &output_filename );
+    invert = get_string_argument( "", &dummy );
 
     if( read_transform_file( transform_filename, &transform ) != OK )
         return( 1 );
+
+    if( invert )
+    {
+        if( !compute_transform_inverse( &transform, &inverse ) )
+        {
+            print_error( "Transform not invertible.\n" );
+            return( 1 );
+        }
+
+        transform = inverse;
+    }
 
     status = input_graphics_file( input_filename, &format, &n_objects,
                                   &object_list );

@@ -1,5 +1,4 @@
-#include  <mni.h>
-#include  <module.h>
+#include  <bicpl.h>
 
 #define  GRAY_STRING       "gray"
 #define  HOT_STRING        "hot"

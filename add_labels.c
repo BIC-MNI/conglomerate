@@ -37,17 +37,17 @@
 private  void  usage(
     char   executable[] )
 {
-    (void) fprintf( stderr, "\nUsage: %s [-clobber] input.mnc output.mnc  -label val1 str1 [val2 str2 ...]\n\n", executable );
+    char  usage_str[] = "\n\
+Usage: %s [-clobber] input.mnc output.mnc  -label val1 str1 [val2 str2 ...]\n\
+\n\
+   or: %s [-clobber] input.mnc output.mnc lookup_file\n\
+\n\
+     Creates a new minc file, adding a set of value-label pairs, specified\n\
+     on the command line or in a file, to the set in the input minc file.\n\
+     If the label added, e.g. str1, is empty, then it deletes the value from\n\
+     the list.\n\n";
 
-    (void) fprintf( stderr, "   or: %s [-clobber] input.mnc output.mnc lookup_file\n\n", executable );
-
-   (void) fprintf( stderr,
-     "Creates a new minc file, adding a set of value-label pairs, specified\n" );
-
-   (void) fprintf( stderr,
-     "on the command line or in a file, to the set in the input minc file.\n" );
-   (void) fprintf( stderr,
-     "If the label added, e.g. str1, is empty, then it deletes the value from the list.\n" );
+    print_error( usage_str, executable, executable );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -74,9 +74,9 @@ int  main(
     int        i, n_excluded, label_lookup_var;
     BOOLEAN    label_specified;
     STRING     label_string;
-    int        new_n_labels, n_labels;
-    int        *new_values, *values;
-    char       **labels, **new_labels;
+    int        n_labels;
+    int        *values;
+    char       **labels;
     FILE       *file;
 
     /* --- initialize the information that will be in the arguments */
@@ -115,7 +115,38 @@ int  main(
         }
     }
 
-    new_n_labels = 0;
+    /* --- check input and output have been specified */
+
+    if( output_filename == NULL )
+    {
+        usage( argv[0] );
+        return( 1 );
+    }
+
+    /* --- check that we are not trying to write the same minc file as reading*/
+
+    if( strcmp( input_filename, output_filename ) == 0 )
+    {
+        print_error( "Cannot output to same file as input.\n" );
+        return( 1 );
+    }
+
+    /* --- open the source minc file */
+
+    ncopts = NC_VERBOSE;
+
+    in_minc_id = miopen( input_filename, NC_NOWRITE );
+
+    if( in_minc_id == MI_ERROR )
+        return( 1 );
+
+    /* --- read the label lookup from the minc file */
+
+    if( !read_label_lookup( in_minc_id, &n_labels, &values, &labels ) )
+    {
+        print_error( "Error reading current label lookup.\n" );
+        return( 1 );
+    }
 
     /* --- if must take remaining arguments as value-label pairs */
 
@@ -142,8 +173,16 @@ int  main(
 
             /* --- add value-label pair to list */
 
-            add_label_to_list( &new_n_labels, &new_values, &new_labels,
-                               value, argv[a+1] );
+            if( strlen( argv[a+1] ) >0 )
+            {
+                add_label_to_list( &n_labels, &values, &labels,
+                                   value, argv[a+1] );
+            }
+            else
+            {
+                delete_label_from_list( &n_labels, &values, &labels,
+                                        value );
+            }
         }
     }
     else if( label_filename == NULL )    /* --- no -label or filename */
@@ -157,7 +196,7 @@ int  main(
 
         if( open_file( label_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
         {
-            (void) fprintf( stderr, "Could not open \"%s\".\n", label_filename);
+            print_error( "Could not open \"%s\".\n", label_filename);
             return( 1 );
         }
 
@@ -169,44 +208,19 @@ int  main(
         {
             /* --- add value-label pair to list */
 
-            add_label_to_list( &new_n_labels, &new_values, &new_labels,
-                               value, label_string );
+            if( strlen( label_string ) > 0 )
+            {
+                add_label_to_list( &n_labels, &values, &labels,
+                                   value, label_string );
+            }
+            else
+            {
+                delete_label_from_list( &n_labels, &values, &labels,
+                                        value );
+            }
         }
 
         (void) close_file( file );
-    }
-
-    /* --- check that we are not trying to write the same minc file as reading*/
-
-    if( strcmp( input_filename, output_filename ) == 0 )
-    {
-        (void) fprintf( stderr, "Cannot output to same file as input.\n" );
-        return( 1 );
-    }
-
-    /* --- open the source minc file */
-
-    ncopts = NC_VERBOSE;
-
-    in_minc_id = miopen( input_filename, NC_NOWRITE );
-
-    if( in_minc_id == MI_ERROR )
-        return( 1 );
-
-    /* --- read the label lookup from the minc file */
-
-    if( !read_label_lookup( in_minc_id, &n_labels, &values, &labels ) )
-    {
-        (void) fprintf( stderr, "Error reading current label lookup.\n" );
-        return( 1 );
-    }
-
-    /* --- add the labels specified by the user to the existing labels */
-
-    for_less( i, 0, new_n_labels )
-    {
-        add_label_to_list( &n_labels, &values, &labels,
-                           new_values[i], new_labels[i] );
     }
 
     /* --- create the output minc file */
@@ -228,7 +242,7 @@ int  main(
     /* --- output the label lookup to the output file */
 
     if( !write_label_lookup( out_minc_id, n_labels, values, labels ) )
-        (void) fprintf( stderr, "Error writing label lookup.\n" );
+        print_error( "Error writing label lookup.\n" );
 
     (void) ncendef( out_minc_id );
 
@@ -243,15 +257,6 @@ int  main(
     miclose( out_minc_id );
 
     /* --- free up the memory */
-
-    if( new_n_labels > 0 )
-    {
-        for_less( i, 0, new_n_labels )
-            FREE( new_labels[i] );
-
-        FREE( new_values );
-        FREE( new_labels );
-    }
 
     if( n_labels > 0 )
     {

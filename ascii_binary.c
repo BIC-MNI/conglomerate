@@ -1,5 +1,17 @@
-#include  <mni.h>
-#include  <module.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
+
+private  void  usage(
+    char   executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: ascii_binary  input.obj  [output.obj]\n\
+\n\
+     Converts ascii .obj files to binary and vice versa, placing output in\n\
+     either output.obj, if specified, or input.obj.\n\n";
+
+    print_error( usage_str, executable );
+}
 
 int  main(
     int    argc,
@@ -17,7 +29,7 @@ int  main(
 
     if( !get_string_argument( "", &input_filename ) )
     {
-        (void) fprintf( stderr, "Must have a filename argument.\n" );
+        usage( argv[0] );
         return( 1 );
     }
 

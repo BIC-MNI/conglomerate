@@ -1,4 +1,20 @@
+#include  <internal_volume_io.h>
 #include  <bicpl.h>
+
+private  void  usage(
+    char   executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: %s  input.mnc  output.mnc  min_threshold  max_threshold\n\
+           [6|26]\n\
+\n\
+     Creates a label volume where each connected component has\n\
+     a distinct label number.\n\
+     The connectivity is specified by the last argument as\n\
+     either 6-neighbour or 26-neighbour.\n\n";
+
+    print_error( usage_str, executable );
+}
 
 int  main(
     int   argc,
@@ -19,14 +35,7 @@ int  main(
         !get_real_argument( 0.0, &min_threshold ) ||
         !get_real_argument( 0.0, &max_threshold ) )
     {
-        print( "Usage: %s  input.mnc  output.mnc  min_threshold  max_threshold\n",
-               argv[0] );
-        print( "           [6|26]\n" );
-
-        print( "\n\nCreates a label volume where each connected component has\n" );
-        print( "a distinct label number.\n" );
-        print( "The connectivity is specified by the last argument as\n" );
-        print( "either 6-neighbour or 26-neighbour.\n" );
+        usage( argv[0] );
         return( 1 );
     }
 
@@ -80,8 +89,10 @@ int  main(
 
     print( "Created %d regions.\n", current_label-1 );
 
-    (void) output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          label_volume, "cluster_volume",
+    (void) output_modified_volume( output_filename,
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          label_volume, volume_filename,
+                          "cluster_volume",
                           (minc_output_options *) NULL );
 
 

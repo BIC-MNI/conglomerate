@@ -62,7 +62,8 @@ int  main(
                     convert_voxel_to_world( mask_volume, mask_voxel,
                                             &xw, &yw, &zw );
                     evaluate_volume_in_world( volume, xw, yw, zw,
-                                              0, get_volume_real_min(volume),
+                                              0, FALSE,
+                                              get_volume_real_min(volume),
                                               &value, NULL, NULL, NULL,
                                               NULL, NULL, NULL,
                                               NULL, NULL, NULL );

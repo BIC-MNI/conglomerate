@@ -1,5 +1,5 @@
 #include  <internal_volume_io.h>
-#include  <bicpl.h>
+#include  <deform.h>
 
 private  void  usage(
     char  executable[] )
@@ -41,6 +41,8 @@ int  main( argc, argv )
     object_struct     **object_list;
     Volume            volume, label_volume, tmp;
     polygons_struct   *polygons;
+
+    set_alloc_checking( FALSE );
 
     initialize_argument_processing( argc, argv );
 

@@ -1,4 +1,21 @@
-#include  <mni.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
+
+private  void  usage(
+    char  executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: %s  volume  output.tag\n\
+       %s  volume  output.tag  id\n\
+       %s  volume  output.tag  min_id  max_id\n\
+\n\
+     Creates a tag file from a volume.  The three forms create tags from:\n\
+           all non-zero voxels,\n\
+           all voxels with values equal to id, and\n\
+           all voxels with values from min_id to max_id, respectively.\n\n";
+
+    print_error( usage_str, executable, executable, executable );
+}
 
 int  main(
     int   argc,
@@ -11,17 +28,14 @@ int  main(
     int                  sizes[N_DIMENSIONS];
     int                  n_tags, *structure_ids, *patient_ids;
     Real                 **tags, *weights;
+    progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( "", &volume_filename ) ||
         !get_string_argument( "", &tag_filename ) )
     {
-        print( "%s  volume  output.tag\n", argv[0] );
-        print( "%s  volume  output.tag  id\n", argv[0] );
-        print( "%s  volume  output.tag  min_id  max_id\n", argv[0] );
-        print( "\n" );
-        print( "     creates a tag file from a volume.\n" );
+        usage( argv[0] );
         return( 1 );
     }
 
@@ -45,6 +59,9 @@ int  main(
     /* --- create the output tags */
 
     get_volume_sizes( volume, sizes );
+
+    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+                                "Creating tags" );
 
     for_less( x, 0, sizes[X] )
     {
@@ -78,8 +95,12 @@ int  main(
                     ++n_tags;
                 }
             }
+
+            update_progress_report( &progress, x * sizes[Y] + y + 1 );
         }
     }
+
+    terminate_progress_report( &progress );
 
     if( output_tag_file( tag_filename, "Created by converting volume to tags.",
                          1, n_tags, tags, NULL, weights, structure_ids,

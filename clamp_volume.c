@@ -29,6 +29,7 @@ int  main(
     Volume               volume;
     Real                 min_threshold, max_threshold;
     Real                 min_voxel, max_voxel;
+    Real                 set_low, set_high;
     int                  x, y, z, sizes[N_DIMENSIONS];
     int                  dx_min, dx_max, dy_min, dy_max, dz_min, dz_max;
     int                  n_lower, n_higher;
@@ -55,6 +56,20 @@ int  main(
     get_volume_sizes( volume, sizes );
 
     get_volume_voxel_range( volume, &min_voxel, &max_voxel );
+
+    set_low = CONVERT_VALUE_TO_VOXEL( volume, min_threshold );
+    set_low = ROUND( set_low );
+    while( CONVERT_VOXEL_TO_VALUE( volume, set_low ) > min_threshold )
+        set_low -= 1.0;
+    if( set_low < min_voxel )
+        set_low = min_voxel;
+
+    set_high = CONVERT_VALUE_TO_VOXEL( volume, max_threshold );
+    set_high = ROUND( set_high );
+    while( CONVERT_VOXEL_TO_VALUE( volume, set_high ) < max_threshold )
+        set_high += 1.0;
+    if( set_high > max_voxel )
+        set_high = max_voxel;
 
     n_lower = 0;
     n_higher = 0;
@@ -98,7 +113,7 @@ int  main(
                     type = ABOVE_THRESHOLD;
                 else
                     type = WITHIN_THRESHOLD;
-                flags[1+slice][y][z] = type;
+                flags[1+slice][y][z] = (Smallest_int) type;
             }
         }
 
@@ -133,8 +148,7 @@ int  main(
 
                 check_neighbours( volume, flags, x, y, z, dx_min, dx_max,
                                   dy_min, dy_max, dz_min, dz_max,
-                                  min_voxel, max_voxel,
-                                  &n_lower, &n_higher );
+                                  set_low, set_high, &n_lower, &n_higher );
             }
 
             update_progress_report( &progress, x * sizes[1] + y + 1 );

@@ -39,12 +39,20 @@
 private  void  usage(
     char   executable[] )
 {
-    (void) fprintf( stderr, "\nUsage: %s input.mnc\n", executable );
-    (void) fprintf( stderr, "  Lists all value-label pairs in the minc file.\n\n" );
-    (void) fprintf( stderr, "   or: %s input.mnc -value val1 val2 ...\n", executable );
-    (void) fprintf( stderr, "  Lists value-label pairs in the minc file, specified by value\n\n" );
-    (void) fprintf( stderr, "   or: %s input.mnc -label label1 label2 ...\n", executable );
-    (void) fprintf( stderr, "  Lists value-label pairs in the minc file, specified by label\n\n" );
+    char  usage_str[] = "\n\
+Usage: %s input.mnc\n\
+\n\
+     Lists all value-label pairs in the minc file.\n\
+\n\
+   or: %s input.mnc -value val1 val2 ...\n\
+\n\
+     Lists value-label pairs in the minc file, specified by value\n\
+\n\
+   or: %s input.mnc -label label1 label2 ...\n\
+\n\
+     Lists value-label pairs in the minc file, specified by label\n\n";
+
+    print_error( usage_str, executable, executable, executable );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -108,7 +116,7 @@ int  main(
 
     if( !read_label_lookup( in_minc_id, &n_labels, &values, &labels ) )
     {
-        (void) fprintf( stderr, "Error reading current label lookup.\n" );
+        print_error( "Error reading current label lookup.\n" );
         return( 1 );
     }
 

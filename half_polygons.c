@@ -1,5 +1,5 @@
-#include <mni.h>
-#include <module.h>
+#include <internal_volume_io.h>
+#include <bicpl.h>
 
 public  Status  process_object(
     object_struct  *object )

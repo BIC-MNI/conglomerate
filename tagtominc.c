@@ -1,4 +1,19 @@
-#include  <mni.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
+
+private  void  usage(
+    char   executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: tagtominc  example_volume.mnc  input.tag  output.mnc  [structure_id]\n\
+\n\
+     Converts a tag file to a MINC volume with values equal the tags'\n\
+     structure ids, given an example MINC volume.\n\
+     If structure_id is specified, then only tags with this id are used.\n\
+     Otherwise all tags are used.\n\n";
+
+    print_error( usage_str, executable );
+}
 
 int  main(
     int   argc,
@@ -11,11 +26,10 @@ int  main(
     char                 history[10000];
     Volume               volume, new_volume;
     volume_input_struct  volume_input;
-    int                  n_objects, structure_id;
-    object_struct        **object_list;
+    int                  structure_id, n_tag_points, n_volumes, *structure_ids;
+    Real                 **tags1, **tags2;
     int                  i, x, y, z;
     int                  sizes[N_DIMENSIONS];
-    marker_struct        *marker;
 
     initialize_argument_processing( argc, argv );
 
@@ -23,10 +37,7 @@ int  main(
         !get_string_argument( "", &tag_filename ) ||
         !get_string_argument( "", &output_filename ) )
     {
-        print( "%s  example_volume  input.tag  output_file  [structure_id]\n",
-               argv[0] );
-        print( "\n" );
-        print( "     Converts a tag file to a MINC volume, given an example MINC volume.\n" );
+        usage( argv[0] );
         return( 1 );
     }
 
@@ -58,36 +69,31 @@ int  main(
         }
     }
 
-    if( input_objects_any_format( new_volume, tag_filename,
-                                  GREEN, 1.0, BOX_MARKER,
-                                  &n_objects, &object_list ) != OK )
+    if( input_tag_file( tag_filename, &n_volumes, &n_tag_points,
+                        &tags1, &tags2, NULL, &structure_ids, NULL, NULL )
+                        != OK )
         return( 1 );
 
-    for_less( i, 0, n_objects )
+    for_less( i, 0, n_tag_points )
     {
-        if( get_object_type(object_list[i]) == MARKER )
+        if( structure_id < 0 || structure_id == structure_ids[i] )
         {
-            marker = get_marker_ptr( object_list[i] );
-            if( structure_id < 0 || structure_id == marker->structure_id )
-            {
-                convert_world_to_voxel( new_volume,
-                                        Point_x(marker->position),
-                                        Point_y(marker->position),
-                                        Point_z(marker->position),
-                                        voxel );
+            convert_world_to_voxel( new_volume,
+                                    tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                    voxel );
 
-                if( voxel_is_within_volume( new_volume, voxel ) )
-                {
-                    x = ROUND( voxel[X] );
-                    y = ROUND( voxel[Y] );
-                    z = ROUND( voxel[Z] );
-                    SET_VOXEL_3D( new_volume, x, y, z, marker->structure_id );
-                }
+            if( voxel_is_within_volume( new_volume, voxel ) )
+            {
+                x = ROUND( voxel[X] );
+                y = ROUND( voxel[Y] );
+                z = ROUND( voxel[Z] );
+                SET_VOXEL_3D( new_volume, x, y, z, structure_ids[i] );
             }
         }
     }
 
-    delete_object_list( n_objects, object_list );
+    free_tag_points( n_volumes, n_tag_points, tags1, tags2, NULL,
+                     structure_ids, NULL, NULL );
 
     (void) strcpy( history, "Created by:  " );
 

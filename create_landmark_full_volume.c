@@ -1,4 +1,5 @@
-#include  <mni.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
 
 #define  SCALE_FACTOR   1.0
 
@@ -65,7 +66,7 @@ int  main(
     volume_input_struct  volume_input;
     int                  n_objects, n_files, n_patients, structure_id;
     object_struct        **object_list;
-    int                  i, p, x, y, z;
+    int                  i, p, x, y, z, n;
     int                  sizes[N_DIMENSIONS];
     int                  c, min_voxel[N_DIMENSIONS], max_voxel[N_DIMENSIONS];
     Real                 min_limit, max_limit;
@@ -76,9 +77,10 @@ int  main(
     if( !get_string_argument( "", &input_filename ) ||
         !get_string_argument( "", &output_filename ) ||
         !get_int_argument( 0, &structure_id ) ||
-        !get_real_argument( 0.0, &radius ) )
+        !get_real_argument( 0.0, &radius ) ||
+        !get_int_argument( 0, &n ) )
     {
-        print( "%s  example_volume  output_volume  structure_id|-1  radius of tags  tag_file1 tag_file2 [tag_file3] ...\n", argv[0] );
+        print( "%s  example_volume  output_volume  structure_id|-1  n|0 radius of tags  tag_file1 tag_file2 [tag_file3] ...\n", argv[0] );
         return( 1 );
     }
 
@@ -211,6 +213,9 @@ int  main(
     if( structure_id != -1 && structure_id != 1 &&
         !is_left_id(structure_id) && !is_right_id(structure_id) )
         n_patients /= 2;
+
+    if( n > 0 && n >= n_patients )
+        n_patients = n;
 
     print( "Number subjects: %d\n", n_patients );
 

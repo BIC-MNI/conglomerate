@@ -1,5 +1,5 @@
-#include  <module.h>
-#include  <mni.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
 
 private  int  get_stats_for_one_file(
     int             n_objects,
@@ -25,7 +25,7 @@ int  main(
     Real                 x_min, x_max, y_min, y_max, z_min, z_max;
     Real                 x_mean, y_mean, z_mean;
     char                 *filename;
-    int                  n_objects, n_in_file, total_in_file;
+    int                  n_objects, total_in_file;
     object_struct        **object_list;
 
     initialize_argument_processing( argc, argv );
@@ -41,13 +41,13 @@ int  main(
                                   &n_objects, &object_list ) != OK )
         return( 1 );
 
-    n_in_file = get_stats_for_one_file( n_objects, object_list,
-                                        -1,
-                                        1.0, 0.0,
-                                        &x_min, &x_max, &x_mean,
-                                        &y_min, &y_max, &y_mean,
-                                        &z_min, &z_max, &z_mean,
-                                        &total_in_file );
+    (void) get_stats_for_one_file( n_objects, object_list,
+                                   -1,
+                                   1.0, 0.0,
+                                   &x_min, &x_max, &x_mean,
+                                   &y_min, &y_max, &y_mean,
+                                   &z_min, &z_max, &z_mean,
+                                   &total_in_file );
 
     print( "X   min: %g    mean: %g   max: %g\n", x_min, x_mean, x_max );
     print( "Y   min: %g    mean: %g   max: %g\n", y_min, y_mean, y_max );

@@ -1,4 +1,4 @@
-#include  <mni.h>
+#include  <bicpl.h>
 
 #define  X_SIZE   50
 #define  Y_SIZE   50

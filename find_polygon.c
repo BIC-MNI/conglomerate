@@ -1,5 +1,5 @@
 
-#include  <mni.h>
+#include  <bicpl.h>
 
 private  BOOLEAN  recursive_find_polygon(
     bintree_node_struct   *node,

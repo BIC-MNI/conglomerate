@@ -1,5 +1,4 @@
-#include  <def_mni.h>
-#include  <minc.h>
+#include  <bicpl.h>
 
 private  void  print_ellipse_parameters( Point *, Point * );
 

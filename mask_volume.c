@@ -51,9 +51,11 @@ int  main(
     if( correct_label_range )
         set_label_volume_real_range( volume );
 
-    if( input_volume( mask_volume_filename, 3, XYZ_dimension_names,
-                      NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &mask_volume, (minc_input_options *) NULL ) != OK )
+    mask_volume = create_label_volume( volume, NC_UNSPECIFIED );
+
+    set_all_volume_label_data( mask_volume, 0 );
+
+    if( load_label_volume( mask_volume_filename, mask_volume ) != OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );

@@ -1,5 +1,4 @@
-#include  <mni.h>
-#include  <module.h>
+#include  <bicpl.h>
 
 private  void  output_colours(
     FILE             *file,

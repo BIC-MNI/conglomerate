@@ -5,29 +5,22 @@
 
 #define  BINTREE_FACTOR  0.0
 
+private  void   label_inside_convex_hull(
+    Volume           volume,
+    object_struct    *object,
+    int              value_to_set );
+
 int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
     char                 *input_volume_filename, *input_surface_filename;
     char                 *output_volume_filename;
+    int                  n_objects;
     Real                 value_to_set;
     STRING               history;
-    BOOLEAN              inside;
     File_formats         format;
     Volume               volume;
-    int                  i, j, c, x, y, z, n_objects, obj_index, n_set, best;
-    int                  sizes[MAX_DIMENSIONS], n_intersects, save_n_int;
-    int                  n_points, int_index, next_z;
-    Real                 xw, yw, zw, dist, *distances, limits[2][3];
-    Real                 voxel[MAX_DIMENSIONS];
-    Real                 boundary_voxel[MAX_DIMENSIONS], tmp;
-    Point                ray_origin, ray_dest, *points;
-    Point                point_range[2];
-    Point                ray_point;
-    Vector               ray_direction;
-    polygons_struct      *polygons;
     object_struct        **objects;
 
     initialize_argument_processing( argc, argv );
@@ -58,7 +51,43 @@ int  main(
         return( 1 );
     }
 
-    polygons = get_polygons_ptr( objects[0] );
+    label_inside_convex_hull( volume, objects[0], (Real) value_to_set );
+
+    (void) strcpy( history, "Inside surface labeled." );
+
+    (void) output_volume( output_volume_filename, NC_UNSPECIFIED,
+                          FALSE, 0.0, 0.0, volume, history,
+                          (minc_output_options *) NULL );
+
+    delete_volume( volume );
+
+    return( 0 );
+}
+
+private  void   label_inside_convex_hull(
+    Volume           volume,
+    object_struct    *object,
+    int              value_to_set )
+{
+    STRING               history;
+    BOOLEAN              inside;
+    File_formats         format;
+    int                  i, j, c, x, y, z, obj_index, n_set, best;
+    int                  sizes[MAX_DIMENSIONS], n_intersects, save_n_int;
+    int                  n_points, int_index, next_z;
+    Real                 xw, yw, zw, dist, distances[2], limits[2][3];
+    Real                 voxel[MAX_DIMENSIONS], max_value, value;
+    Real                 boundary_voxel[MAX_DIMENSIONS], tmp;
+    Point                ray_origin, start_ray, end_ray, *points;
+    Point                point_range[2];
+    Point                ray_point;
+    Vector               ray_direction, offset;
+    Real                 **enter_dist, **exit_dist;
+    polygons_struct      *polygons;
+
+    polygons = get_polygons_ptr( object );
+
+    max_value = get_volume_real_max( volume );
 
     if( BINTREE_FACTOR > 0.0 )
     {
@@ -66,7 +95,9 @@ int  main(
                                  polygons->n_items * BINTREE_FACTOR + 1);
     }
 
-    n_points = get_object_points( objects[0], &points );
+    n_points = polygons->n_points;
+    points = polygons->points;
+
     get_range_points( n_points, points, &point_range[0], &point_range[1] );
 
     for_less( x, 0, 2 )
@@ -100,6 +131,9 @@ int  main(
 
     n_set = 0;
 
+    ALLOC2D( enter_dist, sizes[X], sizes[Y] );
+    ALLOC2D( exit_dist, sizes[X], sizes[Y] );
+
     for_less( x, 0, sizes[X] )
     {
         voxel[X] = (Real) x;
@@ -109,49 +143,42 @@ int  main(
 
             voxel[Z] = limits[0][Z];
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
-            fill_Point( ray_origin, xw, yw, zw );
+            fill_Point( start_ray, xw, yw, zw );
 
             voxel[Z] = limits[1][Z];
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
-            fill_Point( ray_dest, xw, yw, zw );
-            SUB_VECTORS( ray_direction, ray_dest, ray_origin );
+            fill_Point( end_ray, xw, yw, zw );
+
+            ray_origin = end_ray;
+            SUB_VECTORS( ray_direction, start_ray, ray_origin );
             NORMALIZE_VECTOR( ray_direction, ray_direction );
 
-            n_intersects = intersect_ray_with_object(
-                                      &ray_origin, &ray_direction,
-                                      objects[0], &obj_index,
-                                      &dist, &distances );
+            enter_dist[x][y] = -1.0;
+            exit_dist[x][y] = -1.0;
 
-            for_less( i, 0, n_intersects - 1 )
+            if( intersect_ray_with_object( &ray_origin, &ray_direction,
+                                           object, &obj_index,
+                                           &distances[1], NULL ) == 0 )
+                continue;
+   
+            SUB_VECTORS( offset, end_ray, start_ray );
+            distances[1] = MAGNITUDE( offset ) - distances[1];
+            exit_dist[x][y] = distances[1];
+
+            ray_origin = start_ray;
+            SUB_VECTORS( ray_direction, end_ray, ray_origin );
+            NORMALIZE_VECTOR( ray_direction, ray_direction );
+
+            if( intersect_ray_with_object( &ray_origin, &ray_direction,
+                                           object, &obj_index,
+                                           &distances[0], NULL ) == 0 )
             {
-                best = i;
-                for_less( j, i+1, n_intersects )
-                {
-                    if( distances[j] < distances[best] )
-                        best = j;
-                }
-
-                tmp = distances[i];
-                distances[i] = distances[best];
-                distances[best] = tmp;
+                print( "ray distance error\n" );
             }
 
-            save_n_int = n_intersects;
-            i = 0;
-            while( i < n_intersects-1 )
-            {
-                if( distances[i+1] - distances[i] <= TOLERANCE )
-                {
-                    --n_intersects;
-                    for_less( j, i+1, n_intersects )
-                        distances[j] = distances[j+1];
-                }
-                else
-                    ++i;
-            }
+            enter_dist[x][y] = distances[0];
 
-if( n_intersects != 0 && n_intersects != 2 )
-    print( "N intersects: %d\n", n_intersects );
+            n_intersects = 2;
 
             inside = FALSE;
             int_index = -1;
@@ -183,25 +210,57 @@ if( n_intersects != 0 && n_intersects != 2 )
 
                 if( inside )
                 {
-                    set_volume_real_value( volume, x, y, z, 0, 0, value_to_set);
+                    value = get_volume_real_value( volume, x, y, z, 0, 0);
+                    value = (int) value | value_to_set;
+                    if( value > max_value )
+                        value = max_value;
+                    set_volume_real_value( volume, x, y, z, 0, 0, value);
                     ++n_set;
                 }
             }
-                           
-            if( save_n_int > 0 )
-                FREE( distances );
         }
     }
 
     print( "Set %d out of %d\n", n_set, sizes[X] * sizes[Y] * sizes[Z] );
-    
-    (void) strcpy( history, "Inside surface labeled." );
 
-    status = output_volume( output_volume_filename, NC_UNSPECIFIED,
-                            FALSE, 0.0, 0.0, volume, history,
-                            (minc_output_options *) NULL );
+    for_less( x, 1, sizes[X]-1 )
+    {
+        int      dx, dy, dir;
+        BOOLEAN  error;
 
-    delete_volume( volume );
+        for_less( y, 1, sizes[Y]-1 )
+        {
+            error = FALSE;
 
-    return( status != OK );
+            for_less( dir, 0, 4 )
+            {
+                switch( dir )
+                {
+                case 0:  dx = 1;  dy = 0;  break;
+                case 1:  dx = 1;  dy = 1;  break;
+                case 2:  dx = 0;  dy = 1;  break;
+                case 3:  dx = -1;  dy = 1;  break;
+                }
+
+                if( enter_dist[x-dx][y-dy] >= 0.0 && enter_dist[x+dx][y+dy] >= 0.0&&
+                    (enter_dist[x][y] < 0.0 || enter_dist[x][y] - TOLERANCE >
+                     (enter_dist[x-dx][y-dy] + enter_dist[x+dx][y+dy])/2.0) )
+                    error = TRUE;
+
+                if( exit_dist[x-dx][y-dy] >= 0.0 && exit_dist[x+dx][y+dy] >= 0.0&&
+                    (exit_dist[x][y] < 0.0 || exit_dist[x][y] + TOLERANCE <
+                     (exit_dist[x-dx][y-dy] + exit_dist[x+dx][y+dy])/2.0) )
+                    error = TRUE;
+            }
+
+            if( error )
+            {
+                print( "%d %d: ", x, y );
+                handle_internal_error( "enter_dist" );
+            }
+        }
+    }
+
+    FREE2D( enter_dist );
+    FREE2D( exit_dist );
 }

@@ -42,13 +42,22 @@ int  main(
                 else
                 {
                     if( output_character( stdout, one_byte ) != OK )
+                    {
+                        print_error( "Error writing byte.\n" );
                         return( 1 );
+                    }
                     if( output_character( stdout, last_byte ) != OK )
+                    {
+                        print_error( "Error writing byte.\n" );
                         return( 1 );
+                    }
                 }
             }
             else if( output_character( stdout, one_byte ) != OK )
+            {
+                print_error( "Error writing byte.\n" );
                 return( 1 );
+            }
 
             ++i;
         }

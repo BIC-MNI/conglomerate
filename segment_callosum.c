@@ -39,8 +39,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    BOOLEAN              volume_desired, create_planes;
-    Real                 separations[MAX_DIMENSIONS], angle, current_angle;
+    BOOLEAN              create_planes;
+    Real                 separations[MAX_DIMENSIONS], current_angle;
+    Real                 angle_increment;
     char                 *three_tags_filename, *input_tags_filename;
     char                 *output_tags_filename, *plane_filename;
     char                 *volume_filename;
@@ -55,9 +56,6 @@ int  main(
     int                  n_volumes, n_tag_points, *structure_ids, *patient_ids;
     Real                 **tags1, **tags2, *weights, volume, true_volume;
     char                 **labels;
-    int                  n_new_tags, *new_structure_ids, *new_patient_ids;
-    Real                 **new_tags1, **new_tags2, *new_weights;
-    char                 **new_labels;
     progress_struct      progress;
     polygons_struct      voxel, tmp, clipped;
     Volume               vol;
@@ -72,7 +70,7 @@ int  main(
         return( 1 );
     }
 
-    (void) get_real_argument( DEFAULT_ANGLE, &angle );
+    (void) get_real_argument( DEFAULT_ANGLE, &angle_increment;
     create_planes = get_string_argument( "plane", &plane_filename );
 
     if( input_tag_file( input_tags_filename, &n_volumes, &n_tag_points,
@@ -119,75 +117,34 @@ int  main(
     else
         handle_internal_error( "Oh oh\n" );
 
+    if( Vector_y( normal ) < 0.0 )
+        SCALE_VECTOR( normal, normal, -1.0 );
+
     NORMALIZE_VECTOR( normal, normal );
 
-#ifdef not_ytet
     get_volume_separations( vol, separations );
+
     voxel_volume = separations[0] * separations[1] * separations[2];
-    volume = 0.0;
 
-    right_normal = normal;
-    right_constant = -distance_from_plane( &origin, &right_normal, 0.0 )
-                     - max_dist;
+    plane_constant = -distance_from_plane( &centroid, &normal, 0.0 );
 
-    left_normal = normal;
-    left_constant = -distance_from_plane( &origin, &right_normal, 0.0 )
-                    -min_dist;
-
-    SCALE_VECTOR( right_normal, right_normal, -1.0 );
-    right_constant = - right_constant;
-
-    initialize_progress_report( &progress, FALSE, n_tag_points,
+    initialize_progress_report( &progress, FALSE, 360.0 / angle_increment,
                                 "Clipping" );
 
-    for_less( i, 0, n_tag_points )
+    current_angle = 0.0;
+    while( current_angle < 360.0 )
     {
-        fill_Point( point, tags1[i][X], tags1[i][Y], tags1[i][Z] );
+        get_plane_normal( &normal, current_angle, &left_normal );
+        left_constant = plane_constant;
 
-        dist = DOT_POINT_VECTOR( point, normal ) -
-               DOT_POINT_VECTOR( origin, normal );
+        get_plane_normal( &normal, current_angle + angle_increment,
+                          &right_normal );
+        SCALE_VECTOR( right_normal, right_normal, -1.0 );
+        right_constant = -plane_constant;
 
-        if( dist >= min_dist && dist <= max_dist )
-        {
-            /*--- increase the memory allocation of the tag points */
+        volume = 0.0;
 
-            SET_ARRAY_SIZE( new_tags1, n_new_tags, n_new_tags+1, 10 );
-            ALLOC( new_tags1[n_new_tags], 3 );
-
-            SET_ARRAY_SIZE( new_weights, n_new_tags, n_new_tags+1, 10 );
-            SET_ARRAY_SIZE( new_structure_ids, n_new_tags, n_new_tags+1, 10 );
-            SET_ARRAY_SIZE( new_patient_ids, n_new_tags, n_new_tags+1, 10 );
-
-            SET_ARRAY_SIZE( new_labels, n_new_tags, n_new_tags+1, 10 );
-            ALLOC( new_labels[n_new_tags], strlen(labels[i])+1 );
-
-            /*--- copy from the input tags to the new tags */
-
-            new_tags1[n_new_tags][0] = tags1[i][0];
-            new_tags1[n_new_tags][1] = tags1[i][1];
-            new_tags1[n_new_tags][2] = tags1[i][2];
-
-            if( n_volumes == 2 )
-            {
-                SET_ARRAY_SIZE( new_tags2, n_new_tags, n_new_tags+1, 10 );
-                ALLOC( new_tags2[n_new_tags], 3 );
-
-                new_tags2[n_new_tags][0] = tags2[i][0];
-                new_tags2[n_new_tags][1] = tags2[i][1];
-                new_tags2[n_new_tags][2] = tags2[i][2];
-            }
-
-            new_weights[n_new_tags] = weights[i];
-            new_structure_ids[n_new_tags] = structure_ids[i];
-            new_patient_ids[n_new_tags] = patient_ids[i];
-            (void) strcpy( new_labels[n_new_tags], labels[i] );
-
-            /*--- increment the number of new tags */
-
-            ++n_new_tags;
-        }
-
-        if( volume_desired )
+        for_less( i, 0, n_tag_points )
         {
             plane_status = get_voxel_plane_status( vol,
                                  tags1[i][X], tags1[i][Y], tags1[i][Z],
@@ -197,50 +154,27 @@ int  main(
             if( plane_status == 1 )
             {
                 volume += voxel_volume;
-                true_volume += voxel_volume;
             }
             else if( plane_status == 0 )
             {
-                get_voxel_corners( vol, tags1[i][X], tags1[i][Y], tags1[i][Z],
-                                   voxel.points );
-                clip_polygons_to_plane( &voxel, &left_normal, left_constant,
-                                        &tmp );
-                clip_polygons_to_plane( &tmp, &right_normal, right_constant,
-                                        &clipped );
-                delete_polygons( &tmp );
-                volume += get_closed_polyhedron_volume( &clipped );
-                delete_polygons( &clipped );
-
-                true_volume += get_voxel_plane_volume( vol,
+                volume += get_voxel_plane_volume( vol,
                                      tags1[i][X], tags1[i][Y], tags1[i][Z],
                                      &left_normal, left_constant,
                                      &right_normal, right_constant );
             }
         }
 
-        update_progress_report( &progress, i+1 );
+        print( "Angle: %.0g to %.0g,    Volume: %g\n",
+               current_angle,
+               current_angle + angle_increment, volume );
+
+        current_angle += angle_increment;
+
+        update_progress_report( &progress,
+                                ROUND( current_angle / angle_increment ) );
     }
 
     terminate_progress_report( &progress );
-
-    if( volume_desired )
-    {
-        print( "Total volume inside planes: %g\n", volume );
-        print( "          by backup method: %g\n", true_volume );
-    }
-
-    /*--- output the new tags, the subset of the input tags */
-
-    if( output_tag_file( output_tags_filename, "Removed negative X's",
-                         n_volumes, n_new_tags, new_tags1, new_tags2,
-                         new_weights, new_structure_ids,
-                         new_patient_ids, new_labels ) != OK )
-        return( 1 );
-
-    free_tag_points( n_volumes, n_new_tags, new_tags1, new_tags2,
-                     new_weights, new_structure_ids, new_patient_ids,
-                     new_labels );
-#endif
 
     if( create_planes )
     {

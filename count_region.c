@@ -1,4 +1,4 @@
-#include  <mni.h>
+#include  <bicpl.h>
 
 private  void  usage(
     char   executable[] )

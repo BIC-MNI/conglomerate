@@ -12,21 +12,30 @@ int  main(
 {
     Volume         volume;
     char           *input_filename, *output_filename;
-    pixels_struct  pixels;
+    int            n_slices;
+    pixels_struct  *pixels;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &input_filename ) ||
-        !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( "", &output_filename ) )
     {
-        print( "Usage: %s input.rgb output.mnc\n", argv[0] );
+        print( "Usage: %s output.mnc  input1.rgb input2.rgb ...\n", argv[0] );
         return( 1 );
     }
 
-    if( input_rgb_file( input_filename, &pixels ) != OK )
-        return( 1 );
+    n_slices = 0;
 
-    volume = convert_pixels_to_volume( 1, &pixels );
+    while( get_string_argument( "", &input_filename ) )
+    {
+        SET_ARRAY_SIZE( pixels, n_slices, n_slices+1, DEFAULT_CHUNK_SIZE );
+
+        if( input_rgb_file( input_filename, &pixels[n_slices] ) != OK )
+            return( 1 );
+
+        ++n_slices;
+    }
+
+    volume = convert_pixels_to_volume( n_slices, pixels );
 
     if( volume != NULL )
     {
@@ -47,10 +56,12 @@ private  Volume  convert_pixels_to_volume(
 {
     int      i, x, y, z, c, sizes[4];
     int      r, g, b;
+    static   char  *dim_names[] = { MIxspace, MIyspace, MIzspace,
+                                    MIvector_dimension };
     Volume   volume;
     Colour   colour;
 
-    volume = create_volume( N_DIMENSIONS, XYZ_dimension_names,
+    volume = create_volume( 4, dim_names,
                             NC_BYTE, FALSE, 0.0, 0.0 );
 
     set_volume_real_range( volume, 0.0, 1.0 );
@@ -68,6 +79,7 @@ private  Volume  convert_pixels_to_volume(
     sizes[X] = pixels[0].x_size;
     sizes[Y] = pixels[0].y_size;
     sizes[Z] = n_slices;
+    sizes[3] = 3;
 
     set_volume_sizes( volume, sizes );
 

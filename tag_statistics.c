@@ -1,4 +1,5 @@
-#include  <mni.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
 
 private  int  get_stats_for_one_file(
     int             n_objects,

@@ -6,8 +6,9 @@
 int main(int argc, char *argv[])
 {
     char *pname, *tagfile, *xfmfile;
-    int n_volumes, n_tag_points, n_degrees;
-    Real **tags_volume1, **tags_volume2, **temp_tags;
+    int i, n_volumes, n_tag_points, n_degrees;
+    Real **tags_volume1, **tags_volume2;
+    Real rms, tx, ty, tz, dx, dy, dz;
     Trans_type      transform_type;
     General_transform transform;
     FILE *fp;
@@ -117,6 +118,26 @@ int main(int argc, char *argv[])
                      pname, xfmfile);
       exit(EXIT_FAILURE);
    }
+
+   rms = 0.0;
+
+   for_less( i, 0, n_tag_points )
+   {
+       general_transform_point( &transform,
+                                tags_volume2[i][X],
+                                tags_volume2[i][Y],
+                                tags_volume2[i][Z], &tx, &ty, &tz );
+
+       dx = tags_volume1[i][X] - tx;
+       dy = tags_volume1[i][Y] - ty;
+       dz = tags_volume1[i][Z] - tz;
+
+       rms += dx * dx + dy * dy + dz * dz;
+   }
+
+   rms = sqrt( rms / (Real) n_tag_points );
+
+   print( "Rms: %g\n", rms );
 
    return EXIT_SUCCESS;
 }

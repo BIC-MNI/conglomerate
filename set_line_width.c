@@ -1,4 +1,17 @@
-#include  <mni.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
+
+private  void  usage(
+    char   executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: %s  input_lines.obj  output_lines.obj [thickness]\n\
+\n\
+     Copies the input lines to the output lines, with the line thickness set\n\
+     accordingly, defaulting to 1.\n\n";
+
+    print_error( usage_str, executable );
+}
 
 int  main(
     int   argc,
@@ -16,7 +29,7 @@ int  main(
     if( !get_string_argument( "", &src_filename ) ||
         !get_string_argument( "", &dest_filename ) )
     {
-        print( "Usage: %s  src_polygons  dest_lines\n", argv[0] );
+        usage( argv[0] );
         return( 1 );
     }
 

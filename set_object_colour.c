@@ -1,4 +1,18 @@
-#include  <mni.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
+
+private  void  usage(
+    char   executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: %s  input.obj  output.obj colour_name\n\
+\n\
+     Copies the input objects to the output objects, with the colour set\n\
+     accordingly.\n\n";
+
+    print_error( usage_str, executable );
+}
+
 
 int  main(
     int   argc,
@@ -19,7 +33,7 @@ int  main(
         !get_string_argument( "", &colour_name ) ||
         !lookup_colour( colour_name, &colour ) )
     {
-        print( "Usage: %s  src  dest  colour\n", argv[0] );
+        usage( argv[0] );
         return( 1 );
     }
 

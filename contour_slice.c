@@ -27,15 +27,26 @@ private  int  get_axis_index(
     return( *axis_index >= 0 );
 }
 
+private  void  usage(
+    char  executable[] )
+{
+    char  usage_str[] = "\n\
+Usage: %s  volume_file  output_file  x|y|z slice_pos\n\
+       [contour_value1] [contour_value2] ... \n\
+\n\
+     Creates contour lines for the given slice at the given contour values.\n\n";
+
+    print_error( usage_str, executable );
+}
+
 int  main(
     int   argc,
     char  *argv[] )
 {
     char                 *input_volume_filename, *output_filename;
     char                 *axis_name;
-    File_formats         format;
     Volume               volume;
-    int                  i, n_objects, slice_index, axis_index;
+    int                  n_objects, slice_index, axis_index;
     object_struct        **objects, *object;
     Real                 contour_value;
 
@@ -47,9 +58,7 @@ int  main(
         !get_axis_index( axis_name, &axis_index ) ||
         !get_int_argument( 0, &slice_index ) )
     {
-        print( "Usage: %s  volume_file  output_file  x|y|z slice_pos\n",
-               argv[0] );
-        print( "       [contour_value1] [contour_value2] ... \n" );
+        usage( argv[0] );
         return( 1 );
     }
 
@@ -84,7 +93,8 @@ int  main(
 
 typedef  struct
 {
-    int  ids[3];
+    int            ids[3];
+    Smallest_int   lower_left_fence;
 } node_struct;
 
 private  void  record_values(
@@ -235,6 +245,12 @@ private  void  create_node_points(
                                       DEFAULT_CHUNK_SIZE );
                 node_info[x][y].ids[1] = *n_points-1;
             }
+
+
+            neigh_value = (values[x][y] + values[x+1][y] + values[x][y+1] +
+                           values[x+1][y+1]) / 4.0;
+
+            node_info[x][y].lower_left_fence =(this_value * neigh_value <= 0.0);
         }
     }
 }
@@ -242,12 +258,10 @@ private  void  create_node_points(
 private  void  contour_rectangle(
     int           x,
     int           y,
-    int           x_size,
-    int           y_size,
     node_struct   **node_info,
     lines_struct  *lines )
 {
-    int   i, j, n_nodes, nodes[4], edges[4], n_indices;
+    int   i, j, n_nodes, nodes[4], edges[4], n_indices, p1, p2, p3, p4;
 
     edges[0] = node_info[x][y].ids[0];
     edges[1] = node_info[x+1][y].ids[1];
@@ -295,10 +309,36 @@ private  void  contour_rectangle(
     }
     else  if( n_nodes == 4 )
     {
-    }
-    else if( n_nodes != 0 )
-    {
-        handle_internal_error( "contour_rectangle" );
+        if( node_info[x][y].lower_left_fence )
+        {
+            p1 = edges[0];
+            p2 = edges[3];
+            p3 = edges[1];
+            p4 = edges[2];
+        }
+        else
+        {
+            p1 = edges[0];
+            p2 = edges[1];
+            p3 = edges[2];
+            p4 = edges[3];
+        }
+
+        n_indices = NUMBER_INDICES( *lines );
+
+        ADD_ELEMENT_TO_ARRAY( lines->end_indices, lines->n_items,
+                              n_indices + 2, DEFAULT_CHUNK_SIZE );
+        ADD_ELEMENT_TO_ARRAY( lines->indices, n_indices,
+                              p1, DEFAULT_CHUNK_SIZE );
+        ADD_ELEMENT_TO_ARRAY( lines->indices, n_indices,
+                              p2, DEFAULT_CHUNK_SIZE );
+
+        ADD_ELEMENT_TO_ARRAY( lines->end_indices, lines->n_items,
+                              n_indices + 2, DEFAULT_CHUNK_SIZE );
+        ADD_ELEMENT_TO_ARRAY( lines->indices, n_indices,
+                              p3, DEFAULT_CHUNK_SIZE );
+        ADD_ELEMENT_TO_ARRAY( lines->indices, n_indices,
+                              p4, DEFAULT_CHUNK_SIZE );
     }
 }
 
@@ -335,9 +375,12 @@ private  void  contour_volume_slice(
     {
         for_less( y, 0, sizes[a2] - 1 )
         {
-            contour_rectangle( x, y, sizes[a1], sizes[a2], node_info, lines );
+            contour_rectangle( x, y, node_info, lines );
         }
     }
+
+    print( "Contour: %g   N points: %d    N lines: %d\n",
+           contour_value, lines->n_points, lines->n_items );
 
     FREE2D( node_info );
 }

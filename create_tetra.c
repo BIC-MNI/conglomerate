@@ -1,5 +1,4 @@
-#include  <mni.h>
-#include  <module.h>
+#include  <bicpl.h>
 
 int  main(
     int    argc,

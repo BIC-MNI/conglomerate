@@ -6,7 +6,8 @@ int  main(
 {
     Status           status;
     char             *input_filename, *output_filename;
-    int              i, n_objects;
+    int              i, n_objects, clip_status;
+    Real             volume;
     polygons_struct  clipped;
     File_formats     format;
     object_struct    **object_list;
@@ -37,9 +38,14 @@ int  main(
         {
             if( status == OK && get_object_type(object_list[i]) )
             {
-                clip_polygons_to_plane( get_polygons_ptr(object_list[i]),
-                                        &plane_normal, plane_constant,
-                                        &clipped );
+                clip_status = clip_polygons_to_plane(
+                                  get_polygons_ptr(object_list[i]),
+                                  &plane_normal, plane_constant,
+                                  &clipped );
+
+                volume = get_closed_polyhedron_volume( &clipped );
+                print( "Clipped Volume: %g\n", volume );
+
                 delete_polygons( get_polygons_ptr(object_list[i]) );
                 *get_polygons_ptr(object_list[i]) = clipped;
             }

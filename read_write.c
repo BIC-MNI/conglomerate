@@ -1,7 +1,17 @@
+#include  <internal_volume_io.h>
 #include  <bicpl.h>
 
 public  Status  process_object(
     object_struct  *object );
+
+private  void  usage(
+    char   executable[] )
+{
+    char  *usage_str = "\n\
+Usage: %s  input.obj  [output.obj]\n\n";
+
+    print_error( usage_str, executable );
+}
 
 int  main(
     int    argc,
@@ -17,7 +27,7 @@ int  main(
 
     if( argc == 1 )
     {
-        (void) fprintf( stderr, "Must have a filename argument.\n" );
+        usage( argv[0] );
         status = ERROR;
     }
 

@@ -88,7 +88,7 @@ private  BOOLEAN  convert_pixel_to_voxel(
 {
     BOOLEAN           found;
     Real              origin[MAX_DIMENSIONS];
-    Real              x_axis[MAX_DIMENSIONS], y_axis[MAX_DIMENSIONS];;
+    Real              x_axis[MAX_DIMENSIONS], y_axis[MAX_DIMENSIONS];
 
     found = FALSE;
 
@@ -108,7 +108,7 @@ private  void  convert_voxel_to_pixel(
 {
     Real              x_real_pixel, y_real_pixel;
     Real              origin[MAX_DIMENSIONS];
-    Real              x_axis[MAX_DIMENSIONS], y_axis[MAX_DIMENSIONS];;
+    Real              x_axis[MAX_DIMENSIONS], y_axis[MAX_DIMENSIONS];
 
     get_slice_plane( origin, x_axis, y_axis );
 
@@ -272,7 +272,7 @@ private  void  get_slice_plane(
     Real             x_axis[],
     Real             y_axis[] )
 {
-    int    c;
+    int    a1, a2, c;
     Real   separations[MAX_DIMENSIONS];
     Real   perp_axis[MAX_DIMENSIONS];
     Real   voxel_dot_perp, perp_dot_perp, factor;
@@ -284,14 +284,20 @@ private  void  get_slice_plane(
     for_less( c, 0, N_DIMENSIONS )
     {
         separations[c] = ABS( separations[c] );
-        perp_axis[c] *= separations[c];
         x_axis[c] = current_x_axis[c];
         y_axis[c] = current_y_axis[c];
     }
 
+    for_less( c, 0, N_DIMENSIONS )
+    {
+        a1 = (c + 1) % N_DIMENSIONS;
+        a2 = (c + 2) % N_DIMENSIONS;
+        perp_axis[c] = x_axis[a1] * y_axis[a2] - x_axis[a2] * y_axis[a1];
+    }
+
     voxel_dot_perp = 0.0;
     for_less( c, 0, N_DIMENSIONS )
-        voxel_dot_perp += current_voxel[c] * separations[c] * perp_axis[c];
+        voxel_dot_perp += current_voxel[c] * perp_axis[c];
 
     perp_dot_perp = 0.0;
     for_less( c, 0, N_DIMENSIONS )
@@ -306,21 +312,6 @@ private  void  get_slice_plane(
     {
         factor = voxel_dot_perp / perp_dot_perp;
         for_less( c, 0, N_DIMENSIONS )
-            origin[c] = factor * perp_axis[c] / separations[c];
+            origin[c] = factor * perp_axis[c];
     }
-
-{
-    Real  dot1, dot2;
-    dot1 = 0.0;
-    dot2 = 0.0;
-    for_less( c, 0, N_DIMENSIONS )
-    {
-        dot1 += origin[c] * separations[c] * perp_axis[c];
-        dot2 += current_voxel[c] * separations[c] * perp_axis[c];
-    }
-
-    if( !numerically_close( dot1, dot2, 1.0e-2 ) )
-        handle_internal_error( "Getting Closer" );
-}
-
 }
