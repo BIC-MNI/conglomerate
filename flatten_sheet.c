@@ -72,15 +72,43 @@ private  int  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              **neighbours,
+    int              n_fixed,
+    int              fixed_indices[],
+    Real             *fixed_pos[2],
     int              *n_nodes_involved[],
     int              **node_list[],
     Real             *constants[],
     Real             **node_weights[] )
 {
-    int              n_equations, node, p, eq, dim, n_nodes_in;
+    int              i, n_equations, node, p, eq, dim, n_nodes_in, ind;
+    int              neigh;
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             flat[2][MAX_POINTS_PER_POLYGON];
     Real             consistency_weights[MAX_POINTS_PER_POLYGON];
+    int              *to_parameters, *to_fixed_index;
+
+    ALLOC( to_parameters, polygons->n_points );
+    ALLOC( to_fixed_index, polygons->n_points );
+    ind = 0;
+    for_less( node, 0, polygons->n_points )
+    {
+        for_less( i, 0, n_fixed )
+        {
+            if( node == fixed_indices[i] )
+                break;
+        }
+        if( i < n_fixed )
+        {
+            to_fixed_index[node] = i;
+            to_parameters[node] = -1;
+        }
+        else
+        {
+            to_fixed_index[node] = -1;
+            to_parameters[node] = ind;
+            ++ind;
+        }
+    }
 
     n_equations = 2 * polygons->n_points;
 
@@ -112,47 +140,53 @@ private  int  create_coefficients(
         for_less( dim, 0, 2 )
         {
             n_nodes_in = 0;
+            if( to_parameters[node] >= 0 )
+                ++n_nodes_in;
+
             for_less( p, 0, n_neighbours[node] )
             {
-                if( neighbours[node][p] > 1 )
+                if( to_parameters[neighbours[node][p]] >= 0 )
                     ++n_nodes_in;
             }
-
-            if( node > 1 )
-                ++n_nodes_in;
 
             (*n_nodes_involved)[eq] = n_nodes_in;
             ALLOC( (*node_list)[eq], (*n_nodes_involved)[eq] );
             ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
 
-            (*constants)[eq] = 0.0;
-
             n_nodes_in = 0;
-            if( node > 1 )
+            if( to_parameters[node] >= 0 )
             {
-                (*node_list)[eq][0] = 2 * (node-2) + dim;
+                (*node_list)[eq][0] = 2 * to_parameters[node] + dim;
                 (*node_weights)[eq][0] = 1.0;
+                (*constants)[eq] = 0.0;
                 ++n_nodes_in;
             }
-            else if( node == 1 && dim == 0 )
-                (*constants)[eq] += 1.0;
+            else
+                (*constants)[eq] = fixed_pos[dim][to_fixed_index[node]];
 
             for_less( p, 0, n_neighbours[node] )
             {
-                if( neighbours[node][p] > 1 )
+                neigh = neighbours[node][p];
+                if( to_parameters[neigh] >= 0 )
                 {
-                    (*node_list)[eq][n_nodes_in] = 2 *(neighbours[node][p]-2)
+                    (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh]
                                                    + dim;
                     (*node_weights)[eq][n_nodes_in] = -consistency_weights[p];
                     ++n_nodes_in;
                 }
-                else if( neighbours[node][p] == 1 && dim == 0 )
-                    (*constants)[eq] = -consistency_weights[p];
+                else
+                {
+                    (*constants)[eq] = -consistency_weights[p] *
+                                          fixed_pos[dim][to_fixed_index[neigh]];
+                }
             }
 
             ++eq;
         }
     }
+
+    FREE( to_parameters );
+    FREE( to_fixed_index );
 
     return( n_equations );
 }
@@ -162,16 +196,35 @@ private  void  flatten_polygons(
     Real             parameters[],
     int              n_iters )
 {
-    int      point, *n_neighbours, **neighbours;
+    int      i, point, *n_neighbours, **neighbours;
     int      n_equations, *n_nodes_per_equation, **node_list;
+    int      n_fixed, *fixed_indices;
+    Real     *fixed_pos[2];
     Real     *constants, **node_weights;
+    Point    neigh_points[MAX_POINTS_PER_POLYGON];
     BOOLEAN  alloced;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL );
 
+    n_fixed = 1 + n_neighbours[0];
+    ALLOC( fixed_indices, n_fixed );
+    ALLOC( fixed_pos[0], n_fixed );
+    ALLOC( fixed_pos[1], n_fixed );
+
+    fixed_indices[0] = 0;
+    for_less( i, 0, n_neighbours[0] )
+        fixed_indices[i+1] = neighbours[0][i];
+
+    for_less( i, 0, n_neighbours[0] )
+        neigh_points[i] = polygons->points[neighbours[0][i]];
+
+    flatten_around_vertex( &polygons->points[0], n_neighbours[0],
+                           neigh_points, fixed_pos[0], fixed_pos[1] );
+
     n_equations = create_coefficients( polygons,
                                        n_neighbours, neighbours,
+                                       n_fixed, fixed_indices, fixed_pos,
                                        &n_nodes_per_equation,
                                        &node_list, &constants, &node_weights );
 
