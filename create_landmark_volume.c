@@ -24,9 +24,9 @@ int  main(
     int                  offset[N_DIMENSIONS];
     marker_struct        *marker;
     progress_struct      progress;
-    static String        out_dim_names[] = { MIxspace, MIyspace, MIzspace };
+    static String        in_dim_names[] = { MIxspace, MIyspace, MIzspace };
     Minc_file            minc_file;
-    Transform            world_to_voxel_transform, voxel_to_world_transform;
+    Transform            voxel_to_world_transform;
     Transform            translation;
 
     initialize_argument_processing( argc, argv );
@@ -39,12 +39,11 @@ int  main(
         return( 1 );
     }
 
-    status = start_volume_input( input_filename, out_dim_names,
+    status = start_volume_input( input_filename, in_dim_names,
                                  FALSE, &volume, &volume_input );
 
     get_volume_sizes( volume, src_sizes );
     get_volume_separations( volume, separations );
-    world_to_voxel_transform = volume->world_to_voxel_transform;
     voxel_to_world_transform = volume->voxel_to_world_transform;
 
     print( "Reading %s\n", landmark_filename );
@@ -104,7 +103,7 @@ int  main(
                         offset[c] + 1;
     }
 
-    output_volume = create_volume( 3, out_dim_names, NC_BYTE, FALSE,
+    output_volume = create_volume( 3, in_dim_names, NC_BYTE, FALSE,
                                    0.0, 0.0 );
     set_volume_size( output_volume, NC_UNSPECIFIED, FALSE, dest_sizes );
     alloc_volume_data( output_volume );
@@ -163,7 +162,7 @@ int  main(
 
     print( "Writing %s\n", output_filename );
 
-    minc_file = initialize_minc_output( output_filename, 3, out_dim_names,
+    minc_file = initialize_minc_output( output_filename, 3, in_dim_names,
                                     dest_sizes, NC_BYTE, FALSE, 0.0, 255.0,
                                     &voxel_to_world_transform );
 
