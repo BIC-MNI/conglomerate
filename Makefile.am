@@ -66,9 +66,10 @@ bin_PROGRAMS = \
 	evaluate \
 	extract_tag_slice \
 	extract_largest_line \
-	find_image_bounding_box \
 	fill_sulci \
 	find_buried_surface \
+	find_image_bounding_box \
+	find_peaks \
 	find_surface_distances \
 	find_tag_outliers \
 	find_vertex \
@@ -323,6 +324,7 @@ find_buried_surface_SOURCES =  find_buried_surface.c
 #find_hemi_SOURCES =  find_hemi.c
 find_image_bounding_box_SOURCES =  find_image_bounding_box.c
 #find_interruptions_SOURCES =  find_interruptions.c
+find_peaks_SOURCES = find_peaks.c
 #find_polygon_containing_point_SOURCES =  find_polygon_containing_point.c
 find_surface_distances_SOURCES =  find_surface_distances.c search_utils.c find_in_direction.c model_objects.c intersect_voxel.c deform_line.c models.c
 find_tag_outliers_SOURCES =  find_tag_outliers.c
