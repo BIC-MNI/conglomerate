@@ -83,7 +83,7 @@ int  main(
 
     check_polygons_neighbours_computed( polygons );
 
-    create_polygon_point_neighbours( polygons, &n_neighbours,
+    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL );
 
     ALLOC( done_flags, polygons->n_points );
@@ -110,7 +110,7 @@ int  main(
 
     terminate_progress_report( &progress );
 
-    delete_polygon_point_neighbours( n_neighbours, neighbours, NULL );
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours, NULL );
 
     if( values_present )
     {
@@ -183,7 +183,7 @@ int  get_points_within_dist(
 
             done_flags[neigh] = TRUE;
 
-            this_dist = fast_approx_distance_between_points(
+            this_dist = distance_between_points(
                                  &polygon_points[point_index],
                                  &polygon_points[neigh] );
             if( this_dist <= dist )
@@ -230,6 +230,9 @@ private  void  gaussian_blur_points(
     sum[1] = 0.0;
     sum[2] = 0.0;
     sum_weight = 0.0;
+
+    if( fwhm <= 0.0 )
+        fwhm = 1e-20;
 
     e_const = log( 0.5 ) / (fwhm/2.0 * fwhm/2.0);
 

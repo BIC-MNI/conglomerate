@@ -39,121 +39,6 @@ int  main(
     return( 0 );
 }
 
-private  void  create_neighbours(
-    polygons_struct  *polygons,
-    int              n_neighbours[],
-    int              *neighbours[] )
-{
-    int   v0, v1, point, point1, point2, size, indices[MAX_POINTS_PER_POLYGON];
-    int   poly, vertex;
-
-    for_less( point, 0, polygons->n_points )
-        n_neighbours[point] = 0;
-
-    for_less( poly, 0, polygons->n_items )
-    {
-        size = GET_OBJECT_SIZE( *polygons, poly );
-
-        for_less( point, 0, size )
-            indices[point] = polygons->indices[
-                              POINT_INDEX(polygons->end_indices,poly,point)];
-
-        for_less( v0, 0, size )
-        {
-            point1 = indices[v0];
-            n_neighbours[point1] += size - 2;
-        }
-    }
-
-    for_less( point, 0, polygons->n_points )
-    {
-        ALLOC( neighbours[point], n_neighbours[point] );
-        n_neighbours[point] = 0;
-    }
-
-    for_less( poly, 0, polygons->n_items )
-    {
-        size = GET_OBJECT_SIZE( *polygons, poly );
-
-        for_less( vertex, 0, size )
-            indices[vertex] = polygons->indices[
-                              POINT_INDEX(polygons->end_indices,poly,vertex)];
-
-        for_less( v0, 0, size )
-        {
-            point1 = indices[v0];
-
-            for_less( v1, 1, size-1 )
-            {
-                point2 = indices[(v0 + v1) % size];
-                neighbours[point1][n_neighbours[point1]] = point2;
-                ++n_neighbours[point1];
-            }
-        }
-    }
-}
-
-private  void  create_distances(
-    int              n_points,
-    Point            points[],
-    int              n_neighbours[],
-    int              *neighbours[],
-    int              north_pole,
-    float            distances[] )
-{
-    int              point, current, n_changed, iter, neigh, n;
-    Smallest_int     *changed[2];
-    float            new_dist;
-
-    ALLOC( changed[0], n_points );
-    ALLOC( changed[1], n_points );
-
-    for_less( point, 0, n_points )
-    {
-        distances[point] = -1.0f;
-        changed[0][point] = FALSE;
-    }
-    distances[north_pole] = 0.0f;
-    changed[0][north_pole] = TRUE;
-    current = 0;
-
-    iter = 0;
-    n_changed = 1;
-    while( n_changed > 0 )
-    {
-        n_changed = 0;
-
-        for_less( point, 0, n_points )
-            changed[1-current][point] = FALSE;
-
-        for_less( point, 0, n_points )
-        {
-            if( !changed[current][point] )
-                continue;
-
-            for_less( neigh, 0, n_neighbours[point] )
-            {
-                n = neighbours[point][neigh];
-                new_dist = distances[point] +
-                  (float) distance_between_points( &points[point], &points[n] );
-                if( distances[n] < 0.0f || new_dist < distances[n] )
-                {
-                    ++n_changed;
-                    distances[n] = new_dist;
-                    changed[1-current][n] = TRUE;
-                }
-            }
-        }
-
-        current = 1 - current;
-        ++iter;
-        print( "Iter %3d: %d\n", iter, n_changed );
-    }
-
-    FREE( changed[0] );
-    FREE( changed[1] );
-}
-
 #ifdef DEBUG
 private  void  write_values_to_file(
     STRING  filename,
@@ -312,6 +197,7 @@ private  float  get_horizontal_coord(
     current_poly = poly;
     current_ind = v0;
     start_index = START_INDEX(polygons->end_indices,current_poly);
+    to_point_dist = -1.0f;
 
     do
     {
@@ -328,7 +214,7 @@ private  float  get_horizontal_coord(
         INTERPOLATE_POINTS( next_point, polygons->points[p0],
                             polygons->points[p1], ratio );
         sum_dist += (float)
-                fast_approx_distance_between_points( &prev_point, &next_point);
+                          distance_between_points( &prev_point, &next_point);
         if( p0 == point )
             to_point_dist = sum_dist;
 
@@ -345,6 +231,12 @@ private  float  get_horizontal_coord(
 
     sum_dist += (float) distance_between_points( &prev_point, &start_point );
 
+    if( to_point_dist < 0.0f )
+    {
+        print_error( " to_point_dist < 0.0 \n" );
+        to_point_dist = 0.0f;
+    }
+
     return( to_point_dist / sum_dist );
 }
 
@@ -360,15 +252,15 @@ private  void  create_2d_coordinates(
 
     ALLOC( vertical, polygons->n_points );
     ALLOC( horizontal, polygons->n_points );
-    ALLOC( n_neighbours, polygons->n_points );
-    ALLOC( neighbours, polygons->n_points );
 
     check_polygons_neighbours_computed( polygons );
 
-    create_neighbours( polygons, n_neighbours, neighbours );
+    create_polygon_point_neighbours( polygons, TRUE, &n_neighbours,
+                                     &neighbours, NULL );
 
-    create_distances( polygons->n_points, polygons->points,
-                      n_neighbours, neighbours, north_pole, vertical );
+    (void) compute_distances_from_point( polygons, n_neighbours, neighbours,
+                                         &polygons->points[north_pole],
+                                         -1, -1.0, FALSE, vertical, NULL );
 
     south_pole = 0;
     for_less( point, 0, polygons->n_points )
@@ -388,8 +280,9 @@ private  void  create_2d_coordinates(
                                                       path[p], path[p+1] );
     }
 
-    create_distances( polygons->n_points, polygons->points,
-                      n_neighbours, neighbours, south_pole, horizontal );
+    (void) compute_distances_from_point( polygons, n_neighbours, neighbours,
+                                         &polygons->points[south_pole],
+                                         -1, -1.0, FALSE, horizontal, NULL );
 
     for_less( point, 0, polygons->n_points )
     {
@@ -409,10 +302,7 @@ private  void  create_2d_coordinates(
 
     terminate_progress_report( &progress );
 
-    for_less( point, 0, polygons->n_points )
-        FREE( neighbours[point] );
-    FREE( n_neighbours );
-    FREE( neighbours );
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours, NULL );
 
 #ifdef DEBUG
     write_values_to_file( "vertical.txt", polygons->n_points, vertical );
