@@ -1,6 +1,21 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#undef   USING_FLOAT
+#define  USING_FLOAT
+
+#ifdef USING_FLOAT
+
+typedef  float  ftype;
+#define  MINIMIZE_LSQ  minimize_lsq_float
+
+#else
+
+typedef  Real   ftype;
+#define  MINIMIZE_LSQ  minimize_lsq
+
+#endif
+
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
@@ -72,14 +87,14 @@ private  int  create_coefficients(
     int              to_fixed_index[],
     int              *n_nodes_involved[],
     int              **node_list[],
-    Real             *constants[],
-    Real             **node_weights[] )
+    ftype            *constants[],
+    ftype            **node_weights[] )
 {
     int              n_equations, node, p, eq, dim, n_nodes_in;
     int              neigh;
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             flat[2][MAX_POINTS_PER_POLYGON];
-    Real             *weights[2][2], cons[2];
+    Real             *weights[2][2], cons[2], con;
     BOOLEAN          found, ignoring;
     progress_struct  progress;
 
@@ -163,10 +178,10 @@ private  int  create_coefficients(
         if( ignoring )
         {
             (*n_nodes_involved)[eq] = 0;
-            (*constants)[eq] = 0.0;
+            (*constants)[eq] = (ftype) 0.0;
             ++eq;
             (*n_nodes_involved)[eq] = 0;
-            (*constants)[eq] = 0.0;
+            (*constants)[eq] = (ftype) 0.0;
             ++eq;
             continue;
         }
@@ -191,14 +206,14 @@ private  int  create_coefficients(
             if( to_parameters[node] >= 0 )
             {
                 (*node_list)[eq][0] = 2 * to_parameters[node] + dim;
-                (*node_weights)[eq][0] = 1.0;
+                (*node_weights)[eq][0] = (ftype) 1.0;
                 ++n_nodes_in;
-                (*constants)[eq] = 0.0;
+                con = 0.0;
             }
             else
-                (*constants)[eq] = fixed_pos[dim][to_fixed_index[node]];
+                con = fixed_pos[dim][to_fixed_index[node]];
 
-            (*constants)[eq] -= cons[dim];
+            con -= cons[dim];
 
             for_less( p, 0, n_neighbours[node] )
             {
@@ -206,20 +221,24 @@ private  int  create_coefficients(
                 if( to_parameters[neigh] >= 0 )
                 {
                     (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh] + 0;
-                    (*node_weights)[eq][n_nodes_in] = -weights[dim][0][p];
+                    (*node_weights)[eq][n_nodes_in] =
+                                            (ftype) -weights[dim][0][p];
                     ++n_nodes_in;
                     (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh] + 1;
-                    (*node_weights)[eq][n_nodes_in] = -weights[dim][1][p];
+                    (*node_weights)[eq][n_nodes_in] =
+                                            (ftype) -weights[dim][1][p];
                     ++n_nodes_in;
                 }
                 else
                 {
-                    (*constants)[eq] += -weights[dim][0][p] *
-                                        fixed_pos[0][to_fixed_index[neigh]]
-                                        -weights[dim][1][p] *
-                                        fixed_pos[1][to_fixed_index[neigh]];
+                    con += -weights[dim][0][p] *
+                           fixed_pos[0][to_fixed_index[neigh]]
+                           -weights[dim][1][p] *
+                           fixed_pos[1][to_fixed_index[neigh]];
                 }
             }
+
+            (*constants)[eq] = (ftype) con;
 
             ++eq;
         }
@@ -260,7 +279,8 @@ private  void  flatten_polygons(
     int              n_equations, *n_nodes_per_equation, **node_list;
     int              n_fixed, *fixed_indices;
     Real             *fixed_pos[2], scale, dist1, dist2;
-    Real             *constants, **node_weights, sum_xx, sum_xy;
+    Real             sum_xx, sum_xy;
+    ftype            *constants, **node_weights;
     Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
@@ -348,7 +368,7 @@ private  void  flatten_polygons(
         }
     }
 
-    (void) minimize_lsq( 2 * (polygons->n_points - n_fixed), n_equations,
+    (void) MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed), n_equations,
                          n_nodes_per_equation, node_list, constants,
                          node_weights, n_iters, parameters );
 
