@@ -11,7 +11,7 @@ int  main(
     int                v[MAX_DIMENSIONS], dim, n_bins, v0, bin;
     int                sizes[MAX_DIMENSIONS];
     int                max_size, new_sizes[MAX_DIMENSIONS], **counts;
-    int                max_count;
+    int                max_count, n_slices, min_v0, max_v0, *total_counts;
     STRING             *new_dim_names;
     Real               value, min_value, max_value;
     Real               separations[MAX_DIMENSIONS], bin_separation;
@@ -28,6 +28,7 @@ int  main(
 
     (void) get_int_argument( 50, &n_bins );
     (void) get_real_argument( 1.0, &bin_separation );
+    (void) get_int_argument( 0, &n_slices );
 
     if( input_volume( input_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -62,13 +63,17 @@ int  main(
     set_volume_separations( new_volume, separations );
 
     ALLOC2D( counts, max_size, n_bins );
+    ALLOC( total_counts, max_size );
     max_count = 0;
 
     for_less( dim, 0, N_DIMENSIONS )
     {
         for_less( v0, 0, max_size )
-        for_less( bin, 0, n_bins )
-            counts[v0][bin] = 0;
+        {
+            total_counts[v0] = 0;
+            for_less( bin, 0, n_bins )
+                counts[v0][bin] = 0;
+        }
 
         for_less( v[0], 0, sizes[0] )
         for_less( v[1], 0, sizes[1] )
@@ -79,23 +84,30 @@ int  main(
             if( bin == n_bins )
                 bin = n_bins-1;
 
-            ++counts[v[dim]][bin];
-            if( counts[v[dim]][bin] > max_count )
-                max_count = counts[v[dim]][bin];
+            min_v0 = MAX( 0, v[dim] - n_slices );
+            max_v0 = MIN( sizes[dim]-1, v[dim] + n_slices );
+            for_inclusive( v0, min_v0, max_v0 )
+            {
+                ++counts[v0][bin];
+                ++total_counts[v0];
+                if( counts[v0][bin] > max_count )
+                    max_count = counts[v0][bin];
+            }
         }
 
         for_less( v0, 0, max_size )
         for_less( bin, 0, n_bins )
         {
             set_volume_real_value( new_volume, dim, v0, bin, 0, 0,
-                                   (Real) counts[v0][bin] );
+                                   10000.0 * (Real) counts[v0][bin] /
+                                   (Real) total_counts[v0] );
         }
     }
 
     print( "%g %d\n", (max_value - min_value) / (Real) n_bins, max_count );
 
-    set_volume_voxel_range( new_volume, 0.0, (Real) max_count );
-    set_volume_real_range( new_volume, 0.0, (Real) max_count );
+    set_volume_voxel_range( new_volume, 0.0, 10000.0 );
+    set_volume_real_range( new_volume, 0.0, 10000.0 );
 
     FREE2D( counts );
 
