@@ -17,6 +17,17 @@ private  void  create_plane_from_points(
     Point             points[],
     Real              dist,
     polygons_struct   *polygons );
+private  Real  get_voxel_plane_volume(
+    Volume    volume,
+    Real      x,
+    Real      y,
+    Real      z,
+    Vector    *left_normal,
+    Real      left_constant,
+    Vector    *right_normal,
+    Real      right_constant );
+
+#define  GRID  20
 
 int  main(
     int   argc,
@@ -34,7 +45,7 @@ int  main(
     Real                 left_constant, right_constant;
     object_struct        *object, **object_list;
     int                  n_volumes, n_tag_points, *structure_ids, *patient_ids;
-    Real                 **tags1, **tags2, *weights, volume;
+    Real                 **tags1, **tags2, *weights, volume, true_volume;
     char                 **labels;
     int                  n_new_tags, *new_structure_ids, *new_patient_ids;
     Real                 **new_tags1, **new_tags2, *new_weights;
@@ -42,7 +53,6 @@ int  main(
     polygons_struct      voxel, tmp, clipped;
     Volume               vol;
     volume_input_struct  volume_input;
-
 
     initialize_argument_processing( argc, argv );
 
@@ -61,11 +71,11 @@ int  main(
 
     if( min_dist > max_dist )
     {
-        Real  tmp;
+        Real  swap;
 
-        tmp = min_dist;
+        swap = min_dist;
         min_dist = max_dist;
-        max_dist = tmp;
+        max_dist = swap;
     }
 
     if( input_tag_file( three_tags_filename, &n_volumes, &n_tag_points,
@@ -111,6 +121,7 @@ int  main(
             return( 1 );
 
         volume = 0.0;
+        true_volume = 0.0;
         initialize_polygons( &voxel, WHITE, NULL );
         voxel.n_points = 8;
         ALLOC( voxel.points, 8 );
@@ -220,12 +231,18 @@ int  main(
             delete_polygons( &tmp );
             volume += get_closed_polyhedron_volume( &clipped );
             delete_polygons( &clipped );
+
+            true_volume += get_voxel_plane_volume( vol,
+                                 tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                 &left_normal, left_constant,
+                                 &right_normal, right_constant );
         }
     }
 
     if( volume_desired )
     {
         print( "Total volume inside planes: %g\n", volume );
+        print( "          by backup method: %g\n", true_volume );
     }
 
     /*--- output the new tags, the subset of the input tags */
@@ -380,6 +397,10 @@ private  void  get_voxel_corners(
     convert_3D_world_to_voxel( volume, x, y, z,
                                 &voxel[0], &voxel[1], &voxel[2] );
 
+    voxel[0] = ROUND( voxel[0] );
+    voxel[1] = ROUND( voxel[1] );
+    voxel[2] = ROUND( voxel[2] );
+
     for_less( i, 0, 2 )
     {
         v[0] = voxel[0] + (Real) i - 0.5;
@@ -395,4 +416,58 @@ private  void  get_voxel_corners(
             }
         }
     }
+}
+
+private  Real  get_voxel_plane_volume(
+    Volume    volume,
+    Real      x,
+    Real      y,
+    Real      z,
+    Vector    *left_normal,
+    Real      left_constant,
+    Vector    *right_normal,
+    Real      right_constant )
+{
+    int    i, j, k, n_inside;
+    Real   v[MAX_DIMENSIONS], voxel[MAX_DIMENSIONS];
+    Real   separations[MAX_DIMENSIONS];
+    Real   xw, yw, zw, vol;
+    Point  point;
+
+    get_volume_separations( volume, separations );
+
+    convert_3D_world_to_voxel( volume, x, y, z,
+                                &voxel[0], &voxel[1], &voxel[2] );
+
+    voxel[0] = ROUND( voxel[0] );
+    voxel[1] = ROUND( voxel[1] );
+    voxel[2] = ROUND( voxel[2] );
+
+    n_inside = 0.0;
+
+    for_less( i, 0, GRID )
+    {
+        v[0] = voxel[0] + ((Real) i + 0.5) / (Real) GRID - 0.5;
+        for_less( j, 0, GRID )
+        {
+            v[1] = voxel[1] + ((Real) j + 0.5) / (Real) GRID - 0.5;
+            for_less( k, 0, GRID )
+            {
+                v[2] = voxel[2] + ((Real) k + 0.5) / (Real) GRID - 0.5;
+
+                convert_voxel_to_world( volume, v, &xw, &yw, &zw );
+                fill_Point( point, xw, yw, zw );
+                if( distance_from_plane( &point, left_normal, left_constant )
+                                         >= 0.0 &&
+                    distance_from_plane( &point, right_normal, right_constant )
+                                         >= 0.0 )
+                    ++n_inside;
+            }
+        }
+    }
+
+    vol = (Real) n_inside / (Real) (GRID * GRID * GRID) *
+          separations[0] * separations[1] * separations[2];
+
+    return( vol );
 }
