@@ -25,6 +25,8 @@ private  int  extract_contours(
     Volume           volume,
     int              axis,
     int              slice,
+    Real             min_threshold,
+    Real             max_threshold,
     contour_struct   *contours[] );
 
 private  Status  write_contours(
@@ -40,6 +42,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
+    Real             min_threshold, max_threshold;
     FILE             *file;
     int              axis, slice, sizes[N_DIMENSIONS], n_contours;
     char             *axis_name;
@@ -53,19 +56,26 @@ int  main(
     if( !get_string_argument( "", &volume_filename ) ||
         !get_string_argument( "", &output_roi_filename ) )
     {
-        print( "Usage: %s  volume_file  roi_output  [x|y|z]\n",
+        print( "Usage: %s  volume_file  roi_output   [threshold]  [x|y|z]\n",
                argv[0] );
         return( 1 );
     }
 
     axis = Z;
+    min_threshold = 0.0;
+    max_threshold = -1.0;
 
-    if( get_string_argument( "", &axis_name ) )
+    while( get_string_argument( "", &axis_name ) )
     {
         if( axis_name[0] >= 'x' && axis_name[0] <= 'z' )
             axis = (int) (axis_name[0] - 'x');
         else if( axis_name[0] >= 'X' && axis_name[0] <= 'Z' )
             axis = (int) (axis_name[0] - 'X');
+        else
+        {
+            (void) sscanf( axis_name, "%lf", &min_threshold );
+            max_threshold = min_threshold;
+        }
     }
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
@@ -83,7 +93,8 @@ int  main(
 
     for_less( slice, 0, sizes[axis] )
     {
-        n_contours = extract_contours( volume, axis, slice, &contours );
+        n_contours = extract_contours( volume, axis, slice, min_threshold,
+                                       max_threshold, &contours );
         if( write_contours( file, n_contours, contours ) != OK )
             return( 1 );
 
@@ -194,19 +205,52 @@ private  float  get_value(
 private  int   Delta_x[N_DIRECTIONS] = { 1, 1, 0, -1, -1, -1,  0,  1 };
 private  int   Delta_y[N_DIRECTIONS] = { 0, 1, 1,  1,  0, -1, -1, -1 };
 
+private  BOOLEAN  is_inside(
+    int     x_size,
+    int     y_size,
+    float   **slice,
+    Real    min_threshold,
+    Real    max_threshold,
+    int     x,
+    int     y )
+{
+    Real   value;
+
+    value = get_value( x_size, y_size, slice, x, y );
+
+    if( value == BACKGROUND_VALUE )
+        return( FALSE );
+
+    if( min_threshold <= max_threshold )
+    {
+        if( value < min_threshold || value > max_threshold )
+            return( FALSE );
+    }
+
+    return( TRUE );
+}
+
 private  BOOLEAN  is_boundary_pixel(
     int     x_size,
     int     y_size,
     float   **slice,
+    Real    min_threshold,
+    Real    max_threshold,
     int     x,
     int     y )
 {
     int    i;
 
+    if( !is_inside( x_size, y_size, slice, min_threshold, max_threshold,
+                    x, y ) )
+    {
+        return( FALSE );
+    }
+
     for( i = 0;  i < N_DIRECTIONS;  i += 2 )
     {
-        if( get_value( x_size, y_size, slice,
-                       x+Delta_x[i], y+Delta_y[i] ) != slice[x][y] )
+        if( !is_inside( x_size, y_size, slice, min_threshold, max_threshold,
+                        x+Delta_x[i], y+Delta_y[i] ) )
             return( TRUE );
     }
 
@@ -217,12 +261,14 @@ private  void  extract_contour(
     int             x_size,
     int             y_size,
     float           **slice,
+    Real            min_threshold,
+    Real            max_threshold,
     Smallest_int    **done,
     int             x_start,
     int             y_start,
     contour_struct  *contour )
 {
-    int         i, x, y, dir, nx, ny, out_x, out_y;
+    int         i, x, y, dir;
     xy_struct   xy;
     float       value;
     static  int new_dirs[N_DIRECTIONS] = { 6, 6, 0, 0, 2, 2, 4, 4 };
@@ -237,8 +283,8 @@ private  void  extract_contour(
 
     for( dir = 0;  dir < N_DIRECTIONS;  dir += 2 )
     {
-        if( get_value( x_size, y_size, slice,
-                 x_start+Delta_x[dir], y_start+Delta_y[dir] ) != value )
+        if( !is_inside( x_size, y_size, slice, min_threshold, max_threshold,
+                        x_start+Delta_x[dir], y_start+Delta_y[dir] ) )
         {
             break;
         }
@@ -256,8 +302,8 @@ private  void  extract_contour(
         for_less( i, 0, N_DIRECTIONS )
         {
             dir = (dir + 1) % N_DIRECTIONS;
-            if( get_value( x_size, y_size, slice,
-                       xy.x + Delta_x[dir], xy.y + Delta_y[dir] ) == value )
+            if( is_inside( x_size, y_size, slice, min_threshold, max_threshold,
+                       xy.x + Delta_x[dir], xy.y + Delta_y[dir] ) )
                 break;
         }
 
@@ -300,11 +346,14 @@ private  int  extract_contours(
     Volume           volume,
     int              axis,
     int              slice,
+    Real             min_threshold,
+    Real             max_threshold,
     contour_struct   *contours[] )
 {
     int             a1, a2, n_contours, sizes[MAX_DIMENSIONS];
     int             x, y, ind[MAX_DIMENSIONS];
     float           **values;
+    Real            used_min, used_max;
     Smallest_int    **done;
     contour_struct  contour;
 
@@ -334,12 +383,23 @@ private  int  extract_contours(
     {
         for_less( y, 0, sizes[a2] )
         {
-            if( values[x][y] != BACKGROUND_VALUE &&
-                is_boundary_pixel( sizes[a1], sizes[a2], values, x, y ) &&
-                                   !done[x][y] )
+            if( min_threshold <= max_threshold )
             {
-                extract_contour( sizes[a1], sizes[a2], values, done,
-                                 x, y, &contour );
+                used_min = min_threshold;
+                used_max = max_threshold;
+            }
+            else
+            {
+                used_min = values[x][y];
+                used_max = values[x][y];
+            }
+
+            if( !done[x][y] &&
+                is_boundary_pixel( sizes[a1], sizes[a2], values,
+                                   used_min, used_max, x, y ) )
+            {
+                extract_contour( sizes[a1], sizes[a2], values,
+                                 used_min, used_max, done, x, y, &contour );
                 ADD_ELEMENT_TO_ARRAY( *contours, n_contours, contour, 1 );
             }
         }
