@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    static  char  usage_str[] = "\n\
+    static  STRING  usage_str = "\n\
 Usage: %s  input.mnc  labels.mnc  min_value  max_value  label_value  [out.mnc]\n\
 \n\
      Creates a label volume which has the value of label_value where the input\n\
@@ -19,8 +19,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *volume_filename;
-    char                 *labels_filename, *output_filename;
+    STRING               volume_filename;
+    STRING               labels_filename, output_filename;
     BOOLEAN              modifying_flag;
     Real                 min_value, max_value, value;
     int                  v[MAX_DIMENSIONS], label_value_to_set;
