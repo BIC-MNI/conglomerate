@@ -44,8 +44,6 @@ int  main(
     (void) get_int_argument( 1, &label_value_to_set );
 
     n_ranges = 0;
-    min_values = NULL;
-    max_values = NULL;
     SET_ARRAY_SIZE( min_values, n_ranges, n_ranges+1, DEFAULT_CHUNK_SIZE );
     SET_ARRAY_SIZE( max_values, n_ranges, n_ranges+1, DEFAULT_CHUNK_SIZE );
     min_values[n_ranges] = min_value;
