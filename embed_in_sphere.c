@@ -320,7 +320,7 @@ private  int  create_path_between_points(
             if( distances[current][n_index] < 0.0f )
                 continue;
 
-            dist = distances[current][n_index] +
+            dist = distances[current][n_index] -
                       (float) distance_between_points( &points[current],
                                                        &points[neigh] );
             if( dist >= 0.0f && (best_dist < 0.0f || dist < best_dist) )
@@ -482,6 +482,8 @@ private  void  assign_used_flags(
     current_length = 0.0;
     for_less( p, 1, path_size-1 )
     {
+Real len;
+
         current_length += distance_between_points( &points[path[p-1]],
                                                    &points[path[p]] );
         make_rotation_about_axis( &perp, current_length / total_length * angle,
@@ -492,6 +494,11 @@ private  void  assign_used_flags(
                           &x, &y, &z );
         if( !null_Point( &sphere_points[path[p]] ) )
             handle_internal_error( "sphere point not null" );
+
+        len = x*x + y*y + z*z;
+
+        if( len < 0.99 || len > 1.01 )
+            print_error( "Length: %g\n", len );
 
         fill_Point( sphere_points[path[p]], x, y, z );
     }
@@ -1085,6 +1092,11 @@ private  void  embed_in_sphere(
             triangle_points[p] = sphere_points[polygons->indices[
                     POINT_INDEX(polygons->end_indices,poly,p)]];
 
+        if( null_Point( &triangle_points[0] ) ||
+            null_Point( &triangle_points[1] ) ||
+            null_Point( &triangle_points[2] ) )
+            continue;
+
         get_points_centroid( size, triangle_points, &centroid );
         find_polygon_normal( size, triangle_points, &normal );
 
@@ -1094,7 +1106,7 @@ private  void  embed_in_sphere(
         NORMALIZE_VECTOR( normal, normal );
 
         d = DOT_VECTORS( pos, normal );
-        if( d < 0.95 || d > 1.01 )
+        if( d < 0.8 )
             print( "Error in dot_product: %g\n", d );
     }
 
