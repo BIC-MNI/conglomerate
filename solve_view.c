@@ -46,9 +46,10 @@ int   main(
 {
     int          p, iter, n_iters, seed, n_points, i, j, n_success;
     Real         parameters[N_PARMS], x, y, z;
-    Real         angle, size, x_scale;
+    Real         angle, size, x_scale, x_pos, y_pos;
     Real         (*points)[N_DIMENSIONS];
     Real         (*screen_points)[2], tol, int_tolerance;
+    Real         x_pixel_size, y_pixel_size;
     Transform    view, transform, solution, scale, random_transform;
     Transform    solution2;
     BOOLEAN      outside_view;
@@ -57,6 +58,8 @@ int   main(
 
     (void) get_int_argument( 10, &n_points );
     (void) get_int_argument( 1, &n_iters );
+    (void) get_real_argument( 256.0, &x_pixel_size );
+    (void) get_real_argument( 256.0, &y_pixel_size );
     (void) get_real_argument( 1.0e-6, &tol );
     (void) get_real_argument( 1.0e-6, &int_tolerance );
     (void) get_real_argument( 300.0, &size );
@@ -107,6 +110,11 @@ r_t = random_transform;
             screen_points[p][X] = x / z;
             screen_points[p][Y] = y / z;
 
+            x_pos = (int) (x_pixel_size * (screen_points[p][X] + 1.0) / 2.0);
+            screen_points[p][X] = -1.0 + 2.0 * ((Real) x_pos + 0.5) / x_pixel_size;
+            y_pos = (int) (y_pixel_size * (screen_points[p][Y] + 1.0) / 2.0);
+            screen_points[p][Y] = -1.0 + 2.0 * ((Real) y_pos + 0.5) / y_pixel_size;
+
 /*
             print( "%d: %g %g\n", p, screen_points[p][X], screen_points[p][Y] );
 */
@@ -155,6 +163,7 @@ r_t = random_transform;
             print( "\n" );
         }
 
+#ifdef NOT_YET
         solve_view_by_intervals( n_points, points, screen_points,
                                  int_tolerance, &solution2 );
 
@@ -188,6 +197,7 @@ r_t = random_transform;
             }
             print( "\n" );
         }
+#endif
     }
 
     print( "%d/%d\n", n_success, n_iters );
