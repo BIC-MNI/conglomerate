@@ -85,9 +85,12 @@ int  main(
     else if( set_value > max_real_value )
         set_value = max_real_value;
 
-    create_polygons_bintree( get_polygons_ptr(objects[0]),
-                  ROUND( (Real) get_polygons_ptr(objects[0])->n_items *
-                                                BINTREE_FACTOR ) );
+    if( BINTREE_FACTOR > 0.0 )
+    {
+        create_polygons_bintree( get_polygons_ptr(objects[0]),
+                     ROUND( (Real) get_polygons_ptr(objects[0])->n_items *
+                                                   BINTREE_FACTOR ) );
+    }
 
     initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
                                 "Masking" );
