@@ -1,8 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#undef   USING_FLOAT
 #define  USING_FLOAT
+#undef   USING_FLOAT
 
 #ifdef USING_FLOAT
 
@@ -317,6 +317,29 @@ private  void  flatten_polygons(
                            DOT_VECTORS( offset, y_dir );
         }
     }
+
+#ifdef DEBUG
+    {
+        int  parm1, parm2, x_size, y_size;
+        Real  x_min, y_min, x_max, y_max, scale, p1, p2;
+
+        if( getenv( "DEBUG_FLAT" ) != NULL &&
+            sscanf( getenv( "DEBUG_FLAT" ), "%d %d %d %d %lf %lf %lf %lf %lf",
+                    &parm1, &parm2, &x_size, &y_size, &x_min, &x_max,
+                    &y_min, &y_max, &scale ) != 0 )
+        {
+            p1 = parameters[parm1];
+            p2 = parameters[parm2];
+            create_lsq_hypersurface_float( "surface.obj",
+                       parm1, parm2, x_size, y_size, p1+x_min,
+                       p1+x_max, p2+y_min, p2+y_max, scale,
+                       2 * (polygons->n_points - n_fixed),
+                       constant, linear_terms, square_terms,
+                       n_cross_terms, cross_parms, cross_terms,
+                       parameters );
+        }
+    }
+#endif
 
     (void) MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed),
                          constant, linear_terms, square_terms,
