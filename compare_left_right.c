@@ -17,7 +17,7 @@ int  main(
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons;
-    Real             left_x, right_x, y, z, dist;
+    Real             left_x, right_x, y, z, dist, avg;
     Real             ***samples, **means, **variance, **t_stat;
     Real             sum_x, sum_xx, s, se, min_t, max_t;
     Real             sx, sy, sz, prob;
@@ -35,7 +35,7 @@ int  main(
         !get_int_argument( 0, &ni ) ||
         !get_int_argument( 0, &nj ) )
     {
-        print_error( "Usage: %s output.obj  ni nj input1.obj input2.obj ... \n",
+        print_error( "Usage: %s output.mnc  ni nj input1.obj input2.obj ... \n",
                     argv[0] );
         return( 1 );
     }
@@ -113,9 +113,14 @@ int  main(
                 {
                     left_x = 0.0;
                     right_x = 0.0;
+                    samples[surf][i][j] = 0.0;
                 }
+                else
+                {
+                    avg = (left_x + right_x) / 2.0;
 
-                samples[surf][i][j] = left_x - right_x;
+                    samples[surf][i][j] = (left_x - avg) / avg;
+                }
             }
 
             print( "%d:  %s\n", surf+1, filenames[surf] );
