@@ -27,7 +27,7 @@ int  main(
 {
     int                  x, y, z, sizes[N_DIMENSIONS], x_size, y_size;
     int                  start[N_DIMENSIONS], end[N_DIMENSIONS];
-    int                  slice, axis;
+    int                  slice, axis, xyz_axis;
     Real                 value, min_voxel, max_voxel, window_width;
     Real                 min_value, max_value, filter_ratio;
     STRING               input_volume_filename, output_filename;
@@ -35,6 +35,7 @@ int  main(
     lines_struct         *lines;
     histogram_struct     histogram;
     Real                 grad, max_grad;
+    Real                 xyz[N_DIMENSIONS], voxel[N_DIMENSIONS];
     Real                 *counts, pos_low, pos_max_grad, pos_high;
     Real                 scale, trans;
     int                  n, i, min_index, max_index, max_index2;
@@ -81,7 +82,7 @@ int  main(
     (void) get_int_argument( x_size, &y_size );
     put_x_pos = get_real_argument( 0.0, &x_pos );
 
-    if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
+    if( input_volume( input_volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
@@ -101,11 +102,26 @@ int  main(
     start[Z] = 0;
     end[Z] = sizes[Z];
 
-    if( axis >= 0 && slice >= 0 && slice < sizes[axis] )
+    if( axis >= 0 && axis < N_DIMENSIONS )
     {
-        start[axis] = slice;
-        end[axis] = slice+1;
-        print( "Slice %d in %c\n", slice, "XYZ"[axis] );
+        xyz_axis = axis;
+        xyz[0] = 0.0;
+        xyz[1] = 0.0;
+        xyz[2] = 0.0;
+        xyz[axis] = 1.0;
+        reorder_xyz_to_voxel( volume, xyz, voxel );
+        for_less( axis, 0, N_DIMENSIONS )
+        {
+            if( voxel[axis] == 1.0 )
+                break;
+        }
+
+        if( slice >= 0 && slice < sizes[axis] )
+        {
+            start[axis] = slice;
+            end[axis] = slice+1;
+            print( "Slice %d in %c\n", slice, "XYZ"[xyz_axis] );
+        }
     }
 
     for_less( x, start[X], end[X] )
