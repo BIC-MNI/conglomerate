@@ -2,6 +2,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#define  TOLERANCE   2.0e-4
+
 private  int  get_points_of_region(
     Volume  volume,
     Real    min_value,
@@ -36,6 +38,7 @@ int  main(
     if( !get_string_argument( "", &input_filename ) ||
         !get_string_argument( "", &output_filename ) )
     {
+        print( "Usage: %s input.mnc output.obj\n", argv[0] );
         return( 1 );
     }
 
@@ -56,7 +59,6 @@ int  main(
     get_convex_hull( n_points, points, get_polygons_ptr(object) );
 
     (void) output_graphics_file( output_filename, BINARY_FORMAT, 1, &object );
-
 
     return( 0 );
 }
@@ -115,6 +117,37 @@ private  int  get_points_of_region(
     return( n_points );
 }
 
+private  Real  compute_clockwise_degrees( Real x, Real y )
+{
+    Real   degrees;
+
+    if( x >= -TOLERANCE && x <= TOLERANCE )
+    {
+        if( y < -TOLERANCE )
+            return( 90.0 );
+        else if( y > TOLERANCE )
+            return( 270.0 );
+        else
+            return( 0.0 );
+    }
+    else if( y >= -TOLERANCE && y <= TOLERANCE)
+    {
+        if( x > 0.0 )
+            return( 0.0 );
+        else
+            return( 180.0 );
+    }
+    else
+    {
+        degrees = - RAD_TO_DEG * (Real) atan2( (double) y, (double) x );
+
+        if( degrees < 0.0 )
+            degrees += 360.0;
+
+        return( degrees );
+    }
+}
+
 private  int  find_limit_plane(
     int              n_points,
     Point            points[],
@@ -142,15 +175,18 @@ private  int  find_limit_plane(
         x = -DOT_VECTORS( horizontal, offset );
         y = DOT_VECTORS( vertical, offset );
 
-        if( x == 0.0 && y == 0.0 )
+        if( x >= -TOLERANCE && x <= TOLERANCE &&
+            y >= -TOLERANCE && y <= TOLERANCE )
             continue;
 
-        angle = RAD_TO_DEG * compute_clockwise_rotation( x, y ) - 180.0;
+        angle = compute_clockwise_degrees( x, y ) - 180.0;
         if( angle < 0.0 )
             angle += 360.0;
 
         if( first || angle < best_angle )
         {
+            if( angle < 90.0 - 0.1 || angle > 270.0 + 0.1 )
+                handle_internal_error( "find_limit_plane angle" );
             best_angle = angle;
             best_ind = i;
             first = FALSE;
@@ -170,7 +206,6 @@ private  int  find_limit_plane(
 
     if( best_angle < 90.0 - 0.1 || best_angle > 270.0 + 0.1 )
         handle_internal_error( "find_limit_plane angle" );
-
 
     return( best_ind );
 }
@@ -286,12 +321,13 @@ private  int   get_plane_polygon_vertices(
     int              vertices[] )
 {
     int      i, n_in_hull, n_in_plane, *plane_points, *hull_points;
-    Real     plane_constant, *x, *y;
+    Real     plane_constant, *x, *y, dist;
     Vector   v01, v02, normal, offset, horizontal, vertical;
 
     SUB_POINTS( v01, polygons->points[p1], polygons->points[p0] );
     SUB_POINTS( v02, polygons->points[p2], polygons->points[p0] );
     CROSS_VECTORS( normal, v01, v02 );
+    NORMALIZE_VECTOR( normal, normal );
 
     plane_constant = -distance_from_plane( &polygons->points[p0], &normal,
                                            0.0 );
@@ -300,13 +336,15 @@ private  int   get_plane_polygon_vertices(
 
     for_less( i, 0, n_points )
     {
-        if( distance_from_plane( &points[i], &normal, plane_constant ) >= 0.0 )
+        dist = distance_from_plane( &points[i], &normal, plane_constant );
+        if( dist >= -TOLERANCE || new_indices[i] == p0 ||
+            new_indices[i] == p1 || new_indices[i] == p2 )
         {
             ADD_ELEMENT_TO_ARRAY( plane_points, n_in_plane, i, 10 );
         }
     }
 
-    if( n_points < 3 )
+    if( n_in_plane < 3 )
         handle_internal_error( "get_plane_polygon_vertices" );
 
     NORMALIZE_VECTOR( horizontal, v01 );
@@ -345,8 +383,9 @@ private  void  get_convex_hull(
     Point            points[],
     polygons_struct  *polygons )
 {
+
     int                          i, min_ind, ind, second_ind, size;
-    Vector                       hinge, new_hinge, normal, new_normal, other;
+    Vector                       hinge, new_hinge, normal, new_normal;
     int                          *new_indices, other_index, keys[2];
     int                          poly, edge, new_poly;
     int                          n_vertices, *vertices;
@@ -437,9 +476,7 @@ private  void  get_convex_hull(
 
         SUB_POINTS( hinge, polygons->points[poly_vertices[edge]],
                            polygons->points[poly_vertices[(edge+1)%size]] );
-        SUB_POINTS( other, polygons->points[poly_vertices[(edge-1+size)%size]],
-                           polygons->points[poly_vertices[edge]] );
-        CROSS_VECTORS( normal, other, hinge );
+        compute_polygon_normal( polygons, poly, &normal );
 
         ind = find_limit_plane( n_points, points,
                                 &polygons->points[poly_vertices[edge]],
@@ -526,8 +563,7 @@ private  int  get_convex_hull_2d(
             if( dx == 0.0 && dy == 0.0 )
                 continue;
 
-            angle = RAD_TO_DEG * compute_clockwise_rotation( dx, dy ) -
-                    current_angle;
+            angle = compute_clockwise_degrees( dx, dy ) - current_angle;
             if( angle <= 0.0 )
                 angle += 360.0;
 
@@ -551,8 +587,7 @@ private  int  get_convex_hull_2d(
         }
 
         current_ind = best_ind;
-        current_angle = RAD_TO_DEG *
-                        compute_clockwise_rotation( best_dx, best_dy );
+        current_angle = compute_clockwise_degrees( best_dx, best_dy );
     }
     while( current_ind != min_ind );
 
