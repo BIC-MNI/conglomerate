@@ -1,4 +1,4 @@
-#include  <mni.h>
+#include  <bicpl.h>
 
 private  Status  add_polygons(
     polygons_struct   *summed_polygons,
