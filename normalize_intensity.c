@@ -10,12 +10,6 @@ private  void  normalize_intensities(
     Volume   volume,
     Real     max_diff );
 
-private  BOOLEAN  solve_system(
-    int   n,
-    Real  **coefs,
-    Real  values[],
-    Real  solution[] );
-
 int  main(
     int   argc,
     char  *argv[] )
@@ -65,7 +59,7 @@ private  Real  evaluate_error(
 {
     int   tx, ty, tz, dx, dy, dz, n_voxels;
     int   x, y, z, sizes[N_DIMENSIONS];
-    Real  error, value1, value2, diff;
+    Real  error, v1, v2, diff;
 
     get_volume_sizes( volume, sizes );
 
@@ -91,7 +85,7 @@ private  Real  evaluate_error(
                 else
                     tz = 0;
 
-                GET_VALUE_3D( value1, volume, x, y, z );
+                GET_VALUE_3D( v1, volume, x, y, z );
 
                 for_inclusive( dx, 0, tx )
                 for_inclusive( dy, 0, ty )
@@ -100,9 +94,9 @@ private  Real  evaluate_error(
                     if( dx == 0 && dy == 0 && dz == 0 )
                         continue;
 
-                    GET_VALUE_3D( value2, volume, x + dx, y + dy, z + dz );
+                    GET_VALUE_3D( v2, volume, x + dx, y + dy, z + dz );
 
-                    diff = value1 - value2;
+                    diff = v1 - v2;
                     if( diff < 0.0 )
                         diff = -diff;
 
@@ -130,7 +124,7 @@ private  void  normalize_intensities(
     Real  scale, trans, voxel, sum;
     Real  answer[6], cx, cy, cz;
     Real  x1, y1, z1, x2, y2, z2;
-    Real  value1, value2, diff;
+    Real  v1, v2, diff;
     Real  **coefs, constants[6], p[7];
     Real  min_voxel, max_voxel;
 
@@ -173,7 +167,7 @@ private  void  normalize_intensities(
                     tz = 0;
                 z1 = z - cz;
 
-                GET_VALUE_3D( value1, volume, x, y, z );
+                GET_VALUE_3D( v1, volume, x, y, z );
 
                 for_inclusive( dx, 0, tx )
                 for_inclusive( dy, 0, ty )
@@ -182,9 +176,9 @@ private  void  normalize_intensities(
                     if( dx == 0 && dy == 0 && dz == 0 )
                         continue;
 
-                    GET_VALUE_3D( value2, volume, x + dx, y + dy, z + dz );
+                    GET_VALUE_3D( v2, volume, x + dx, y + dy, z + dz );
 
-                    diff = value1 - value2;
+                    diff = v1 - v2;
                     if( diff < 0.0 )
                         diff = -diff;
 
@@ -194,15 +188,15 @@ private  void  normalize_intensities(
                         y2 = y + dy - cy;
                         z2 = z + dz - cz;
 
-                        p[0] = ((Real) x1 * value1 - (Real) x2 * value2);
-                        p[1] = ((Real) y1 * value1 - (Real) y2 * value2);
-                        p[2] = ((Real) z1 * value1 - (Real) z2 * value2);
+                        p[0] = ((Real) x1 * v1 - (Real) x2 * v2);
+                        p[1] = ((Real) y1 * v1 - (Real) y2 * v2);
+                        p[2] = ((Real) z1 * v1 - (Real) z2 * v2);
 
                         p[3] = (Real) x1 - (Real) x2;
                         p[4] = (Real) y1 - (Real) y2;
                         p[5] = (Real) z1 - (Real) z2;
 
-                        p[6] = value1 - value2;
+                        p[6] = v1 - v2;
 
                         for_less( i, 0, 6 )
                         {
@@ -226,7 +220,7 @@ private  void  normalize_intensities(
         }
     }
 
-    if( solve_system( 6, coefs, constants, answer ) )
+    if( solve_linear_system( 6, coefs, constants, answer ) )
     {
         for_less( i, 0, 6 )
         {
@@ -260,105 +254,16 @@ private  void  normalize_intensities(
     for_less( y, 0, sizes[1] )
     for_less( z, 0, sizes[2] )
     {
-        GET_VALUE_3D( value1, volume, x, y, z );
+        GET_VALUE_3D( v1, volume, x, y, z );
         scale = 1.0 +
                 answer[0] * (x-cx) + answer[1] * (y-cy) + answer[2] * (z-cz);
         trans = answer[3] * (x-cx) + answer[4] * (y-cy) + answer[5] * (z-cz);
-        value1 = scale * value1 + trans;
-        voxel = CONVERT_VALUE_TO_VOXEL( volume, value1 );
+        v1 = scale * v1 + trans;
+        voxel = CONVERT_VALUE_TO_VOXEL( volume, v1 );
         if( voxel < min_voxel )
             voxel = min_voxel;
         else if( voxel > max_voxel )
             voxel = max_voxel;
         SET_VOXEL_3D( volume, x, y, z, voxel );
     }
-}
-
-private  BOOLEAN  solve_system(
-    int   n,
-    Real  **coefs,
-    Real  values[],
-    Real  solution[] )
-{
-    int       i, j, k, p, *row, tmp;
-    Real      **a, *s, val, best_val, m, sum;
-    BOOLEAN   success;
-
-    ALLOC2D( a, n, n+1 );
-    ALLOC( row, n );
-    ALLOC( s, n );
-
-    for_less( i, 0, n )
-    {
-        for_less( j, 0, n )
-            a[i][j] = coefs[i][j];
-        a[i][n] = values[i];
-    }
-
-    for_less( i, 0, n )
-    {
-        row[i] = i;
-        s[i] = ABS( a[i][0] );
-        for_less( j, 1, n )
-        {
-            if( ABS(a[i][j]) > s[i] )
-               s[i] = ABS(a[i][j]);
-        }
-    }
-
-    success = TRUE;
-
-    for_less( i, 0, n-1 )
-    {
-        p = i;
-        best_val = a[row[i]][i] / s[row[i]];
-        best_val = ABS( best_val );
-        for_less( j, i, n )
-        {
-            val = a[row[j]][i] / s[row[j]];
-            val = ABS( val );
-            if( val > best_val )
-            {
-                best_val = val;
-                p = j;
-            }
-        }
-
-        if( a[row[p]][i] == 0.0 )
-        {
-            success = FALSE;
-            break;
-        }
-
-        if( i != p )
-        {
-            tmp = row[i];
-            row[i] = row[p];
-            row[p] = tmp;
-        }
-
-        for_less( j, i+1, n )
-        {
-            m = a[row[j]][i] / a[row[i]][i];
-            for_less( k, i, n+1 )
-                a[row[j]][k] -= m * a[row[i]][k];
-        }
-    }
-
-    if( success && a[row[n-1]][n-1] == 0.0 )
-        success = FALSE;
-
-    for( i = n-1;  i >= 0;  --i )
-    {
-        sum = 0.0;
-        for_less( j, i+1, n )
-            sum += a[row[i]][j] * solution[j];
-        solution[i] = (a[row[i]][n] - sum) / a[row[i]][i];
-    }
-
-    FREE2D( a );
-    FREE( row );
-    FREE( s );
-
-    return( success );
 }
