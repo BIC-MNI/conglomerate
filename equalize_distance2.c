@@ -117,16 +117,58 @@ private  void  map_3d_to_2d(
                       u, v );
 }
 
+private  Real  dot_vectors(
+    Real  v1[],
+    Real  v2[] )
+{
+    return( v1[X] * v2[X] + v1[Y] * v2[Y] + v1[Z] * v2[Z] );
+}
+
+private  void  sub_vectors(
+    Real  v1[],
+    Real  v2[],
+    Real  sub[] )
+{
+    sub[X] = v1[X] - v2[X];
+    sub[Y] = v1[Y] - v2[Y];
+    sub[Z] = v1[Z] - v2[Z];
+}
+
+private  void  cross_vectors(
+    Real  v1[],
+    Real  v2[],
+    Real  c[] )
+{
+    c[X] = v1[Y] * v2[Z] - v1[Z] * v2[Y];
+    c[Y] = v1[Z] * v2[X] - v1[X] * v2[Z];
+    c[Z] = v1[X] * v2[Y] - v1[Y] * v2[X];
+}
+
 private  Real  evaluate_fit(
     Real    point[],
     int     n_neighbours,
     Real    (*neighbours)[N_DIMENSIONS],
     Real    lengths[] )
 {
-    int    n;
-    Real   fit, dist, diff, dx, dy, dz;
+    int    n, next_n;
+    Real   v1[N_DIMENSIONS], v2[N_DIMENSIONS], normal[N_DIMENSIONS];
+    Real   fit, dist, diff, dx, dy, dz, len_p, len_n;
 
     fit = 0.0;
+
+    len_p = dot_vectors( point, point );
+
+    for_less( n, 0, n_neighbours )
+    {
+        next_n = (n + 1) % n_neighbours;
+
+        sub_vectors( neighbours[n], point, v1 );
+        sub_vectors( neighbours[next_n], point, v2 );
+        cross_vectors( v1, v2, normal );
+        len_n = dot_vectors( normal, normal );
+        if( dot_vectors( point, normal ) / sqrt( len_n * len_p ) <= 0.1 )
+            return( 1.0e30 );
+    }
 
     for_less( n, 0, n_neighbours )
     {
@@ -142,22 +184,6 @@ private  Real  evaluate_fit(
     }
 
     return( fit );
-}
-
-private  Real  evaluate_fit_2d(
-    polygons_struct   *unit_sphere,
-    polygons_struct   *original,
-    Real              point[],
-    int               n_neighbours,
-    Real              (*neighbours)[N_DIMENSIONS],
-    Real              lengths[] )
-{
-    Real   point_3d[N_DIMENSIONS];
-
-    map_2d_to_3d( unit_sphere, original, point[0], point[1],
-                  &point_3d[X], &point_3d[Y], &point_3d[Z] );
-
-    return( evaluate_fit( point_3d, n_neighbours, neighbours, lengths ) );
 }
 
 private  void  get_edge_deriv(
@@ -222,34 +248,7 @@ private  void  get_plane_normal(
     normal[Z] = vz;
 }
 
-private  Real  dot_vectors(
-    Real  v1[],
-    Real  v2[] )
-{
-    return( v1[X] * v2[X] + v1[Y] * v2[Y] + v1[Z] * v2[Z] );
-}
-
-private  void  sub_vectors(
-    Real  v1[],
-    Real  v2[],
-    Real  sub[] )
-{
-    sub[X] = v1[X] - v2[X];
-    sub[Y] = v1[Y] - v2[Y];
-    sub[Z] = v1[Z] - v2[Z];
-}
-
-private  void  cross_vectors(
-    Real  v1[],
-    Real  v2[],
-    Real  c[] )
-{
-    c[X] = v1[Y] * v2[Z] - v1[Z] * v2[Y];
-    c[Y] = v1[Z] * v2[X] - v1[X] * v2[Z];
-    c[Z] = v1[X] * v2[Y] - v1[Y] * v2[X];
-}
-
-private  void  project_direction_to_plane(
+private  void  remove_vector_component(
     Real    direction[],
     Real    plane_normal[] )
 {
@@ -291,9 +290,31 @@ private  Real  find_distance_to_edge(
     ortho_dir[X] = direction[X];
     ortho_dir[Y] = direction[Y];
     ortho_dir[Z] = direction[Z];
-    project_direction_to_plane( ortho_dir, edge );
+    remove_vector_component( ortho_dir, edge );
 
-    dist = dot_vectors( ortho_dir, p1 );
+    dist = dot_vectors( ortho_dir, p1 ) - dot_vectors( ortho_dir, origin );
+
+    return( dist );
+}
+
+private  Real  find_distance_to_neighbour_edge(
+    Real    origin[],
+    Real    direction[],
+    Real    p1[],
+    Real    p2[] )
+{
+    Real   dist;
+    Real   edge[N_DIMENSIONS];
+    Real   ortho_dir[N_DIMENSIONS];
+
+    sub_vectors( p2, p1, edge );
+
+    ortho_dir[X] = direction[X];
+    ortho_dir[Y] = direction[Y];
+    ortho_dir[Z] = direction[Z];
+    remove_vector_component( ortho_dir, edge );
+
+    dist = dot_vectors( ortho_dir, p1 ) - dot_vectors( ortho_dir, origin );
 
     return( dist );
 }
@@ -301,7 +322,6 @@ private  Real  find_distance_to_edge(
 private  Real  optimize_vertex(
     polygons_struct   *unit_sphere,
     Real              (*original_points)[N_DIMENSIONS],
-    Real              (*points)[N_DIMENSIONS],
     Real              point[],
     int               n_neighbours,
     Real              (*neighbours)[N_DIMENSIONS],
@@ -313,7 +333,7 @@ private  Real  optimize_vertex(
     Real   deriv[N_DIMENSIONS], edge_deriv[N_DIMENSIONS], movement, mag;
     Real   normal[N_DIMENSIONS], max_dist, dist_to_edge;
     Real   new_point[N_DIMENSIONS];
-    Real   dx, dy, dz, step, len;
+    Real   dx, dy, dz, step, len, max_dist_to_neighbour, max_step;
     Real   best_fit, new_fit, position, new_position;
 
     deriv[X] = 0.0;
@@ -336,7 +356,7 @@ private  Real  optimize_vertex(
 
     get_plane_normal( size, original_points, vertex, normal );
 
-    project_direction_to_plane( deriv, normal );
+    remove_vector_component( deriv, normal );
 
     mag = dot_vectors( deriv, deriv );
     if( mag == 0.0 )
@@ -363,27 +383,47 @@ private  Real  optimize_vertex(
         }
     }
 
+    max_dist_to_neighbour = -1.0;
+    
+    for_less( n, 0, n_neighbours )
+    {
+        dist_to_edge = find_distance_to_neighbour_edge( point, deriv,
+                                        neighbours[n],
+                                        neighbours[(n+1)%n_neighbours] );
+
+        if( (dist_to_edge >= 0.0) &&
+            (max_dist_to_neighbour < 0.0 ||
+             dist_to_edge < max_dist_to_neighbour) )
+        {
+            max_dist_to_neighbour = dist_to_edge;
+        }
+    }
+
     /*----------------------------------------- */
 
     best_fit = evaluate_fit( point, n_neighbours, neighbours, lengths );
 
+    max_step = MIN( max_dist, max_dist_to_neighbour * 1.0e-1 );
+
     step = max_dist * .1;
     position = 0.0;
-    while( step > max_dist * 1e-20 && position < max_dist )
+    while( step > max_dist * 1e-20 && position < max_step )
     {
         new_position = position + step;
-        if( new_position > max_dist )
-            new_position = max_dist;
+        if( new_position > max_step )
+            new_position = max_step;
 
         for_less( dim, 0, N_DIMENSIONS )
             new_point[dim] = point[dim] + new_position * deriv[dim];
 
+/*
         len = sqrt( new_point[X] * new_point[X] +
                     new_point[Y] * new_point[Y] +
                     new_point[Z] * new_point[Z] );
 
         for_less( dim, 0, N_DIMENSIONS )
             new_point[dim] /= len;
+*/
 
         new_fit = evaluate_fit( new_point, n_neighbours, neighbours, lengths );
 
@@ -409,13 +449,6 @@ private  Real  optimize_vertex(
 
     for_less( dim, 0, N_DIMENSIONS )
         new_point[dim] = point[dim] + position * deriv[dim];
-
-    len = sqrt( new_point[X] * new_point[X] +
-                new_point[Y] * new_point[Y] +
-                new_point[Z] * new_point[Z] );
-
-    for_less( dim, 0, N_DIMENSIONS )
-        new_point[dim] /= len;
 
     dx = (new_point[X] - point[X]);
     dy = (new_point[Y] - point[Y]);
@@ -451,8 +484,8 @@ private  Real  perturb_vertices(
     ALLOC( lengths, max_neighbours );
 
     max_movement = 0.0;
-    ind = 0;
-    for_less( point_index, 0, unit_sphere->n_points )
+    ind = n_neighbours[0];
+    for_less( point_index, 1, unit_sphere->n_points )
     {
         for_less( n, 0, n_neighbours[point_index] )
         {
@@ -462,7 +495,7 @@ private  Real  perturb_vertices(
                 points[n][d] = new_points[neighbours[point_index][n]][d];
         }
 
-        movement = optimize_vertex( unit_sphere, original_points, new_points,
+        movement = optimize_vertex( unit_sphere, original_points,
                                     new_points[point_index],
                                     n_neighbours[point_index],
                                     points, lengths,
@@ -562,7 +595,7 @@ private  void  reparameterize(
     Real  (*original_points)[N_DIMENSIONS];
     Real  scale, total_model, total_original;
     Real  max_error, avg_error;
-    Point             centre;
+    Point             centre, *unit_sphere_points;
     polygons_struct   unit_sphere;
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
@@ -642,13 +675,6 @@ private  void  reparameterize(
                                     which_triangle,
                                     ratio, movement_threshold, n_iters );
 
-    for_less( point, 0, original->n_points )
-    {
-        fill_Point( original->points[point],
-                    new_points[point][X], new_points[point][Y],
-                    new_points[point][Z] );
-    }
-
     get_errors( original->n_points, n_neighbours, neighbours,
                 new_points, model_lengths, &max_error, &avg_error );
 
@@ -659,9 +685,28 @@ private  void  reparameterize(
                                      neighbours, NULL, NULL );
 
     FREE( model_lengths );
-    FREE( new_points );
     FREE( original_points );
     FREE( which_triangle );
 
+    ALLOC( unit_sphere_points, original->n_points );
+    for_less( point, 0, original->n_points )
+    {
+        unit_sphere_points[point] = unit_sphere.points[point];
+        fill_Point( unit_sphere.points[point],
+                    new_points[point][X], new_points[point][Y],
+                    new_points[point][Z] );
+    }
+
+    create_polygons_bintree( &unit_sphere,
+                         ROUND( BINTREE_FACTOR * (Real) original->n_items ) );
+
+    for_less( point, 0, original->n_points )
+    {
+        map_unit_sphere_to_point( &unit_sphere, &unit_sphere_points[point],
+                                  original, &original->points[point] );
+    }
+
     delete_polygons( &unit_sphere );
+    FREE( new_points );
+    FREE( unit_sphere_points );
 }
