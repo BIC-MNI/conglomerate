@@ -8,11 +8,13 @@ private  void   fit_line_to_points(
     int            n_points,
     Point          points[],
     int            max_points,
+    Boolean        subdivide,
     lines_struct   *lines );
 private  int  create_curve_approximating_points(
     int            n_tags,
     Point          tags[],
     int            max_points,
+    Boolean        subdivide,
     Point          *curve_points[] );
 private  Real  fit_curve(
     int     n_tags,
@@ -26,29 +28,45 @@ private  Real  evaluate_energy(
     int     n_tags,
     Point   tags[],
     int     n_points,
-    Point   curve[] );
+    Point   curve[],
+    Real    tag_rms[],
+    int     nearest_segments[],
+    Real    segment_lengths[] );
 private  Real   rms_error_of_point(
     Point   *point,
     int     n_points,
-    Point   curve[] );
+    Point   curve[],
+    int     *nearest_segment );
 private  Real  rms_to_segment(
     Point    *point,
     Point    *p1,
     Point    *p2 );
-private  Real  curve_length(
-    int    n_points,
-    Point  points[] );
+private  Real  evaluate_delta_energy(
+    int     n_tags,
+    Point   tags[],
+    int     n_points,
+    Point   curve[],
+    Real    tag_rms[],
+    int     nearest_segments[],
+    Real    segment_lengths[],
+    int     index_changed,
+    int     *n_tag_changes,
+    int     changed_tag[],
+    Real    changed_tag_rms[],
+    int     new_nearest_segments[],
+    Real    new_segment_lengths[2] );
 
-#define  DEFAULT_MAX_POINTS  10
+#define  DEFAULT_MAX_POINTS  9
 
 int   main(
     int   argc,
     char  *argv[] )
 {
     Status         status;
-    char           *input_filename, *output_filename;
+    char           *input_filename, *output_filename, *dummy;
     int            n_objects, n_points, max_points;
     Point          *points;
+    Boolean        subdivide;
     object_struct  **object_list, *object;
 
     initialize_argument_processing( argc, argv );
@@ -61,6 +79,8 @@ int   main(
     }
 
     (void) get_int_argument( DEFAULT_MAX_POINTS, &max_points );
+
+    subdivide = get_string_argument( "", &dummy );
 
     status = input_landmark_file( (Volume) NULL, input_filename,
                                   WHITE, 1.0, BOX_MARKER,
@@ -75,7 +95,8 @@ int   main(
 
     object = create_object( LINES );
 
-    fit_line_to_points( n_points, points, max_points, get_lines_ptr(object) );
+    fit_line_to_points( n_points, points, max_points, subdivide,
+                        get_lines_ptr(object) );
 
     status = output_graphics_file( output_filename, ASCII_FORMAT,
                                    1, &object );
@@ -110,13 +131,15 @@ private  void   fit_line_to_points(
     int            n_points,
     Point          points[],
     int            max_points,
+    Boolean        subdivide,
     lines_struct   *lines )
 {
     int    i, n_curve_points;
     Point  *curve_points;
 
     n_curve_points = create_curve_approximating_points( n_points, points,
-                                                   max_points, &curve_points );
+                                                   max_points, subdivide,
+                                                   &curve_points );
 
     initialize_lines( lines, WHITE );
 
@@ -124,18 +147,19 @@ private  void   fit_line_to_points(
         add_point_to_line( lines, &curve_points[i] );
 }
 
-#define  MAX_ERROR     0.0
+#define  MAX_ERROR     3.0
 
 private  int  create_curve_approximating_points(
     int            n_tags,
     Point          tags[],
     int            max_points,
+    Boolean        subdivide,
     Point          *curve_points[] )
 {
     int      i, c, n_points;
     Boolean  first_time;
     Point    *curve, *tmp;
-    Real     error;
+    Real     rms_error;
 
     n_points = 2;
     ALLOC( curve, 2 );
@@ -154,7 +178,22 @@ private  int  create_curve_approximating_points(
         }
     }
 
-    error = 2.0 * MAX_ERROR;
+    if( !subdivide )
+    {
+        REALLOC( curve, max_points );
+        curve[max_points-1] = curve[1];
+
+        for_less( i, 1, max_points-1 )
+        {
+            Real  ratio;
+
+            ratio = (Real) i / (Real) (max_points-1);
+            INTERPOLATE_POINTS( curve[i], curve[0], curve[max_points-1],
+                                ratio );
+        }
+    }
+
+    rms_error = 2.0 * MAX_ERROR;
     first_time = TRUE;
 
     do
@@ -179,9 +218,9 @@ private  int  create_curve_approximating_points(
 
         first_time = FALSE;
 
-        error = fit_curve( n_tags, tags, n_points, curve );
+        rms_error = fit_curve( n_tags, tags, n_points, curve );
     }
-    while( n_points < max_points && error >= MAX_ERROR );
+    while( n_points < max_points && rms_error >= MAX_ERROR );
 
     *curve_points = curve;
 
@@ -206,11 +245,21 @@ private  Real  fit_curve(
     Point   curve[] )
 {
     int    n_no_moves;
-    Real   energy, new_energy, temperature, random_distance;
+    Real   energy, new_energy, temperature, random_distance, rms_error;
     Real   delta_energy, min_delta_energy, max_delta_energy;
+    Real   *tag_rms, *changed_tag_rms, *segment_lengths;
+    Real   new_segment_lengths[2];
     Point  save_point;
     int    temperature_step, try, point_index, n_successes, max_tries;
-    int    max_successes, n_pos_successes;
+    int    max_successes, n_pos_successes, n_tag_changes;
+    int    *changed_tag, change, *nearest_segments, *new_nearest_segments;
+
+    ALLOC( tag_rms, n_tags );
+    ALLOC( changed_tag_rms, n_tags );
+    ALLOC( changed_tag, n_tags );
+    ALLOC( nearest_segments, n_tags );
+    ALLOC( new_nearest_segments, n_tags );
+    ALLOC( segment_lengths, n_points-1 );
 
     max_tries = MAX_TRIES_FACTOR * n_points;
     max_successes = MAX_SUCCESSES_FACTOR * n_points;
@@ -220,7 +269,8 @@ private  Real  fit_curve(
     min_delta_energy = 0.0;
     max_delta_energy = 0.0;
 
-    energy = evaluate_energy( n_tags, tags, n_points, curve );
+    energy = evaluate_energy( n_tags, tags, n_points, curve,
+                              tag_rms, nearest_segments, segment_lengths );
 
     print( "Starting energy: %g\n", energy );
 
@@ -246,13 +296,37 @@ private  Real  fit_curve(
             Point_z(curve[point_index]) += random_distance *
                                            (2.0*get_random_0_to_1()-1.0);
 
-            new_energy = evaluate_energy( n_tags, tags, n_points, curve );
+            delta_energy = evaluate_delta_energy( n_tags, tags, n_points, curve,
+                                        tag_rms, nearest_segments,
+                                        segment_lengths, point_index,
+                                        &n_tag_changes, changed_tag,
+                                        changed_tag_rms, new_nearest_segments,
+                                        new_segment_lengths );
 
-            delta_energy = new_energy - energy;
+            new_energy = energy + delta_energy;
 
-/*
-            print( "energy: %g - %g = %g\n", new_energy, energy, delta_energy );
-*/
+#ifdef DEBUG
+{
+    Real  tmp;
+    int   tmp_seg[1000];
+    Real  tag_r[1000], seg_len[1000];
+    tmp = evaluate_energy( n_tags, tags, n_points, curve, tag_r,
+                           tmp_seg, seg_len );
+    if( !numerically_close( tmp, new_energy, 0.01 ) )
+    {
+        print( "error -------------- %g != %g\n", tmp, new_energy );
+            delta_energy = evaluate_delta_energy( n_tags, tags, n_points, curve,
+                                        tag_rms, nearest_segments,
+                                        segment_lengths, point_index,
+                                        &n_tag_changes, changed_tag,
+                                        changed_tag_rms, new_nearest_segments,
+                                        new_segment_lengths );
+            tmp = evaluate_energy( n_tags, tags, n_points, curve, tag_r,
+                                   tmp_seg, seg_len );
+    }
+}
+#endif
+
             if( try == 0 )
             {
                 min_delta_energy = delta_energy;
@@ -265,6 +339,18 @@ private  Real  fit_curve(
 
             if( should_step( delta_energy, temperature ) )
             {
+                if( point_index > 0 )
+                    segment_lengths[point_index-1] = new_segment_lengths[0];
+                if( point_index < n_points-1 )
+                    segment_lengths[point_index] = new_segment_lengths[1];
+
+                for_less( change, 0, n_tag_changes )
+                {
+                    tag_rms[changed_tag[change]] = changed_tag_rms[change];
+                    nearest_segments[changed_tag[change]] =
+                                              new_nearest_segments[change];
+                }
+
                 energy = new_energy;
                 ++n_successes;
                 if( delta_energy < 0.0 )
@@ -291,10 +377,23 @@ private  Real  fit_curve(
             n_no_moves = 0;
     }
 
-    energy = evaluate_energy( n_tags, tags, n_points, curve );
-    print( "Final energy: %g\n", energy );
+    energy = evaluate_energy( n_tags, tags, n_points, curve, tag_rms,
+                              nearest_segments, segment_lengths );
 
-    return( energy );
+    rms_error = 0.0;
+    for_less( i, 0, n_tags )
+        rms_error += tag_rms[i];
+
+    print( "Final energy: %g    Final rms: %g\n", energy, rms_error );
+
+    FREE( tag_rms );
+    FREE( changed_tag_rms );
+    FREE( segment_lengths );
+    FREE( changed_tag );
+    FREE( nearest_segments );
+    FREE( new_nearest_segments );
+
+    return( rms_error );
 }
 
 private  Boolean  should_step(
@@ -309,7 +408,9 @@ private  Real  rms_error(
     int     n_tags,
     Point   tags[],
     int     n_points,
-    Point   curve[] )
+    Point   curve[],
+    Real    tag_rms[],
+    int     nearest_segment[] )
 {
     int     i;
     Real    sum_rms;
@@ -318,37 +419,58 @@ private  Real  rms_error(
 
     for_less( i, 0, n_tags )
     {
-        sum_rms += rms_error_of_point( &tags[i], n_points, curve );
+        tag_rms[i] = rms_error_of_point( &tags[i], n_points, curve,
+                                         &nearest_segment[i] );
+        sum_rms += tag_rms[i];
     }
 
     return( sum_rms );
+}
+
+private  Real  curve_length(
+    int    n_points,
+    Point  points[],
+    Real   segment_lengths[] )
+{
+    int   i;
+    Real  len;
+
+    len = 0.0;
+
+    for_less( i, 0, n_points-1 )
+    {
+        segment_lengths[i] = distance_between_points( &points[i], &points[i+1]);
+        len += segment_lengths[i];
+    }
+
+    return( len );
 }
 
 private  Real  evaluate_energy(
     int     n_tags,
     Point   tags[],
     int     n_points,
-    Point   curve[] )
+    Point   curve[],
+    Real    tag_rms[],
+    int     nearest_segments[],
+    Real    segment_lengths[] )
 {
     Real   energy;
 
-    energy = rms_error( n_tags, tags, n_points, curve ) / (Real) n_tags +
-             CURVE_LENGTH_FACTOR * curve_length( n_points, curve );
-
-/*
-    energy /= (Real) n_tags;
-*/
+    energy = rms_error( n_tags, tags, n_points, curve, tag_rms,
+                        nearest_segments ) / (Real) n_tags +
+             CURVE_LENGTH_FACTOR *
+             curve_length( n_points, curve, segment_lengths );
 
     return( energy );
 }
 
 private  Real  evaluate_delta_curve_length(
-    int     n_tags,
-    Point   tags[],
     int     n_points,
     Point   curve[],
     Real    segment_lengths[],
-    int     index_changed )
+    int     index_changed,
+    Real    new_segment_lengths[2] )
 {
     Real   delta_len;
 
@@ -356,14 +478,16 @@ private  Real  evaluate_delta_curve_length(
 
     if( index_changed > 0 )
     {
-        delta_len += distance_between_points( &curve[index_changed-1],
-                     &curve[index_changed] ) - segment_lengths[index_changed-1];
+        new_segment_lengths[0] = distance_between_points(
+                              &curve[index_changed-1], &curve[index_changed] );
+        delta_len += new_segment_lengths[0] - segment_lengths[index_changed-1];
     }
 
     if( index_changed < n_points-1 )
     {
-        delta_len += distance_between_points( &curve[index_changed],
-                     &curve[index_changed+1] ) - segment_lengths[index_changed];
+        new_segment_lengths[1] = distance_between_points(
+                              &curve[index_changed], &curve[index_changed+1] );
+        delta_len += new_segment_lengths[1] - segment_lengths[index_changed];
     }
 
     return( delta_len );
@@ -375,11 +499,17 @@ private  Real  evaluate_delta_avg_rms(
     int     n_points,
     Point   curve[],
     Real    tag_rms[],
-    int     index_changed )
+    int     nearest_segments[],
+    int     index_changed,
+    int     *n_tag_changes,
+    int     changed_tag[],
+    Real    changed_tag_rms[],
+    int     changed_tag_nearest[] )
 {
-    int     i, n_subpoints, start_point;
+    int     i, c, n_subpoints, start_point, new_nearest_segment;
     Point   min_box, max_box;
-    Real    delta_rms, current_rms;
+    Boolean possible_change, tag_rms_changed;
+    Real    delta_rms, current_rms, new_rms;
 
     min_box = curve[index_changed];
     max_box = curve[index_changed];
@@ -404,34 +534,62 @@ private  Real  evaluate_delta_avg_rms(
         ++n_subpoints;
     }
 
+    *n_tag_changes = 0;
     delta_rms = 0.0;
     for_less( i, 0, n_tags )
     {
         current_rms = tag_rms[i];
+        tag_rms_changed = FALSE;
 
-        possible_change = TRUE;
-
-        for_less( c, 0, N_DIMENSIONS )
+        if( nearest_segments[i] == start_point ||
+            (n_subpoints == 3 && nearest_segments[i] == start_point+1) )
         {
-            if( Point_coord(tags[i],c) + current_rms < Point_coord(min_box,c)&&
-                Point_coord(tags[i],c) - current_rms > Point_coord(max_box,c) )
+            new_rms = rms_error_of_point( &tags[i], n_points, curve,
+                                          &new_nearest_segment );
+            if( new_rms != current_rms )
+                tag_rms_changed = TRUE;
+        }
+        else
+        {
+            possible_change = TRUE;
+
+/*
+            for_less( c, 0, N_DIMENSIONS )
             {
-                possible_change = FALSE;
-                break;
+                if( Point_coord(tags[i],c) + current_rms <
+                    Point_coord(min_box,c)&&
+                    Point_coord(tags[i],c) - current_rms >
+                    Point_coord(max_box,c) )
+                {
+                    possible_change = FALSE;
+                    break;
+                }
+            }
+*/
+
+            if( possible_change )
+            {
+                new_rms = rms_error_of_point( &tags[i], n_subpoints,
+                                              &curve[start_point],
+                                              &new_nearest_segment );
+                new_nearest_segment += start_point;
+
+                if( new_rms < current_rms )
+                    tag_rms_changed = TRUE;
             }
         }
 
-        if( possible_change )
+        if( tag_rms_changed )
         {
-            possible_rms = rms_error_of_point( &tags[i], n_subpoints,
-                                               &curve[start_point] );
-
-            if( possible_rms < current_rms )
-            {
-                delta_rms += possible_rms - current_rms;
-            }
+            delta_rms += new_rms - current_rms;
+            changed_tag[*n_tag_changes] = i;
+            changed_tag_rms[*n_tag_changes] = new_rms;
+            changed_tag_nearest[*n_tag_changes] = new_nearest_segment;
+            ++(*n_tag_changes);
         }
     }
+
+    return( delta_rms );
 }
 
 private  Real  evaluate_delta_energy(
@@ -439,15 +597,36 @@ private  Real  evaluate_delta_energy(
     Point   tags[],
     int     n_points,
     Point   curve[],
+    Real    tag_rms[],
+    int     nearest_segments[],
     Real    segment_lengths[],
-    int     index_changed )
+    int     index_changed,
+    int     *n_tag_changes,
+    int     changed_tag[],
+    Real    changed_tag_rms[],
+    int     changed_segments[],
+    Real    new_segment_lengths[2] )
 {
+    Real   delta;
+
+    delta = evaluate_delta_avg_rms( n_tags, tags, n_points, curve, tag_rms,
+                                    nearest_segments,
+                                    index_changed, n_tag_changes, changed_tag,
+                                    changed_tag_rms, changed_segments ) /
+                                    (Real) n_tags +
+            CURVE_LENGTH_FACTOR * evaluate_delta_curve_length(
+                                         n_points, curve,
+                                         segment_lengths, index_changed,
+                                         new_segment_lengths );
+
+    return( delta );
 }
 
 private  Real   rms_error_of_point(
     Point   *point,
     int     n_points,
-    Point   curve[] )
+    Point   curve[],
+    int     *nearest_segment )
 {
     int   i;
     Real  rms, min_rms;
@@ -459,7 +638,10 @@ private  Real   rms_error_of_point(
         rms = rms_to_segment( point, &curve[i], &curve[i+1] );
 
         if( i == 0 || rms < min_rms )
+        {
             min_rms = rms;
+            *nearest_segment = i;
+        }
     }
 
     return( min_rms );
@@ -497,19 +679,4 @@ private  Real  rms_to_segment(
     }
 
     return( rms );
-}
-
-private  Real  curve_length(
-    int    n_points,
-    Point  points[] )
-{
-    int   i;
-    Real  len;
-
-    len = 0.0;
-
-    for_less( i, 0, n_points-1 )
-        len += distance_between_points( &points[i], &points[i+1] );
-
-    return( len );
 }
