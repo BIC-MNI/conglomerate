@@ -161,7 +161,7 @@ private  void  create_coefficients(
 {
     int              dim, n_nodes_in, n_parameters, n, nn, point;
     int              max_neighbours, next_n;
-    int              indices[6], nodes[3], dim2;
+    int              indices[6], nodes[3], dim2, n_to_do;
     Real             con, node_weights[6], x, y;
     Real             weights[2][3][2], len;
     Real             *flat[2];
@@ -210,7 +210,12 @@ private  void  create_coefficients(
                                (BOOLEAN) interior_flags[point],
                                flat[0], flat[1] );
 
-        for_less( nn, 0, n_neighbours[point] )
+        if( interior_flags[point] )
+            n_to_do = n_neighbours[point];
+        else
+            n_to_do = n_neighbours[point] - 1;
+
+        for_less( nn, 0, n_to_do )
         {
             next_n = (nn+1) % n_neighbours[point];
             nodes[0] = point;
@@ -239,6 +244,37 @@ private  void  create_coefficients(
             weights[1][1][1] = -x;
             weights[1][2][0] = 0.0;
             weights[1][2][1] = 1.0;
+
+#ifdef DEBUG
+{
+
+    Real  sum;
+    for_less( dim, 0, 2 )
+    {
+        sum = 0.0;
+
+        for_less( n, 0, 3 )
+        for_less( dim2, 0, 2 )
+        {
+            if( to_parameters[nodes[n]] >= 0 )
+            {
+                sum += RPoint_coord( points[nodes[n]], dim2 ) *
+                       weights[dim][n][dim2];
+            }
+            else
+            {
+                sum += weights[dim][n][dim2] *
+                       fixed_pos[dim2][to_fixed_index[nodes[n]]];
+            }
+        }
+
+        if( sum > 1.0e-3 || sum < -1.0e-3 )
+        {
+            print( "%d %d: %g\n", point, nn, sum );
+        }
+    }
+}
+#endif
 
             if( y < 0.0 )
                 print_error( "Y = %g\n" );
