@@ -28,14 +28,15 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &src_filename ) ||
-        !get_string_argument( "", &dest_filename ) ||
-        !get_string_argument( "", &colour_name ) ||
-        !lookup_colour( colour_name, &colour ) )
+    if( !get_string_argument( NULL, &src_filename ) ||
+        !get_string_argument( NULL, &dest_filename ) ||
+        !get_string_argument( NULL, &colour_name ) )
     {
         usage( argv[0] );
         return( 1 );
     }
+
+    colour = convert_string_to_colour( colour_name ); 
 
     (void) get_real_argument( 1.0, &line_thickness );
 
