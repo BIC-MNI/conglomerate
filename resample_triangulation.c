@@ -131,6 +131,40 @@ private  void  initialize_tri_mesh(
     mesh->n_points = 0;
 }
 
+private  tri_node_struct  *create_tri_leaf(
+    int              p0,
+    int              p1,
+    int              p2 )
+{
+    tri_node_struct  *node;
+
+    ALLOC( node, 1 );
+
+    node->nodes[0] = p0;
+    node->nodes[1] = p1;
+    node->nodes[2] = p2;
+    node->children[0] = NULL;
+    node->children[1] = NULL;
+    node->children[2] = NULL;
+    node->children[3] = NULL;
+
+    return( node );
+}
+
+private  void  delete_tri_node(
+    tri_node_struct  *node )
+{
+    if( node->children[0] != NULL )
+    {
+        delete_tri_node( node->children[0] );
+        delete_tri_node( node->children[1] );
+        delete_tri_node( node->children[2] );
+        delete_tri_node( node->children[3] );
+    }
+
+    FREE( node );
+}
+
 private  void  tri_mesh_insert_triangle(
     tri_mesh_struct  *mesh,
     int              p0,
@@ -359,6 +393,8 @@ private  void   delete_unused_nodes(
             new_id[point] = new_n_points;
             ++new_n_points;
         }
+        else
+            new_id[point] = -1;
     }
 
     if( new_n_points == mesh->n_points )
@@ -368,7 +404,10 @@ private  void   delete_unused_nodes(
     }
 
     for_less( point, 0, mesh->n_points )
-        mesh->points[new_id[point]] = mesh->points[point];
+    {
+        if( new_id[point] >= 0 )
+            mesh->points[new_id[point]] = mesh->points[point];
+    }
 
     SET_ARRAY_SIZE( mesh->points, mesh->n_points, new_n_points,
                     DEFAULT_CHUNK_SIZE );
@@ -527,10 +566,14 @@ private  void  subdivide_tri_node(
     midpoints[2] = get_edge_midpoint( mesh, edge_lookup, node->nodes[2],
                                                          node->nodes[0] );
 
-    tri_mesh_insert_triangle( mesh, node->nodes[0], midpoints[0], midpoints[2]);
-    tri_mesh_insert_triangle( mesh, midpoints[0], node->nodes[1], midpoints[1]);
-    tri_mesh_insert_triangle( mesh, midpoints[0], midpoints[1], midpoints[2]);
-    tri_mesh_insert_triangle( mesh, midpoints[2], midpoints[1], node->nodes[2]);
+    node->children[0] = create_tri_leaf( node->nodes[0], midpoints[0],
+                                         midpoints[2]);
+    node->children[1] = create_tri_leaf( midpoints[0], node->nodes[1],
+                                         midpoints[1]);
+    node->children[2] = create_tri_leaf( midpoints[0], midpoints[1],
+                                         midpoints[2]);
+    node->children[3] = create_tri_leaf( midpoints[2], midpoints[1],
+                                         node->nodes[2]);
 }
 
 private  int  count_triangles(
@@ -538,11 +581,11 @@ private  int  count_triangles(
 {
     int   n_triangles;
 
-    n_triangles = 1;
-
-    if( node->children[0] != NULL )
+    if( node->children[0] == NULL )
+        n_triangles = 1;
+    else
     {
-        n_triangles += count_triangles( node->children[0] );
+        n_triangles = count_triangles( node->children[0] );
         n_triangles += count_triangles( node->children[1] );
         n_triangles += count_triangles( node->children[2] );
         n_triangles += count_triangles( node->children[3] );
@@ -592,6 +635,8 @@ private  void   add_to_polygons(
     int                     *n_indices,
     tri_node_struct         *node )
 {
+    int  size;
+
     if( node->children[0] == NULL )
     {
         add_subdivided_edge( edge_lookup, indices, n_indices,
@@ -601,6 +646,11 @@ private  void   add_to_polygons(
         add_subdivided_edge( edge_lookup, indices, n_indices,
                              node->nodes[2], node->nodes[0] );
         end_indices[*current_poly] = *n_indices;
+        size = end_indices[*current_poly];
+        if( *current_poly > 0 )
+            size -= end_indices[(*current_poly)-1];
+        if( size < 3 )
+            handle_internal_error( "add_to_polygons" );
         ++(*current_poly);
     }
     else
@@ -655,10 +705,128 @@ private   void   convert_mesh_to_polygons(
     compute_polygon_normals( polygons );
 }
 
+private  Real  get_triangle_size(
+    Point   *p1,
+    Point   *p2,
+    Point   *p3 )
+{
+    Real  dist1, dist2, dist3;
+
+    dist1 = sq_distance_between_points( p1, p2 );
+    dist2 = sq_distance_between_points( p2, p3 );
+    dist3 = sq_distance_between_points( p3, p1 );
+
+    return( MAX3( dist1, dist2, dist3 ) );
+}
+
+private  BOOLEAN   delete_small_triangles(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    tri_node_struct   *node,
+    Real              min_size_sq )
+{
+    Real      size;
+    BOOLEAN   should_delete0, should_delete1, should_delete2, should_delete3;
+
+    if( node->children[0] != NULL )
+    {
+        should_delete0 = delete_small_triangles( mesh, edge_lookup,
+                                            node->children[0], min_size_sq );
+        should_delete1 = delete_small_triangles( mesh, edge_lookup,
+                                            node->children[1], min_size_sq );
+        should_delete2 = delete_small_triangles( mesh, edge_lookup,
+                                            node->children[2], min_size_sq );
+        should_delete3 = delete_small_triangles( mesh, edge_lookup,
+                                            node->children[3], min_size_sq );
+
+        if( should_delete0 || should_delete1 ||
+            should_delete2 || should_delete3 )
+        {
+            delete_tri_node( node->children[0] );
+            delete_tri_node( node->children[1] );
+            delete_tri_node( node->children[2] );
+            delete_tri_node( node->children[3] );
+            node->children[0] = NULL;
+            node->children[1] = NULL;
+            node->children[2] = NULL;
+            node->children[3] = NULL;
+        }
+    }
+
+    if( node->children[0] == NULL )
+    {
+        size = get_triangle_size( &mesh->points[node->nodes[0]],
+                                  &mesh->points[node->nodes[1]],
+                                  &mesh->points[node->nodes[2]] );
+
+        return( size < min_size_sq );
+    }
+    else
+        return( FALSE );
+}
+
+private  void   subdivide_large_triangles(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    tri_node_struct   *node,
+    Real              max_size_sq )
+{
+    Real   size;
+
+    if( node->children[0] == NULL )
+    {
+        size = get_triangle_size( &mesh->points[node->nodes[0]],
+                                  &mesh->points[node->nodes[1]],
+                                  &mesh->points[node->nodes[2]] );
+
+        if( size > max_size_sq )
+            subdivide_tri_node( mesh, edge_lookup, node );
+    }
+
+    if( node->children[0] != NULL )
+    {
+        subdivide_large_triangles( mesh, edge_lookup, node->children[0],
+                                   max_size_sq );
+        subdivide_large_triangles( mesh, edge_lookup, node->children[1],
+                                   max_size_sq );
+        subdivide_large_triangles( mesh, edge_lookup, node->children[2],
+                                   max_size_sq );
+        subdivide_large_triangles( mesh, edge_lookup, node->children[3],
+                                   max_size_sq );
+    }
+}
+
 private   void   resample_mesh(
     tri_mesh_struct   *mesh,
     Real              min_size,
     Real              max_size )
 {
+    int                tri;
+    hash_table_struct  edge_lookup;
+
+    create_edge_lookup( mesh, &edge_lookup );
+
+    if( min_size > 0.0 )
+    {
+        for_less( tri, 0, mesh->n_triangles )
+        {
+            (void) delete_small_triangles( mesh, &edge_lookup,
+                                           &mesh->triangles[tri],
+                                           min_size * min_size );
+        }
+    }
+
+    if( max_size > 0.0 )
+    {
+        for_less( tri, 0, mesh->n_triangles )
+        {
+            (void) subdivide_large_triangles( mesh, &edge_lookup,
+                                              &mesh->triangles[tri],
+                                              max_size * max_size );
+        }
+    }
+
+    delete_edge_lookup( &edge_lookup );
+
     delete_unused_nodes( mesh );
 }
