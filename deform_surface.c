@@ -76,6 +76,8 @@ int  main( argc, argv )
     deform.deform_data.type = VOLUME_DATA;
     deform.deform_data.volume = &volume;
 
+    deform.deformation_model.position_constrained = FALSE;
+
     status = input_volume( volume_filename, &volume );
 
     if( strcmp( activity_filename, "none" ) != 0 )
