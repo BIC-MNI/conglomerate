@@ -21,10 +21,13 @@ private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  input_lines.tag  output_lines.obj n_controls\n\
+Usage: %s  input_lines.tag  output_lines.obj n_controls n_intervals\n\
 \n\
      Creates a cubic spline curve that approximates the set of points in\n\
-     the tag file.\n\n";
+     the tag file.  The n_controls effectively sets the smoothness of the \n\
+     spline by controling the number of control vertices.  The n_intervals\n\
+     is the number of intervals between each control vertex in the\n\
+     discretized line that is finally output.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -34,18 +37,20 @@ int  main(
     char  *argv[] )
 {
     STRING               input_filename, output_filename;
-    Real                 **tags;
-    int                  p, n_control_vertices, n_tag_points, n_volumes, axis;
+    Real                 **tags, u;
+    int                  p, n_piecewise, n_tag_points, n_volumes, axis;
+    int                  n_intervals_per, i, n_cvs, ind, n;
     object_struct        *object;
     lines_struct         *lines;
-    Point                *points, line_origin;
+    Point                *points, line_origin, *cvs;
     Vector               line_direction;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &input_filename ) ||
         !get_string_argument( NULL, &output_filename ) ||
-        !get_int_argument( 0, &n_control_vertices ) )
+        !get_int_argument( 0, &n_piecewise ) ||
+        !get_int_argument( 0, &n_intervals_per ) )
     {
         usage( argv[0] );
         return( 1 );
@@ -60,14 +65,49 @@ int  main(
     for_less( p, 0, n_tag_points )
         fill_Point( points[p], tags[p][X], tags[p][Y], tags[p][Z] );
 
-    object = create_object( LINES );
-    lines = get_lines_ptr( object );
-    initialize_lines_with_size( lines, WHITE, n_control_vertices, FALSE );
-
     get_best_line( n_tag_points, points, &line_origin, &line_direction, &axis );
 
+    n_cvs = MAX( n_piecewise + 2, 5 );
+
+    ALLOC( cvs, n_cvs );
+
     fit_curve( n_tag_points, points, &line_origin, &line_direction, axis,
-               lines->n_points, lines->points );
+               n_cvs, cvs );
+
+    object = create_object( LINES );
+    lines = get_lines_ptr( object );
+    initialize_lines_with_size( lines, WHITE, n_intervals_per * (n_cvs-3) + 1,
+                                FALSE );
+
+    ind = 0;
+    for_less( p, 1, n_cvs-2 )
+    {
+        if( p == n_cvs-3 )
+            n = n_intervals_per + 1;
+        else
+            n = n_intervals_per;
+        for_less( i, 0, n )
+        {
+            u = (Real) i / (Real) (n_intervals_per-1);
+            fill_Point( lines->points[ind],
+                        cubic_interpolate( u, RPoint_x(cvs[p-1]),
+                                              RPoint_x(cvs[p+0]),
+                                              RPoint_x(cvs[p+1]),
+                                              RPoint_x(cvs[p+2]) ),
+                        cubic_interpolate( u, RPoint_y(cvs[p-1]),
+                                              RPoint_y(cvs[p+0]),
+                                              RPoint_y(cvs[p+1]),
+                                              RPoint_y(cvs[p+2]) ),
+                        cubic_interpolate( u, RPoint_z(cvs[p-1]),
+                                              RPoint_z(cvs[p+0]),
+                                              RPoint_z(cvs[p+1]),
+                                              RPoint_z(cvs[p+2]) ) );
+            ++ind;
+        }
+    }
+
+    if( ind != lines->n_points )
+        handle_internal_error( " ind != lines->n_points" );
 
     if( output_graphics_file( output_filename, ASCII_FORMAT, 1, &object ) != OK)
         return( 1 );
@@ -323,8 +363,8 @@ private  void  get_spline_fit(
     Point_y(cvs[0]) = (Point_coord_type)
                       (2.5 * coefs[0] - 2.0 * coefs[1] + 0.5 * coefs[2]);
     Point_y(cvs[n_cvs-1]) = (Point_coord_type)
-                      (2.5 * coefs[n_cvs-2] - 2.0 * coefs[n_cvs-3] +
-                       0.5 * coefs[n_cvs-4]);
+                      (2.5 * coefs[n_cvs-3] - 2.0 * coefs[n_cvs-4] +
+                       0.5 * coefs[n_cvs-5]);
 
     delete_linear_least_squares( &lsq );
 
