@@ -10,11 +10,11 @@ int   main(
     char                  *output_prefix;
     char                  **input_filenames, *input_filename;
     char                  *dim_names_2d[2], *dim_names_3d[3];
-    int                   n_input_files, d, i, v, x_dim;
+    int                   n_input_files, d, i, vol, x_dim;
     int                   sizes_3d[3], sizes_2d[2];
-    int                   v0, v1, v2, v3, v4, n_slices;
+    int                   v[5], n_slices;
     int                   slice, s;
-    Real                  fraction_done;
+    Real                  fraction_done, this_value, opposite_value;
     STRING                file_dim_names[N_DIMENSIONS];
     STRING                output_filename;
     char                  *suffixes[] = { "not_left_not_right",
@@ -22,7 +22,7 @@ int   main(
                                           "left_not_right",
                                           "left_right" };
     volume_input_struct   input_info;
-    Real                  value, voxel;
+    Real                  voxel;
     Volume                input_volume, output_volumes[N_OUTPUT];
     Minc_file             output_files[N_OUTPUT];
     General_transform     voxel_to_world_transform;
@@ -32,7 +32,7 @@ int   main(
 
     if( !get_string_argument( "", &output_prefix ) )
     {
-        print_error( "Usage: %s output.mnc input1.mnc input2.mnc ...\n",
+        print_error( "Usage: %s output_prefix input1.mnc input2.mnc ...\n",
                      argv[0] );
         return( 1 );
     }
@@ -148,15 +148,15 @@ int   main(
     {
         /*--- initialize output volumes to 0 */
 
-        BEGIN_ALL_VOXELS( output_volumes[0], v0, v1, v2, v3, v4 )
+        BEGIN_ALL_VOXELS( output_volumes[0], v[0], v[1], v[2], v[3], v[4] )
             for_less( i, 0, N_OUTPUT )
-                set_volume_real_value( output_volumes[i], v0, v1, v2, v3, v4,
-                                       0.0 );
+                set_volume_real_value( output_volumes[i],
+                                       v[0], v[1], v[2], v[3], v[4], 0.0 );
         END_ALL_VOXELS
 
-        for_less( v, 0, n_input_files )
+        for_less( vol, 0, n_input_files )
         {
-            if( start_volume_input( input_filenames[v], 2, dim_names_2d,
+            if( start_volume_input( input_filenames[vol], 2, dim_names_2d,
                                     NC_UNSPECIFIED, FALSE, 0.0, 0.0, FALSE,
                                     &input_volume, NULL, &input_info ) != OK )
             {
@@ -171,18 +171,28 @@ int   main(
             {
             }
 
-            BEGIN_ALL_VOXELS( output_volumes[0], v0, v1, v2, v3, v4 )
+            BEGIN_ALL_VOXELS( output_volumes[0], v[0], v[1], v[2], v[3], v[4] )
                 for_less( i, 0, N_OUTPUT )
                 {
-                    value = get_volume_real_value( input_volume,
-                                                   v0, v1, v2, v3, v4 );
-                    if( value > 0.0 )
+                    this_value = get_volume_real_value( input_volume,
+                                                 v[0], v[1], v[2], v[3], v[4]);
+
+                    v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
+
+                    opposite_value = get_volume_real_value( input_volume,
+                                                v[0], v[1], v[2], v[3], v[4]);
+
+                    v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
+
+                    if( (this_value > 0.0) == ((i & 2) != 0) &&
+                        (opposite_value > 0.0) == ((i & 1) != 0) )
                     {
                         voxel = get_volume_voxel_value( output_volumes[i],
-                                                        v0, v1, v2, v3, v4 );
+                                                  v[0], v[1], v[2], v[3], v[4]);
                         ++voxel;
                         set_volume_voxel_value( output_volumes[i],
-                                                v0, v1, v2, v3, v4, voxel );
+                                                v[0], v[1], v[2], v[3], v[4],
+                                                voxel );
                     }
                 }
             END_ALL_VOXELS
