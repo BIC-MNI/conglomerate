@@ -254,10 +254,9 @@ private  void  flatten_polygons(
     Real             constant;
     int              *n_cross_terms, **cross_parms, w_offset;
     ftype            *linear_terms, *square_terms, **cross_terms;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
-    Vector           x_dir, y_dir, offset;
+    Vector           x_dir, y_dir, offset, p12, p13;
     Smallest_int     *interior_flags;
     BOOLEAN          alloced_fixed;
 
@@ -277,26 +276,33 @@ private  void  flatten_polygons(
                 break;
         }
 
-        n_fixed = 1 + n_neighbours[which];
+        n_fixed = 3;
         ALLOC( fixed_indices, n_fixed );
         ALLOC( fixed_pos[0], n_fixed );
         ALLOC( fixed_pos[1], n_fixed );
 
         fixed_indices[0] = which;
-        for_less( i, 0, n_neighbours[which] )
+        for_less( i, 0, 2 )
             fixed_indices[i+1] = neighbours[which][i];
-
-        for_less( i, 0, n_neighbours[which] )
-            neigh_points[i] = polygons->points[neighbours[which][i]];
 
         fixed_pos[0][0] = 0.0;
         fixed_pos[1][0] = 0.0;
 
-        flatten_around_vertex( &polygons->points[which], n_neighbours[which],
-                               neigh_points, (BOOLEAN) interior_flags[which],
-                               &fixed_pos[0][1], &fixed_pos[1][1] );
+        fixed_pos[0][1] = distance_between_points( &polygons->points[which],
+                                        &polygons->points[fixed_indices[1]] );
+        fixed_pos[1][1] = 0.0;
 
-        n_fixed = 3;
+        SUB_POINTS( p12, polygons->points[fixed_indices[1]],
+                         polygons->points[which] );
+        SUB_POINTS( p13, polygons->points[fixed_indices[2]],
+                         polygons->points[which] );
+
+        NORMALIZE_VECTOR( p12, p12 );
+        fixed_pos[0][2] = DOT_VECTORS( p13, p12 );
+        SCALE_VECTOR( p12, p12, fixed_pos[0][2] );
+        SUB_VECTORS( p13, p13, p12 );
+        fixed_pos[1][2] = MAGNITUDE( p13 );
+
         alloced_fixed = TRUE;
     }
     else
@@ -344,9 +350,6 @@ private  void  flatten_polygons(
                          &constant, &linear_terms, &square_terms,
                          &n_cross_terms, &cross_parms, &cross_terms );
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
-                                     interior_flags, NULL );
-
     ALLOC( parameters, 2 * (polygons->n_points - n_fixed) );
 
     if( init_points == NULL )
@@ -357,13 +360,17 @@ private  void  flatten_polygons(
         fill_Point( y_dir, -RVector_y(x_dir), RVector_x(x_dir), 0.0 );
     }
 
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     interior_flags, NULL );
+
     for_less( point, 0, polygons->n_points )
     {
         if( to_parameters[point] >= 0 )
         {
             if( init_points == NULL )
             {
-                SUB_POINTS( offset, init_points[point], init_points[which] );
+                SUB_POINTS( offset, polygons->points[point],
+                                    polygons->points[which] );
                 parameters[2*to_parameters[point]] =
                                DOT_VECTORS( offset, x_dir );
                 parameters[2*to_parameters[point]+1] =
