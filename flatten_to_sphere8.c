@@ -392,9 +392,12 @@ private  void  get_third_point(
     Point     *s2,
     Point     *s3 )
 {
-    Real    d2, a, u, h, fraction;
-    Vector  p12, p13, up, hor, s12;
-    Point   m;
+    Real    d2, fraction, b_scale, b_trans, a, b, c, sol1, sol2;
+    Real    o_dot_o, o_dot_h, o_dot_v, h_dot_h, h_dot_v, v_dot_v;
+    Real    v_scale, h_scale;
+    Vector  p12, p13, vert, hor, s12;
+    int     n_solutions;
+    Point   m, o;
 
     SUB_POINTS( p12, *p2, *p1 );
     SUB_POINTS( p13, *p3, *p1 );
@@ -403,25 +406,44 @@ private  void  get_third_point(
 
     INTERPOLATE_POINTS( m, *p1, *p2, fraction );
     d2 = distance_between_points( &m, p3 );
-    a = radius - sqrt( DOT_POINTS( m, m ) );
 
-    INTERPOLATE_POINTS( m, *s1, *s2, fraction );
-
-    CONVERT_POINT_TO_VECTOR( up, m );
+    INTERPOLATE_POINTS( o, *s1, *s2, fraction );
     SUB_POINTS( s12, *s2, *s1 );
-    CROSS_VECTORS( hor, up, s12 );
-
-    NORMALIZE_VECTOR( up, up );
+    create_two_orthogonal_vectors( &s12, &hor, &vert );
+    NORMALIZE_VECTOR( vert, vert );
     NORMALIZE_VECTOR( hor, hor );
 
-    u = (2.0 * radius * a - a * a - d2*d2) / (2.0 * a - 2.0 * radius);
-    h = sqrt( d2*d2 - u * u);
+    o_dot_o = DOT_POINTS( o, o );
+    o_dot_h = DOT_POINTS( o, hor );
+    o_dot_v = DOT_POINTS( o, vert );
+    h_dot_h = DOT_POINTS( hor, hor );
+    h_dot_v = DOT_POINTS( hor, vert );
+    v_dot_v = DOT_POINTS( vert, vert );
 
-    SCALE_VECTOR( up, up, u );
-    SCALE_VECTOR( hor, hor, h );
+    b_scale = -2.0 * o_dot_h / (2.0 * o_dot_v);
+    b_trans = (radius * radius - d2 * d2 - o_dot_o) / (2.0 * o_dot_v);
 
-    ADD_POINT_VECTOR( *s3, m, up );
-    ADD_POINT_VECTOR( *s3, *s3, hor );
+    a = h_dot_h + 2.0 * b_scale * h_dot_v + b_scale * b_scale * v_dot_v;
+    b = 2.0 * b_scale * b_trans * v_dot_v + 2.0 * b_trans * h_dot_v;
+    c = -d2 * d2 + b_trans * b_trans * v_dot_v;
+
+    n_solutions = solve_quadratic( a, b, c, &sol1, &sol2 );
+
+    if( n_solutions == 0 )
+        handle_internal_error( "get_third_point, no solution" );
+    else if( n_solutions == 2 )
+    {
+        sol1 = MAX( sol1, sol2 );
+    }
+
+    h_scale = sol1;
+    v_scale = b_trans + b_scale * h_scale;
+
+    SCALE_VECTOR( hor, hor, h_scale );
+    SCALE_VECTOR( vert, vert, v_scale );
+
+    ADD_POINT_VECTOR( *s3, o, hor );
+    ADD_POINT_VECTOR( *s3, *s3, vert );
 
     if( !numerically_close( DOT_POINTS(*s1,*s1), radius*radius, 1.0e-4 ) )
         handle_internal_error( "Nope s1" );
