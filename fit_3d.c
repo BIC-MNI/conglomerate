@@ -924,7 +924,7 @@ private  void   fit_polygons(
     int                         sizes[N_DIMENSIONS];
     int                         *to_parameter;
     int                         parm_index, neigh_parm_index;
-    ftype                       *constants, **node_weights;
+    ftype                       *constants, **node_weights, weight;
     Real                        *parameters;
     polygons_struct             save_p;
     boundary_definition_struct  boundary;
@@ -992,8 +992,7 @@ private  void   fit_polygons(
 
     FREE( model_points );
 
-    model_weight = sqrt( model_weight / (Real) n_moving_points *
-       ((Real) (n_moving_points + n_oversample_equations/n_image_per_point)));
+    model_weight = sqrt( model_weight / (Real) n_model_equations );
 
     for_less( eq, 0, n_model_equations )
     {
@@ -1127,6 +1126,17 @@ private  void   fit_polygons(
                                    &parm_list[n_model_equations],
                                    &constants[n_model_equations],
                                    &node_weights[n_model_equations] );
+
+    weight = (ftype)
+              sqrt( 1.0 / (Real) (n_image_equations + n_oversample_equations) );
+
+    for_less( eq, n_model_equations, n_equations )
+    {
+        constants[eq] *= (ftype) weight;
+        for_less( n, 0, n_parms_involved[eq] )
+            node_weights[eq][n] *= weight;
+    }
+
 
 #ifdef DEBUG
 #define DEBUG
