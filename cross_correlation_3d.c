@@ -29,11 +29,11 @@ int  main(
     Volume         volume1, volume2;
     Real           x_sampling, y_sampling, z_sampling, x_rot, y_rot, z_rot;
     Real           x_trans, y_trans, z_trans, xr, yr, zr, xt, yt, zt, alpha;
-    Real           value, separations[3];
+    Real           value, separations[3], min_value, max_value;
     Transform      transform, x_rot_trans, y_rot_trans, z_rot_trans;
     Transform      translation;
     int            n_samples, sample, sizes[3], nx, ny, nz;
-    object_struct  *object;
+    object_struct  *objects[2];
     lines_struct   *lines;
     progress_struct  progress;
 
@@ -81,13 +81,16 @@ int  main(
             return( 1 );
     }
 
-    object = create_object( LINES );
-    lines = get_lines_ptr( object );
+    objects[0] = create_object( LINES );
+    lines = get_lines_ptr( objects[0] );
 
     initialize_lines_with_size( lines, GREEN, n_samples, FALSE );
 
     initialize_progress_report( &progress, FALSE, n_samples,
                                 "Computing cross correlation" );
+
+    min_value = 0.0;
+    max_value = 0.0;
 
     for_less( sample, 0, n_samples )
     {
@@ -112,6 +115,11 @@ int  main(
         value = compute_cross_correlation( volume1, volume2, &transform,
                                            nx, ny, nz );
 
+        if( sample == 0 || value < min_value )
+            min_value = value;
+        if( sample == 0 || value > max_value )
+            max_value = value;
+
         fill_Point( lines->points[sample], alpha, value, 0.0 );
 
         update_progress_report( &progress, sample+1 );
@@ -119,9 +127,16 @@ int  main(
 
     terminate_progress_report( &progress );
 
-    (void) output_graphics_file( output_filename, ASCII_FORMAT, 1, &object );
+    objects[1] = create_object( LINES );
+    lines = get_lines_ptr( objects[1] );
+    initialize_lines_with_size( lines, RED, 2, FALSE );
+    fill_Point( lines->points[0], 0.0, min_value, 0.0 );
+    fill_Point( lines->points[1], 0.0, max_value, 0.0 );
 
-    delete_object( object );
+    (void) output_graphics_file( output_filename, ASCII_FORMAT, 2, objects );
+
+    delete_object( objects[0] );
+    delete_object( objects[1] );
 
     if( volume1 != volume2 )
         delete_volume( volume2 );
