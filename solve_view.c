@@ -2,6 +2,8 @@
 #include  <bicpl.h>
 #include  <interval.h>
 
+extern       int swapRM(int x);
+
 #define  N_PARMS   6
 
 private  void  get_random_points(
@@ -35,6 +37,8 @@ private  void  solve_view_by_intervals(
     Real        (*screen_points)[2],
     Real        tolerance,
     Transform   *solution );
+
+static  Transform r_t;
 
 int   main(
     int    argc,
@@ -87,6 +91,8 @@ int   main(
                               &scale );
 
         concat_transforms( &random_transform, &random_transform, &scale );
+
+r_t = random_transform;
 
         outside_view = FALSE;
 
@@ -352,8 +358,11 @@ private  Solution_types  check_parameters(
     Interval    parameters[] )
 {
     int        dim, p;
-    Interval   trans[N_DIMENSIONS], t1, t2, t3, x, xs, ys;
+    Interval   trans[N_DIMENSIONS], t1, t2, t3, x, xs, ys, cx, cy, xz, yz;
     Real       sl, sh, tl, th;
+    Solution_types   sol_type;
+
+    sol_type = SOLUTION;
 
     for_less( p, 0, n_points )
     {
@@ -368,40 +377,22 @@ private  Solution_types  check_parameters(
             ADD_INTERVALS( trans[dim], x, t3 );
         }
 
-        if( INTERVAL_CONTAINS( trans[2], 0.0 ) )
-            return( DIV_BY_ZERO );
+        MULT_INTERVALS( xz, screen_points[p][0], trans[2] );
+        MULT_INTERVALS( yz, screen_points[p][1], trans[2] );
 
-        DIVIDE_INTERVALS( xs, trans[0], trans[2] );
-        DIVIDE_INTERVALS( ys, trans[1], trans[2] );
+        SUBTRACT_INTERVALS( cx, trans[0], xz );
+        SUBTRACT_INTERVALS( cy, trans[1], yz );
 
-        sl = INTERVAL_MIN( screen_points[p][0] );
-        sh = INTERVAL_MAX( screen_points[p][0] );
-
-        tl = INTERVAL_MIN( xs );
-        th = INTERVAL_MAX( xs );
-
-        if( (tl != (-1.0 / 0.0) && sh < tl) || (th != (1.0/0.0) && th < sl) )
+        if( !INTERVAL_CONTAINS( cx, 0.0 ) || !INTERVAL_CONTAINS( cy, 0.0 ) )
+        {
             return( NOT_SOLUTION );
+        }
 
-        if( (tl == (-1.0 / 0.0) || tl < sl) &&
-            (th == (1.0/0.0) ||  th > sh) )
-            return( MIXED_SOLUTION );
-
-        sl = INTERVAL_MIN( screen_points[p][1] );
-        sh = INTERVAL_MAX( screen_points[p][1] );
-
-        tl = INTERVAL_MIN( ys );
-        th = INTERVAL_MAX( ys );
-
-        if( (tl != (-1.0 / 0.0) && sh < tl) || (th != (1.0/0.0) && th < sl) )
-            return( NOT_SOLUTION );
-
-        if( (tl == (-1.0 / 0.0) || tl < sl) &&
-            (th == (1.0/0.0) ||  th > sh) )
-            return( MIXED_SOLUTION );
+        if( INTERVAL_SIZE( cx ) != 0.0 || INTERVAL_SIZE( cy ) != 0.0 )
+            sol_type = MIXED_SOLUTION;
     }
 
-    return( SOLUTION );
+    return( sol_type );
 }
 
 private  BOOLEAN  interval_solve_view(
@@ -477,6 +468,98 @@ private  BOOLEAN  interval_solve_view(
     return( FALSE );
 }
 
+private  void  prune_outer_intervals(
+    int         n_points,
+    Interval    (*points)[N_DIMENSIONS],
+    Interval    (*screen_points)[2],
+    Interval    parameters[],
+    Real        tolerance )
+{
+    int       p, iters;
+    BOOLEAN   changed;
+    Real      size, edge;
+    Interval  save_param;
+    Solution_types  situation;
+
+    for_less( p, 0, 12 )
+    {
+        print( " [ %g %g ]", INTERVAL_MIN(parameters[p]),
+                             INTERVAL_MAX(parameters[p]) );
+    }
+    print( "\n" );
+
+    iters = 0;
+    changed = TRUE;
+    while( changed )
+    {
+        changed = FALSE;
+
+        for_less( p, 0, 12 )
+        {
+            save_param = parameters[p];
+            size = INTERVAL_SIZE( parameters[p] );
+            while( size > tolerance )
+            {
+                size /= 2.0;
+
+                edge = INTERVAL_MIN(save_param) + size;
+
+                SET_INTERVAL( parameters[p], INTERVAL_MIN(save_param), edge );
+
+                situation = check_parameters( n_points, points, screen_points,
+                                              parameters );
+
+                if( situation == NOT_SOLUTION )
+                {
+                    SET_INTERVAL( parameters[p],
+                                  edge, INTERVAL_MAX(save_param) );
+                    save_param = parameters[p];
+                    changed = TRUE;
+                }
+                else
+                    parameters[p] = save_param;
+            }
+
+            save_param = parameters[p];
+            size = INTERVAL_SIZE( parameters[p] );
+            while( size > tolerance )
+            {
+                size /= 2.0;
+
+                edge = INTERVAL_MAX(save_param) - size;
+
+                SET_INTERVAL( parameters[p], edge, INTERVAL_MAX(save_param) );
+
+                situation = check_parameters( n_points, points, screen_points,
+                                              parameters );
+
+                if( situation == NOT_SOLUTION )
+                {
+                    SET_INTERVAL( parameters[p],
+                                  INTERVAL_MIN(save_param), edge );
+                    save_param = parameters[p];
+                    changed = TRUE;
+                }
+                else
+                    parameters[p] = save_param;
+            }
+        }
+
+        ++iters;
+    }
+    while( changed );
+
+    if( iters > 1 )
+    {
+        for_less( p, 0, 12 )
+        {
+            print( " [ %g %g ]", INTERVAL_MIN(parameters[p]),
+                                 INTERVAL_MAX(parameters[p]) );
+        }
+        print( "\n" );
+    }
+}
+
 private  void  solve_view_by_intervals(
     int         n_points,
     Real        (*points)[N_DIMENSIONS],
@@ -507,13 +590,40 @@ private  void  solve_view_by_intervals(
     for_less( p, 0, 12 )
     {
         SET_INTERVAL( initial_guess[p], -1.0e30, 1.0e30 );
-        SET_INTERVAL( initial_guess[p], -1600.0, 200.0 );
+{
+    Real  value;
+
+    value = Transform_elem( r_t, p / 4, p % 4 );
+    if( value < 0.0 )
+    {
+        SET_INTERVAL( initial_guess[p], value * 1.01, value * 0.99 );
     }
+    else
+    {
+        SET_INTERVAL( initial_guess[p], value * 0.99, value * 1.01 );
+    }
+}
+    }
+
+    SET_INTERVAL( initial_guess[0], 1.0, 1.0 );
+
+    prune_outer_intervals( n_points, int_points, int_screen_points,
+                           initial_guess, tolerance );
 
     if( !interval_solve_view( n_points, int_points, int_screen_points,
                               initial_guess, tolerance, answer ) )
     {
         handle_internal_error( "solve_view_by_intervals" );
+    }
+
+    for_less( i, 0, 3 )
+    {
+        for_less( j, 0, 4 )
+        {
+            print( "   %g +/- %g", INTERVAL_MIDPOINT(answer[IJ(i,j,4)]),
+                                   INTERVAL_SIZE(answer[IJ(i,j,4)]) / 2.0 );
+        }
+        print( "\n" );
     }
 
     FREE( int_points );
