@@ -9,11 +9,11 @@ private  void  usage(
 #define  X_SIZE   200
 #define  Y_SIZE   200
 
-#define  X_MIN    -30.0
-#define  X_MAX      0.0
+#define  X_MIN    -40.0
+#define  X_MAX    -10.0
 #define  Y_MIN    -20.0
-#define  Y_MAX     10.0
-#define  Z_PLANE   70.0
+#define  Y_MAX      0.0
+#define  Z_PLANE   55.0
 
 private  void  create_gradient_lines(
     Volume          volume,
@@ -74,20 +74,20 @@ int  main(
 private  void  make_arrow(
     lines_struct   *lines,
     Point          *centre,
-    Point          *offset )
+    Vector         *deriv,
+    Vector         *deriv2 )
 {
     Point   p;
-    Vector  diff;
+
+    start_new_line( lines );
 
     add_point_to_line( lines, centre );
-    add_point_to_line( lines, offset );
+    ADD_POINT_VECTOR( p, *centre, *deriv );
+    add_point_to_line( lines, &p );
 
-    SUB_POINTS( diff, *offset, *centre );
-
-    fill_Point( p, Point_x(*offset) - 0.15 * Vector_y(diff),
-                   Point_y(*offset) + 0.15 * Vector_x(diff),
-                   Point_z(*offset) );
-
+    start_new_line( lines );
+    add_point_to_line( lines, centre );
+    ADD_POINT_VECTOR( p, *centre, *deriv2 );
     add_point_to_line( lines, &p );
 }
 
@@ -102,8 +102,11 @@ private  void  create_gradient_lines(
 {
     Boolean          within_range;
     int              x, y;
-    Point            centre, offset;
+    Point            centre;
+    Vector           deriv, deriv2;
     Real             dx, dy, dz, value;
+    Real             dxx, dxy, dxz, dyy, dyz, dzz;
+    Real             grad_mag, dgx, dgy, dgz;
     Real             x_world, y_world, z_world;
     progress_struct  progress;
 
@@ -122,7 +125,8 @@ private  void  create_gradient_lines(
 
             (void) evaluate_volume_in_world( volume,
                       x_world, y_world, z_world, continuity, FALSE,
-                      &value, &dx, &dy, &dz );
+                      &value, &dx, &dy, &dz,
+                      &dxx, &dxy, &dxz, &dyy, &dyz, &dzz );
 
             if( value_range_present )
             {
@@ -133,15 +137,32 @@ private  void  create_gradient_lines(
 
             if( within_range )
             {
+                grad_mag = dx * dx + dy * dy + dz * dz;
+                if( grad_mag != 0.0 )
+                    grad_mag = sqrt( grad_mag );
+
+                dgx = dx / grad_mag * dxx +
+                      dy / grad_mag * dxy +
+                      dz / grad_mag * dxz;
+                dgy = dx / grad_mag * dxy +
+                      dy / grad_mag * dyy +
+                      dz / grad_mag * dyz;
+                dgz = dx / grad_mag * dxz +
+                      dy / grad_mag * dyz +
+                      dz / grad_mag * dzz;
+
+                dgx *= scaling;
+                dgy *= scaling;
+                dgz *= scaling;
                 dx *= scaling;
                 dy *= scaling;
                 dz *= scaling;
 
                 fill_Point( centre, x_world, y_world, z_world );
-                fill_Point( offset, x_world + dx, y_world + dy, z_world + dz );
+                fill_Point( deriv, dx, dy, dz );
+                fill_Point( deriv2, dgx, dgy, dgz );
 
-                start_new_line( lines );
-                make_arrow( lines, &centre, &offset );
+                make_arrow( lines, &centre, &deriv, &deriv2 );
             }
         }
 
@@ -149,4 +170,12 @@ private  void  create_gradient_lines(
     }
 
     terminate_progress_report( &progress );
+
+    lines->colour_flag = PER_ITEM_COLOURS;
+    REALLOC( lines->colours, lines->n_items );
+    for_less( x, 0, lines->n_items )
+        if( x % 2 == 0 )
+            lines->colours[x] = WHITE;
+        else
+            lines->colours[x] = BLUE;
 }
