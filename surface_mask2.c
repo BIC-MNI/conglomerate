@@ -415,6 +415,7 @@ int main ( int argc, char *argv[] )
   output_volume(output_file_name, NC_BYTE, FALSE, 0.0, 0.0,
                 out_volume, "", NULL );
 
+  return 0;
 }
 
 

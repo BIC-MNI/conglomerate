@@ -1,3 +1,7 @@
+2003-02-25  Steve ROBBINS  <stever@diomedes.bic.mni.mcgill.ca>
+
+	* surface_mask2.c (main): Return zero on success.
+
 2003-01-25  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* configure.ac: Set version to 1.2.
