@@ -1,13 +1,12 @@
-#include  <def_mni.h>
-#include  <def_module.h>
+#include  <mni.h>
+#include  <module.h>
 
 int  main(
     int    argc,
     char   *argv[] )
 {
     Status         status;
-    Real           max_curvature;
-    BOOLEAN        set_to_zero_flag;
+    Real           max_curvature, low_threshold;
     char           *src_filename, *dest_filename;
     int            i, n_src_objects, n_dest_objects;
     File_formats   format;
@@ -25,7 +24,7 @@ int  main(
     }
 
     (void) get_real_argument( 0.2, &max_curvature );
-    (void) get_int_argument( 0, (int *) (&set_to_zero_flag) );
+    (void) get_real_argument( 0.0, &low_threshold );
 
     status = input_graphics_file( src_filename, &format, &n_src_objects,
                                   &src_object_list );
@@ -55,7 +54,7 @@ int  main(
                 colour_polygons_by_curvature(
                         get_polygons_ptr(src_object_list[i]),
                         get_polygons_ptr(dest_object_list[i]),
-                        max_curvature, set_to_zero_flag );
+                        max_curvature, low_threshold );
             }
             else
                 print( "Objects don't match.\n" );
