@@ -7,12 +7,12 @@
 #define  MAX_POINTS   10
 
 private  BOOLEAN  is_maximum(
-    int     counts[],
+    Real    counts[],
     int     i,
     int     n,
     int     width );
 private  BOOLEAN  is_minimum(
-    int     counts[],
+    Real    counts[],
     int     i,
     int     n,
     int     width );
@@ -23,9 +23,11 @@ int  main(
 {
     int                  x, y, z, sizes[N_DIMENSIONS], x_size, y_size;
     int                  start[N_DIMENSIONS], end[N_DIMENSIONS];
-    int                  n, i, *counts, window_width, slice, axis;
-    Real                 value, width_ratio, min_voxel, max_voxel, voxel;
-    Real                 min_value, max_value;
+    int                  n, i, slice, axis, int_width;
+    int                  gray_min;
+    Real                 value, width_ratio, min_voxel, max_voxel, window_width;
+    Real                 min_value, max_value, scale, trans;
+    Real                 *counts;
     char                 *input_volume_filename, *output_filename;
     char                 *axis_name;
     lines_struct         *lines;
@@ -55,9 +57,9 @@ int  main(
     else
         axis = -1;
 
+    (void) get_real_argument( WINDOW_WIDTH, &width_ratio );
     (void) get_int_argument( DEFAULT_N_INTERVALS, &x_size );
     (void) get_int_argument( x_size, &y_size );
-    (void) get_real_argument( WINDOW_WIDTH, &width_ratio );
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -71,11 +73,6 @@ int  main(
     initialize_histogram( &histogram,
                           (max_value - min_value) / (Real) (x_size-1),
                           min_value );
-
-    n = (int) max_voxel - (int) min_voxel + 1;
-    ALLOC( counts, n );
-    for_less( i, 0, n )
-        counts[i] = 0;
 
     start[X] = 0;
     end[X] = sizes[X];
@@ -99,40 +96,42 @@ int  main(
             {
                 GET_VALUE_3D( value, volume, x, y, z );
                 add_to_histogram( &histogram, value );
-
-                GET_VOXEL_3D( voxel, volume, x, y, z );
-                ++counts[(int)voxel - (int)min_voxel];
             }
         }
     }
+
+    window_width = width_ratio * (max_value - min_value);
 
     object = create_object( LINES );
 
     lines = get_lines_ptr( object );
 
-    create_histogram_line( &histogram, x_size, y_size, lines );
+    create_histogram_line( &histogram, x_size, y_size, window_width, lines );
 
     (void) output_graphics_file( output_filename, ASCII_FORMAT, 1, &object );
 
-    window_width = ROUND( n * width_ratio );
-    if( window_width < 1 )
-        window_width = 1;
+    n = get_histogram_counts( &histogram, &counts, window_width,
+                              &scale, &trans );
+
+    int_width = ROUND( x_size * width_ratio / 2.0 );
+    if( int_width < 1 )
+        int_width = 1;
 
     n_mins = 0;
     n_maxs = 0;
     for_less( i, 0, n )
     {
-        if( is_minimum( counts, i, n, window_width ) )
+        if( is_minimum( counts, i, n, int_width ) )
         {
-            value = CONVERT_VOXEL_TO_VALUE( volume, i + (int) min_voxel );
+            value = scale * (Real) i + trans;
             print( "Minimum at %g\n", value );
             if( n_mins < MAX_POINTS )
                 mins[n_mins] = i;
             ++n_mins;
         }
-        else if( is_maximum( counts, i, n, window_width ) )
+        else if( is_maximum( counts, i, n, int_width ) )
         {
-            value = CONVERT_VOXEL_TO_VALUE( volume, i + (int) min_voxel );
+            value = scale * (Real) i + trans;
             print( "     Maximum at %g\n", value );
             if( n_maxs < MAX_POINTS )
                 maxs[n_maxs] = i;
@@ -140,22 +139,21 @@ int  main(
         }
     }
 
-    start_gray_index = end_gray_index - 2;
-
-    while( start_gray_index > 0 &&
-           counts[start_gray_index] >= counts[end_gray_index] )
-        --start_gray_index;
+    gray_min = 0;
+    if( maxs[0] < mins[0] )
+        ++gray_min;
 
     print( "Gray matter: %g %g\n",
-            CONVERT_VOXEL_TO_VALUE(volume,
-                                   (mins[1] + maxs[1]) / 2.0 + (int) min_voxel),
-            CONVERT_VOXEL_TO_VALUE(volume, mins[2] + (int) min_voxel));
+            scale * (Real) (mins[gray_min] + maxs[gray_min]) / 2.0 + trans,
+            scale * (Real) mins[gray_min+1] + trans );
+
+    FREE( counts );
 
     return( 0 );
 }
 
 private  BOOLEAN  is_minimum(
-    int     counts[],
+    Real    counts[],
     int     i,
     int     n,
     int     width )
@@ -170,14 +168,14 @@ private  BOOLEAN  is_minimum(
     m2 = MIN( n-1, i + width );
 
     for_inclusive( d, m1, m2 )
-        if( counts[d] <= counts[i] )
+        if( d != i && counts[d] <= counts[i] )
             return( FALSE );
 
     return( TRUE );
 }
 
 private  BOOLEAN  is_maximum(
-    int     counts[],
+    Real    counts[],
     int     i,
     int     n,
     int     width )
@@ -192,7 +190,7 @@ private  BOOLEAN  is_maximum(
     m2 = MIN( n-1, i + width );
 
     for_inclusive( d, m1, m2 )
-        if( counts[d] >= counts[i] )
+        if( d != i && counts[d] >= counts[i] )
             return( FALSE );
 
     return( TRUE );
