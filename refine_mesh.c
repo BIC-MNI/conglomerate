@@ -106,7 +106,8 @@ private  void  subdivide_edge(
     Real               normalized_length,
     int                p1,
     int                p2,
-    polygons_struct    *new_polygons )
+    polygons_struct    *new_polygons,
+    Point              *length_points[] )
 {
     int    midpoint;
     Point  mid;
@@ -119,13 +120,20 @@ private  void  subdivide_edge(
                                  new_polygons->points[p2], 0.5 );
         ADD_ELEMENT_TO_ARRAY( new_polygons->points, new_polygons->n_points,
                               mid, DEFAULT_CHUNK_SIZE );
+
+        INTERPOLATE_POINTS( mid, (*length_points)[p1], (*length_points)[p2],
+                            0.5 );
+        --new_polygons->n_points;
+        ADD_ELEMENT_TO_ARRAY( *length_points, new_polygons->n_points,
+                              mid, DEFAULT_CHUNK_SIZE );
+
         insert_in_hash2_table( edge_lookup, MIN(p1,p2), MAX(p1,p2),
                                (void *) &midpoint );
 
         subdivide_edge( edge_lookup, normalized_length / 2.0,
-                        p1, midpoint, new_polygons );
+                        p1, midpoint, new_polygons, length_points );
         subdivide_edge( edge_lookup, normalized_length / 2.0,
-                        midpoint, p2, new_polygons );
+                        midpoint, p2, new_polygons, length_points );
     }
 }
 
@@ -133,6 +141,7 @@ public  void  add_polygons(
     int                p0,
     int                p1,
     int                p2,
+    Point              length_points[],
     hash2_table_struct *edge_lookup,
     polygons_struct    *new_polygons,
     int                *n_indices )
@@ -183,11 +192,10 @@ public  void  add_polygons(
         i1 = (offset+1) % 3;
         i2 = (offset+2) % 3;
 
-/*
-        if( sq_distance_between_points( &new_polygons->points[indices[i0]],
-                                        &new_polygons->points[mid[i1]] ) <
-            sq_distance_between_points( &new_polygons->points[indices[i1]],
-                                        &new_polygons->points[mid[i2]] ) )
+        if( sq_distance_between_points( &length_points[indices[i0]],
+                                        &length_points[mid[i1]] ) <
+            sq_distance_between_points( &length_points[indices[i1]],
+                                        &length_points[mid[i2]] ) )
         {
             new_indices[0][0] = indices[i0];
             new_indices[0][1] = indices[i1];
@@ -197,7 +205,6 @@ public  void  add_polygons(
             new_indices[1][2] = mid[i2];
         }
         else
-*/
         {
             new_indices[0][0] = indices[i0];
             new_indices[0][1] = indices[i1];
@@ -248,7 +255,7 @@ public  void  add_polygons(
         add_polygons( new_indices[tri][0],
                       new_indices[tri][1],
                       new_indices[tri][2],
-                      edge_lookup, new_polygons, n_indices );
+                      length_points, edge_lookup, new_polygons, n_indices );
     }
 }
 
@@ -260,9 +267,12 @@ private  void  refine_mesh(
 {
     int                  n_indices, p1, p2, size, point, edge, midpoint, poly;
     Real                 normalized_length;
+    Point                *length_points;
     hash2_table_struct   edge_lookup;
 
     initialize_polygons( new_polygons, WHITE, NULL );
+
+    SET_ARRAY_SIZE( length_points, 0, length->n_points, DEFAULT_CHUNK_SIZE );
 
     SET_ARRAY_SIZE( new_polygons->points, 0, length->n_points,
                     DEFAULT_CHUNK_SIZE );
@@ -270,6 +280,8 @@ private  void  refine_mesh(
 
     for_less( point, 0, length->n_points )
         new_polygons->points[point] = polygons->points[point];
+    for_less( point, 0, length->n_points )
+        length_points[point] = length->points[point];
 
     initialize_hash2_table( &edge_lookup, 10 * length->n_points,
                             sizeof(int), 0.25, 0.125 );
@@ -296,7 +308,7 @@ private  void  refine_mesh(
                 !lookup_edge_midpoint( &edge_lookup, p1, p2, &midpoint ) )
             {
                 subdivide_edge( &edge_lookup, normalized_length,
-                                p1, p2, new_polygons );
+                                p1, p2, new_polygons, &length_points );
             }
         }
     }
@@ -307,8 +319,10 @@ private  void  refine_mesh(
         add_polygons( length->indices[POINT_INDEX(length->end_indices,poly,0)],
                       length->indices[POINT_INDEX(length->end_indices,poly,1)],
                       length->indices[POINT_INDEX(length->end_indices,poly,2)],
-                      &edge_lookup, new_polygons, &n_indices );
+                      length_points, &edge_lookup, new_polygons, &n_indices );
     }
+
+    FREE( length_points );
 
     ALLOC( new_polygons->normals, new_polygons->n_points );
 
