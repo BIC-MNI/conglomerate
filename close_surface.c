@@ -3,8 +3,6 @@
 
 #define  TOLERANCE  1.0e-2
 
-#define  CONNECTIVITY  EIGHT_NEIGHBOURS
-
 #define  BINTREE_FACTOR  0.5
 
 #define  INSIDE_CONVEX_BIT                 128
@@ -61,8 +59,8 @@ int  main(
 {
     char                    *input_volume_filename, *input_surface_filename;
     char                    *output_volume_filename;
-    int                     i, n_objects, n_convex_boundaries;
-    int                     close_threshold;
+    int                     i, b, n_objects, n_convex_boundaries;
+    int                     close_threshold, n_to_strip;
     int                     x_error, y_error, z_error, label_to_set;
     int                     sizes[N_DIMENSIONS], x, y, z, value, n_voxels;
     convex_boundary_struct  *convex_boundaries;
@@ -85,6 +83,7 @@ int  main(
 
     (void) get_int_argument( 1, &label_to_set );
     (void) get_int_argument( -1, &close_threshold );
+    (void) get_int_argument( 0, &n_to_strip );
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -127,8 +126,50 @@ int  main(
     n_convex_boundaries = label_just_inside_convex_hull( volume,
                                                          &convex_boundaries );
 
-    print( "   found %d regions just inside convex hull.\n",
-           n_convex_boundaries );
+    for_less( i, 0, n_convex_boundaries )
+    {
+        print( "%3d: %d %d %d -- %d voxels\n", i+1,
+               convex_boundaries[i].voxel[X],
+               convex_boundaries[i].voxel[Y],
+               convex_boundaries[i].voxel[Z],
+               convex_boundaries[i].n_voxels );
+    }
+
+    for_less( i, 0, n_to_strip )
+    {
+        print( "Stripping a layer around convex hull [%d/%d].\n", i+1,
+               n_to_strip );
+
+        for_less( x, 0, sizes[X] )
+        for_less( y, 0, sizes[Y] )
+        for_less( z, 0, sizes[Z] )
+        {
+            value = get_volume_int_value( volume, x, y, z );
+            if( (value & JUST_INSIDE_CONVEX_HULL_BIT) != 0 )
+            {
+                value -= JUST_INSIDE_CONVEX_HULL_BIT;
+                value -= INSIDE_CONVEX_BIT;
+                set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+            }
+        }
+
+        print( "Labeling voxels just inside convex hull\n" );
+
+        if( n_convex_boundaries > 0 )
+            FREE( convex_boundaries );
+
+        n_convex_boundaries = label_just_inside_convex_hull( volume,
+                                                           &convex_boundaries );
+
+        for_less( b, 0, n_convex_boundaries )
+        {
+            print( "%3d: %d %d %d -- %d voxels\n", b+1,
+                   convex_boundaries[b].voxel[X],
+                   convex_boundaries[b].voxel[Y],
+                   convex_boundaries[b].voxel[Z],
+                   convex_boundaries[b].n_voxels );
+        }
+    }
 
     print( "Labeling voxels connected to outside the convex hull.\n" );
 
@@ -159,15 +200,6 @@ int  main(
 
     if( n_voxels > 0 )
         print( "   filled in %d air pocket voxels.\n", n_voxels );
-
-    for_less( i, 0, n_convex_boundaries )
-    {
-        print( "%3d: %d %d %d -- %d voxels\n", i+1,
-               convex_boundaries[i].voxel[X],
-               convex_boundaries[i].voxel[Y],
-               convex_boundaries[i].voxel[Z],
-               convex_boundaries[i].n_voxels );
-    }
 
     if( close_threshold > 0 )
     {
@@ -463,7 +495,7 @@ private  BOOLEAN  is_on_convex_boundary(
          (value & JUST_INSIDE_CONVEX_HULL_BIT) != 0) )
         return( FALSE );
 
-    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
 
     for_less( i, 0, n_dirs )
     {
@@ -510,7 +542,7 @@ private  int  expand_convex_boundary(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
@@ -603,7 +635,7 @@ private  int  remove_just_inside_label(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
@@ -676,7 +708,7 @@ private  BOOLEAN  fill_inside(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
@@ -753,7 +785,7 @@ private  void  label_connected_to_outside(
     xyz.y = (short) y;
     xyz.z = (short) z;
 
-    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
+    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
 
     INSERT_IN_QUEUE( queue, xyz );
 
