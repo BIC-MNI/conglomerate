@@ -250,7 +250,8 @@ private  void  create_node_points(
             neigh_value = (values[x][y] + values[x+1][y] + values[x][y+1] +
                            values[x+1][y+1]) / 4.0;
 
-            node_info[x][y].lower_left_fence =(this_value * neigh_value <= 0.0);
+            node_info[x][y].lower_left_fence = (Smallest_int)
+                                       (this_value * neigh_value <= 0.0);
         }
     }
 }

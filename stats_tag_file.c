@@ -81,6 +81,9 @@ private  int  get_stats_for_one_file(
     marker_struct   *marker;
 
     *total_in_file = 0;
+    x_positions = NULL;
+    y_positions = NULL;
+    z_positions = NULL;
     n_samples = 0;
 
     for_less( i, 0, n_objects )
@@ -94,8 +97,8 @@ private  int  get_stats_for_one_file(
                  marker->structure_id == structure_id ||
                  marker->structure_id == structure_id + 1000) &&
                 (y_min_range >= y_max_range ||
-                 Point_y(marker->position) >= y_min_range &&
-                 Point_y(marker->position) <= y_max_range ) )
+                 (Real) Point_y(marker->position) >= y_min_range &&
+                 (Real) Point_y(marker->position) <= y_max_range ) )
             {
                 SET_ARRAY_SIZE( x_positions, n_samples, n_samples+1,
                                 DEFAULT_CHUNK_SIZE );
@@ -104,9 +107,9 @@ private  int  get_stats_for_one_file(
                 SET_ARRAY_SIZE( z_positions, n_samples, n_samples+1,
                                 DEFAULT_CHUNK_SIZE );
 
-                x_positions[n_samples] = Point_x(marker->position);
-                y_positions[n_samples] = Point_y(marker->position);
-                z_positions[n_samples] = Point_z(marker->position);
+                x_positions[n_samples] = (Real) Point_x(marker->position);
+                y_positions[n_samples] = (Real) Point_y(marker->position);
+                z_positions[n_samples] = (Real) Point_z(marker->position);
 
                 ++n_samples;
             }

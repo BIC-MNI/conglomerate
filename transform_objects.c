@@ -29,9 +29,9 @@ private  void  transform_object(
     for_less( i, 0, n_points )
     {
         general_transform_point( transform,
-                                 Point_x(points[i]),
-                                 Point_y(points[i]),
-                                 Point_z(points[i]), &x, &y, &z );
+                                 (Real) Point_x(points[i]),
+                                 (Real) Point_y(points[i]),
+                                 (Real) Point_z(points[i]), &x, &y, &z );
 
         fill_Point( points[i], x, y, z );
     }

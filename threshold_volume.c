@@ -44,6 +44,8 @@ int  main(
     (void) get_int_argument( 1, &label_value_to_set );
 
     n_ranges = 0;
+    min_values = NULL;
+    max_values = NULL;
     SET_ARRAY_SIZE( min_values, n_ranges, n_ranges+1, DEFAULT_CHUNK_SIZE );
     SET_ARRAY_SIZE( max_values, n_ranges, n_ranges+1, DEFAULT_CHUNK_SIZE );
     min_values[n_ranges] = min_value;
@@ -87,7 +89,7 @@ int  main(
         }
     }
 
-    if( input_volume( volume_filename, 3, XYZ_dimension_names,
+    if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );

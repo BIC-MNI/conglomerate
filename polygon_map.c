@@ -46,8 +46,9 @@ int  main(
         return( 1 );
 
     create_polygons_bintree( get_polygons_ptr(src_objects[0]),
-                         get_polygons_ptr(src_objects[0])->n_items *
-                         BINTREE_FACTOR );
+                             ROUND( (Real) get_polygons_ptr(
+                                            src_objects[0])->n_items *
+                                    BINTREE_FACTOR ) );
 
     for_less( i, 0, n_objects )
     {
