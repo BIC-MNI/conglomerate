@@ -25,6 +25,7 @@ private  void  generate_screen_points(
     int         n_points,
     Point       world_points[],
     Transform   *transform,
+    Real        error_size,
     Point       screen_points[] );
 
 private  void  print_transform(
@@ -44,7 +45,7 @@ int  main(
     char  *argv[] )
 {
     int         n_iters, n_points, i;
-    Real        tolerance;
+    Real        tolerance, error;
     Transform   true_transform, test_transform;
     Point       *screen_points, *world_points;
 
@@ -53,6 +54,7 @@ int  main(
     set_random_seed( 8392851 );
 
     (void) get_int_argument( 100, &n_iters );
+    (void) get_real_argument( 0.05, &error );
     (void) get_int_argument( 20, &n_points );
     (void) get_real_argument( 1.0e-3, &tolerance );
 
@@ -64,7 +66,7 @@ int  main(
         generate_points( n_points, world_points );
         generate_transform( &true_transform );
         generate_screen_points( n_points, world_points, &true_transform,
-                                screen_points );
+                                error, screen_points );
 
         if( !compute_perspective_transform( n_points, screen_points,
                                             world_points, &test_transform ) )
@@ -305,15 +307,22 @@ private  void  generate_screen_points(
     int         n_points,
     Point       world_points[],
     Transform   *transform,
+    Real        error_size,
     Point       screen_points[] )
 {
     int   i;
-    Real  u, v, w;
+    Real  u, v, w, x_error, y_error, z_error;
 
     for_less( i, 0, n_points )
     {
-        transform_point( transform, Point_x(world_points[i]),
-                         Point_y(world_points[i]), Point_z(world_points[i]),
+        x_error = error_size * (2.0 * get_random_0_to_1() - 1.0);
+        y_error = error_size * (2.0 * get_random_0_to_1() - 1.0);
+        z_error = error_size * (2.0 * get_random_0_to_1() - 1.0);
+
+        transform_point( transform,
+                         Point_x(world_points[i]) + x_error,
+                         Point_y(world_points[i]) + y_error,
+                         Point_z(world_points[i]) + z_error,
                          &u, &v, &w );
 
         if( w == 0.0 )
