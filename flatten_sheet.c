@@ -104,7 +104,7 @@ private  int  create_coefficients(
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             flat[2][MAX_POINTS_PER_POLYGON];
     Real             consistency_weights[MAX_POINTS_PER_POLYGON];
-    BOOLEAN          found;
+    BOOLEAN          found, ignoring;
 
     n_equations = 0;
     for_less( node, 0, polygons->n_points )
@@ -153,13 +153,36 @@ private  int  create_coefficients(
                                (BOOLEAN) interior_flags[node],
                                flat[0], flat[1] );
 
+        ignoring = FALSE;
         if( !get_interpolation_weights_2d( 0.0, 0.0, n_neighbours[node],
                                            flat[0], flat[1],
                                            consistency_weights ) )
         {
-            print_error( "Error in interpolation weights, using avg..\n" );
+            print_error( "Error in interpolation weights, ignoring..\n" );
+            ignoring = TRUE;
+        }
+        else
+        {
             for_less( p, 0, n_neighbours[node] )
-                consistency_weights[p] = 1.0 / (Real) n_neighbours[node];
+            {
+                if( FABS( consistency_weights[p] ) > 100.0 )
+                {
+                    ignoring = TRUE;
+                    break;
+                }
+            }
+        }
+
+        if( ignoring )
+        {
+            (*n_nodes_involved)[eq] = 0;
+            (*constants)[eq] = 0.0;
+            ++eq;
+            (*n_nodes_involved)[eq] = 0;
+            (*constants)[eq] = 0.0;
+            ++eq;
+            print( "Found linear neighbours.\n" );
+            continue;
         }
 
         for_less( dim, 0, 2 )
@@ -319,8 +342,8 @@ private  void  flatten_polygons(
         }
     }
 
-#define DEBUG
 #ifdef DEBUG
+#define DEBUG
 {
     for_less( i, 0, n_equations )
     {
