@@ -126,91 +126,6 @@ int  main(
     return( 0 );
 }
 
-#ifdef OLD
-private  void  output_surface(
-    STRING  filename,
-    int     p0,
-    int     p1,
-    int     n_equations,
-    int     n_nodes_per_equation[],
-    int     *node_list[],
-    Real    constants[],
-    Real    *node_weights[],
-    Real    node_values[] )
-{
-    FILE             *file;
-    int              i, j, size, ind;
-    Real             x, y, save0, save1, scale, fit, *q_values;
-    Point            point;
-    Vector           normal;
-    quadmesh_struct  *quadmesh;
-    object_struct    *object;
-
-    if( getenv( "SIZE" ) == NULL ||
-        sscanf( getenv("SIZE"), "%d", &size ) != 1 )
-        return;
-
-    object = create_object( QUADMESH );
-    quadmesh = get_quadmesh_ptr( object );
-
-    initialize_quadmesh( quadmesh, WHITE, NULL, size, size );
-
-    save0 = node_values[p0];
-    save1 = node_values[p1];
-
-    if( getenv( "SCALE" ) == NULL ||
-        sscanf( getenv("SCALE"), "%lf", &scale ) != 1 )
-        scale = 1.0;
-
-    fill_Vector( normal, 1.0, 1.0, 1.0 );
-
-    ALLOC( q_values, size * size );
-
-    for_less( i, 0, size )
-    {
-        x = INTERPOLATE( (Real) i / (Real) (size-1), save0 - 1.0, save0 + 1.0 );
-        node_values[p0] = x;
-        for_less( j, 0, size )
-        {
-            y = INTERPOLATE( (Real) j / (Real) (size-1), save1 - 1.0,
-                             save1 + 1.0 );
-            node_values[p1] = y;
-
-            fit = evaluate_fit( n_equations, n_nodes_per_equation,
-                                node_list, constants, node_weights,
-                                node_values );
-
-            ind = IJ( i, j, quadmesh->n );
-            q_values[ind] = fit;
-
-            fit *= scale;
-
-            fill_Point( point, x, y, fit );
-            set_quadmesh_point( quadmesh, i, j, &point, &normal );
-        }
-    }
-
-    (void) open_file( "quadmesh.values", WRITE_FILE, ASCII_FORMAT, &file );
-    for_less( ind, 0, size * size )
-    {
-        (void) output_real( file, q_values[ind] );
-        (void) output_newline( file );
-    }
-    close_file( file );
-
-    FREE( q_values );
-
-    compute_quadmesh_normals( quadmesh );
-
-    node_values[p0] = save0;
-    node_values[p1] = save1;
-
-    (void) output_graphics_file( filename, BINARY_FORMAT, 1, &object ) ;
-
-    delete_object( object );
-}
-#endif
-
 private  int  create_coefficients(
     Real             interp_weight,
     Real             smooth_weight,
@@ -221,6 +136,7 @@ private  int  create_coefficients(
     Real             total_length,
     int              n_neighbours[],
     int              **neighbours,
+    Smallest_int     interior_flags[],
     int              *n_nodes_involved[],
     int              **node_list[],
     Real             *constants[],
@@ -301,8 +217,9 @@ private  int  create_coefficients(
 #define FLATTEN
 #ifdef  FLATTEN
         flatten_around_vertex( &polygons->points[node],
-                               n_neighbours[node],
-                               neigh_points, x_flat, y_flat );
+                               n_neighbours[node], neigh_points,
+                               (BOOLEAN) interior_flags[node],
+                               x_flat, y_flat );
 
         if( !get_interpolation_weights_2d( 0.0, 0.0, n_neighbours[node],
                                            x_flat, y_flat,
@@ -347,6 +264,7 @@ private  Real   create_surface_interpolation(
     int               neigh, n_edges;
     int               n_equations, *n_nodes_per_equation, **node_list;
     Real              **node_weights, *constants;
+    Smallest_int      *interior_flags;
 
     polygons = get_polygons_ptr( object );
 
@@ -354,7 +272,7 @@ private  Real   create_surface_interpolation(
                              (int) ((Real) polygons->n_items * 0.3) );
 
     create_polygon_point_neighbours( polygons, FALSE, &n_point_neighbours,
-                                     &point_neighbours, NULL );
+                                     &point_neighbours, &interior_flags, NULL );
 
     total_length = 0.0;
     n_edges = 0;
@@ -404,14 +322,9 @@ private  Real   create_surface_interpolation(
                                        n_points, points, values,
                                        object, total_length,
                                        n_point_neighbours, point_neighbours,
+                                       interior_flags,
                                        &n_nodes_per_equation,
                                        &node_list, &constants, &node_weights );
-
-/*
-    output_surface( "hyper.obj", node_list[0][0], node_list[0][1],
-                    n_equations, n_nodes_per_equation,
-                    node_list, constants, node_weights, node_values );
-*/
 
     fit = minimize_lsq( polygons->n_points, n_equations, n_nodes_per_equation,
                         node_list, constants, node_weights, n_iters,
@@ -428,7 +341,7 @@ private  Real   create_surface_interpolation(
     FREE( constants );
 
     delete_polygon_point_neighbours( polygons, n_point_neighbours,
-                                     point_neighbours, NULL );
+                                     point_neighbours, interior_flags, NULL );
 
     return( fit );
 }
