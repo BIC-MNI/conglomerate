@@ -6,13 +6,17 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    FILE           *file;
-    Volume         volume, rgb_volume;
-    STRING         input_filename, colour_map_filename, output_filename;
-    int            v0, v1, v2, v3, v4, i, n_labels, int_value, index;
-    int            int_min_value, int_max_value;
-    Real           value, min_value, max_value, red, green, blue;
-    Colour         colour, *label_map;
+    FILE               *file;
+    Volume             volume, rgb_volume;
+    STRING             input_filename, colour_map_filename, output_filename;
+    int                v[MAX_DIMENSIONS], i, n_labels, int_value, index;
+    int                int_min_value, int_max_value;
+    int                n_dims, sizes[MAX_DIMENSIONS], dim;
+    STRING             *dim_names, *dim_names_rgb;
+    Real               value, min_value, max_value, red, green, blue, alpha;
+    Real               separations[MAX_DIMENSIONS];
+    Colour             colour, *label_map;
+    General_transform  transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -40,7 +44,7 @@ int  main(
     ALLOC( label_map, n_labels );
 
     for_less( i, 0, n_labels )
-        label_map[i] = BLACK;
+        label_map[i] = make_rgba_Colour( 0, 0, 0, 0 );
 
     if( open_file( colour_map_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
@@ -49,7 +53,8 @@ int  main(
     {
         if( input_real( file, &red ) != OK ||
             input_real( file, &green ) != OK ||
-            input_real( file, &blue ) != OK )
+            input_real( file, &blue ) != OK ||
+            input_real( file, &alpha ) != OK )
         {
             print_error( "Error loading labels colour map.\n" );
             return( 1 );
@@ -57,17 +62,44 @@ int  main(
 
         if( index >= int_min_value && index < int_max_value )
         {
-            label_map[index-int_min_value] = make_Colour_0_1( red, green, blue);
+            label_map[index-int_min_value] = make_rgba_Colour_0_1(
+                                               red, green, blue, alpha);
         }
     }
 
     (void) close_file( file );
 
-    rgb_volume = copy_volume_definition( volume, NC_LONG, FALSE, 0.0, 0.0 );
+    n_dims = get_volume_n_dimensions( volume );
+    get_volume_separations( volume, separations );
+    get_volume_sizes( volume, sizes );
 
-    BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
+    dim_names = get_volume_dimension_names( volume );
 
-        value = get_volume_real_value( volume, v0, v1, v2, v3, v4 );
+    ALLOC( dim_names_rgb, n_dims+1 );
+
+    for_less( dim, 0, n_dims )
+        dim_names_rgb[dim] = dim_names[dim];
+    dim_names_rgb[n_dims] = MIvector_dimension;
+
+    rgb_volume =  create_volume( n_dims+1, dim_names_rgb,
+                                 NC_BYTE, FALSE, 0.0, 0.0 );
+    sizes[n_dims] = 4;
+    set_volume_sizes( rgb_volume, sizes );
+    alloc_volume_data( rgb_volume );
+
+    separations[n_dims] = 1.0;
+    set_volume_separations( rgb_volume, separations );
+
+    set_volume_real_range( rgb_volume, 0.0, 1.0 );
+
+    copy_general_transform( get_voxel_to_world_transform(volume),
+                            &transform );
+
+    set_voxel_to_world_transform( rgb_volume, &transform );
+
+    BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
+
+        value = get_volume_real_value( volume, v[0], v[1], v[2], v[3], v[4] );
 
         int_value = ROUND( value );
 
@@ -76,7 +108,21 @@ int  main(
         else
             colour = BLACK;
 
-        set_volume_real_value( rgb_volume, v0, v1, v2, v3, v4, colour );
+        v[n_dims] = 0;
+        set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
+                               get_Colour_r_0_1(colour) );
+
+        v[n_dims] = 1;
+        set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
+                               get_Colour_g_0_1(colour) );
+
+        v[n_dims] = 2;
+        set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
+                               get_Colour_b_0_1(colour) );
+
+        v[n_dims] = 3;
+        set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
+                               get_Colour_a_0_1(colour) );
 
     END_ALL_VOXELS
 
