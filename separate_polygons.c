@@ -79,93 +79,51 @@ int  main(
     return( 0 );
 }
 
-private  int   separate_polygons(
+private  int   make_connected_components(
     polygons_struct    *polygons,
-    int                desired_index,
-    object_struct      **out[] )
+    Smallest_int       polygon_classes[] )
 {
-    int                point, ind, poly, current_poly, edge, vertex, size;
-    int                point_index, *new_point_ids, neigh;
-    Smallest_int       *poly_done;
+    int                poly, current_poly, edge, size;
+    int                neigh;
     int                n_components;
+    Smallest_int       not_done;
     QUEUE_STRUCT(int)  queue;
-    BOOLEAN            skip;
-    polygons_struct    *new_poly;
 
     n_components = 0;
 
-    ALLOC( poly_done, polygons->n_items );
+    not_done = (Smallest_int) 255;
+
     for_less( poly, 0, polygons->n_items )
-        poly_done[poly] = FALSE;
-    ALLOC( new_point_ids, polygons->n_points );
+        polygon_classes[poly] = not_done;
 
     for_less( poly, 0, polygons->n_items )
     {
-        if( poly_done[poly] )
+        if( polygon_classes[poly] != not_done )
             continue;
 
-        skip = desired_index >= 0 && desired_index != n_components;
-
-        if( !skip )
+        if( n_components == 255 )
         {
-            for_less( point, 0, polygons->n_points )
-                new_point_ids[point] = -1;
-
-            SET_ARRAY_SIZE( *out, n_components, n_components+1,
-                            DEFAULT_CHUNK_SIZE);
-            (*out)[n_components] = create_object( POLYGONS );
-            new_poly = get_polygons_ptr( (*out)[n_components] );
-            initialize_polygons( new_poly, WHITE, NULL );
+            ++n_components;
+            break;
         }
 
         INITIALIZE_QUEUE( queue );
         INSERT_IN_QUEUE( queue, poly );
-        poly_done[poly] = TRUE;
-
-        ++n_components;
-        ind = 0;
+        polygon_classes[poly] = (Smallest_int) n_components;
 
         while( !IS_QUEUE_EMPTY(queue) )
         {
             REMOVE_FROM_QUEUE( queue, current_poly );
             size = GET_OBJECT_SIZE( *polygons, current_poly );
 
-            if( !skip )
-            {
-                for_less( vertex, 0, size )
-                {
-                    point_index = polygons->indices[
-                       POINT_INDEX(polygons->end_indices,current_poly,vertex)];
-                    if( new_point_ids[point_index] < 0 )
-                    {
-                        new_point_ids[point_index] = new_poly->n_points;
-                        ADD_ELEMENT_TO_ARRAY( new_poly->points,
-                                              new_poly->n_points,
-                                              polygons->points[point_index],
-                                              DEFAULT_CHUNK_SIZE );
-                        --new_poly->n_points;
-                        ADD_ELEMENT_TO_ARRAY( new_poly->normals,
-                                              new_poly->n_points,
-                                              polygons->normals[point_index],
-                                              DEFAULT_CHUNK_SIZE );
-                    }
-
-                    ADD_ELEMENT_TO_ARRAY( new_poly->indices, ind,
-                                          new_point_ids[point_index],
-                                          DEFAULT_CHUNK_SIZE );
-                }
-
-                ADD_ELEMENT_TO_ARRAY( new_poly->end_indices, new_poly->n_items,
-                                      ind, DEFAULT_CHUNK_SIZE );
-            }
-
             for_less( edge, 0, size )
             {
                 neigh = polygons->neighbours[
                     POINT_INDEX(polygons->end_indices,current_poly,edge)];
-                if( neigh >= 0 && !poly_done[neigh] )
+                if( neigh >= 0 &&
+                    polygon_classes[neigh] == not_done )
                 {
-                    poly_done[neigh] = TRUE;
+                    polygon_classes[neigh] = (Smallest_int) n_components;
                     INSERT_IN_QUEUE( queue, neigh );
                 }
             }
@@ -173,22 +131,88 @@ private  int   separate_polygons(
 
         DELETE_QUEUE( queue );
 
-        if( !skip )
-        {
-            REALLOC( new_poly->points, new_poly->n_points );
-            REALLOC( new_poly->normals, new_poly->n_points );
-            REALLOC( new_poly->end_indices, new_poly->n_items );
-            REALLOC( new_poly->indices, ind );
-        }
+        ++n_components;
     }
 
-    FREE( poly_done );
+    return( n_components );
+}
+
+private  int   separate_polygons(
+    polygons_struct    *polygons,
+    int                desired_index,
+    object_struct      **out[] )
+{
+    int                point, ind, poly, vertex, size;
+    int                point_index, *new_point_ids, n_objects, comp;
+    Smallest_int       *poly_classes;
+    int                n_components;
+    polygons_struct    *new_poly;
+
+    ALLOC( poly_classes, polygons->n_items );
+
+    n_components = make_connected_components( polygons, poly_classes );
+
+    ALLOC( new_point_ids, polygons->n_points );
+
+    n_objects = 0;
+
+    for_less( comp, 0, n_components )
+    {
+        if( desired_index >= 0 && comp != desired_index )
+            continue;
+
+        for_less( point, 0, polygons->n_points )
+            new_point_ids[point] = -1;
+
+        SET_ARRAY_SIZE( *out, n_objects, n_objects+1,
+                        DEFAULT_CHUNK_SIZE);
+        (*out)[n_objects] = create_object( POLYGONS );
+        new_poly = get_polygons_ptr( (*out)[n_objects] );
+        ++n_objects;
+        initialize_polygons( new_poly, WHITE, NULL );
+        ind = 0;
+
+        for_less( poly, 0, polygons->n_items )
+        {
+            if( poly_classes[poly] != (Smallest_int) comp )
+                continue;
+            size = GET_OBJECT_SIZE( *polygons, poly );
+            for_less( vertex, 0, size )
+            {
+                point_index = polygons->indices[
+                              POINT_INDEX(polygons->end_indices,poly,vertex)];
+
+                if( new_point_ids[point_index] < 0 )
+                {
+                    new_point_ids[point_index] = new_poly->n_points;
+                    ADD_ELEMENT_TO_ARRAY( new_poly->points,
+                                          new_poly->n_points,
+                                          polygons->points[point_index],
+                                          DEFAULT_CHUNK_SIZE );
+                    --new_poly->n_points;
+                    ADD_ELEMENT_TO_ARRAY( new_poly->normals,
+                                          new_poly->n_points,
+                                          polygons->normals[point_index],
+                                          DEFAULT_CHUNK_SIZE );
+                }
+
+                ADD_ELEMENT_TO_ARRAY( new_poly->indices, ind,
+                                      new_point_ids[point_index],
+                                      DEFAULT_CHUNK_SIZE );
+            }
+
+            ADD_ELEMENT_TO_ARRAY( new_poly->end_indices, new_poly->n_items,
+                                  ind, DEFAULT_CHUNK_SIZE );
+        }
+
+        REALLOC( new_poly->points, new_poly->n_points );
+        REALLOC( new_poly->normals, new_poly->n_points );
+        REALLOC( new_poly->end_indices, new_poly->n_items );
+        REALLOC( new_poly->indices, ind );
+    }
+
+    FREE( poly_classes );
     FREE( new_point_ids );
 
-    if( desired_index >= n_components )
-        return( 0 );
-    else if( desired_index >= 0 )
-        return( 1 );
-    else
-        return( n_components );
+    return( n_objects );
 }
