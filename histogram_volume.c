@@ -2,6 +2,7 @@
 
 #define  DEFAULT_N_INTERVALS  255
 
+#define  FILTER_WIDTH 0.1
 #define  WINDOW_WIDTH 0.05
 
 #define  MAX_POINTS   10
@@ -26,7 +27,7 @@ int  main(
     int                  n, i, slice, axis, int_width;
     int                  gray_min;
     Real                 value, width_ratio, min_voxel, max_voxel, window_width;
-    Real                 min_value, max_value, scale, trans;
+    Real                 min_value, max_value, scale, trans, filter_ratio;
     Real                 *counts;
     char                 *input_volume_filename, *output_filename;
     char                 *axis_name;
@@ -57,6 +58,7 @@ int  main(
     else
         axis = -1;
 
+    (void) get_real_argument( FILTER_WIDTH, &filter_ratio );
     (void) get_real_argument( WINDOW_WIDTH, &width_ratio );
     (void) get_int_argument( DEFAULT_N_INTERVALS, &x_size );
     (void) get_int_argument( x_size, &y_size );
@@ -100,7 +102,7 @@ int  main(
         }
     }
 
-    window_width = width_ratio * (max_value - min_value);
+    window_width = filter_ratio * (max_value - min_value);
 
     object = create_object( LINES );
 
