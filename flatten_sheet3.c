@@ -1,8 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  USING_FLOAT
 #undef   USING_FLOAT
+#define  USING_FLOAT
 
 #ifdef USING_FLOAT
 
@@ -26,7 +26,11 @@ typedef  Real   ftype;
 #endif
 
 private  void  flatten_polygons(
-    polygons_struct  *polygons,
+    int              n_points,
+    Point            points[],
+    int              n_neighbours[],
+    int              *neighbours[],
+    Smallest_int     interior_flags[],
     Point            init_points[],
     int              n_fixed,
     int              fixed_indices[],
@@ -39,11 +43,13 @@ int  main(
     STRING               src_filename, dest_filename, initial_filename;
     STRING               fixed_filename;
     int                  n_objects, n_i_objects, n_iters;
-    int                  n_fixed, *fixed_indices, ind, p;
+    int                  n_fixed, *fixed_indices, ind, p, n_points;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons;
-    Point                *init_points;
+    Point                *init_points, *points;
+    int                  *n_neighbours, **neighbours;
+    Smallest_int         *interior_flags;
     FILE                 *file;
 
     initialize_argument_processing( argc, argv );
@@ -108,16 +114,36 @@ int  main(
     }
 
     polygons = get_polygons_ptr( object_list[0] );
-    flatten_polygons( polygons, init_points, n_fixed, fixed_indices,
-                      n_iters );
 
-    (void) output_graphics_file( dest_filename, format, 1, object_list );
+    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
+                                     &neighbours, &interior_flags, NULL );
+
+    n_points = polygons->n_points;
+    points = polygons->points;
+    ALLOC( polygons->points, 1 );
+    delete_object_list( n_objects, object_list );
+
+    flatten_polygons( n_points, points,
+                      n_neighbours, neighbours, interior_flags,
+                      init_points, n_fixed, fixed_indices, n_iters );
+
+    if( input_graphics_file( src_filename, &format, &n_objects,
+                             &object_list ) != OK || n_objects != 1 ||
+        get_object_type(object_list[0]) != POLYGONS )
+        return( 1 );
+
+    polygons = get_polygons_ptr( object_list[0] );
+    FREE( polygons->points );
+    polygons->points = points;
+
+    (void) output_graphics_file( dest_filename, format, n_objects, object_list);
 
     return( 0 );
 }
 
 private  void  create_coefficients(
-    polygons_struct  *polygons,
+    int              n_points,
+    Point            points[],
     int              n_neighbours[],
     int              **neighbours,
     Smallest_int     interior_flags[],
@@ -144,23 +170,23 @@ private  void  create_coefficients(
     BOOLEAN          found;
     progress_struct  progress;
 
-    n_parameters = 2 * (polygons->n_points - n_fixed);
+    n_parameters = 2 * (n_points - n_fixed);
 
     INITIALIZE_LSQ( n_parameters, constant, linear_terms, square_terms,
                     n_cross_terms, cross_parms, cross_terms );
 
     max_neighbours = 0;
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
         max_neighbours = MAX( max_neighbours, n_neighbours[point] );
 
     ALLOC( flat[0], max_neighbours );
     ALLOC( flat[1], max_neighbours );
     ALLOC( neigh_points, max_neighbours );
 
-    initialize_progress_report( &progress, FALSE, polygons->n_points,
+    initialize_progress_report( &progress, FALSE, n_points,
                                 "Creating coefficients" );
 
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
     {
         found = (to_parameters[point] >= 0);
 
@@ -177,9 +203,9 @@ private  void  create_coefficients(
             continue;
 
         for_less( n, 0, n_neighbours[point] )
-            neigh_points[n] = polygons->points[neighbours[point][n]];
+            neigh_points[n] = points[neighbours[point][n]];
 
-        flatten_around_vertex( &polygons->points[point],
+        flatten_around_vertex( &points[point],
                                n_neighbours[point], neigh_points,
                                (BOOLEAN) interior_flags[point],
                                flat[0], flat[1] );
@@ -260,13 +286,17 @@ private  void  create_coefficients(
 }
 
 private  void  flatten_polygons(
-    polygons_struct  *polygons,
+    int              n_points,
+    Point            points[],
+    int              n_neighbours[],
+    int              *neighbours[],
+    Smallest_int     interior_flags[],
     Point            init_points[],
     int              n_fixed,
     int              fixed_indices[],
     int              n_iters )
 {
-    int              i, p, point, *n_neighbours, **neighbours, which;
+    int              i, p, point, which;
     Real             *fixed_pos[2];
     Real             constant;
     int              *n_cross_terms, **cross_parms, w_offset;
@@ -274,11 +304,8 @@ private  void  flatten_polygons(
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
     Vector           x_dir, y_dir, offset, p12, p13;
-    Smallest_int     *interior_flags;
+    polygons_struct  tmp_polygons;
     BOOLEAN          alloced_fixed;
-
-    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
-                                     &neighbours, &interior_flags, NULL );
 
     if( n_fixed <= 0 || init_points == NULL )
     {
@@ -286,9 +313,9 @@ private  void  flatten_polygons(
             sscanf( getenv("FLATTEN_OFFSET"), "%d", &w_offset ) != 1 )
             w_offset = 0;
 
-        for_less( i, 0, polygons->n_points )
+        for_less( i, 0, n_points )
         {
-            which = (i + w_offset) % polygons->n_points;
+            which = (i + w_offset) % n_points;
             if( n_neighbours[which] > 1 )
                 break;
         }
@@ -305,14 +332,12 @@ private  void  flatten_polygons(
         fixed_pos[0][0] = 0.0;
         fixed_pos[1][0] = 0.0;
 
-        fixed_pos[0][1] = distance_between_points( &polygons->points[which],
-                                        &polygons->points[fixed_indices[1]] );
+        fixed_pos[0][1] = distance_between_points( &points[which],
+                                                   &points[fixed_indices[1]] );
         fixed_pos[1][1] = 0.0;
 
-        SUB_POINTS( p12, polygons->points[fixed_indices[1]],
-                         polygons->points[which] );
-        SUB_POINTS( p13, polygons->points[fixed_indices[2]],
-                         polygons->points[which] );
+        SUB_POINTS( p12, points[fixed_indices[1]], points[which] );
+        SUB_POINTS( p13, points[fixed_indices[2]], points[which] );
 
         NORMALIZE_VECTOR( p12, p12 );
         fixed_pos[0][2] = DOT_VECTORS( p13, p12 );
@@ -338,10 +363,10 @@ private  void  flatten_polygons(
         }
     }
 
-    ALLOC( to_parameters, polygons->n_points );
-    ALLOC( to_fixed_index, polygons->n_points );
+    ALLOC( to_parameters, n_points );
+    ALLOC( to_fixed_index, n_points );
     ind = 0;
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
     {
         for_less( i, 0, n_fixed )
         {
@@ -361,33 +386,32 @@ private  void  flatten_polygons(
         }
     }
 
-    create_coefficients( polygons, n_neighbours, neighbours, interior_flags,
-                         n_fixed, fixed_indices, fixed_pos,
+    create_coefficients( n_points, points, n_neighbours, neighbours,
+                         interior_flags, n_fixed, fixed_indices, fixed_pos,
                          to_parameters, to_fixed_index,
                          &constant, &linear_terms, &square_terms,
                          &n_cross_terms, &cross_parms, &cross_terms );
 
-    ALLOC( parameters, 2 * (polygons->n_points - n_fixed) );
+    ALLOC( parameters, 2 * (n_points - n_fixed) );
 
     if( init_points == NULL )
     {
-        SUB_POINTS( x_dir, polygons->points[neighbours[which][0]],
-                           polygons->points[which] );
+        SUB_POINTS( x_dir, points[neighbours[which][0]], points[which] );
         NORMALIZE_VECTOR( x_dir, x_dir );
         fill_Point( y_dir, -RVector_y(x_dir), RVector_x(x_dir), 0.0 );
     }
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+    tmp_polygons.n_points = n_points;
+    delete_polygon_point_neighbours( &tmp_polygons, n_neighbours, neighbours,
                                      interior_flags, NULL );
 
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
     {
         if( to_parameters[point] >= 0 )
         {
             if( init_points == NULL )
             {
-                SUB_POINTS( offset, polygons->points[point],
-                                    polygons->points[which] );
+                SUB_POINTS( offset, points[point], points[which] );
                 parameters[2*to_parameters[point]] =
                                DOT_VECTORS( offset, x_dir );
                 parameters[2*to_parameters[point]+1] =
@@ -418,7 +442,7 @@ private  void  flatten_polygons(
             create_lsq_hypersurface_float( "surface.obj",
                        parm1, parm2, x_size, y_size, p1+x_min,
                        p1+x_max, p2+y_min, p2+y_max, scale,
-                       2 * (polygons->n_points - n_fixed),
+                       2 * (n_points - n_fixed),
                        constant, linear_terms, square_terms,
                        n_cross_terms, cross_parms, cross_terms,
                        parameters );
@@ -426,14 +450,14 @@ private  void  flatten_polygons(
     }
 #endif
 
-    (void) MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed),
+    (void) MINIMIZE_LSQ( 2 * (n_points - n_fixed),
                          constant, linear_terms, square_terms,
                          n_cross_terms, cross_parms, cross_terms,
                          -1.0, n_iters, parameters );
 
     FREE( linear_terms );
     FREE( square_terms );
-    for_less( p, 0, 2 * (polygons->n_points - n_fixed) )
+    for_less( p, 0, 2 * (n_points - n_fixed) )
     {
         if( n_cross_terms[p] > 0 )
         {
@@ -447,18 +471,16 @@ private  void  flatten_polygons(
     FREE( cross_parms );
     FREE( cross_terms );
 
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
     {
         if( to_parameters[point] >= 0 )
         {
-            fill_Point( polygons->points[point],
-                        parameters[2*to_parameters[point]],
+            fill_Point( points[point], parameters[2*to_parameters[point]],
                         parameters[2*to_parameters[point]+1], 0.0 );
         }
         else
         {
-            fill_Point( polygons->points[point],
-                        fixed_pos[0][to_fixed_index[point]],
+            fill_Point( points[point], fixed_pos[0][to_fixed_index[point]],
                         fixed_pos[1][to_fixed_index[point]], 0.0 );
         }
     }
