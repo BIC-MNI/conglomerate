@@ -40,7 +40,7 @@ private  Volume  create_chamfer_volume(
     int      dir, c;
     Volume   chamfer;
     BOOLEAN  surface_flag;
-    Real     voxel, value, neigh_voxel, neigh_value;
+    Real     value, neigh_value;
 
     chamfer = copy_volume_definition( volume, NC_UNSPECIFIED, FALSE, 0.0, 0.0 );
 
@@ -55,8 +55,8 @@ private  Volume  create_chamfer_volume(
                 surface_flag = FALSE;
                 min_diff = 0.0;
 
-                GET_VOXEL_3D( voxel, volume, ind[X], ind[Y], ind[Z] );
-                value = convert_voxel_to_value( volume, voxel );
+                value = get_volume_real_value( volume, ind[X], ind[Y], ind[Z],
+                                               0, 0 );
 
                 neigh[X] = ind[X];
                 neigh[Y] = ind[Y];
@@ -70,13 +70,11 @@ private  Volume  create_chamfer_volume(
 
                         if( neigh[c] >= 0 && neigh[c] < sizes[c] )
                         {
-                            GET_VOXEL_3D( neigh_voxel, volume,
-                                          neigh[X], neigh[Y], neigh[Z] );
-                            neigh_value = convert_voxel_to_value( volume,
-                                                                  neigh_voxel );
+                            neigh_value = get_volume_real_value( volume,
+                                          neigh[X], neigh[Y], neigh[Z], 0, 0 );
 
-                            if( value <= threshold && neigh_voxel >= threshold||
-                                value >= threshold && neigh_voxel <= threshold )
+                            if( value <= threshold && neigh_value >= threshold||
+                                value >= threshold && neigh_value <= threshold )
                             {
                                 surface_flag = TRUE;
                             }
@@ -88,7 +86,8 @@ private  Volume  create_chamfer_volume(
 
                 if( !surface_flag )
                 {
-                    SET_VOXEL_3D( volume, ind[X], ind[Y], ind[Z], 255.0 );
+                    set_volume_voxel_value( volume, ind[X], ind[Y], ind[Z],
+                                            0, 0, 255.0 );
                 }
             }
         }

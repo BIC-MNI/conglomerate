@@ -24,7 +24,7 @@ int  main(
     Real                 min_mask, max_mask, value_to_dilate;
     BOOLEAN              mask_volume_present;
     Volume               volume, mask_volume;
-    int                  i, n_dilations, n_neighs;
+    int                  i, n_dilations, n_neighs, n_changed;
     Neighbour_types      connectivity;
 
     initialize_argument_processing( argc, argv );
@@ -79,11 +79,12 @@ int  main(
 
     for_less( i, 0, n_dilations )
     {
-        dilate_labeled_voxels_3d( mask_volume, volume,
+        n_changed = dilate_labeled_voxels_3d( mask_volume, volume,
                                   (int) value_to_dilate, (int) value_to_dilate,
-                                  min_mask, max_mask,
+                                  0.0, -1.0,
                                   0, -1, min_mask, max_mask,
                                   (int) value_to_dilate, connectivity );
+        print( "%d\n", n_changed );
     }
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,

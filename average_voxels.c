@@ -56,7 +56,7 @@ int  main(
                 for_less( j, y, end_y )
                 for_less( k, z, end_z )
                 {
-                    GET_VALUE_3D( value, volume, i, j, k );
+                    value = get_volume_real_value( volume, i, j, k, 0, 0 );
                     avg += value;
                 }
 
@@ -69,7 +69,7 @@ int  main(
                 for_less( j, y, end_y )
                 for_less( k, z, end_z )
                 {
-                    SET_VOXEL_3D( volume, i, j, k, voxel_value );
+                    set_volume_real_value( volume, i, j, k, 0, 0, voxel_value );
                 }
             }
         }
