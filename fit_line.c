@@ -193,7 +193,7 @@ private  int  create_curve_approximating_points(
 #define  NUM_TEMPERATURE_STEPS     50
 #define  MAX_TRIES_FACTOR          100
 #define  MAX_SUCCESSES_FACTOR      10
-#define  CURVE_LENGTH_FACTOR       10.0
+#define  CURVE_LENGTH_FACTOR       0.1
 
 #define  STOP_CRITERIA             3
 
@@ -332,19 +332,115 @@ private  Real  evaluate_energy(
 {
     Real   energy;
 
-    energy = rms_error( n_tags, tags, n_points, curve ) +
+    energy = rms_error( n_tags, tags, n_points, curve ) / (Real) n_tags +
              CURVE_LENGTH_FACTOR * curve_length( n_points, curve );
 
+/*
     energy /= (Real) n_tags;
+*/
 
     return( energy );
+}
+
+private  Real  evaluate_delta_curve_length(
+    int     n_tags,
+    Point   tags[],
+    int     n_points,
+    Point   curve[],
+    Real    segment_lengths[],
+    int     index_changed )
+{
+    Real   delta_len;
+
+    delta_len = 0.0;
+
+    if( index_changed > 0 )
+    {
+        delta_len += distance_between_points( &curve[index_changed-1],
+                     &curve[index_changed] ) - segment_lengths[index_changed-1];
+    }
+
+    if( index_changed < n_points-1 )
+    {
+        delta_len += distance_between_points( &curve[index_changed],
+                     &curve[index_changed+1] ) - segment_lengths[index_changed];
+    }
+
+    return( delta_len );
+}
+
+private  Real  evaluate_delta_avg_rms(
+    int     n_tags,
+    Point   tags[],
+    int     n_points,
+    Point   curve[],
+    Real    tag_rms[],
+    int     index_changed )
+{
+    int     i, n_subpoints, start_point;
+    Point   min_box, max_box;
+    Real    delta_rms, current_rms;
+
+    min_box = curve[index_changed];
+    max_box = curve[index_changed];
+
+    if( index_changed > 0 )
+    {
+        apply_point_to_min_and_max( &curve[index_changed-1],
+                                    &min_box, &max_box );
+        start_point = index_changed-1;
+        n_subpoints = 2;
+    }
+    else
+    {
+        start_point = index_changed;
+        n_subpoints = 1;
+    }
+
+    if( index_changed < n_points - 1 )
+    {
+        apply_point_to_min_and_max( &curve[index_changed+1],
+                                    &min_box, &max_box );
+        ++n_subpoints;
+    }
+
+    delta_rms = 0.0;
+    for_less( i, 0, n_tags )
+    {
+        current_rms = tag_rms[i];
+
+        possible_change = TRUE;
+
+        for_less( c, 0, N_DIMENSIONS )
+        {
+            if( Point_coord(tags[i],c) + current_rms < Point_coord(min_box,c)&&
+                Point_coord(tags[i],c) - current_rms > Point_coord(max_box,c) )
+            {
+                possible_change = FALSE;
+                break;
+            }
+        }
+
+        if( possible_change )
+        {
+            possible_rms = rms_error_of_point( &tags[i], n_subpoints,
+                                               &curve[start_point] );
+
+            if( possible_rms < current_rms )
+            {
+                delta_rms += possible_rms - current_rms;
+            }
+        }
+    }
 }
 
 private  Real  evaluate_delta_energy(
     int     n_tags,
     Point   tags[],
     int     n_points,
-    Point   curve[] )
+    Point   curve[],
+    Real    segment_lengths[],
+    int     index_changed )
 {
 }
 
