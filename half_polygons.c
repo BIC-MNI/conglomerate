@@ -10,7 +10,7 @@ public  Status  process_object(
     {
         polygons = get_polygons_ptr( object );
 
-        if( is_this_sphere_topology( polygons )
+        if( is_this_sphere_topology( polygons ) )
             half_sample_sphere_tessellation( polygons, &half );
         else if( is_this_tetrahedral_topology( polygons ) )
             half_sample_tetrahedral_tessellation( polygons, &half );
