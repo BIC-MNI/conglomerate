@@ -147,13 +147,14 @@ int  get_points_within_dist(
     int               *neighbours[],
     int               point_index,
     Real              dist,
-    int               *points[] )
+    int               points[],
+    Real              dists[] )
 {
     int           current_index, n_points, p, neigh;
     int           i;
     Smallest_int  *done_flags;
+    Real          this_dist;
 
-    n_points = 0;
     current_index = 0;
 
     ALLOC( done_flags, n_polygon_points );
@@ -161,12 +162,15 @@ int  get_points_within_dist(
     for_less( i, 0, n_polygon_points )
         done_flags[i] = FALSE;
 
-    ADD_ELEMENT_TO_ARRAY( *points, n_points, point_index, DEFAULT_CHUNK_SIZE );
+    points[0] = point_index;
+    dists[0] = 0.0;
+    n_points = 1;
+
     done_flags[point_index] = TRUE;
 
     while( current_index < n_points )
     {
-        p = (*points)[current_index];
+        p = points[current_index];
         ++current_index;
 
         for_less( i, 0, n_neighbours[p] )
@@ -178,12 +182,13 @@ int  get_points_within_dist(
 
             done_flags[neigh] = TRUE;
 
-            if( distance_between_points( &polygon_points[point_index],
-                                         &polygon_points[neigh] ) <=
-                dist )
+            this_dist = distance_between_points( &polygon_points[point_index],
+                                                 &polygon_points[neigh] );
+            if( this_dist <= dist )
             {
-                ADD_ELEMENT_TO_ARRAY( *points, n_points, neigh,
-                                      DEFAULT_CHUNK_SIZE );
+                points[n_points] = neigh;
+                dists[n_points] = dist;
+                ++n_points;
             }
         }
     }
@@ -206,11 +211,16 @@ private  void  gaussian_blur_points(
     Real              *value )
 {
     Real   sum[3], weight, sum_weight, point_dist, e_const;
+    Real   *dists;
     int    i, c, n_points, *points, neigh;
+
+    ALLOC( points, n_polygon_points );
+    ALLOC( dists, n_polygon_points );
 
     n_points = get_points_within_dist( n_polygon_points, polygon_points,
                                        n_neighbours, neighbours,
-                                       point_index, dist * fwhm, &points );
+                                       point_index, dist * fwhm, points,
+                                       dists );
 
     sum[0] = 0.0;
     sum[1] = 0.0;
@@ -223,8 +233,7 @@ private  void  gaussian_blur_points(
     {
         neigh = points[i];
 
-        point_dist = distance_between_points( &polygon_points[point_index],
-                                              &polygon_points[neigh] );
+        point_dist = dists[i];
 
         weight = evaluate_gaussian( point_dist, e_const );
 
@@ -238,6 +247,9 @@ private  void  gaussian_blur_points(
 
         sum_weight += weight;
     }
+
+    FREE( points );
+    FREE( dists );
 
     if( values != NULL )
     {
