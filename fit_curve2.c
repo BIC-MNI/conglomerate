@@ -155,6 +155,14 @@ int  main(
             }
         }
 
+        if( n_class_points == 1 )
+        {
+            initialize_lines_with_size( lines, WHITE, 2, FALSE );
+            lines->points[0] = class_points[0];
+            lines->points[1] = class_points[0];
+            continue;
+        }
+
         ALLOC( tree_indices, n_class_points );
 
         n_span = get_minimum_spanning_tree_main_branch( n_class_points,
