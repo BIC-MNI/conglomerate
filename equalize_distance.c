@@ -468,6 +468,35 @@ private  Real  perturb_vertices(
     return( max_movement );
 }
 
+private  Real  distance_from_line_2d(
+    Real   point[],
+    Real   p1[],
+    Real   p2[] )
+{
+    return( (p2[X] - p1[X]) * (point[Y] - p1[Y]) -
+            (p2[Y] - p1[Y]) * (point[X] - p1[X]) );
+}
+
+private  BOOLEAN  segments_intersect(
+    Real    a1[],
+    Real    a2[],
+    Real    b1[],
+    Real    b2[] )
+{
+    Real  dist_ax1, dist_ax2, dist_bx1, dist_bx2;
+
+    dist_ax1 = distance_from_line_2d( a1, b1, b2 );
+    dist_ax2 = distance_from_line_2d( a2, b1, b2 );
+
+    if( dist_ax1 * dist_ax2 > 0.0 )
+        return( FALSE );
+
+    dist_bx1 = distance_from_line_2d( b1, a1, a2 );
+    dist_bx2 = distance_from_line_2d( b2, a1, a2 );
+
+    return( dist_bx1 * dist_bx2 > 0.0 );
+}
+
 private  Real  optimize_vertex_2d(
     polygons_struct   *unit_sphere,
     polygons_struct   *original,
@@ -482,7 +511,7 @@ private  Real  optimize_vertex_2d(
     int               n_steps,
     Real              (*steps)[2] )
 {
-    int    which, step;
+    int    which, step, edge;
     Real   movement, x1, y1, z1, x2, y2, z2;
     Real   new_point[N_DIMENSIONS];
     Real   dx, dy, dz;
@@ -496,6 +525,18 @@ private  Real  optimize_vertex_2d(
     {
         new_point[0] = point[0] + steps[step][0];
         new_point[1] = point[1] + steps[step][1];
+
+        for_less( edge, 0, n_neighbours )
+        {
+            if( segments_intersect( point,
+                                    new_point,
+                                    neighbours_2d[edge],
+                                    neighbours_2d[(edge+1)%n_neighbours] ) )
+                break;
+        }
+
+        if( edge < n_neighbours )
+            continue;
 
         new_fit = evaluate_fit_2d( unit_sphere, original,
                                    new_point, n_neighbours, neighbours,
