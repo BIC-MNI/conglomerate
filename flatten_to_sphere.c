@@ -60,6 +60,70 @@ int  main(
     return( 0 );
 }
 
+private  void   expand_neighbours(
+    int    n_nodes,
+    int    n_neighbours[],
+    int    *neighbours[] )
+{
+    int   node, n, new_n, *new_n_neighbours, **new_neighbours, *buffer;
+    int   i, nn, neigh, neigh_neigh;
+
+    ALLOC( buffer, n_nodes );
+
+    ALLOC( new_neighbours, n_nodes );
+    ALLOC( new_n_neighbours, n_nodes );
+
+    for_less( node, 0, n_nodes )
+    {
+        new_n = 0;
+        for_less( n, 0, n_neighbours[node] )
+        {
+            buffer[new_n] = neighbours[node][n];
+            ++new_n;
+        }
+
+        for_less( n, 0, n_neighbours[node] )
+        {
+            neigh = neighbours[node][n];
+            for_less( nn, 0, n_neighbours[neigh] )
+            {
+                neigh_neigh = neighbours[neigh][nn];
+                if( neigh_neigh == node )
+                    continue;
+
+                for_less( i, 0, new_n )
+                {
+                    if( buffer[i] == neigh_neigh )
+                        break;
+                }
+
+                if( i >= new_n )
+                {
+                    buffer[new_n] = neigh_neigh;
+                    ++new_n;
+                }
+            }
+        }
+
+        ALLOC( new_neighbours[node], new_n );
+        for_less( n, 0, new_n )
+            new_neighbours[node][n] = buffer[n];
+        new_n_neighbours[node] = new_n;
+    }
+
+    FREE( buffer );
+
+    for_less( node, 0, n_nodes )
+    {
+        n_neighbours[node] = new_n_neighbours[node];
+        FREE( neighbours[node] );
+        neighbours[node] = new_neighbours[node];
+    }
+
+    FREE( new_n_neighbours );
+    FREE( new_neighbours );
+}
+
 private  int  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
@@ -74,16 +138,28 @@ private  int  create_coefficients(
     Real             *constants[],
     Real             **node_weights[] )
 {
-    int              n_equations, node, p, eq, dim, n_nodes_in;
-    int              neigh, ind;
+    int              n_equations, node, p, eq, dim, n_nodes_in, max_neighbours;
+    int              neigh, ind, dim1;
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             x_sphere[MAX_POINTS_PER_POLYGON];
     Real             y_sphere[MAX_POINTS_PER_POLYGON];
     Real             z_sphere[MAX_POINTS_PER_POLYGON];
-    Real             weights[MAX_POINTS_PER_POLYGON], radius;
+    Real             *weights[N_DIMENSIONS][N_DIMENSIONS];
+    Real             radius;
     BOOLEAN          found, ignoring;
 
     radius = sqrt( get_polygons_surface_area( polygons ) / 4.0 * PI );
+
+    max_neighbours = 0;
+    for_less( node, 0, polygons->n_points )
+        max_neighbours = MAX( max_neighbours, n_neighbours[node] );
+
+    for_less( dim, 0, N_DIMENSIONS )
+    {
+        ALLOC( weights[0][dim], max_neighbours );
+        ALLOC( weights[1][dim], max_neighbours );
+        ALLOC( weights[2][dim], max_neighbours );
+    }
 
     n_equations = 0;
     for_less( node, 0, polygons->n_points )
@@ -97,7 +173,7 @@ private  int  create_coefficients(
                 break;
             }
         }
-        if( found && n_neighbours[node] > 3 )
+        if( found && n_neighbours[node] >= 3 )
             ++n_equations;
     }
 
@@ -118,11 +194,11 @@ private  int  create_coefficients(
         for_less( p, 0, n_neighbours[node] )
         {
             if( to_parameters[neighbours[node][p]] >= 0 )
-                ++n_nodes_in;
+                n_nodes_in += N_DIMENSIONS;
         }
 
 
-        if( n_nodes_in == 0 || n_neighbours[node] < 4 )
+        if( n_nodes_in == 0 || n_neighbours[node] < 3 )
             continue;
 
         for_less( p, 0, n_neighbours[node] )
@@ -136,7 +212,7 @@ private  int  create_coefficients(
         if( !get_prediction_weights_3d( 0.0, 0.0, 0.0,
                                         n_neighbours[node],
                                         x_sphere, y_sphere, z_sphere,
-                                        weights ) )
+                                        weights[0], weights[1], weights[2] ) )
                                          
         {
             print_error( "Error in interpolation weights, ignoring..\n" );
@@ -145,12 +221,14 @@ private  int  create_coefficients(
 
         if( !ignoring )
         {
+            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim1, 0, N_DIMENSIONS )
             for_less( p, 0, n_neighbours[node] )
             {
-                if( FABS( weights[p] ) > 100.0 )
+                if( FABS( weights[dim][dim1][p] ) > 100.0 )
                 {
-                    print_error( "Interpolation weights too high: %d %g\n",
-                                 p, weights[p] );
+                    print_error( "Interpolation weights too high: %d %d %d %g\n",
+                                 p, dim, dim1, weights[dim][dim1][p] );
                     ignoring = TRUE;
                 }
             }
@@ -211,14 +289,20 @@ private  int  create_coefficients(
                 neigh = neighbours[node][p];
                 if( to_parameters[neigh] >= 0 )
                 {
-                    (*node_list)[eq][ind] = 3 * to_parameters[neigh] + dim;
-                    (*node_weights)[eq][ind] = -weights[p];
-                    ++ind;
+                    for_less( dim1, 0, N_DIMENSIONS )
+                    {
+                        (*node_list)[eq][ind] = 3 * to_parameters[neigh] + dim1;
+                        (*node_weights)[eq][ind] = -weights[dim][dim1][p];
+                        ++ind;
+                    }
                 }
                 else
                 {
-                    (*constants)[eq] += -weights[p] *
-                                        fixed_pos[dim][to_fixed_index[neigh]];
+                    for_less( dim1, 0, N_DIMENSIONS )
+                    {
+                        (*constants)[eq] = -weights[dim][dim1][p] *
+                                       fixed_pos[dim1][to_fixed_index[neigh]];
+                    }
                 }
             }
 
@@ -240,6 +324,13 @@ private  int  create_coefficients(
 
 #endif
 
+    for_less( dim, 0, N_DIMENSIONS )
+    {
+        FREE( weights[0][dim] );
+        FREE( weights[1][dim] );
+        FREE( weights[2][dim] );
+    }
+
     return( n_equations );
 }
 
@@ -258,6 +349,10 @@ private  void  flatten_polygons(
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
+
+/*
+    expand_neighbours( polygons->n_points, n_neighbours, neighbours );
+*/
 
     size = GET_OBJECT_SIZE( *polygons, 0 );
     n_fixed = size;
@@ -305,6 +400,9 @@ private  void  flatten_polygons(
                                        to_parameters, to_fixed_index,
                                        &n_nodes_per_equation,
                                        &node_list, &constants, &node_weights );
+
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     NULL, NULL );
 
     ALLOC( parameters, 3 * (polygons->n_points - n_fixed) );
 
