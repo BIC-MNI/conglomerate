@@ -18,7 +18,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    int        c;
+    int        c, block_sizes[MAX_DIMENSIONS];
+    int        dim, save_max_bytes, save_threshold;
     Volume     volume, new_volume;
     Status     status;
     Real       voxel_filter_widths[N_DIMENSIONS];
@@ -51,12 +52,28 @@ int  main(
     else
         data_type = NC_UNSPECIFIED;
 
+    save_threshold = get_n_bytes_cache_threshold();
+    save_max_bytes = get_default_max_bytes_in_cache();
+
+    set_n_bytes_cache_threshold( 0 );
+    set_default_max_bytes_in_cache( 0 );
+    block_sizes[0] = 1;
+    block_sizes[1] = -1;
+    block_sizes[2] = -1;
+    set_default_cache_block_sizes( block_sizes );
+
     status = input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) ;
 
     if( status != OK )
         return( 1 );
+
+    set_n_bytes_cache_threshold( save_threshold );
+    set_default_max_bytes_in_cache( save_max_bytes );
+    for_less( dim, 0, MAX_DIMENSIONS )
+        block_sizes[dim] = 8;
+    set_default_cache_block_sizes( block_sizes );
 
     reorder_xyz_to_voxel( volume, filter_widths, voxel_filter_widths );
 
