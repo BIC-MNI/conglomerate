@@ -1,16 +1,27 @@
+#include  <internal_volume_io.h>
 #include  <bicpl.h>
+
+private  void  usage(
+    char   executable[] )
+{
+    static  char  usage_str[] = "\n\
+Usage: %s  input.mnc  output.mnc  min_value  max_value  label_value\n\
+\n\
+     Creates a label volume which has the value of label_value where the input\n\
+     voxels are between min_value and max_value.\n\n";
+
+    print_error( usage_str, executable );
+}
 
 int  main(
     int   argc,
     char  *argv[] )
 {
     char                 *volume_filename;
-    char                 *output_filename, *dummy;
-    Real                 min_value, max_value, value_to_set, value;
-    int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed;
-    progress_struct      progress;
-    Volume               volume;
-    BOOLEAN              correct_label_range, set_value_specified;
+    char                 *output_filename;
+    Real                 min_value, max_value, value;
+    int                  v[MAX_DIMENSIONS], label_value_to_set, label;
+    Volume               volume, label_volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -19,57 +30,34 @@ int  main(
         !get_real_argument( 0.0, &min_value ) ||
         !get_real_argument( 0.0, &max_value ) )
     {
-        print( "Usage: %s  input.mnc  output.mnc  min_value  max_value set_value\n",
-               argv[0] );
-        print( "    [correct_label_range_flag]\n" );
+        usage( argv[0] );
         return( 1 );
     }
 
-    set_value_specified = get_real_argument( 0.0, &value_to_set );
-    correct_label_range = get_string_argument( "", &dummy );
+    (void) get_int_argument( 1, &label_value_to_set );
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
 
-    if( correct_label_range )
-        set_label_volume_real_range( volume );
+    label_volume = create_label_volume( volume, NC_UNSPECIFIED );
 
-    if( !set_value_specified )
-        value_to_set = get_volume_voxel_min( volume );
+    BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
 
-    get_volume_sizes( volume, sizes );
+        value = get_volume_real_value( volume, v[0], v[1], v[2], v[3], v[4] );
 
-    n_changed = 0;
+        if( value >= min_value && value <= max_value )
+            label = label_value_to_set;
+        else
+            label = 0;
 
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
-                                "Masking Volume" );
+        set_volume_label_data( label_volume, v, label );
 
-    for_less( x, 0, sizes[X] )
-    {
-        for_less( y, 0, sizes[Y] )
-        {
-            for_less( z, 0, sizes[Z] )
-            {
-                GET_VALUE_3D( value, volume, x, y, z );
-                if( min_value <= value && value <= max_value )
-                {
-                    SET_VOXEL_3D( volume, x, y, z, value_to_set );
-                    ++n_changed;
-                }
-            }
-
-            update_progress_report( &progress, x * sizes[Y] + y + 1 );
-        }
-    }
-
-    terminate_progress_report( &progress );
-
-    print( "Masked %d voxels\n", n_changed );
+    END_ALL_VOXELS
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
-                                   0.0, 0.0, volume, volume_filename,
+                                   0.0, 0.0, label_volume, volume_filename,
                                    "Thresholded", NULL );
 
     return( 0 );
