@@ -119,6 +119,7 @@ private  Real  evaluate_fit(
     Real   **weights,
     int    **weighted_points,
     Real   values[],
+    float  **distances,
     Real   total_length,
     int    n_nodes,
     Point  nodes[],
@@ -150,9 +151,7 @@ private  Real  evaluate_fit(
             if( neighbours[node][p] < node )
                 continue;
 
-            dist = distance_between_points( &nodes[node],
-                                            &nodes[neighbours[node][p]] ) /
-                   total_length;
+            dist = (Real) distances[node][p] / total_length;
             diff = smooth_weight *
                    (node_values[node] - node_values[neighbours[node][p]]) /
                    dist;
@@ -178,6 +177,7 @@ private  void  fast_minimize_nodes(
     Real   **weights,
     int    **weighted_points,
     Real   values[],
+    float  **distances,
     Real   total_length,
     int    n_nodes,
     Point  nodes[],
@@ -219,9 +219,7 @@ private  void  fast_minimize_nodes(
 
     for_less( neigh_index, 0, n_neighbours[node] )
     {
-        dist = distance_between_points( &nodes[node],
-                                   &nodes[neighbours[node][neigh_index]] ) /
-               total_length;
+        dist = (Real) distances[node][neigh_index] / total_length;
 
         linear = smooth_weight / dist;
 
@@ -250,6 +248,7 @@ private  void  minimize_nodes(
     Real   **weights,
     int    **weighted_points,
     Real   values[],
+    float  **distances,
     Real   total_length,
     int    n_nodes,
     Point  nodes[],
@@ -321,9 +320,7 @@ private  void  minimize_nodes(
             if( neighbours[node][neigh_index] < node && neigh_also_in_list )
                 continue;
 
-            dist = distance_between_points( &nodes[node],
-                               &nodes[neighbours[node][neigh_index]] ) /
-                   total_length;
+            dist = (Real) distances[node][neigh_index] / total_length;
 
             for_less( p, 0, n_node_indices )
                 coefs[p] = 0.0;
@@ -363,6 +360,7 @@ private  void  minimize_cost(
     Real   **weights,
     int    **weighted_points,
     Real   values[],
+    float  **distances,
     Real   total_length,
     int    n_nodes,
     Point  nodes[],
@@ -382,7 +380,7 @@ private  void  minimize_cost(
         fit0 = evaluate_fit( n_neighbours, neighbours,
                              interp_weight, smooth_weight, n_interp_points,
                              n_weights, weights, weighted_points, values,
-                             total_length, n_nodes, nodes,
+                             distances, total_length, n_nodes, nodes,
                              node_values, NULL, NULL );
 */
 
@@ -406,16 +404,16 @@ private  void  minimize_cost(
         if( n_to_do == 1 )
         {
             fast_minimize_nodes( node, n_neighbours, neighbours,
-                        interp_weight, smooth_weight,
-                        n_interp_points, n_weights, weights, weighted_points,
-                        values, total_length, n_nodes, nodes, node_values );
+                interp_weight, smooth_weight,
+                n_interp_points, n_weights, weights, weighted_points,
+                values, distances, total_length, n_nodes, nodes, node_values );
         }
         else
         {
             minimize_nodes( n_to_do, list, n_neighbours, neighbours,
-                        interp_weight, smooth_weight,
-                        n_interp_points, n_weights, weights, weighted_points,
-                        values, total_length, n_nodes, nodes, node_values );
+                interp_weight, smooth_weight,
+                n_interp_points, n_weights, weights, weighted_points,
+                values, distances, total_length, n_nodes, nodes, node_values );
         }
 
         if( n_to_do == n_nodes )
@@ -427,21 +425,21 @@ private  void  minimize_cost(
         fit2 = evaluate_fit( n_neighbours, neighbours,
                              interp_weight, smooth_weight, n_interp_points,
                              n_weights, weights, weighted_points, values,
-                             total_length, n_nodes, nodes,
+                             distances, total_length, n_nodes, nodes,
                              node_values, &fa, &fb );
 
         node_values[node] = save - INCREMENT;
         fit1 = evaluate_fit( n_neighbours, neighbours,
                              interp_weight, smooth_weight, n_interp_points,
                              n_weights, weights, weighted_points, values,
-                             total_length, n_nodes, nodes,
+                             distances, total_length, n_nodes, nodes,
                              node_values, NULL, NULL );
 
         node_values[node] = save + INCREMENT;
         fit3 = evaluate_fit( n_neighbours, neighbours,
                              interp_weight, smooth_weight, n_interp_points,
                              n_weights, weights, weighted_points, values,
-                             total_length, n_nodes, nodes,
+                             distances, total_length, n_nodes, nodes,
                              node_values, NULL, NULL );
 
         if( fit1 < fit2 || fit3 < fit2 )
@@ -470,9 +468,11 @@ private  void   create_surface_interpolation(
     Point             point_on_surface;
     Real              **weights;
     Real              dist, interp_weight, smooth_weight, fit1, fit2;
+    float             **distances;
     int               point, *n_point_neighbours, **point_neighbours, p;
-    int               iter, size, obj_index, neigh;
+    int               iter, size, obj_index, neigh, n_edges;
     int               **weighted_points, *n_weights;
+    int               next_change, update_rate;
 
     polygons = get_polygons_ptr( object );
 
@@ -482,14 +482,25 @@ private  void   create_surface_interpolation(
     create_polygon_point_neighbours( polygons, &n_point_neighbours,
                                      &point_neighbours, NULL );
 
+    ALLOC( distances, polygons->n_points );
+
     total_length = 0.0;
+    n_edges = 0;
 
     for_less( point, 0, polygons->n_points )
     {
+        ALLOC( distances[point], n_point_neighbours[point] );
+        n_edges += n_point_neighbours[point];
         for_less( neigh, 0, n_point_neighbours[point] )
-            total_length += distance_between_points( &polygons->points[point],
+        {
+            distances[point][neigh] = (float) distance_between_points(
+                         &polygons->points[point],
                           &polygons->points[point_neighbours[point][neigh]] );
+            total_length += (Real) distances[point][neigh];
+        }
     }
+
+    total_length /= (Real) n_edges;
 
     ALLOC( n_weights, n_points );
     ALLOC( weights, n_points );
@@ -549,26 +560,39 @@ private  void   create_surface_interpolation(
     (void) evaluate_fit( n_point_neighbours, point_neighbours,
                          interp_weight, smooth_weight, n_points,
                          n_weights, weights, weighted_points, values,
-                         total_length, polygons->n_points, polygons->points,
+                         distances, total_length, polygons->n_points,
+                         polygons->points,
                          node_values, &fit1, &fit2 );
 
     print( "Initial  %g %g\n", fit1, fit2 );
 
+    update_rate = 1;
+    next_change = 10;
     for_less( iter, 0, n_iters )
     {
         minimize_cost( interp_weight, smooth_weight,
                        n_points, n_weights, weights, weighted_points, values,
-                       total_length,
+                       distances, total_length,
                        polygons->n_points, polygons->points, node_values,
                        n_point_neighbours, point_neighbours, max_neighbours );
 
         (void) evaluate_fit( n_point_neighbours, point_neighbours,
                       interp_weight, smooth_weight, n_points,
                       n_weights, weights, weighted_points, values,
-                      total_length, polygons->n_points, polygons->points,
+                      distances, total_length,
+                      polygons->n_points, polygons->points,
                       node_values, &fit1, &fit2 );
 
-        print( "%d: %g \t  %g  %g\n", iter+1, fit1 + fit2, fit1, fit2 );
+        if( ((iter+1) % update_rate) == 0 )
+        {
+            print( "%d: %g \t  %g  %g\n", iter+1, fit1 + fit2, fit1, fit2 );
+        }
+
+        if( iter+1 == next_change )
+        {
+            update_rate *= 10;
+            next_change *= 100;
+        }
     }
 
     delete_polygon_point_neighbours( n_point_neighbours, point_neighbours,
@@ -579,6 +603,11 @@ private  void   create_surface_interpolation(
         FREE( weights[point] );
         FREE( weighted_points[point] );
     }
+
+    for_less( point, 0, polygons->n_points )
+        FREE( distances[point] );
+    FREE( distances );
+
     FREE( n_weights );
     FREE( weights );
     FREE( weighted_points );
