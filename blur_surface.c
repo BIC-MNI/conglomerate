@@ -8,6 +8,7 @@ private  void  gaussian_blur_points(
     Real              values[],
     int               n_neighbours[],
     int               *neighbours[],
+    Smallest_int      done_flags[],
     int               point_index,
     Real              fwhm,
     Real              dist,
@@ -25,6 +26,7 @@ int  main(
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons;
+    Smallest_int     *done_flags;
     Point            *smooth_points, point;
     Real             fwhm, distance_ratio, *values, value, *smooth_values;
     BOOLEAN          values_present;
@@ -84,13 +86,18 @@ int  main(
     create_polygon_point_neighbours( polygons, &n_neighbours,
                                      &neighbours, NULL );
 
+    ALLOC( done_flags, polygons->n_points );
+
+    for_less( p, 0, polygons->n_points )
+        done_flags[p] = FALSE;
+
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Blurring" );
 
     for_less( p, 0, polygons->n_points )
     {
         gaussian_blur_points( polygons->n_points, polygons->points, values,
-                              n_neighbours, neighbours,
+                              n_neighbours, neighbours, done_flags,
                               p, fwhm, distance_ratio, &point, &value );
 
         if( values_present )
@@ -146,28 +153,21 @@ int  get_points_within_dist(
     Point             polygon_points[],
     int               n_neighbours[],
     int               *neighbours[],
+    Smallest_int      done_flags[],
     int               point_index,
     Real              dist,
     int               points[],
     Real              dists[] )
 {
-    int           current_index, n_points, p, neigh;
-    int           i;
-    Smallest_int  *done_flags;
+    int           current_index, n_points, p, neigh, i;
     Real          this_dist;
 
     current_index = 0;
 
-    ALLOC( done_flags, n_polygon_points );
-
-    for_less( i, 0, n_polygon_points )
-        done_flags[i] = FALSE;
-
     points[0] = point_index;
     dists[0] = 0.0;
-    n_points = 1;
-
     done_flags[point_index] = TRUE;
+    n_points = 1;
 
     while( current_index < n_points )
     {
@@ -189,13 +189,14 @@ int  get_points_within_dist(
             if( this_dist <= dist )
             {
                 points[n_points] = neigh;
-                dists[n_points] = dist;
+                dists[n_points] = this_dist;
                 ++n_points;
             }
         }
     }
 
-    FREE( done_flags );
+    for_less( i, 0, n_points )
+        done_flags[points[i]] = FALSE;
 
     return( n_points );
 }
@@ -206,6 +207,7 @@ private  void  gaussian_blur_points(
     Real              values[],
     int               n_neighbours[],
     int               *neighbours[],
+    Smallest_int      *done_flags,
     int               point_index,
     Real              fwhm,
     Real              dist,
@@ -220,7 +222,7 @@ private  void  gaussian_blur_points(
     ALLOC( dists, n_polygon_points );
 
     n_points = get_points_within_dist( n_polygon_points, polygon_points,
-                                       n_neighbours, neighbours,
+                                       n_neighbours, neighbours, done_flags,
                                        point_index, dist * fwhm, points,
                                        dists );
 
