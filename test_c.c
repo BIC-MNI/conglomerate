@@ -3,6 +3,7 @@
 
 FILE  *file;
 
+static   int  n_on = 0;
 static   int  total_bytes_read = 0;
 
 private  BOOLEAN  get_bit(
@@ -23,6 +24,8 @@ private  BOOLEAN  get_bit(
     --n_bits_left;
     *bit = (data & 1) != 0;
     data >>= 1;
+
+    if( *bit ) ++n_on;
 
     return( TRUE );
 }
@@ -50,7 +53,8 @@ private  void  output_bit(
 
 private  void  flush_bits( void )
 {
-    print( "Total bits: %d %d\n", total_bytes_read, total_n_bits / 8 );
+    print( "Total bits: %d %d   %5.1f\n", total_bytes_read, total_n_bits / 8,
+           100.0 * (Real) n_on / 8.0 / (Real) total_bytes_read );
 
     while( n_bits_out != 0 )
         output_bit( FALSE );
@@ -61,33 +65,38 @@ int  main(
     char *argv[] )
 {
     STRING     bit_pattern, out_filename;
-    BOOLEAN    bit, m[2];
+    Real       prob_on;
+    BOOLEAN    bit, expected;
+    int        seed;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( NULL, &bit_pattern ) ||
+    if( !get_real_argument( 0.0, &prob_on ) ||
         !get_string_argument( NULL, &out_filename ) )
     {
         print_error( "Usage: %s pattern out", argv[0] );
         return( 1 );
     }
 
+    (void) get_int_argument( 341424341, &seed );
+
+    set_random_seed( seed );
+
     if( open_file( out_filename, WRITE_FILE, BINARY_FORMAT, &file ) != OK )
         return( 1 );
 
-    m[0] = bit_pattern[0] == '1';
-    m[1] = bit_pattern[1] == '1';
-
-    print( "%d %d\n", m[0], m[1] );
-
     while( get_bit( &bit ) )
     {
-        if( bit == m[0] )
+        expected = get_random_0_to_1() < prob_on;
+
+        if( bit == expected )
         {
             if( !get_bit( &bit ) )
                 break;
 
-            if( bit == m[1] )
+            expected = get_random_int( 2 );
+
+            if( bit == expected )
                 output_bit( TRUE );
             else
             {
