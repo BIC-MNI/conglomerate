@@ -14,6 +14,7 @@ private  void  fit_curve(
     Point   *line_origin,
     Vector  *line_direction,
     int     axis,
+    Real    smoothness_weight,
     int     n_cvs,
     Point   cvs[] );
 
@@ -22,12 +23,15 @@ private  void  usage(
 {
     STRING  usage_str = "\n\
 Usage: %s  input_lines.tag  output_lines.obj n_controls n_intervals\n\
+                  [smoothness_weight]\n\
 \n\
      Creates a cubic spline curve that approximates the set of points in\n\
      the tag file.  The n_controls effectively sets the smoothness of the \n\
      spline by controling the number of control vertices.  The n_intervals\n\
      is the number of intervals between each control vertex in the\n\
-     discretized line that is finally output.\n\n";
+     discretized line that is finally output.  The optional smoothness_weight\n\
+     sets the amount of smoothing of the spline\n\
+     (0 = no smoothing, .001 = reasonable smoothing).\n\n";
 
     print_error( usage_str, executable );
 }
@@ -37,7 +41,7 @@ int  main(
     char  *argv[] )
 {
     STRING               input_filename, output_filename;
-    Real                 **tags, u;
+    Real                 **tags, u, smoothness_weight;
     int                  p, n_piecewise, n_tag_points, n_volumes, axis;
     int                  n_intervals_per, i, n_cvs, ind, n;
     object_struct        *object;
@@ -56,9 +60,29 @@ int  main(
         return( 1 );
     }
 
+    (void) get_real_argument( 0.0, &smoothness_weight );
+
     if( input_tag_file( input_filename, &n_volumes, &n_tag_points,
                         &tags, NULL, NULL, NULL, NULL, NULL ) != OK )
         return( 1 );
+
+    if( n_tag_points == 0 )
+    {
+        if( output_graphics_file( output_filename, ASCII_FORMAT, 0, NULL ) !=OK)
+            return( 1 );
+        return( 0 );
+    }
+    else if( n_tag_points == 1 )
+    {
+        object = create_object( LINES );
+        lines = get_lines_ptr( object );
+        initialize_lines_with_size( lines, WHITE, 1, FALSE );
+        fill_Point( lines->points[0], tags[0][X], tags[0][Y], tags[0][Z] );
+        if( output_graphics_file( output_filename, ASCII_FORMAT, 1, &object )
+                                  !=OK )
+            return( 1 );
+        return( 0 );
+    }
 
     ALLOC( points, n_tag_points );
 
@@ -72,7 +96,7 @@ int  main(
     ALLOC( cvs, n_cvs );
 
     fit_curve( n_tag_points, points, &line_origin, &line_direction, axis,
-               n_cvs, cvs );
+               smoothness_weight, n_cvs, cvs );
 
     object = create_object( LINES );
     lines = get_lines_ptr( object );
@@ -289,12 +313,13 @@ private  void  get_best_line(
 private  void  get_spline_fit(
     int      n_points,
     Point    points[],
+    Real     smoothness_weight,
     int      n_cvs,
     Point    cvs[] )
 {
     int                    p, i, off, b;
     linear_least_squares   lsq;
-    Real                   **basis, *coefs, u, x, y, weight, power;
+    Real                   **basis, *coefs, u, x, y, weight, power, h;
 
     ALLOC2D( basis, 4, 4 );
 
@@ -352,6 +377,21 @@ private  void  get_spline_fit(
         add_to_linear_least_squares( &lsq, coefs, y );
     }
 
+    h = 1.0 / (Real) (n_cvs-3);
+    smoothness_weight *= sqrt( (Real) n_points / (Real) (n_cvs-4) ) / h / h;
+
+    for_less( p, 1, n_cvs-3 )
+    {
+        for_less( b, 0, n_cvs-2 )
+            coefs[b] = 0.0;
+
+        coefs[p-1] = 1.0 * smoothness_weight;
+        coefs[p+0] = -2.0 * smoothness_weight;
+        coefs[p+1] = 1.0 * smoothness_weight;
+
+        add_to_linear_least_squares( &lsq, coefs, 0.0 );
+    }
+
     if( !get_linear_least_squares_solution( &lsq, coefs ) )
         handle_internal_error( "get_spline_fit" );
 
@@ -378,6 +418,7 @@ private  void  fit_curve(
     Point   *line_origin,
     Vector  *line_direction,
     int     axis,
+    Real    smoothness_weight,
     int     n_cvs,
     Point   cvs[] )
 {
@@ -420,7 +461,7 @@ private  void  fit_curve(
         fill_Point( cvs[p], x, 0.0, 0.0 );
     }
 
-    get_spline_fit( n_points, aligned_points, n_cvs, cvs );
+    get_spline_fit( n_points, aligned_points, smoothness_weight, n_cvs, cvs );
 
     for_less( p, 0, n_cvs )
     {
