@@ -289,6 +289,7 @@ private  void  initialize_tri_mesh(
     tri_mesh_struct  *mesh )
 {
     mesh->n_triangles = 0;
+    mesh->triangles = NULL;
     mesh->n_points = 0;
 }
 
@@ -620,11 +621,74 @@ private  void   delete_unused_nodes(
         renumber_points( &mesh->triangles[tri], new_id );
 }
 
+private  void  reorder_triangles(
+    tri_node_struct  *node,
+    int              index )
+{
+    int              p0, p1, p2;
+    tri_node_struct  *c0, *c1, *c2, *c3;
+
+    if( node == NULL )
+        return;
+
+    p0 = node->nodes[0];
+    p1 = node->nodes[1];
+    p2 = node->nodes[2];
+
+    c0 = node->children[0];
+    c1 = node->children[1];
+    c2 = node->children[2];
+    c3 = node->children[3];
+
+    switch( index )
+    {
+    case 1:
+        node->nodes[0] = p1;
+        node->nodes[1] = p2;
+        node->nodes[2] = p0;
+
+        if( c0 != NULL )
+        {
+            node->children[0] = c1;
+            node->children[1] = c3;
+            node->children[3] = c0;
+            reorder_triangles( c0, 1 );
+            reorder_triangles( c1, 1 );
+            reorder_triangles( c2, 1 );
+            reorder_triangles( c3, 1 );
+        }
+        break;
+
+    case 2:
+        node->nodes[0] = p2;
+        node->nodes[1] = p0;
+        node->nodes[2] = p1;
+
+        if( c0 != NULL )
+        {
+            node->children[0] = c3;
+            node->children[1] = c0;
+            node->children[3] = c1;
+            reorder_triangles( c0, 2 );
+            reorder_triangles( c1, 2 );
+            reorder_triangles( c2, 2 );
+            reorder_triangles( c3, 2 );
+        }
+        break;
+
+    default:
+        break;
+    }
+}
+
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
     tri_mesh_struct  *mesh )
 {
-    int    poly, size;
+    int              poly, size, tri, n_nodes, subtri, node, p, p_index;
+    int              nodes[6], counts[6];
+    int              which_tri[4], indices[4], mid0, n_done;
+    tri_node_struct  new_tri;
 
     initialize_tri_mesh( mesh );
 
@@ -644,6 +708,93 @@ private  void   convert_polygons_to_mesh(
                  polygons->indices[POINT_INDEX(polygons->end_indices,poly,0)],
                  polygons->indices[POINT_INDEX(polygons->end_indices,poly,1)],
                  polygons->indices[POINT_INDEX(polygons->end_indices,poly,2)] );
+    }
+
+    if( is_this_tetrahedral_topology(polygons) )
+    {
+        while( mesh->n_triangles > 8 && mesh->n_triangles != 20 )
+        {
+            for( tri = 0;  tri < mesh->n_triangles;  tri += 4 )
+            {
+                n_nodes = 0;
+                for_less( subtri, 0, 4 )
+                {
+                    for_less( node, 0, 3 )
+                    {
+                        p = mesh->triangles[tri+subtri].nodes[node];
+                        for_less( p_index, 0, n_nodes )
+                            if( nodes[p_index] == p ) break;
+                        if( p_index >= n_nodes )
+                        {
+                            nodes[p_index] = p;
+                            counts[p_index] = 0;
+                            ++n_nodes;
+                        }
+                        ++counts[p_index];
+                    }
+                }
+
+                if( n_nodes != 6 )
+                    handle_internal_error( "tetra" );
+
+                n_done = 0;
+                for_less( subtri, 0, 4 )
+                {
+                    for_less( node, 0, 3 )
+                    {
+                        p = mesh->triangles[tri+subtri].nodes[node];
+                        for_less( p_index, 0, n_nodes )
+                            if( nodes[p_index] == p ) break;
+
+                        if( counts[p_index] == 1 )
+                        {
+                            which_tri[n_done] = subtri;
+                            indices[n_done] = node;
+                            ++n_done;
+                            if( n_done == 2 )
+                                ++n_done;
+                            break;
+                        }
+                    }
+
+                    if( node == 3 )
+                        which_tri[2] = subtri;
+                }
+
+                mid0 =mesh->triangles[tri+which_tri[0]].nodes[(indices[0]+1)%3];
+                for_less( node, 0, 3 )
+                    if( mesh->triangles[tri+which_tri[2]].nodes[node] == mid0 )
+                        break;
+                indices[2] = node;
+
+                reorder_triangles( &mesh->triangles[tri+which_tri[0]],
+                                   indices[0] );
+                reorder_triangles( &mesh->triangles[tri+which_tri[1]],
+                                   (indices[1]+2) % 3 );
+                reorder_triangles( &mesh->triangles[tri+which_tri[2]],
+                                   indices[2] );
+                reorder_triangles( &mesh->triangles[tri+which_tri[3]],
+                                   (indices[3]+1) % 3 );
+                for_less( subtri, 0, 4 )
+                {
+                    ALLOC( new_tri.children[subtri], 1 );
+                    *(new_tri.children[subtri]) = mesh->triangles
+                                                [tri+which_tri[subtri]];
+                }
+
+                new_tri.nodes[0] = 
+                    mesh->triangles[tri+which_tri[0]].nodes[indices[0]];
+                new_tri.nodes[1] = 
+                    mesh->triangles[tri+which_tri[1]].nodes[indices[1]];
+                new_tri.nodes[2] = 
+                    mesh->triangles[tri+which_tri[3]].nodes[indices[3]];
+
+                mesh->triangles[tri/4] = new_tri;
+            }
+            mesh->n_triangles /= 4;
+        }
+        SET_ARRAY_SIZE( mesh->triangles, polygons->n_items, mesh->n_triangles,
+                        DEFAULT_CHUNK_SIZE );
     }
 }
 
