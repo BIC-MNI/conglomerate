@@ -218,37 +218,118 @@ private  int  create_path_between_poles(
 
 private  float  get_horizontal_coord(
     int              point,
-    Point            points[],
+    polygons_struct  *polygons,
     int              n_neighbours[],
     int              *neighbours[],
     int              n_path,
     int              path[],
     float            vertical[] )
 {
-    int     path_index;
-    float   height;
+    int     ind, path_index, p, p0, p1, poly, current_poly, size, v0, v1;
+    int     current_ind;
+    float   height, ratio, sum_dist, to_point_dist;
+    Point   start_point, prev_point, next_point;
 
     height = vertical[point];
+    if( height <= 0.0f || height >= 1.0f )
+        return( 0.0f );
 
     path_index = 0;
-    while( vertical[path[path_index+1]] < height )
+    while( vertical[path[path_index+1]] <= height )
         ++path_index;
 
-    return( 0.0f );
+    p0 = path[path_index];
+    p1 = path[path_index+1];
+
+    for_less( poly, 0, polygons->n_items )
+    {
+        size = GET_OBJECT_SIZE( *polygons, poly );
+        for_less( v0, 0, size )
+        {
+            p = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                                  poly,v0)];
+            if( p == p0 )
+                break;
+        }
+        if( v0 == size )
+            continue;
+
+        for_less( v1, 0, size )
+        {
+            p = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                                  poly,v1)];
+            if( p == p1 )
+                break;
+        }
+        if( v1 < size )
+            break;
+    }
+
+    if( poly >= polygons->n_items )
+        handle_internal_error( "poly >= polygons->n_items" );
+
+    ratio = (height - vertical[p0]) / (vertical[p1] - vertical[p0]);
+    INTERPOLATE_POINTS( start_point, polygons->points[p0], polygons->points[p1],
+                        ratio );
+
+    prev_point = start_point;
+    sum_dist = 0.0f;
+    current_poly = poly;
+    current_ind = v0;
+
+    do
+    {
+        ind = current_ind;
+        while( vertical[polygons->indices[POINT_INDEX(polygons->end_indices,
+                                       current_poly,(ind+1)%size)]] <= height )
+        {
+            ind = (ind + 1) % size;
+        }
+
+        p0 = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                              current_poly,ind)];
+        p1 = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                              current_poly,(ind+1)%size)];
+
+        ratio = (height - vertical[p0]) / (vertical[p1] - vertical[p0]);
+        INTERPOLATE_POINTS( next_point, polygons->points[p0],
+                            polygons->points[p1], ratio );
+        sum_dist += (float) distance_between_points( &prev_point, &next_point);
+        if( p0 == point )
+            to_point_dist = sum_dist;
+
+        prev_point = next_point;
+
+        current_poly = polygons->neighbours[POINT_INDEX(polygons->end_indices,
+                                            current_poly,ind)];
+        size = GET_OBJECT_SIZE( *polygons, current_poly );
+        current_ind = 0;
+        while( polygons->indices[POINT_INDEX(polygons->end_indices,
+                                             current_poly,current_ind)] != p0 )
+            ++current_ind;
+    }
+    while( current_poly != poly );
+
+    sum_dist += (float) distance_between_points( &prev_point, &start_point );
+
+    return( to_point_dist / sum_dist );
 }
 
 private  void  create_2d_coordinates(
     polygons_struct  *polygons,
     int              north_pole )
 {
-    int          point, *n_neighbours, **neighbours, south_pole, path_size;
-    int          *path;
-    float        *vertical, *horizontal;
+    int               point, *n_neighbours, **neighbours, south_pole, path_size;
+    int               *path;
+    float             *vertical, *horizontal;
+    progress_struct   progress;
 
     ALLOC( vertical, polygons->n_points );
     ALLOC( horizontal, polygons->n_points );
     ALLOC( n_neighbours, polygons->n_points );
     ALLOC( neighbours, polygons->n_points );
+
+    check_polygons_neighbours_computed( polygons );
 
     create_neighbours( polygons, n_neighbours, neighbours );
 
@@ -271,16 +352,21 @@ private  void  create_2d_coordinates(
 
     for_less( point, 0, polygons->n_points )
     {
-        vertical[point] = vertical[point] /
+        vertical[point] = 1.0f - vertical[point] /
                           (vertical[point] + horizontal[point] );
     }
 
+    initialize_progress_report( &progress, FALSE, polygons->n_points,
+                                "Computing Horizontal Coord" );
+
     for_less( point, 0, polygons->n_points )
     {
-        horizontal[point] = get_horizontal_coord( point,
-                polygons->points, n_neighbours,
+        horizontal[point] = get_horizontal_coord( point, polygons, n_neighbours,
                    neighbours, path_size, path, vertical );
+        update_progress_report( &progress, point+1 );
     }
+
+    terminate_progress_report( &progress );
 
     write_values_to_file( "vertical.txt", polygons->n_points, vertical );
     write_values_to_file( "horizontal.txt", polygons->n_points, horizontal );
