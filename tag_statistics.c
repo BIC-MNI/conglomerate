@@ -1,6 +1,6 @@
 #include  <mni.h>
 
-private  BOOLEAN  get_stats_for_one_file(
+private  int  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
@@ -14,7 +14,8 @@ private  BOOLEAN  get_stats_for_one_file(
     Real            *y_mean,
     Real            *z_min,
     Real            *z_max,
-    Real            *z_mean );
+    Real            *z_mean,
+    int             *total_in_file );
 
 private  BOOLEAN  get_next_filename(
     char      *filename[] )
@@ -69,21 +70,31 @@ private  BOOLEAN  get_next_filename(
     return( found );
 }
 
+private  BOOLEAN  is_left_id(
+    int   id )
+{
+    if( id >= 1000 )
+        id -= 1000;
+
+    return( id >= 10 && id <= 19 || id == 30 );
+}
+
+private  BOOLEAN  is_right_id(
+    int   id )
+{
+    if( id >= 1000 )
+        id -= 1000;
+
+    return( id >= 20 && id <= 29 || id == 40 );
+}
+
 private  int   find_left_right_error(
-    char            filename[],
+    BOOLEAN         left,
     int             n_objects,
     object_struct   *object_list[] )
 {
     int            i, n_errors;
     marker_struct  *marker;
-    BOOLEAN        left;
-
-    if( strstr( filename, "cing_l" ) != (char *) NULL )
-        left = TRUE;
-    else if( strstr( filename, "cing_r" ) != (char *) NULL )
-        left = FALSE;
-    else
-        return( 10000000 );
 
     n_errors = 0;
 
@@ -93,14 +104,8 @@ private  int   find_left_right_error(
         {
             marker = get_marker_ptr( object_list[i] );
 
-            if( left &&
-                (marker->structure_id >= 20 && marker->structure_id <= 29 ||
-                 marker->structure_id == 40 ||
-                 Point_x(marker->position) > 5.0) ||
-                !left &&
-                (marker->structure_id >= 10 && marker->structure_id <= 19 ||
-                 marker->structure_id == 30 ||
-                 Point_x(marker->position) < -5.0) )
+            if( left && !is_left_id( marker->structure_id ) ||
+                !left && !is_right_id( marker->structure_id ) )
             {
                 ++n_errors;
             }
@@ -115,30 +120,33 @@ int  main(
     char  *argv[] )
 {
     Status               status;
-    char                 *landmark_filename;
+    char                 *landmark_filename, *freq_filename, *error_filename;
     Real                 *x_mins, *x_maxs, *y_mins, *y_maxs, *z_mins, *z_maxs;
     Real                 *x_means, *y_means, *z_means;
     Real                 x_min, x_max, y_min, y_max, z_min, z_max;
     Real                 x_mean, y_mean, z_mean;
     Real                 min_value, max_value, mean, std_dev, median;
     Real                 y_min_range, y_max_range;
-    FILE                 *left_right_errors;
+    BOOLEAN              left;
+    FILE                 *left_right_errors, *frequency_file;
     char                 *format;
-    STRING               *filenames;
+    STRING               *filenames, curr_patient, directory;
     Volume               volume;
     volume_input_struct  volume_input;
-    int                  n_files, n_objects;
+    int                  n_files, n_objects, n_files_for_patient, total_in_file;
     object_struct        **object_list;
-    int                  p, n_samples, n_errors;
-    int                  structure_id;
+    int                  p, n_samples, n_errors, s;
+    int                  structure_id, n_in_file;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_int_argument( 0, &structure_id ) ||
         !get_real_argument( 0.0, &y_min_range ) ||
-        !get_real_argument( 0.0, &y_max_range ) )
+        !get_real_argument( 0.0, &y_max_range ) ||
+        !get_string_argument( "", &error_filename ) ||
+        !get_string_argument( "", &freq_filename ) )
     {
-        print( "Usage:  %s  structure_id  y_min y_max landmark [landmark] ...\n", argv[0] );
+        print( "Usage:  %s  structure_id  y_min y_max error_file freq_file landmark [landmark] ...\n", argv[0] );
         return( 1 );
     }
 
@@ -171,20 +179,37 @@ int  main(
 
     n_samples = 0;
 
-    status = open_file( "/tmp/left_right_errors", WRITE_FILE, ASCII_FORMAT,
+    status = open_file( error_filename, WRITE_FILE, ASCII_FORMAT,
                         &left_right_errors );
+
+    status = open_file( freq_filename, WRITE_FILE, ASCII_FORMAT,
+                        &frequency_file );
+
+    n_files_for_patient = 0;
+    curr_patient[0] = (char) 0;
+    (void) strcpy( curr_patient, directory );
 
     for_less( p, 0, n_files )
     {
 /*
         print( "[%d/%d] Reading %s\n", p+1, n_files, filenames[p] );
 */
-
         status = input_objects_any_format( volume, filenames[p],
                                            GREEN, 1.0, BOX_MARKER,
                                            &n_objects, &object_list );
 
-        n_errors = find_left_right_error( filenames[p], n_objects, object_list);
+        if( strstr( filenames[p], "cing_l" ) != (char *) NULL )
+            left = TRUE;
+        else if( strstr( filenames[p], "cing_r" ) != (char *) NULL )
+            left = FALSE;
+        else
+        {
+            print( "Filename %s does not match cing_l or cing_r\n",
+                   filenames[p] );
+            break;
+        }
+
+        n_errors = find_left_right_error( left, n_objects, object_list );
 
         if( n_errors > 0 )
         {
@@ -196,11 +221,14 @@ int  main(
         if( status != OK )
             return( 1 );
 
-        if( get_stats_for_one_file( n_objects, object_list, structure_id,
+        n_in_file = get_stats_for_one_file( n_objects, object_list,
+                                    structure_id,
                                     y_min_range, y_max_range,
                                     &x_min, &x_max, &x_mean,
                                     &y_min, &y_max, &y_mean,
-                                    &z_min, &z_max, &z_mean ) )
+                                    &z_min, &z_max, &z_mean, &total_in_file );
+
+        if( n_in_file > 0 )
         {
             SET_ARRAY_SIZE( x_mins, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
             SET_ARRAY_SIZE( x_maxs, n_samples, n_samples+1, DEFAULT_CHUNK_SIZE);
@@ -225,10 +253,41 @@ int  main(
             ++n_samples;
         }
 
+        (void) strcpy( directory, filenames[p] );
+        s = strlen( directory );
+        while( s > 0 && directory[s] != '/' )
+            --s;
+        directory[s] = (char) 0;
+
+        if( strcmp( directory, curr_patient ) == 0 && p != )
+            ++n_files_for_patient;
+        else
+            n_files_for_patient = 1;
+
+        if( p == n_files - 1 || strcmp( directory, curr_patient ) != 0 )
+        {
+            if( n_files_for_patient != 2 )
+            {
+                print( "Missing files for %s\n", curr_patient );
+            }
+
+            (void) strcpy( curr_patient, directory );
+        }
+
+        if( left && is_left_id(structure_id) ||
+            !left && is_right_id(structure_id) )
+        {
+            (void) output_int( frequency_file, n_in_file );
+            (void) output_real( frequency_file, (Real) n_in_file /
+                                         (Real) total_in_file);
+            (void) output_newline( frequency_file );
+        }
+
         delete_object_list( n_objects, object_list );
     }
 
     status = close_file( left_right_errors );
+    status = close_file( frequency_file );
 
     if( volume != (Volume) NULL )
         cancel_volume_input( volume, &volume_input );
@@ -303,7 +362,7 @@ int  main(
     return( status != OK );
 }
 
-private  BOOLEAN  get_stats_for_one_file(
+private  int  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
@@ -317,19 +376,22 @@ private  BOOLEAN  get_stats_for_one_file(
     Real            *y_mean,
     Real            *z_min,
     Real            *z_max,
-    Real            *z_mean )
+    Real            *z_mean,
+    int             *total_in_file )
 {
     int             i, n_samples;
     Real            *x_positions, *y_positions, *z_positions;
     Real            std_dev, median;
     marker_struct   *marker;
 
+    *total_in_file = 0;
     n_samples = 0;
 
     for_less( i, 0, n_objects )
     {
         if( object_list[i]->object_type == MARKER )
         {
+            ++(*total_in_file);
             marker = get_marker_ptr( object_list[i] );
 
             if( (structure_id < 0 ||
@@ -369,5 +431,5 @@ private  BOOLEAN  get_stats_for_one_file(
         FREE( z_positions );
     }
 
-    return( n_samples > 0 );
+    return( n_samples );
 }
