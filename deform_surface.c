@@ -82,8 +82,8 @@ int  main( argc, argv )
     {
         alloc_auxiliary_data( volume );
 
-        status = open_file( activity_filename, READ_FILE, BINARY_FORMAT,
-                            &file );
+        status = open_file_with_default_suffix( activity_filename, "act",
+                                        READ_FILE, BINARY_FORMAT, &file );
 
         if( status == OK )
             status = io_volume_auxiliary_bit( file, READ_FILE,
@@ -130,7 +130,7 @@ int  main( argc, argv )
         }
         else
         {
-            status = input_deformation_model( polygons->n_points,
+            status = input_deformation_model( object_list[0],
                                               model_filename,
                                               &deform.deformation_model );
         }
@@ -147,20 +147,11 @@ int  main( argc, argv )
         compute_polygon_normals( polygons );
 
     if( status == OK )
-    {
         end_time = current_cpu_seconds();
 
-        status = open_file( output_filename, WRITE_FILE, BINARY_FORMAT,
-                            &file );
-    }
-
     if( status == OK )
-        status = io_polygons( file, WRITE_FILE, BINARY_FORMAT, polygons );
-
-
-    if( status == OK )
-        status = close_file( file );
-
+        status = output_graphics_file( output_filename, BINARY_FORMAT,
+                                       n_objects, object_list );
 /*
     print_time( "Total cpu time: %g %s\n", end_time - start_time );
 */
