@@ -71,8 +71,6 @@ int  main( argc, argv )
         deform.boundary_definition.normal_direction = ANY_DIRECTION;   break;
     }
 
-    deform.boundary_definition.variable_threshold_flag = FALSE;
-    deform.boundary_definition.gradient_flag = FALSE;
     deform.deform_data.type = VOLUME_DATA;
 
     deform.deformation_model.position_constrained = FALSE;
