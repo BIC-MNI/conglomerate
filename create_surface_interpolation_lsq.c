@@ -784,6 +784,99 @@ private  void  minimize_cost(
 }
 #endif
 
+private  void  output_surface(
+    STRING filename,
+    int    p0,
+    int    p1,
+    int    n_neighbours[],
+    int    *neighbours[],
+    Real   interp_weight,
+    Real   smooth_weight,
+    int    n_interp_points,
+    int    n_weights[],
+    Real   **weights,
+    int    **weighted_points,
+    Real   values[],
+    float  **distances,
+    Real   total_length,
+    int    n_nodes,
+    Point  nodes[],
+    Real   node_values[] )
+{
+    FILE             *file;
+    int              i, j, size, ind;
+    Real             x, y, save0, save1, scale, fit, *q_values;
+    Point            point;
+    Vector           normal;
+    quadmesh_struct  *quadmesh;
+    object_struct    *object;
+
+    if( getenv( "SIZE" ) == NULL ||
+        sscanf( getenv("SIZE"), "%d", &size ) != 1 )
+        return;
+
+    object = create_object( QUADMESH );
+    quadmesh = get_quadmesh_ptr( object );
+
+    initialize_quadmesh( quadmesh, WHITE, NULL, size, size );
+
+    save0 = node_values[p0];
+    save1 = node_values[p1];
+
+    if( getenv( "SCALE" ) == NULL ||
+        sscanf( getenv("SCALE"), "%lf", &scale ) != 1 )
+        scale = 1.0;
+
+    fill_Vector( normal, 1.0, 1.0, 1.0 );
+
+    ALLOC( q_values, size * size );
+
+    for_less( i, 0, size )
+    {
+        x = INTERPOLATE( (Real) i / (Real) (size-1), save0 - 1.0, save0 + 1.0 );
+        node_values[p0] = x;
+        for_less( j, 0, size )
+        {
+            y = INTERPOLATE( (Real) j / (Real) (size-1), save1 - 1.0,
+                             save1 + 1.0 );
+            node_values[p1] = y;
+
+            fit = evaluate_fit( n_neighbours, neighbours,
+                                interp_weight, smooth_weight, n_interp_points,
+                         n_weights, weights, weighted_points, values,
+                         distances, total_length, n_nodes,
+                         nodes, node_values, NULL, NULL );
+
+            ind = IJ( i, j, quadmesh->n );
+            q_values[ind] = fit;
+
+            fit *= scale;
+
+            fill_Point( point, x, y, fit );
+            set_quadmesh_point( quadmesh, i, j, &point, &normal );
+        }
+    }
+
+    (void) open_file( "quadmesh.values", WRITE_FILE, ASCII_FORMAT, &file );
+    for_less( ind, 0, size * size )
+    {
+        (void) output_real( file, q_values[ind] );
+        (void) output_newline( file );
+    }
+    close_file( file );
+
+    FREE( q_values );
+
+    compute_quadmesh_normals( quadmesh );
+
+    node_values[p0] = save0;
+    node_values[p1] = save1;
+
+    (void) output_graphics_file( filename, BINARY_FORMAT, 1, &object ) ;
+
+    delete_object( object );
+}
+
 private  void   create_surface_interpolation(
     object_struct    *object,
     int              n_points,
@@ -890,6 +983,13 @@ private  void   create_surface_interpolation(
 
     interp_weight = sqrt( interp_weight );
     smooth_weight = sqrt( smooth_weight );
+
+    output_surface( "hyper.obj", 0, point_neighbours[0][0],
+                    n_point_neighbours, point_neighbours,
+                    interp_weight, smooth_weight, n_points,
+                    n_weights, weights, weighted_points, values,
+                    distances, total_length, polygons->n_points,
+                    polygons->points, node_values );
 
     (void) evaluate_fit( n_point_neighbours, point_neighbours,
                          interp_weight, smooth_weight, n_points,
