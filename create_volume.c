@@ -20,8 +20,11 @@ int  main(
     STRING               output_filename;
     int                  i, x, y, z, sizes[N_DIMENSIONS];
     Real                 voxel[N_DIMENSIONS], world[N_DIMENSIONS];
-    Real                 x_centre, y_centre, x2, y2;
+    Real                 x_centre, y_centre, x2, y2, xw, yw, zw;
     Real                 angle, length;
+    Real                 x_dir[N_DIMENSIONS];
+    Real                 y_dir[N_DIMENSIONS];
+    Real                 z_dir[N_DIMENSIONS];
     char                 history[10000];
     Volume               volume;
 
@@ -46,21 +49,49 @@ int  main(
     set_volume_voxel_range( volume, 0.0, 255.0 );
     set_volume_real_range( volume, 0.0, (Real) X_SIZE );
 
+/*
+    x_dir[0] = 1.2;
+    x_dir[1] = 0.0;
+    x_dir[2] = 0.88;
+
+    y_dir[0] = 1.1;
+    y_dir[1] = 0.0;
+    y_dir[2] = -1.3;
+
+    z_dir[0] = 0.0;
+    z_dir[1] = -1.0;
+    z_dir[2] = 1.1;
+    set_volume_direction_cosine( volume, X, x_dir );
+    set_volume_direction_cosine( volume, Y, y_dir );
+    set_volume_direction_cosine( volume, Z, z_dir );
+    volume->spatial_axes[2] = -1;
+    volume->spatial_axes[1] = -1;
+
+    world[X] = 2.0 * 1.2;
+    world[Y] = 0.0;
+    world[Z] = 2.0 * 0.88;
+*/
+
     voxel[X] = ((Real) sizes[X] - 1.0) / 2.0;
     voxel[Y] = ((Real) sizes[Y] - 1.0) / 2.0;
     voxel[Z] = ((Real) sizes[Z] - 1.0) / 2.0;
+
     world[X] = 0.0;
     world[Y] = 0.0;
     world[Z] = 0.0;
 
     set_volume_translation( volume, voxel, world );
 
+    convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
+
+    print( "%g %g %g\n", xw, yw, zw );
+
     alloc_volume_data( volume );
 
     for_less( x, 0, sizes[X] )
         for_less( y, 0, sizes[Y] )
             for_less( z, 0, sizes[Z] )
-                SET_VOXEL_3D( volume, x, y, z, 255.0 );
+                set_volume_voxel_value( volume, x, y, z, 0, 0, 255.0 );
 
     while( get_real_argument( 0.0, &angle ) &&
            get_real_argument( 0.0, &length ) )
@@ -159,7 +190,7 @@ private  void  scan_segment_to_volume(
                     if( voxel > 255.0 )
                         voxel = 255.0;
 
-                    SET_VOXEL_3D( volume, x, y, z, voxel );
+                    set_volume_voxel_value( volume, x, y, z, 0, 0, voxel );
                 }
             }
         }

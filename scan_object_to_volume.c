@@ -9,7 +9,7 @@ int  main(
     STRING               output_filename;
     Volume               volume, label_volume;
     File_formats         format;
-    int                  obj, n_objects;
+    int                  obj, n_objects, scan_value;
     object_struct        **objects;
     Real                 max_distance;
 
@@ -24,6 +24,7 @@ int  main(
         return( 1 );
     }
 
+    (void) get_int_argument( 1, &scan_value );
     (void) get_real_argument( 1.0, &max_distance );
 
     if( input_volume_header_only( input_volume_filename, 3,
@@ -43,7 +44,7 @@ int  main(
     for_less( obj, 0, n_objects )
     {
         scan_object_to_volume( objects[obj],
-                               volume, label_volume, 1, max_distance );
+                               volume, label_volume, scan_value, max_distance );
     }
 
     print( "Done scanning\n" );
