@@ -778,7 +778,10 @@ private  void  fit_curve(
     func_data_struct   data;
 
     stretch_weight *= (Real) n_points / (Real) (n_cvs-1);
-    smoothness_weight *= (Real) n_points / (Real) (n_cvs-2);
+    if( n_cvs < 3 )
+        smoothness_weight = 0.0;
+    else
+        smoothness_weight *= (Real) n_points / (Real) (n_cvs-2);
 
     ALLOC( parameters, 3 * n_cvs );
 
