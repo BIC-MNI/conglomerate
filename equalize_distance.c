@@ -396,6 +396,7 @@ private  void  reparameterize(
     int   *which_triangle, size, vertex, poly, iter;
     Real  *model_lengths, movement, (*new_points)[N_DIMENSIONS];
     Real  (*original_points)[N_DIMENSIONS];
+    Real  scale, total_model, total_original;
 
     create_polygon_point_neighbours( original, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -409,15 +410,25 @@ private  void  reparameterize(
     ALLOC( model_lengths, total_neighbours );
     ind = 0;
 
+    total_model = 0.0;
+    total_original = 0.0;
+
     for_less( point, 0, original->n_points )
     {
         for_less( n, 0, n_neighbours[point] )
         {
             model_lengths[ind] = distance_between_points( &model->points[point],
                                    &model->points[neighbours[point][n]] );
+            total_model += model_lengths[ind];
+            total_original += distance_between_points( &original->points[point],
+                                   &original->points[neighbours[point][n]] );
             ++ind;
         }
     }
+
+    scale = total_original / total_model;
+    for_less( ind, 0, total_neighbours )
+        model_lengths[ind] *= scale;
 
     ALLOC( original_points, original->n_points );
     ALLOC( new_points, original->n_points );
