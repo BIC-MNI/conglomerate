@@ -1,4 +1,4 @@
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <bicpl.h>
 
 int  main(
@@ -44,7 +44,7 @@ int  main(
 
     min_step = FLOOR( y_min / y_step );
     max_step = FLOOR( y_max / y_step );
-    if( max_step * y_step == y_max )
+    if( (Real) max_step * y_step == y_max )
         --max_step;
 
     n_steps = max_step - min_step + 1;

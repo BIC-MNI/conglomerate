@@ -1,4 +1,4 @@
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <bicpl.h>
 
 #define  SCALE_FACTOR   1.0

@@ -12,11 +12,11 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <geom.h>
 
 #ifndef lint
-static char rcsid[] = "$Header: /private-cvsroot/libraries/conglomerate/sp.c,v 1.1 2001-05-11 08:11:23 stever Exp $";
+static char rcsid[] = "$Header: /private-cvsroot/libraries/conglomerate/sp.c,v 1.2 2001-10-22 16:56:25 stever Exp $";
 #endif
 
 private  void  subdivide_polygon(

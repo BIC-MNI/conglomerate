@@ -1,5 +1,6 @@
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <bicpl.h>
+
 
 private  BOOLEAN  get_axis_from_name(
     STRING   axis_name,
@@ -33,6 +34,7 @@ private  BOOLEAN  get_axis_from_name(
 
     return( found );
 }
+
 
 int  main(
     int   argc,
@@ -96,6 +98,10 @@ int  main(
         positions[n_grids] = line_pos;
         ++n_grids;
     }
+
+    /* There's going to be a problem if the user did not specify
+       lines in both non-plane directions: limits[] will not be initialized.
+    */
 
     object = create_object( LINES );
     lines = get_lines_ptr(object);

@@ -12,11 +12,11 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <vols.h>
 
 #ifndef lint
-static char rcsid[] = "$Header: /private-cvsroot/libraries/conglomerate/labels.c,v 1.1 2001-05-11 08:11:20 stever Exp $";
+static char rcsid[] = "$Header: /private-cvsroot/libraries/conglomerate/labels.c,v 1.2 2001-10-22 16:56:19 stever Exp $";
 #endif
 
 /* ----------------------------- MNI Header -----------------------------------

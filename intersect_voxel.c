@@ -1,6 +1,6 @@
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <deform.h>
-#include  <numerical.h>
+#include  <bicpl/numerical.h>
 
 #define  MAX_DERIVS   2
 

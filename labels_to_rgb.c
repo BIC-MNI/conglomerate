@@ -1,6 +1,6 @@
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <bicpl.h>
-#include  <images.h>
+#include  <bicpl/images.h>
 
 private  Status  load_colour_map(
     STRING           filename,

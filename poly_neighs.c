@@ -12,11 +12,11 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <objects.h>
 
 #ifndef lint
-static char rcsid[] = "$Header: /private-cvsroot/libraries/conglomerate/poly_neighs.c,v 1.1 2001-05-11 08:11:21 stever Exp $";
+static char rcsid[] = "$Header: /private-cvsroot/libraries/conglomerate/poly_neighs.c,v 1.2 2001-10-22 16:56:22 stever Exp $";
 #endif
 
 #define  INVALID_ID       -1

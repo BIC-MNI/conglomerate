@@ -1,5 +1,5 @@
 
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 #include  <bicpl.h>
 
 private  void  label_surface_voxels(

@@ -1,5 +1,16 @@
 #include  <bicpl.h>
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
+
+
+/*! \brief Look up volume value for each point of object.
+ *
+ * Typically used for vertex colouring of objects.  
+ * For each vertex of the geometrical object, the point is located in
+ * the volume.  The volume values are written to the output text file
+ * in the order that the vertices are visited.  Each object in the
+ * BIC obj file is processed in sequence.
+ */
+
 
 int  main(
     int    argc,

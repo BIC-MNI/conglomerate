@@ -1,3 +1,12 @@
+2001-10-22  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* *.c: Replace <internal_volume_io.h> by
+	<volume_io/internal_volume_io.h>.  Replace <images.h> and
+	<numerical.h> by <bicpl/...>.
+
+	* configure.in: Do not check for header <numerical.h>, nor for
+	<internal_volume_io.h>.  Do not probe for C++ compiler.
+
 2001-09-24  Jason Lerch   <jason@bic.mni.mcgill.ca>
 
 	* minc_to_rgb.c: Changed UNSIGNED_LONG to UNSIGNED_INT

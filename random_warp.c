@@ -1,5 +1,5 @@
 #include  <bicpl.h>
-#include  <internal_volume_io.h>
+#include  <volume_io/internal_volume_io.h>
 
 private  void  get_random_unit_vector(
     Vector   *v );
