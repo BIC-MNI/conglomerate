@@ -2,7 +2,7 @@
 #include  <deform.h>
 
 private  void  usage(
-    char  executable[] )
+    STRING  executable )
 {
     (void) fprintf( stderr, "%s  volume_filename\n", executable );
     (void) fprintf( stderr, "   activity_filename|none   nx ny nz\n" );
@@ -26,9 +26,9 @@ int  main( argc, argv )
 {
     Status            status;
     Real              start_time, end_time;
-    char              *volume_filename, *activity_filename;
-    char              *input_filename, *output_filename;
-    char              *model_filename, *normal_direction, *original_filename;
+    STRING            volume_filename, activity_filename;
+    STRING            input_filename, output_filename;
+    STRING            model_filename, normal_direction, *original_filename;
     Real              min_isovalue, max_isovalue, gradient_threshold;
     Real              model_weight, min_curvature_offset, max_curvature_offset;
     Real              angle, tolerance, max_distance;
@@ -154,7 +154,7 @@ int  main( argc, argv )
     if( status == OK )
         polygons = get_polygons_ptr( object_list[0] );
 
-    if( status == OK && strcmp( original_filename, "none" ) != 0 )
+    if( status == OK && !equal_strings( original_filename, "none" ) )
     {
         status = input_original_positions( &deform.deformation_model,
                                            original_filename,
