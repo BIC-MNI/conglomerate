@@ -7,6 +7,7 @@ private  BOOLEAN  compute_perspective_transform(
     int        n_points,
     Point      screen_points[],
     Point      world[],
+    int        n_iters,
     Transform  *transform );
 
 private  BOOLEAN  solve_minimization_without_dimension(
@@ -44,7 +45,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    int         n_iters, n_points, i;
+    int         n_iters, n_points, i, n_tries, n_correct;
     Real        tolerance, error;
     Transform   true_transform, test_transform;
     Point       *screen_points, *world_points;
@@ -54,12 +55,15 @@ int  main(
     set_random_seed( 8392851 );
 
     (void) get_int_argument( 100, &n_iters );
+    (void) get_int_argument( 1, &n_tries );
     (void) get_real_argument( 0.05, &error );
     (void) get_int_argument( 20, &n_points );
     (void) get_real_argument( 1.0e-3, &tolerance );
 
     ALLOC( screen_points, n_points );
     ALLOC( world_points, n_points );
+
+    n_correct = 0;
 
     for_less( i, 0, n_iters )
     {
@@ -69,7 +73,8 @@ int  main(
                                 error, screen_points );
 
         if( !compute_perspective_transform( n_points, screen_points,
-                                            world_points, &test_transform ) )
+                                            world_points, n_tries,
+                                            &test_transform ) )
         {
             print( "Could not compute transform.\n" );
             return( 1 );
@@ -84,7 +89,15 @@ int  main(
             print_transform( "True: ", &true_transform );
             print_transform( "Test: ", &test_transform );
         }
+        else
+            ++n_correct;
     }
+
+    if( n_correct == n_iters )
+        print( "All %d transformations correctly solved.\n", n_iters );
+    else
+        print( "Solved %d out of %d transformations correctly.\n",
+               n_correct, n_iters );
 
     FREE( screen_points );
     FREE( world_points );
@@ -92,10 +105,11 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN  compute_perspective_transform(
+private  BOOLEAN  compute_weighted_perspective_transform(
     int        n_points,
     Point      screen_points[],
     Point      world[],
+    Real       weights[],
     Transform  *transform )
 {
     int       i, j, p, d;
@@ -130,7 +144,8 @@ private  BOOLEAN  compute_perspective_transform(
 
             for_less( i, 0, N_PARAMS )
                 for_less( j, i, N_PARAMS )
-                    second_deriv_coefs[i][j] += 2.0 * set_of_coefs[i] *
+                    second_deriv_coefs[i][j] += weights[p] * 2.0 *
+                                                set_of_coefs[i] *
                                                 set_of_coefs[j];
         }
     }
@@ -160,6 +175,9 @@ private  BOOLEAN  compute_perspective_transform(
                 best_max = max;
                 for_less( j, 0, N_PARAMS )
                     best_parameters[j] = parameters[j];
+
+                if( best_max == 1.0 )
+                    break;
             }
         }
     }
@@ -175,6 +193,47 @@ private  BOOLEAN  compute_perspective_transform(
         Transform_elem(*transform,3,2) = 0.0;
         Transform_elem(*transform,3,3) = 1.0;
     }
+
+    return( found );
+}
+
+
+private  BOOLEAN  compute_perspective_transform(
+    int        n_points,
+    Point      screen_points[],
+    Point      world[],
+    int        n_iters,
+    Transform  *transform )
+{
+    int       p, iter;
+    Real      *weights, x, y, z;
+    BOOLEAN   found;
+
+    ALLOC( weights, n_points );
+    for_less( p, 0, n_points )
+        weights[p] = 1.0;
+
+    for_less( iter, 0, n_iters )
+    {
+        found = compute_weighted_perspective_transform( n_points,
+                      screen_points, world, weights, transform );
+
+        if( !found )
+            break;
+
+        for_less( p, 0, n_points )
+        {
+            transform_point( transform, Point_x(world[p]), Point_y(world[p]),
+                             Point_z(world[p]), &x, &y, &z );
+
+            if( z == 0.0 )
+                handle_internal_error( "compute_perspective_transform" );
+
+            weights[p] = 1.0 / z / z;
+        }
+    }
+
+    FREE( weights );
 
     return( found );
 }
@@ -258,11 +317,12 @@ private  void  generate_points(
 private  void  generate_transform(
     Transform   *transform )
 {
-    BOOLEAN   in_box;
-    int       c;
-    Real      tx, ty, tz;
-    Point     eye, look_at, origin;
-    Vector    x_axis, z_axis;
+    BOOLEAN     in_box;
+    int         c;
+    Real        tx, ty, tz;
+    Point       eye, look_at, origin;
+    Vector      x_axis, z_axis;
+    Transform   scale_transform;
 
     generate_point( MIN_BOX, MAX_BOX, &look_at );
 
@@ -301,6 +361,11 @@ private  void  generate_transform(
     fill_Point( origin, -tx, -ty, -tz );
 
     set_transform_origin( transform, &origin );
+
+    make_scale_transform( 1.0, 1.0, 1.0 + get_random_0_to_1() * 10.0,
+                          &scale_transform );
+
+    concat_transforms( transform, transform, &scale_transform );
 }
 
 private  void  generate_screen_points(
@@ -343,7 +408,7 @@ private  void  print_transform(
     {
         for_less( j, 0, 4 )
         {
-            print( "\t%g", Transform_elem(*transform,i,j) );
+            print( " %18g", Transform_elem(*transform,i,j) );
         }
         print( "\n" );
     }
