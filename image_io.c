@@ -66,7 +66,7 @@ public  Status  read_image_file(
     {
         for_less( x, 0, x_size )
         {
-            if( io_binary_data( file, READ_FILE, &colour, sizeof(colour[0]),
+            if( io_binary_data( file, READ_FILE, colour, sizeof(colour[0]),
                                 nc ) != OK )
             {
                 print( "Error reading pixel[%d][%d]\n", x, y );
@@ -109,12 +109,12 @@ public  Status  write_image_file(
     if( find_character(filename,':') < 0 &&
         string_ends_in( filename, ".rgb" ) )
     {
-        (void) sprintf( command, "convert -size %dx%d RGBA:- SGI:%s",
+        (void) sprintf( command, "convert -size %dx%d RGB:- SGI:%s",
                         x_size, y_size, filename );
     }
     else
     {
-        (void) sprintf( command, "convert -size %dx%d RGBA:- %s",
+        (void) sprintf( command, "convert -size %dx%d RGB:- %s",
                         x_size, y_size, filename );
     }
 
@@ -136,8 +136,8 @@ public  Status  write_image_file(
             colour[2] = (unsigned char) get_Colour_b( col );
             colour[3] = (unsigned char) get_Colour_a( col );
 
-            if( io_binary_data( file, WRITE_FILE, &colour, sizeof(colour[0]),
-                                4 ) != OK )
+            if( io_binary_data( file, WRITE_FILE, colour, sizeof(colour[0]),
+                                3 ) != OK )
             {
                 print( "Error writing pixel[%d][%d]\n", x, y );
                 return( ERROR );
