@@ -18,8 +18,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    int        c, block_sizes[MAX_DIMENSIONS];
-    int        dim, save_max_bytes, save_threshold;
+    int        c;
     Volume     volume, new_volume;
     Status     status;
     Real       voxel_filter_widths[N_DIMENSIONS];

@@ -158,7 +158,7 @@ private  void  box_filter_volume(
     int   count0, count1, count2, count3, count4;
     int   start0, start1, start2, start3, start4;
     int   end0, end1, end2, end3, end4;
-    Real  *values, *output, volume_min, volume_max, value;
+    Real  *values, *output, volume_min, volume_max;
     BOOLEAN  simple_case;
 
     n_dims = get_volume_n_dimensions( volume );

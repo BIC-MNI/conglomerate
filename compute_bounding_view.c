@@ -25,8 +25,8 @@ int  main(
     int                 point, n_points, n_objects, dim, i;
     Real                min_position[N_DIMENSIONS];
     Real                max_position[N_DIMENSIONS];
-    Real                x_width, y_width, z_width, min_pos, max_pos;
-    Point               *points, centre, trans_point;
+    Real                min_pos, max_pos;
+    Point               *points, trans_point;
     Vector              x_axis, y_axis, z_axis;
     Vector              axis[N_DIMENSIONS];
     General_transform   transform;

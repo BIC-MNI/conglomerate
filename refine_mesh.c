@@ -7,9 +7,6 @@ private  int  refine_mesh(
     Real               max_length,
     polygons_struct    *new_polygons );
 
-private  void  delete_edge_lookup(
-    hash2_table_struct  *lookup );
-
 private  void  usage(
     STRING   executable )
 {
@@ -25,10 +22,9 @@ int  main(
 {
     STRING             input_filename, output_filename;
     STRING             length_filename;
-    STRING             values_filename;
     int                n_objects, n_len_objects, n_done, i;
     File_formats       format;
-    object_struct      **object_list, **len_object_list, *object;
+    object_struct      **object_list, **len_object_list;
     polygons_struct    *polygons, *length, new_polygons;
     Point              *length_points;
     Real               max_length;

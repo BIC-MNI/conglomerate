@@ -1,7 +1,14 @@
+	New in Release 1.2
+	------------------
+
+* Bug fix: surface_mask2 exits with correct status.
+
+
 	New in Release 1.1
 	------------------
 
 * Build fixes.
+
 
 	New in Release 1.0
 	------------------

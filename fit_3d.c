@@ -185,29 +185,6 @@ int  main(
     return( 0 );
 }
 
-private  void  display_parms(
-    int      n_equations,
-    int      n_parms_involved[],
-    int      *parm_list[],
-    ftype    constants[],
-    ftype    *node_weights[],
-    Real     parameters[] )
-{
-    int   eq, p;
-    Real  value;
-
-    for_less( eq, 0, n_equations )
-    {
-        value = (Real) constants[eq];
-        print( "%3d: %g : ", eq, constants[eq] );
-        for_less( p, 0, n_parms_involved[eq] )
-        {
-            print( " %d:%g ", parm_list[eq][p], node_weights[eq][p] );
-            value += (Real) node_weights[eq][p] * parameters[parm_list[eq][p]];
-        }
-        print( " : %g\n", value );
-    }
-}
 
 
 private  int   get_neighbours_neighbours(

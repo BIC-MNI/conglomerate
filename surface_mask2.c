@@ -18,14 +18,6 @@
 
 #define  OFFSET   1000.0
 
-private  BOOLEAN  get_extrapolated_value(
-    Volume         volume,
-    int            x,
-    int            y,
-    int            z,
-    object_struct  *surface,
-    Real           threshold,
-    Real           *value_to_set );
 
 
 int binary_object_mask( STRING input_surface_filename,
@@ -35,14 +27,12 @@ int binary_object_mask( STRING input_surface_filename,
 {
 
     Real                 separations[MAX_DIMENSIONS];
-    Real                 value;
     Real                 xw, yw, zw, value_to_set;
     Real                 sign_before, sign_after;
     Point                origin, dest;
     Real                 min_real_value, max_real_value;
     Real                 *directions;
     Vector               direction;
-    STRING               history;
     File_formats         format;
     int                  x, y, z, n_objects, k;
     int                  sizes[MAX_DIMENSIONS];
@@ -50,8 +40,7 @@ int binary_object_mask( STRING input_surface_filename,
     int                  i, j, best, n_intersections, ind;
     Real                 dist, *distances, tmp, voxel[MAX_DIMENSIONS];
     object_struct        **objects;
-    BOOLEAN              set_value_specified, inside, erase_flag;
-    BOOLEAN              threshold_specified;
+    BOOLEAN              inside, erase_flag;
     progress_struct      progress;
 
 
@@ -241,112 +230,7 @@ int binary_object_mask( STRING input_surface_filename,
     return( 0 );
 }
 
-private  BOOLEAN  get_one_extrapolated_value(
-    Volume         volume,
-    int            x1,
-    int            y1,
-    int            z1,
-    int            x2,
-    int            y2,
-    int            z2,
-    object_struct  *surface,
-    Real           threshold,
-    Real           *value_to_set )
-{
-    int      sizes[N_DIMENSIONS];
-    int      obj_index, n_int, n_intersections, i;
-    Real     value2, dist, *distances, xw, yw, zw;
-    Real     voxel[N_DIMENSIONS];
-    Point    p1, p2;
-    Vector   direction;
 
-    get_volume_sizes( volume, sizes );
-
-    if( x2 < 0 || x1 >= sizes[X] ||
-        y2 < 0 || y1 >= sizes[Y] ||
-        z2 < 0 || z1 >= sizes[Z] )
-        return( FALSE );
-
-    voxel[X] = (Real) x1;
-    voxel[Y] = (Real) y1;
-    voxel[Z] = (Real) z1;
-    convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
-    fill_Point( p1, xw, yw, zw );
-
-    voxel[X] = (Real) x2;
-    voxel[Y] = (Real) y2;
-    voxel[Z] = (Real) z2;
-    convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
-    fill_Point( p2, xw, yw, zw );
-    SUB_POINTS( direction, p2, p1 );
-
-    n_intersections = intersect_ray_with_object( &p1, &direction,
-                                                 surface, &obj_index, &dist,
-                                                 &distances );
-
-    n_int = 0;
-    for_less( i, 0, n_intersections )
-    {
-        if( distances[i] > 0.0 && distances[i] < 1.0 )
-        {
-            ++n_int;
-            dist = distances[i];
-        }
-    }
-
-    if( n_intersections > 0 )
-        FREE( distances );
-
-    if( n_int != 1 )
-        return( FALSE );
-
-    value2 = get_volume_real_value( volume, x2, y2, z2, 0, 0 );
-
-    if( value2 <= threshold )
-        return( FALSE );
-
-    *value_to_set = (threshold - value2 * dist) / (1.0 - dist);
-
-    return( TRUE );
-}
-
-private  BOOLEAN  get_extrapolated_value(
-    Volume         volume,
-    int            x,
-    int            y,
-    int            z,
-    object_struct  *surface,
-    Real           threshold,
-    Real           *value_to_set )
-{
-    Real     value;
-    int      c, dir, n_bounds, voxel[N_DIMENSIONS];
-
-    *value_to_set = 0.0;
-    n_bounds = 0;
-    for_less( c, 0, N_DIMENSIONS )
-    {
-        for( dir = -1;  dir <= 1;  dir += 2 )
-        {
-            voxel[X] = x;
-            voxel[Y] = y;
-            voxel[Z] = z;
-            voxel[c] += dir;
-            if( get_one_extrapolated_value( volume, x, y, z,
-                                            voxel[X], voxel[Y], voxel[Z],
-                                            surface, threshold, &value ) )
-            {
-                *value_to_set += value;
-                ++n_bounds;
-            }
-        }
-    }
-
-    if( n_bounds > 0 )
-        *value_to_set /= (Real) n_bounds;
-
-    return( n_bounds > 0 );
-}
 
 int main ( int argc, char *argv[] )
 {
@@ -357,9 +241,6 @@ int main ( int argc, char *argv[] )
   int            sizes[MAX_DIMENSIONS];
   int            x,y,z;
   Real           original_value, binary_value;
-  object_struct  **objects;  
-  File_formats   format;
-  int            n_objects;
 
   outside_value = 0;
   inside_value = 1;

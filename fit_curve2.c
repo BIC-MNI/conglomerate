@@ -34,19 +34,18 @@ int  main(
     char  *argv[] )
 {
     STRING               input_filename, output_filename;
-    Real                 **tags, u, stretch_weight, smoothness_weight;
+    Real                 **tags, stretch_weight, smoothness_weight;
     Real                 disjoint_distance, sq_disjoint_distance;
     Real                 n_mm_per_segment, length, pos, delta_length;
     Real                 current_length;
     int                  *tree_indices, n_span, n_segments;
-    int                  p, n_piecewise, n_tag_points, n_volumes, axis;
-    int                  n_intervals_per, i, n_cvs, ind, n;
+    int                  p, n_tag_points, n_volumes;
+    int                  i, n_cvs;
     int                  n_class_points, p2, p1, n_classes;
     int                  current_ind;
     object_struct        **object_list;
     lines_struct         *lines;
-    Point                *points, line_origin, *cvs, *class_points;
-    Vector               line_direction;
+    Point                *points, *class_points;
     BOOLEAN              break_up_flag;
     int                  *classes, cl, n_changed;
 
@@ -408,9 +407,8 @@ private  int  get_minimum_spanning_tree_main_branch(
     Point  points[],
     int    indices[] )
 {
-    BOOLEAN           changed;
-    int               (*tree_edges)[2], i1, i2, i3, dist1, dist2, test_dist;
-    int               edge, max_dist, max_i1, max_i2, ind, *dists;
+    int               (*tree_edges)[2], i1, i2;
+    int               edge, max_dist, ind, *dists;
     int               end1, end2;
 
     ALLOC( tree_edges, n_points-1 );

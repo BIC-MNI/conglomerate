@@ -41,9 +41,9 @@ int  main(
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
     Colour_flags         *colour_flag_ptr;
-    STRING               coding_type_string, dummy;
+    STRING               coding_type_string;
     Real                 low, high, r, g, b, a, opacity;
-    BOOLEAN              per_vertex, dont_composite_flag;
+    BOOLEAN              per_vertex;
     Composite_methods    composite_method;
     STRING               composite_method_name;
 

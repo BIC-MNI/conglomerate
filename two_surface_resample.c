@@ -10,7 +10,7 @@ int  main(
     STRING               input_values_filename, output_values_filename;
     int                  n_objects, p, n_d_objects;
     int                  n_s_objects, poly, size, i;
-    Point                centre, poly_point;
+    Point                poly_point;
     File_formats         format;
     object_struct        **object_list, **s_object_list, *out_object;
     object_struct        **d_object_list;

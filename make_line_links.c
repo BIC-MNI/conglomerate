@@ -108,35 +108,6 @@ return( 0 );
     return( 0 );
 }
 
-private  void  reparameterize_lines(
-    lines_struct  *lines,
-    lines_struct  *new_lines,
-    int           n_points )
-{
-    int      size, i;
-    BOOLEAN  closed_flag;
-    Real     total_length, ratio;
-
-    size = GET_OBJECT_SIZE( *lines, 0 );
-
-    closed_flag = lines->indices[0] == lines->indices[size-1];
-
-    initialize_lines_with_size( new_lines, lines->colours[0],
-                                n_points, closed_flag );
-
-    total_length = get_lines_length( lines );
-
-    for_less( i, 0, n_points )
-    {
-        if( closed_flag )
-            ratio = (Real) i / (Real) n_points;
-        else
-            ratio = (Real) i / (Real) (n_points-1);
-
-        get_lines_arc_point( lines, ratio * total_length,
-                             &new_lines->points[i] );
-    }
-}
 
 private  void  coalesce_lines(
     lines_struct   *lines )

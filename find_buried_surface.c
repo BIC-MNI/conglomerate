@@ -3,17 +3,6 @@
 
 #define  BINTREE_FACTOR  0.5
 
-private  BOOLEAN  point_within_distance(
-    object_struct     *surface,
-    Point             *point,
-    Real              distance_threshold );
-private  void  get_block_centre(
-    Point       *min_point,
-    Real        block_size,
-    int         x_block,
-    int         y_block,
-    int         z_block,
-    Point       *block_centre );
 private  void  find_boundary_blocks(
     Point              *min_point,
     Real               block_size,
@@ -38,11 +27,9 @@ int  main(
     char  *argv[] )
 {
     STRING               src_polygons_filename, dest_polygons_filename;
-    STRING               input_filename, output_filename;
     File_formats         format;
     int                  n_objects, poly, obj_index, size, dim;
     int                  x_grid_size, y_grid_size, z_grid_size;
-    int                  x_block, y_block, z_block;
     Real                 radius_of_curvature, dist;
     object_struct        **objects;
     polygons_struct      *polygons;
@@ -53,8 +40,7 @@ int  main(
     progress_struct      progress;
     Real                 surface_area, buried_surface_area, total_surface_area;
     Real                 block_size;
-    Point                min_point, max_point, block_centre;
-    BOOLEAN              intersects;
+    Point                min_point, max_point;
     bitlist_3d_struct    bitlist;
 
     initialize_argument_processing( argc, argv );
@@ -179,20 +165,6 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN  point_within_distance(
-    object_struct     *surface,
-    Point             *point,
-    Real              distance_threshold )
-{
-    int      obj_index;
-    Real     dist;
-    Point    found_point;
-
-    dist = find_closest_point_on_object( point, surface,
-                                         &obj_index, &found_point );
-
-    return( dist <= distance_threshold );
-}
 
 private  void  convert_world_to_block(
     Point       *min_point,

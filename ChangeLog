@@ -1,3 +1,22 @@
+2003-03-02  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	Release 1.2.
+
+	* flatten_polygons.c:
+	* fit_curve2.c:
+	* colour_object.c:
+	* two_surface_resample.c (main): 
+	* refine_mesh.c (main): 
+	* compute_bounding_view.c (main): 
+	* box_filter_volume_nd.c (box_filter_volume): 
+	* box_filter_volume.c (main): Remove unused variable declarations.
+
+	* surface_mask2.c: 
+	* make_line_links.c: 
+	* fit_3d.c: 
+	* fit_curve.c: 
+	* find_buried_surface.c: Remove unused function declarations.
+
 2003-02-25  Steve ROBBINS  <stever@diomedes.bic.mni.mcgill.ca>
 
 	* surface_mask2.c (main): Return zero on success.
