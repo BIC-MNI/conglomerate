@@ -31,7 +31,7 @@ int  main(
     Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
     Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
     Real                 min_xyz_voxel[MAX_DIMENSIONS];
-    Real                 max_xyz_voxel[MAX_DIMENSIONS], voxel1, voxel2;
+    Real                 max_xyz_voxel[MAX_DIMENSIONS];
     Real                 real_v[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
     Real                 min_value, max_value;
     Real                 median_min, median_max, median_error;
@@ -177,8 +177,8 @@ int  main(
                 median_max = convert_value_to_voxel( volume,
                                                      median + median_error );
 
-                median_min = ROUND( median_min );
-                median_max = ROUND( median_max );
+                median_min = (Real) ROUND( median_min );
+                median_max = (Real) ROUND( median_max );
 
                 if( median_min == median_max )
                 {
@@ -210,7 +210,8 @@ int  main(
 
         print( "N Voxels : %d\n", n_samples );
         print( "Volume   : %g\n",
-               n_samples * separations[X] * separations[Y] * separations[Z] );
+                      (Real) n_samples * separations[X] * separations[Y] *
+                                         separations[Z] );
         print( "Min      : %g\n", min_sample_value );
         print( "Max      : %g\n", max_sample_value );
         print( "Mean     : %g\n", mean );
