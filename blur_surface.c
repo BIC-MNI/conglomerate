@@ -1,5 +1,6 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
+#include  <special_geometry.h>
 
 private  void  gaussian_blur_points(
     int               n_polygon_points,
@@ -182,8 +183,9 @@ int  get_points_within_dist(
 
             done_flags[neigh] = TRUE;
 
-            this_dist = distance_between_points( &polygon_points[point_index],
-                                                 &polygon_points[neigh] );
+            this_dist = fast_approx_distance_between_points(
+                                 &polygon_points[point_index],
+                                 &polygon_points[neigh] );
             if( this_dist <= dist )
             {
                 points[n_points] = neigh;
