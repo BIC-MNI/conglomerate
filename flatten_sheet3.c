@@ -1,8 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#undef   USING_FLOAT
 #define  USING_FLOAT
+#undef   USING_FLOAT
 
 #ifdef USING_FLOAT
 
@@ -285,6 +285,65 @@ private  void  create_coefficients(
     REALLOC_LSQ( n_parameters, *n_cross_terms, *cross_parms, *cross_terms );
 }
 
+private  int  choose_static_polygon(
+    int              n_points,
+    int              n_neighbours[],
+    int              *neighbours[],
+    Smallest_int     interior_flags[] )
+{
+    int                n_done, which, point, n;
+    Smallest_int       *used_flags;
+    QUEUE_STRUCT(int)  queue;
+
+    INITIALIZE_QUEUE( queue );
+
+    n_done = 0;
+    ALLOC( used_flags, n_points );
+    for_less( point, 0, n_points )
+    {
+        used_flags[point] = (Smallest_int) (!interior_flags[point]);
+        if( used_flags[point] )
+        {
+            INSERT_IN_QUEUE( queue, point );
+            ++n_done;
+        }
+    }
+
+    while( n_done < n_points-1 )
+    {
+        REMOVE_FROM_QUEUE( queue, point );
+
+        for_less( n, 0, n_neighbours[point] )
+        {
+            if( n_done < n_points-1 && !used_flags[neighbours[point][n]] )
+            {
+                INSERT_IN_QUEUE( queue, neighbours[point][n] );
+                used_flags[neighbours[point][n]] = TRUE;
+                ++n_done;
+            }
+        }
+    }
+
+    DELETE_QUEUE( queue );
+
+    if( n_done < n_points-1 )
+    {
+        print( "Could not find interior point for start\n" );
+        which = 0;
+    }
+    else
+    {
+        for_less( which, 0, n_points )
+            if( !used_flags[which] )
+                break;
+        print( "Using point %d for start\n", which );
+    }
+
+    FREE( used_flags );
+
+    return( which );
+}
+
 private  void  flatten_polygons(
     int              n_points,
     Point            points[],
@@ -309,16 +368,19 @@ private  void  flatten_polygons(
 
     if( n_fixed <= 0 || init_points == NULL )
     {
-        if( getenv( "FLATTEN_OFFSET" ) == NULL ||
-            sscanf( getenv("FLATTEN_OFFSET"), "%d", &w_offset ) != 1 )
-            w_offset = 0;
-
-        for_less( i, 0, n_points )
+        if( getenv( "FLATTEN_OFFSET" ) != NULL &&
+            sscanf( getenv("FLATTEN_OFFSET"), "%d", &w_offset ) == 1 )
         {
-            which = (i + w_offset) % n_points;
-            if( n_neighbours[which] > 1 )
-                break;
+            for_less( i, 0, n_points )
+            {
+                which = (i + w_offset) % n_points;
+                if( n_neighbours[which] > 1 )
+                    break;
+            }
         }
+        else
+            which = choose_static_polygon( n_points, n_neighbours, neighbours,
+                                           interior_flags );
 
         n_fixed = 3;
         ALLOC( fixed_indices, n_fixed );
@@ -426,29 +488,6 @@ private  void  flatten_polygons(
             }
         }
     }
-
-#ifdef DEBUG
-    {
-        int  parm1, parm2, x_size, y_size;
-        Real  x_min, y_min, x_max, y_max, scale, p1, p2;
-
-        if( getenv( "DEBUG_FLAT" ) != NULL &&
-            sscanf( getenv( "DEBUG_FLAT" ), "%d %d %d %d %lf %lf %lf %lf %lf",
-                    &parm1, &parm2, &x_size, &y_size, &x_min, &x_max,
-                    &y_min, &y_max, &scale ) != 0 )
-        {
-            p1 = parameters[parm1];
-            p2 = parameters[parm2];
-            create_lsq_hypersurface_float( "surface.obj",
-                       parm1, parm2, x_size, y_size, p1+x_min,
-                       p1+x_max, p2+y_min, p2+y_max, scale,
-                       2 * (n_points - n_fixed),
-                       constant, linear_terms, square_terms,
-                       n_cross_terms, cross_parms, cross_terms,
-                       parameters );
-        }
-    }
-#endif
 
     (void) MINIMIZE_LSQ( 2 * (n_points - n_fixed),
                          constant, linear_terms, square_terms,
