@@ -62,8 +62,31 @@ private   void   mesh_subdivide_large_triangles(
     Real              max_size,
     int               max_subdivisions );
 
+private   void   mesh_subdivide_on_node_values(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              min_value,
+    Real              max_value,
+    Real              values[],
+    int               max_subdivisions );
+
+private   void   mesh_coalesce_on_node_values(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              min_value,
+    Real              max_value,
+    Real              values[] );
+
 private  void   delete_unused_nodes(
     tri_mesh_struct  *mesh );
+
+private   void   mesh_subdivide_on_node_values(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              min_value,
+    Real              max_value,
+    Real              node_values[],
+    int               max_subdivisions );
 
 private  void  usage(
     STRING   executable )
@@ -72,7 +95,8 @@ private  void  usage(
 Usage: %s  input.obj|input.msh  model.obj input.obj output.msh output.obj\n\
          [-min_size min_size]\n\
          [-max_size max_size]\n\
-         [-max_curv max_curv]\n\
+         [-sub_node_value min_value max_value values.txt]\n\
+         [-coal_node_value min_value max_value values.txt]\n\
          [-max_sub max_sub]\n\
 \n\
      Subdivides the triangular mesh.\n\h";
@@ -86,11 +110,12 @@ int  main(
 {
     STRING             input_mesh_filename, input_filename, output_filename;
     STRING             output_mesh_filename, model_filename, option;
-    int                n_objects, new_n_polys, max_subdivisions;
+    STRING             values_filename;
+    int                n_objects, new_n_polys, max_subdivisions, n_values;
     File_formats       format;
     object_struct      **object_list, *object;
     polygons_struct    *polygons;
-    Real               value;
+    Real               value, max_value, *values;
     tri_mesh_struct    mesh;
     hash_table_struct  edge_lookup;
 
@@ -178,6 +203,43 @@ int  main(
             print( "%s %g\n", option, value );
             mesh_subdivide_large_triangles( &mesh, &edge_lookup, value,
                                             max_subdivisions );
+        }
+        else if( equal_strings( option, "-sub_node_value" ) &&
+                 get_real_argument( 0.0, &max_value ) &&
+                 get_string_argument( NULL, &values_filename ) )
+        {
+            print( "%s %g %g %s\n", option, value, max_value, values_filename );
+
+            if( input_texture_values( values_filename, &n_values, &values )!=OK
+                || n_values != mesh.n_points )
+            {
+                print_error( "Error inputting node values.\n" );
+                return( 1 );
+            }
+
+            mesh_subdivide_on_node_values( &mesh, &edge_lookup, value,
+                                           max_value, values,
+                                           max_subdivisions );
+
+            FREE( values );
+        }
+        else if( equal_strings( option, "-coal_node_value" ) &&
+                 get_real_argument( 0.0, &max_value ) &&
+                 get_string_argument( NULL, &values_filename ) )
+        {
+            print( "%s %g %g %s\n", option, value, max_value, values_filename );
+
+            if( input_texture_values( values_filename, &n_values, &values )!=OK
+                || n_values != mesh.n_points )
+            {
+                print_error( "Error inputting node values.\n" );
+                return( 1 );
+            }
+
+            mesh_coalesce_on_node_values( &mesh, &edge_lookup, value,
+                                          max_value, values );
+
+            FREE( values );
         }
         else
         {
@@ -975,5 +1037,146 @@ private   void   mesh_subdivide_large_triangles(
                                               max_size * max_size,
                                               max_subdivisions );
         }
+    }
+}
+
+private  void   subdivide_on_node_values(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    tri_node_struct   *node,
+    Real              min_value,
+    Real              max_value,
+    int               n_values,
+    Real              values[],
+    int               max_subdivisions )
+{
+    int    child, vertex;
+
+    if( max_subdivisions != 0 && node->children[0] == NULL )
+    {
+        for_less( vertex, 0, 3 )
+        {
+            if( node->nodes[vertex] >= n_values ||
+                (values[node->nodes[vertex]] >= min_value &&
+                 values[node->nodes[vertex]] <= max_value) )
+            {
+                break;
+            }
+        }
+
+        if( vertex == 3 )
+        {
+            subdivide_tri_node( mesh, edge_lookup, node );
+            --max_subdivisions;
+        }
+    }
+
+    if( node->children[0] != NULL )
+    {
+        for_less( child, 0, 4 )
+        {
+            subdivide_on_node_values( mesh, edge_lookup,
+                                         node->children[child],
+                                         min_value, max_value, n_values, values,
+                                         max_subdivisions );
+        }
+    }
+}
+
+private   void   mesh_subdivide_on_node_values(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              min_value,
+    Real              max_value,
+    Real              values[],
+    int               max_subdivisions )
+{
+    int                tri, n_values;
+
+    n_values = mesh->n_points;
+    for_less( tri, 0, mesh->n_triangles )
+    {
+        subdivide_on_node_values( mesh, edge_lookup,
+                                     &mesh->triangles[tri],
+                                     min_value, max_value,
+                                     n_values, values, max_subdivisions );
+    }
+}
+
+private  void   coalesce_on_node_values(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    tri_node_struct   *node,
+    Real              min_value,
+    Real              max_value,
+    int               n_values,
+    Real              values[] )
+{
+    int       i, list[6];
+
+    if( node->children[0] != NULL )
+    {
+        coalesce_on_node_values( mesh, edge_lookup, node->children[0],
+                                 min_value, max_value, n_values, values );
+        coalesce_on_node_values( mesh, edge_lookup, node->children[1],
+                                 min_value, max_value, n_values, values );
+        coalesce_on_node_values( mesh, edge_lookup, node->children[2],
+                                 min_value, max_value, n_values, values );
+        coalesce_on_node_values( mesh, edge_lookup, node->children[3],
+                                 min_value, max_value, n_values, values );
+    }
+
+    if( node->children[0] != NULL &&
+        node->children[0]->children[0] == NULL &&
+        node->children[1]->children[0] == NULL &&
+        node->children[2]->children[0] == NULL &&
+        node->children[3]->children[0] == NULL )
+    {
+        list[0] = node->nodes[0];
+        list[1] = node->nodes[1];
+        list[2] = node->nodes[2];
+        (void) lookup_edge_midpoint( edge_lookup, list[0], list[1], &list[3] );
+        (void) lookup_edge_midpoint( edge_lookup, list[1], list[2], &list[4] );
+        (void) lookup_edge_midpoint( edge_lookup, list[2], list[0], &list[5] );
+
+        for_less( i, 0, 6 )
+        {
+            if( list[i] >= n_values || values[list[i]] < min_value ||
+                                       values[list[i]] > max_value )
+            {
+                break;
+            }
+        }
+
+        if( i == 6 )
+        {
+            delete_tri_node( node->children[0] );
+            delete_tri_node( node->children[1] );
+            delete_tri_node( node->children[2] );
+            delete_tri_node( node->children[3] );
+            node->children[0] = NULL;
+            node->children[1] = NULL;
+            node->children[2] = NULL;
+            node->children[3] = NULL;
+        }
+    }
+}
+
+private   void   mesh_coalesce_on_node_values(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              min_value,
+    Real              max_value,
+    Real              values[] )
+{
+    int                tri, n_values;
+
+    n_values = mesh->n_points;
+    for_less( tri, 0, mesh->n_triangles )
+    {
+        (void) coalesce_on_node_values( mesh, edge_lookup,
+                                        &mesh->triangles[tri],
+                                        min_value, max_value,
+                                        n_values, values );
     }
 }
