@@ -406,9 +406,6 @@ private  void   convert_polygons_to_mesh(
     }
 }
 
-#ifdef NOT
-    initialize_hash_table( &mesh->edge_hash, 10000, 2*sizeof(int), 0.5, 0.25 );
-
 private  int  get_key(
     int  p0,
     int  p1 )
@@ -425,61 +422,116 @@ private  int  get_key(
 }
 
 private  void  insert_edge_midpoint(
-    tri_mesh_struct  *mesh,
-    int              p0,
-    int              p1,
-    int              midpoint )
+    hash_table_struct       *edge_lookup,
+    int                     p0,
+    int                     p1,
+    int                     midpoint )
 {
     int     key;
 
     key = get_key( p0, p1 );
 
-    if( lookup_in_hash_table( &mesh->edge_hash, key, (void *) &midpoint ) )
+    if( lookup_in_hash_table( edge_lookup, key, (void *) &midpoint ) )
         return;
 
-    insert_in_hash_table( &mesh->edge_hash, key, (void *) &midpoint );
+    insert_in_hash_table( edge_lookup, key, (void *) &midpoint );
+}
+
+private  BOOLEAN  lookup_edge_midpoint(
+    hash_table_struct    *edge_lookup,
+    int                  p0,
+    int                  p1,
+    int                  *midpoint )
+{
+    int     key;
+
+    key = get_key( p0, p1 );
+
+    return( lookup_in_hash_table( edge_lookup, key, (void *) midpoint ) );
 }
 
 private  int  get_edge_midpoint(
-    tri_mesh_struct  *mesh,
-    int              p0,
-    int              p1 )
+    tri_mesh_struct      *mesh,
+    hash_table_struct    *edge_lookup,
+    int                  p0,
+    int                  p1 )
 {
     int     key, midpoint;
     Point   mid;
 
-    key = get_key( p0, p1 );
-
     midpoint = 0;  /* to avoid compiler message*/
 
-    if( lookup_in_hash_table( &mesh->edge_hash, key, (void *) &midpoint ) )
+    if( lookup_edge_midpoint( edge_lookup, p0, p1, (void *) &midpoint ) )
         return( midpoint );
 
     INTERPOLATE_POINTS( mid, mesh->points[p0], mesh->points[p1], 0.5 );
 
     midpoint = tri_mesh_insert_point( mesh, &mid );
 
-    insert_in_hash_table( &mesh->edge_hash, key, (void *) &midpoint );
+    key = get_key( p0, p1 );
+    insert_in_hash_table( edge_lookup, key, (void *) &midpoint );
 
     return( midpoint );
 }
 
+private  void   insert_edge_points(
+    hash_table_struct       *edge_lookup,
+    tri_node_struct         *node )
+{
+    if( node->children[0] == NULL )
+        return;
+
+    insert_edge_midpoint( edge_lookup, node->nodes[0], node->nodes[1],
+                          node->children[2]->nodes[0] );
+    insert_edge_midpoint( edge_lookup, node->nodes[1], node->nodes[2],
+                          node->children[2]->nodes[1] );
+    insert_edge_midpoint( edge_lookup, node->nodes[2], node->nodes[0],
+                          node->children[2]->nodes[2] );
+
+    insert_edge_points( edge_lookup, node->children[0] );
+    insert_edge_points( edge_lookup, node->children[1] );
+    insert_edge_points( edge_lookup, node->children[2] );
+    insert_edge_points( edge_lookup, node->children[3] );
+}
+
+private  void  create_edge_lookup(
+    tri_mesh_struct    *mesh,
+    hash_table_struct  *lookup )
+{
+    int   tri;
+
+    initialize_hash_table( lookup, 10 * mesh->n_points,
+                           sizeof(int), 0.5, 0.25 );
+
+    for_less( tri, 0, mesh->n_triangles )
+        insert_edge_points( lookup, &mesh->triangles[tri] );
+}
+
+private  void  delete_edge_lookup(
+    hash_table_struct  *lookup )
+{
+    delete_hash_table( lookup );
+}
+
 private  void  subdivide_tri_node(
     tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
     tri_node_struct   *node )
 {
     int  midpoints[3];
 
-    midpoints[0] = get_edge_midpoint( mesh, node->nodes[0], node->nodes[1] );
-    midpoints[1] = get_edge_midpoint( mesh, node->nodes[1], node->nodes[2] );
-    midpoints[2] = get_edge_midpoint( mesh, node->nodes[2], node->nodes[0] );
+    midpoints[0] = get_edge_midpoint( mesh, edge_lookup, node->nodes[0],
+                                                         node->nodes[1] );
+    midpoints[1] = get_edge_midpoint( mesh, edge_lookup, node->nodes[1],
+                                                         node->nodes[2] );
+    midpoints[2] = get_edge_midpoint( mesh, edge_lookup, node->nodes[2],
+                                                         node->nodes[0] );
 
     tri_mesh_insert_triangle( mesh, node->nodes[0], midpoints[0], midpoints[2]);
     tri_mesh_insert_triangle( mesh, midpoints[0], node->nodes[1], midpoints[1]);
     tri_mesh_insert_triangle( mesh, midpoints[0], midpoints[1], midpoints[2]);
     tri_mesh_insert_triangle( mesh, midpoints[2], midpoints[1], node->nodes[2]);
 }
-#endif
 
 private  int  count_triangles(
     tri_node_struct  *node )
@@ -512,23 +564,55 @@ private   int   get_tri_mesh_n_triangles(
     return( n_triangles );
 }
 
-private  void   add_to_polygons(
-    int              indices[],
-    int              *current_poly,
-    tri_node_struct  *node )
+private  void  add_subdivided_edge(
+    hash_table_struct      *edge_lookup,
+    int                    *indices[],
+    int                    *n_indices,
+    int                    p0,
+    int                    p1 )
 {
-    indices[3 * (*current_poly) + 0] = node->nodes[0];
-    indices[3 * (*current_poly) + 1] = node->nodes[1];
-    indices[3 * (*current_poly) + 2] = node->nodes[2];
+    int   midpoint;
 
-    ++(*current_poly);
-
-    if( node->children[0] != NULL )
+    if( lookup_edge_midpoint( edge_lookup, p0, p1, &midpoint ) )
     {
-        add_to_polygons( indices, current_poly, node->children[0] );
-        add_to_polygons( indices, current_poly, node->children[1] );
-        add_to_polygons( indices, current_poly, node->children[2] );
-        add_to_polygons( indices, current_poly, node->children[3] );
+        add_subdivided_edge( edge_lookup, indices, n_indices, p0, midpoint );
+        add_subdivided_edge( edge_lookup, indices, n_indices, midpoint, p1 );
+    }
+    else
+    {
+        ADD_ELEMENT_TO_ARRAY( *indices, *n_indices, p0, DEFAULT_CHUNK_SIZE );
+    }
+}
+
+private  void   add_to_polygons(
+    hash_table_struct       *edge_lookup,
+    int                     end_indices[],
+    int                     *current_poly,
+    int                     *indices[],
+    int                     *n_indices,
+    tri_node_struct         *node )
+{
+    if( node->children[0] == NULL )
+    {
+        add_subdivided_edge( edge_lookup, indices, n_indices,
+                             node->nodes[0], node->nodes[1] );
+        add_subdivided_edge( edge_lookup, indices, n_indices,
+                             node->nodes[1], node->nodes[2] );
+        add_subdivided_edge( edge_lookup, indices, n_indices,
+                             node->nodes[2], node->nodes[0] );
+        end_indices[*current_poly] = *n_indices;
+        ++(*current_poly);
+    }
+    else
+    {
+        add_to_polygons( edge_lookup, end_indices, current_poly,
+                         indices, n_indices, node->children[0] );
+        add_to_polygons( edge_lookup, end_indices, current_poly,
+                         indices, n_indices, node->children[1] );
+        add_to_polygons( edge_lookup, end_indices, current_poly,
+                         indices, n_indices, node->children[2] );
+        add_to_polygons( edge_lookup, end_indices, current_poly,
+                         indices, n_indices, node->children[3] );
     }
 }
 
@@ -536,7 +620,8 @@ private   void   convert_mesh_to_polygons(
     tri_mesh_struct   *mesh,
     polygons_struct   *polygons )
 {
-    int    poly, tri;
+    int                point, poly, tri, n_indices;
+    hash_table_struct  edge_lookup;
 
     initialize_polygons( polygons, WHITE, NULL );
 
@@ -544,18 +629,28 @@ private   void   convert_mesh_to_polygons(
     ALLOC( polygons->normals, mesh->n_points );
     polygons->n_points = mesh->n_points;
 
+    for_less( point, 0, mesh->n_points )
+        polygons->points[point] = mesh->points[point];
+
     polygons->n_items = get_tri_mesh_n_triangles( mesh );
 
     ALLOC( polygons->end_indices, polygons->n_items );
-    for_less( poly, 0, polygons->n_items )
-        polygons->end_indices[poly] = 3 * (poly+1);
 
-    ALLOC( polygons->indices, 3 * polygons->n_items );
+    polygons->indices = NULL;
+    n_indices = 0;
 
     poly = 0;
 
+    create_edge_lookup( mesh, &edge_lookup );
+
     for_less( tri, 0, mesh->n_triangles )
-        add_to_polygons( polygons->indices, &poly, &mesh->triangles[tri] );
+    {
+        add_to_polygons( &edge_lookup, polygons->end_indices, &poly,
+                         &polygons->indices, &n_indices,
+                         &mesh->triangles[tri] );
+    }
+
+    delete_edge_lookup( &edge_lookup );
 
     compute_polygon_normals( polygons );
 }
