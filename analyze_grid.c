@@ -6,7 +6,10 @@ private int  count_voxels(
     Volume       volume2,
     Transform    *v1_to_v2,
     Transform    *v2_to_v1,
-    Real         voxel[] );
+    Real         voxel_limits[][N_DIMENSIONS] );
+
+private  Real parallel_piped_volume(
+    Real v[N_DIMENSIONS][N_DIMENSIONS] );
 
 private  void  usage(
     STRING   executable )
@@ -30,12 +33,14 @@ int  main(
     STRING               volume1_filename, volume2_filename;
     STRING               transform_filename;
     int                  sizes1[MAX_DIMENSIONS];
-    int                  i, dim, n_points, n_voxels;
+    int                  i, dim, n_points, n_voxels, voxel_radius;
     Volume               volume1, volume2;
     Real                 avg, voxel_size1, voxel_size2;
-    Real                 voxel[MAX_DIMENSIONS];
+    Real                 voxel_limits[2][N_DIMENSIONS];
     Real                 separations1[MAX_DIMENSIONS];
     Real                 separations2[MAX_DIMENSIONS];
+    Real                 trans_scale[MAX_DIMENSIONS];
+    Real                 vectors[N_DIMENSIONS][N_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 
@@ -58,6 +63,7 @@ int  main(
     if( read_transform_file( transform_filename, &transform ) != OK )
         return( 1 );
 
+    (void) get_int_argument( 1, &voxel_radius );
     (void) get_int_argument( 100, &n_points );
 
     get_volume_sizes( volume1, sizes1 );
@@ -88,21 +94,32 @@ int  main(
     for_less( i, 0, n_points )
     {
         for_less( dim, 0, N_DIMENSIONS )
-            voxel[dim] = get_random_0_to_1() * sizes1[dim];
+        {
+            voxel_limits[0][dim] = get_random_0_to_1() * sizes1[dim];
+            voxel_limits[1][dim] = voxel_limits[0][dim] + (Real) voxel_radius;
+        }
 
         n_voxels += count_voxels( volume1, volume2, &v1_to_v2, &v2_to_v1,
-                                  voxel );
+                                  voxel_limits );
     }
 
     get_volume_separations( volume1, separations1 );
     get_volume_separations( volume2, separations2 );
 
+    for_less( dim, 0, N_DIMENSIONS )
+    {
+        vectors[0][dim] = Transform_elem(world1_to_world2,dim,0);
+        vectors[1][dim] = Transform_elem(world1_to_world2,dim,1);
+        vectors[2][dim] = Transform_elem(world1_to_world2,dim,2);
+    }
 
-    voxel_size1 = separations1[X] * separations1[Y] * separations1[Z];
+    voxel_size1 = (Real) voxel_radius * (Real) voxel_radius *
+                  (Real) voxel_radius *
+                  separations1[X] * separations1[Y] * separations1[Z] *
+                  parallel_piped_volume( vectors );
     voxel_size2 = separations2[X] * separations2[Y] * separations2[Z];
 
-    avg = (Real) n_voxels / (Real) n_points * voxel_size2 / voxel_size1;
-
+    avg = (Real) n_voxels * voxel_size2 / ((Real) n_points * voxel_size1);
 
     print( "Ratio: %g\n", avg );
 
@@ -114,7 +131,7 @@ private int  count_voxels(
     Volume       volume2,
     Transform    *v1_to_v2,
     Transform    *v2_to_v1,
-    Real         voxel[] )
+    Real         voxel_limits[][N_DIMENSIONS] )
 {
     int   dx, dy, dz, dim, n_voxels, x, y, z;
     int   x_start, x_end, y_start, y_end, z_start, z_end;
@@ -127,9 +144,9 @@ private int  count_voxels(
     for_less( dy, 0, 2 )
     for_less( dz, 0, 2 )
     {
-        transform_point( v1_to_v2, voxel[X] - 0.5 + (Real) dx,
-                                   voxel[Y] - 0.5 + (Real) dy,
-                                   voxel[Z] - 0.5 + (Real) dz,
+        transform_point( v1_to_v2, voxel_limits[dx][X],
+                                   voxel_limits[dy][Y],
+                                   voxel_limits[dz][Z],
                          &v2[X], &v2[Y], &v2[Z] );
 
         if( dx == 0 && dy == 0 && dz == 0 )
@@ -168,13 +185,24 @@ private int  count_voxels(
         transform_point( v2_to_v1, (Real) x, (Real) y, (Real) z,
                          &x1, &y1, &z1 );
 
-        if( x1 >= voxel[X] - 0.5 && x1 <= voxel[X] + 0.5 &&
-            y1 >= voxel[Y] - 0.5 && y1 <= voxel[Y] + 0.5 &&
-            z1 >= voxel[Z] - 0.5 && z1 <= voxel[Z] + 0.5 )
+        if( x1 >= voxel_limits[0][X] && x1 <= voxel_limits[1][X] &&
+            y1 >= voxel_limits[0][Y] && y1 <= voxel_limits[1][Y] &&
+            z1 >= voxel_limits[0][Z] && z1 <= voxel_limits[1][Z] )
         {
             ++n_voxels;
         }
     }
 
     return( n_voxels );
+}
+
+private  Real parallel_piped_volume(
+    Real v[N_DIMENSIONS][N_DIMENSIONS] )
+{
+    Real   volume;
+
+    volume = v[0][0] * (v[1][1] * v[2][2] - v[1][2] * v[2][1]) +
+             v[0][1] * (v[1][2] * v[2][0] - v[1][0] * v[2][2]) +
+             v[0][2] * (v[1][0] * v[2][1] - v[1][1] * v[2][0]);
+    return(  ABS(volume) );
 }
