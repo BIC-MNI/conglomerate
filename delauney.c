@@ -111,7 +111,7 @@ private  BOOLEAN  get_circle_through_points(
     Real    *cy,
     Real    *radius2 )
 {
-    Real   x1, y1, x2, y2, x3, y3, bottom, r2_a_b;
+    Real   x1, y1, x2, y2, x3, y3, bottom, r2_a_b, c1, c2, c3;
 
     x1 = points[p1][0];
     y1 = points[p1][1];
@@ -120,22 +120,18 @@ private  BOOLEAN  get_circle_through_points(
     x3 = points[p3][0];
     y3 = points[p3][1];
 
-    bottom = 2.0 * (-x2*y3+x2*y1+x1*y3+x3*y2-x3*y1-x1*y2);
+    bottom = (y2*x3-y2*x1-y1*x3-y3*x2+y3*x1+y1*x2);
+
     if( bottom == 0.0 )
         return( FALSE );
 
-    *cx = (-x2*x2*y3+x2*x2*y1-y2*y2*y3+y1*y1*y3-y2*y1*y1+x1*x1*y3-y2*x1*x1+y2*
-y3*y3-y1*x3*x3+y2*x3*x3+y2*y2*y1-y1*y3*y3)/bottom;
-    *cy = -(x2*x3*x3+x2*y3*y3+x1*x2*x2-x2*x1*x1-x2*y1*y1-x3*x2*x2-x1*x3*x3-x1*
-y3*y3+x3*x1*x1+x3*y1*y1-x3*y2*y2+x1*y2*y2)/bottom;
+    c1 = x1 * x1 + y1 * y1;
+    c2 = x2 * x2 + y2 * y2;
+    c3 = x3 * x3 + y3 * y3;
 
-    bottom = (-x2*y3+x2*y1+x1*y3+x3*y2-x3*y1-x1*y2);
-    if( bottom == 0.0 )
-        return( FALSE );
-
-    r2_a_b = (y2*x1*x3*x3+y1*x3*y2*y2+y1*y1*x2*y3-y1*x2*x3*x3-y1*x2*y3*y3+y2*x1*
-y3*y3-y2*x3*x1*x1-y2*x3*y1*y1+y1*x3*x2*x2-x2*x2*x1*y3-y2*y2*x1*y3+x1*x1*x2*y3)/
-bottom;
+    *cx = -2.0 * -(y2*c3-y2*c1-y1*c3-y3*c2+y3*c1+y1*c2) / bottom;
+    *cy = -2.0 * (x2*c3-x1*c3+x1*c2-c2*x3+c1*x3-c1*x2) / bottom;
+    r2_a_b = (-c1*y2*x3+x2*y3*c1+x1*y2*c3-x1*y3*c2-x2*y1*c3+c2*y1*x3) / bottom;
 
     *radius2 = *cx * *cx + *cy * *cy - r2_a_b;
 
@@ -210,6 +206,8 @@ private  void  create_delauney(
 
     find_closest_pair( n_points, points, &p1, &p2 );
 
+    print( "Start: %d %d\n", p1, p2 );
+
     INITIALIZE_QUEUE( queue );
 
     entry = IJK((unsigned long) MIN(p1,p2),
@@ -234,6 +232,8 @@ private  void  create_delauney(
 
          if( !get_third_point( n_points, points, p1, p2, which_dir, &p3 ) )
              continue;
+
+         print( "%d %d %d  %d\n", p1, p2, p3, which_dir );
 
          if( is_clockwise( points, p1, p2, p3 ) )
          {
