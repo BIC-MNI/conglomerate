@@ -256,7 +256,6 @@ private  Real  evaluate_fit(
 }
 
 private  void  interval_evaluate_fit_derivative(
-    int              parameter,
     int              n_parameters,
     Interval         parameters[],
     Real             constant_term,
@@ -265,70 +264,53 @@ private  void  interval_evaluate_fit_derivative(
     int              n_cross_terms[],
     int              *cross_parms[],
     LSQ_TYPE         *cross_terms[],
-    Interval         *deriv )
+    Interval         derivs[] )
 {
     int        parm, n, neigh_parm;
     Real       term, val;
     Interval   parm_val, t;
 
-    SET_INTERVAL( *deriv, 0.0, 0.0 );
+    for_less( parm, 0, n_parameters )
+        SET_INTERVAL( derivs[parm], 0.0, 0.0 );
 
     for_less( parm, 0, n_parameters )
     {
         parm_val = parameters[parm];
 
-        if( parm == parameter )
-        {
-            ADD_INTERVAL_REAL( *deriv, *deriv, (Real) linear_terms[parm] );
-            val = 2.0 * (Real) square_terms[parm];
-            MULT_INTERVAL_REAL( t, parm_val, val );
-            ADD_INTERVALS( *deriv, *deriv, t );
-        }
+        ADD_INTERVAL_REAL( derivs[parm], derivs[parm],
+                           (Real) linear_terms[parm] );
+        val = 2.0 * (Real) square_terms[parm];
+        MULT_INTERVAL_REAL( t, parm_val, val );
+        ADD_INTERVALS( derivs[parm], derivs[parm], t );
 
         for_less( n, 0, n_cross_terms[parm] )
         {
             neigh_parm = cross_parms[parm][n];
             term = (Real) cross_terms[parm][n];
-            if( parm == parameter )
-            {
-                MULT_INTERVAL_REAL( t, parameters[neigh_parm], term );
-                ADD_INTERVALS( *deriv, *deriv, t );
-            }
-            else if( neigh_parm == parameter )
-            {
-                MULT_INTERVAL_REAL( t, parm_val, term );
-                ADD_INTERVALS( *deriv, *deriv, t );
-            }
+
+            MULT_INTERVAL_REAL( t, parameters[neigh_parm], term );
+            ADD_INTERVALS( derivs[parm], derivs[parm], t );
+
+            MULT_INTERVAL_REAL( t, parm_val, term );
+            ADD_INTERVALS( derivs[neigh_parm], derivs[neigh_parm], t );
         }
     }
 }
 
 private  BOOLEAN   reduce_interval(
     int              parameter,
-    int              n_parameters,
     Interval         parameters[],
-    Real             constant_term,
-    float            linear_terms[],
-    float            square_terms[],
-    int              n_cross_terms[],
-    int              *cross_parms[],
-    float            *cross_terms[] )
+    Interval         derivs[] )
 {
     Real       val;
-    Interval   deriv;
 
-    interval_evaluate_fit_derivative( parameter, n_parameters, parameters,
-                              constant_term, linear_terms, square_terms,
-                              n_cross_terms, cross_parms, cross_terms,
-                              &deriv );
-
-    if( INTERVAL_MAX( deriv ) <= 0.0 )
+    if( INTERVAL_MAX( derivs[parameter] ) <= 0.0 )
     {
         val = INTERVAL_MAX( parameters[parameter] );
         SET_INTERVAL( parameters[parameter], val, val );
         return( TRUE );
     }
-    else if( INTERVAL_MIN( deriv ) >= 0.0 )
+    else if( INTERVAL_MIN( derivs[parameter] ) >= 0.0 )
     {
         val = INTERVAL_MIN( parameters[parameter] );
         SET_INTERVAL( parameters[parameter], val, val );
@@ -350,27 +332,43 @@ private  void   minimize_lsq_float2(
     int              n_iters,
     Real             node_values[] )
 {
-    int        p, n_done;
-    Interval   *parameters;
+    int           p, n_done;
+    Interval      *parameters, *derivs;
+    Smallest_int  *done_flags;
+    BOOLEAN       change;
 
     ALLOC( parameters, n_parameters );
+    ALLOC( derivs, n_parameters );
+    ALLOC( done_flags, n_parameters );
 
     for_less( p, 0, n_parameters )
     {
         SET_INTERVAL( parameters[p], node_values[p] - step_size,
                                      node_values[p] + step_size );
+        done_flags[p] = FALSE;
     }
 
     n_done = 0;
-    for_less( p, 0, n_parameters )
+    do
     {
-        if( reduce_interval( p, n_parameters, parameters,
-                         constant_term, linear_terms, square_terms,
-                         n_cross_terms, cross_parms, cross_terms ) )
+        interval_evaluate_fit_derivative( n_parameters, parameters,
+                                      constant_term, linear_terms, square_terms,
+                                      n_cross_terms, cross_parms, cross_terms,
+                                      derivs );
+
+        change = FALSE;
+
+        for_less( p, 0, n_parameters )
         {
-            ++n_done;
+            if( !done_flags[p] && reduce_interval( p, parameters, derivs ) )
+            {
+                ++n_done;
+                change = TRUE;
+                done_flags[p] = TRUE;
+            }
         }
     }
+    while( n_done < n_parameters && change );
 
     print( "N done:  %d out of %d\n", n_done, n_parameters );
 
@@ -378,6 +376,8 @@ private  void   minimize_lsq_float2(
         node_values[p] = INTERVAL_MIDPOINT( parameters[p] );
 
     FREE( parameters );
+    FREE( derivs );
+    FREE( done_flags );
 }
 
 private  void  flatten_polygons(
