@@ -58,7 +58,7 @@ int  main(
                        (Real) sizes[dim];
     }
 
-    print( "Cropping volume to %3.0f %% size.\n", size_factor * 100.0 + 0.5 );
+    print( "Cropping volume to %3.0f %% size.\n", size_factor * 100.0 + 0.49 );
 
     cropped_volume = create_cropped_volume( volume, limits );
 
