@@ -19,14 +19,15 @@ int  main(
 {
     STRING               input_filename, output_filename;
     Volume               volume;
-    int                  i, n_neighs, n_changed, iter, max_dilations;
-    int                  range_changed[2][N_DIMENSIONS];
-    int                  *counts, *labels, label, n_labels;
-    int                  v0, v1, v2, v3, v4, n_done;
-    Real                 min_volume, max_volume;
-    Real                 min_outside, max_outside, value;
-    BOOLEAN              *done;
+    int                  n_neighs, iter, max_dilations;
+    int                  sizes[N_DIMENSIONS];
+    int                  x, y, z, n_changed;
+    int                  tx, ty, tz, n_dirs, *dx, *dy, *dz, dir;
+    Real                 max_value, test_value, value;
+    Real                 min_outside, max_outside;
+    Real                 **output_buffer[2], **tmp;
     Neighbour_types      connectivity;
+    progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -54,71 +55,93 @@ int  main(
                       (minc_input_options *) NULL ) != OK )
         return( 1 );
 
-    get_volume_real_range( volume, &min_volume, &max_volume );
-
-    n_labels = ROUND( max_volume ) - ROUND( min_volume ) + 1;
-
-    ALLOC( counts, n_labels );
-
-    for_less( i, 0, n_labels )
-        counts[i] = 0;
-
-    BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
-        value = get_volume_real_value( volume, v0, v1, v2, v3, v4 );
-        ++counts[ROUND(value) - ROUND(min_volume)];
-    END_ALL_VOXELS
-
-    ALLOC( labels, n_labels );
-    n_labels = 0;
-    for_inclusive( i, ROUND(min_volume), ROUND(max_volume) )
-    {
-        if( i != 0 && counts[i-ROUND(min_volume)] > 0 )
-        {
-            labels[n_labels] = i;
-            ++n_labels;
-        }
-    }
-
-    n_done = 0;
-    ALLOC( done, n_labels );
-    for_less( label, 0, n_labels )
-        done[label] = FALSE;
+    n_dirs = get_3D_neighbour_directions( connectivity, &dx, &dy, &dz );
 
     iter = 0;
 
-    while( (max_dilations < 0 || iter < max_dilations) && n_done < n_labels )
+    get_volume_sizes( volume, sizes );
+
+    ALLOC2D( output_buffer[0], sizes[Y], sizes[Z] );
+    ALLOC2D( output_buffer[1], sizes[Y], sizes[Z] );
+
+    n_changed = 1;
+    while( (max_dilations < 0 || iter < max_dilations) && n_changed > 0 )
     {
         ++iter;
 
-        for_less( i, 0, n_labels )
+        n_changed = 0;
+
+        initialize_progress_report( &progress, FALSE, sizes[X], "Dilating" );
+
+        for_less( x, 0, sizes[X] )
         {
-            if( done[i] )
-                continue;
-
-            label = labels[i];
-
-            n_changed = dilate_voxels_3d( NULL, volume,
-                                          (Real) label,
-                                          (Real) label,
-                                          0.0, -1.0,
-                                          min_outside, max_outside,
-                                          0.0, -1.0,
-                                          (Real) label, connectivity,
-                                          range_changed );
-
-            print( "Iter: %d  Label %d:  %d\n", iter, label, n_changed );
-
-            if( n_changed == 0 )
+            for_less( y, 0, sizes[Y] )
             {
-                done[i] = TRUE;
-                ++n_done;
+                for_less( z, 0, sizes[Z] )
+                {
+                    value = get_volume_real_value( volume, x, y, z, 0, 0 );
+                    if( min_outside <= value && value <= max_outside )
+                    {
+                        max_value = 0.0;
+                        for_less( dir, 0, n_dirs )
+                        {
+                            tx = x + dx[dir];
+                            ty = y + dy[dir];
+                            tz = z + dz[dir];
+                            if( tx >= 0 && tx < sizes[0] &&
+                                ty >= 0 && ty < sizes[1] &&
+                                tz >= 0 && tz < sizes[2] )
+                            {
+                                test_value = get_volume_real_value( volume,
+                                                            tx, ty, tz, 0, 0 );
+                                max_value = MAX( max_value, test_value );
+                            }
+                        }
+                    }
+                    else
+                        max_value = value;
+
+                    output_buffer[1][y][z] = max_value;
+
+                    if( max_value != value )
+                        ++n_changed;
+                }
             }
+
+            if( x > 0 )
+            {
+                for_less( y, 0, sizes[Y] )
+                for_less( z, 0, sizes[Z] )
+                {
+                    set_volume_real_value( volume, x-1, y, z, 0, 0,
+                                           output_buffer[0][y][z] );
+                }
+            }
+
+            if( x == sizes[X]-1 )
+            {
+                for_less( y, 0, sizes[Y] )
+                for_less( z, 0, sizes[Z] )
+                {
+                    set_volume_real_value( volume, x, y, z, 0, 0,
+                                           output_buffer[1][y][z] );
+                }
+            }
+
+            tmp = output_buffer[0];
+            output_buffer[0] = output_buffer[1];
+            output_buffer[1] = tmp;
+
+            update_progress_report( &progress, x + 1 );
         }
+
+        terminate_progress_report( &progress );
+
+        print( "Iter: %d    N changed: %d\n", iter, n_changed );
     }
 
-    FREE( done );
-    FREE( labels );
-    FREE( counts );
+    FREE2D( output_buffer[0] );
+    FREE2D( output_buffer[1] );
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
                                    0.0, 0.0, volume, input_filename,
