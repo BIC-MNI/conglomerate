@@ -261,6 +261,7 @@ private  void  flatten_polygons(
     Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
+    Vector           x_dir, y_dir, offset;
     Smallest_int     *interior_flags;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
@@ -330,14 +331,19 @@ private  void  flatten_polygons(
     }
     else
     {
+        SUB_POINTS( x_dir, init_points[neighbours[which][0]],
+                    init_points[which] );
+        NORMALIZE_VECTOR( x_dir, x_dir );
+        fill_Point( y_dir, -RVector_y(x_dir), RVector_x(x_dir), 0.0 );
         for_less( point, 0, polygons->n_points )
         {
             if( to_parameters[point] >= 0 )
             {
+                SUB_POINTS( offset, init_points[point], init_points[which] );
                 parameters[2*to_parameters[point]] =
-                               RPoint_x(init_points[point]);
+                               DOT_VECTORS( offset, x_dir );
                 parameters[2*to_parameters[point]+1] =
-                               RPoint_y(init_points[point]);
+                               DOT_VECTORS( offset, y_dir );
             }
         }
     }
