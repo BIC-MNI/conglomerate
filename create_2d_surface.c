@@ -151,9 +151,13 @@ private  float  get_horizontal_coord(
     float            vertical[] )
 {
     int     ind, path_index, p, p0, p1, poly, current_poly, size, v0, v1;
-    int     current_ind, start_index;
+    int     current_ind, start_index, v;
     float   height, ratio, sum_dist, to_point_dist;
     Point   start_point, prev_point, next_point;
+BOOLEAN  debug = (point == 101);
+
+if( debug )
+    print( " %g\n", vertical[point] );
 
     height = vertical[point];
     if( height <= 0.0f || height >= 1.0f )
@@ -207,16 +211,32 @@ private  float  get_horizontal_coord(
             ind = (ind + 1) % size;
         }
 
+        v = current_ind - 1;
+        do
+        {
+            v = (v + 1) % size;
+            if( polygons->indices[start_index+v] == point )
+                to_point_dist = sum_dist + (float)
+                          distance_between_points( &prev_point,
+                                                   &polygons->points[point] );
+        }
+        while( v != ind );
+
         p0 = polygons->indices[start_index + ind];
         p1 = polygons->indices[start_index + (ind+1) % size];
 
+if( debug )
+{
+int i;
+    for_less( i, 0, size )
+        print( " %d", polygons->indices[start_index+i] );
+    print( " %g %g\n", vertical[p0], vertical[p1] );
+}
         ratio = (height - vertical[p0]) / (vertical[p1] - vertical[p0]);
         INTERPOLATE_POINTS( next_point, polygons->points[p0],
                             polygons->points[p1], ratio );
         sum_dist += (float)
                           distance_between_points( &prev_point, &next_point);
-        if( p0 == point )
-            to_point_dist = sum_dist;
 
         prev_point = next_point;
 
