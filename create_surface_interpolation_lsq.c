@@ -449,7 +449,11 @@ private  int  create_coefficients(
     int              i, n_equations, eq, poly, node, p, size;
     polygons_struct  *polygons;
     Point            polygon_points[MAX_POINTS_PER_POLYGON];
+    Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             weights[MAX_POINTS_PER_POLYGON], dist, avg_dist, weight;
+    Real             x_flat[MAX_POINTS_PER_POLYGON];
+    Real             y_flat[MAX_POINTS_PER_POLYGON];
+    ftype            consistency_weights[MAX_POINTS_PER_POLYGON];
     Point            point_on_surface;
 
     polygons = get_polygons_ptr( object );
@@ -494,10 +498,13 @@ private  int  create_coefficients(
 
     for_less( node, 0, polygons->n_points )
     {
+        for_less( p, 0, n_neighbours[node] )
+            neigh_points[p] = polygons->points[neighbours[node][p]];
+
         avg_dist = 0.0;
         for_less( p, 0, n_neighbours[node] )
             avg_dist += distance_between_points( &polygons->points[node],
-                                &polygons->points[neighbours[node][p]] );
+                                                 &neigh_points[p] );
 
         avg_dist /= (Real) n_neighbours[node];
 
@@ -511,11 +518,33 @@ private  int  create_coefficients(
         (*node_list)[eq][0] = node;
         (*node_weights)[eq][0] = weight;
 
+#define FLATTEN
+#ifdef  FLATTEN
+        flatten_around_vertex( &polygons->points[node],
+                               n_neighbours[node],
+                               neigh_points, x_flat, y_flat );
+
+        if( !get_interpolation_weights_2d( 0.0, 0.0, n_neighbours[node],
+                                           x_flat, y_flat,
+                                           consistency_weights ) )
+        {
+            print_error( "Error in interpolation weights, using avg..\n" );
+
+            for_less( p, 0, n_neighbours[node] )
+            {
+                consistency_weights[p] = (ftype) 1.0 /
+                                          (ftype) n_neighbours[node];
+            }
+        }
+#else
+        for_less( p, 0, n_neighbours[node] )
+            consistency_weights[p] = (ftype) 1.0 / (ftype) n_neighbours[node];
+#endif
+
         for_less( p, 0, n_neighbours[node] )
         {
             (*node_list)[eq][1+p] = neighbours[node][p];
-            (*node_weights)[eq][1+p] = (ftype) -weight /
-                                       (ftype) n_neighbours[node];
+            (*node_weights)[eq][1+p] = (ftype) -weight * consistency_weights[p];
         }
 
         ++eq;
@@ -548,7 +577,7 @@ private  void   create_surface_interpolation(
     create_polygons_bintree( polygons,
                              (int) ((Real) polygons->n_items * 0.3) );
 
-    create_polygon_point_neighbours( polygons, &n_point_neighbours,
+    create_polygon_point_neighbours( polygons, FALSE, &n_point_neighbours,
                                      &point_neighbours, NULL );
 
     total_length = 0.0;
@@ -643,4 +672,7 @@ private  void   create_surface_interpolation(
     FREE( node_list );
     FREE( n_nodes_per_equation );
     FREE( constants );
+
+    delete_polygon_point_neighbours( polygons, n_point_neighbours,
+                                     point_neighbours, NULL );
 }
