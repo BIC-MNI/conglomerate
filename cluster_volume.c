@@ -21,7 +21,7 @@ int  main(
     char  *argv[] )
 {
     Real             min_threshold, max_threshold;
-    int              sizes[N_DIMENSIONS], v[MAX_DIMENSIONS], n_dims;
+    int              sizes[N_DIMENSIONS], v[MAX_DIMENSIONS];
     int              range_changed[2][N_DIMENSIONS];
     int              current_label, num_labels, n_neighbours;
     STRING           volume_filename, output_filename;
@@ -61,11 +61,10 @@ int  main(
     num_labels = ROUND( get_volume_voxel_max( label_volume ) );
 
     get_volume_sizes( volume, sizes );
-    n_dims = get_volume_n_dimensions( volume );
 
     current_label = 1;
 
-    initialize_progress_report( &progress, FALSE, sizes[n_dims-1],
+    initialize_progress_report( &progress, FALSE, sizes[0] * sizes[1],
                                 "Filling Regions" );
 
     BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
@@ -82,8 +81,8 @@ int  main(
             }
         }
 
-        if( v[n_dims-2] == sizes[n_dims-2] - 1 )
-            update_progress_report( &progress, v[n_dims-1] + 1 );
+        if( v[2] == sizes[2]-1 )
+            update_progress_report( &progress, v[0] * sizes[1] + v[1] + 1 );
 
     END_ALL_VOXELS
 
