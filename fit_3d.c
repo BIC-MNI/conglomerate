@@ -35,7 +35,7 @@ private  void   fit_polygons(
     Point              surface_points[],
     Point              model_points[],
     Real               model_weight,
-    Real               stretch_weight,
+    Real               centroid_weight,
     Volume             volume,
     Real               threshold,
     char               normal_direction,
@@ -53,7 +53,7 @@ private  void  usage(
     char   executable_name[] )
 {
     STRING  usage_format = "\
-Usage:     %s  input.obj output.obj model.obj model_weight stretch_weight \n\
+Usage:     %s  input.obj output.obj model.obj model_weight centroid_weight \n\
                   volume.mnc threshold +|-|0  tangent_weight out_dist in_dist\n\
                   float/nofloat oversample\n\
                   [n_iters] [n_between] [max_step]\n\
@@ -78,7 +78,7 @@ int  main(
     polygons_struct      *surface, *model_surface;
     Volume               volume;
     Point                *surface_points, *model_points;
-    Real                 threshold, model_weight, stretch_weight;
+    Real                 threshold, model_weight, centroid_weight;
     Real                 max_outward, max_inward, tangent_weight;
     Smallest_int         *fit_this_node;
     Real                 min_value, max_value, value, max_step;
@@ -90,7 +90,7 @@ int  main(
         !get_string_argument( NULL, &output_filename ) ||
         !get_string_argument( NULL, &model_filename ) ||
         !get_real_argument( 0.0, &model_weight ) ||
-        !get_real_argument( 0.0, &stretch_weight ) ||
+        !get_real_argument( 0.0, &centroid_weight ) ||
         !get_string_argument( NULL, &volume_filename ) ||
         !get_real_argument( 0.0, &threshold ) ||
         !get_string_argument( NULL, &surface_direction ) ||
@@ -165,7 +165,7 @@ int  main(
         fit_this_node = NULL;
 
     fit_polygons( n_points, n_neighbours, neighbours, surface_points,
-                  model_points, model_weight, stretch_weight, volume, threshold,
+                  model_points, model_weight, centroid_weight, volume, threshold,
                   surface_direction[0], tangent_weight, max_outward, max_inward,
                   fit_this_node,
                   floating_flag, oversample, max_step,
@@ -406,7 +406,7 @@ private  BOOLEAN  this_is_unique_edge(
         return( FALSE );
 }
 
-private  void  create_stretch_coefficients(
+private  void  create_centroid_coefficients(
     int              n_nodes,
     int              to_parameter[],
     Point            surface_points[],
@@ -419,7 +419,7 @@ private  void  create_stretch_coefficients(
     ftype            *node_weights[] )
 {
     int              node, neigh_node, eq, dim, n, n_involved;
-    int              parm_index, neigh_parm_index;
+    int              neigh_parm_index, ind;
     Real             con;
     progress_struct  progress;
 
@@ -428,51 +428,45 @@ private  void  create_stretch_coefficients(
     eq = 0;
     for_less( node, 0, n_nodes )
     {
+        if( to_parameter[node] < 0 )
+            continue;
+
+        n_involved = 0;
         for_less( n, 0, n_neighbours[node] )
         {
             neigh_node = neighbours[node][n];
-            if( this_is_unique_edge( node, neigh_node,
-                                     n_neighbours, neighbours ) &&
-                (to_parameter[node] >= 0 ||
-                 to_parameter[neighbours[node][n]] >= 0) )
+            if( to_parameter[neighbours[node][n]] >= 0 )
+                ++n_involved;
+        }
+
+        for_less( dim, 0, N_DIMENSIONS )
+        {
+            con = 0.0;
+            n_parms_involved[eq] = n_involved;
+            ALLOC( node_weights[eq], n_parms_involved[eq] );
+            ALLOC( parm_list[eq], n_parms_involved[eq] );
+            ind = 0;
+            node_weights[eq][ind] = (ftype) 1.0;
+            parm_list[eq][ind] = IJ(to_parameter[node],dim,3);
+            ++ind;
+            for_less( n, 0, n_neighbours[node] )
             {
-                for_less( dim, 0, N_DIMENSIONS )
+                neigh_node = neighbours[node][n];
+                neigh_parm_index = to_parameter[neighbours[node][n]];
+                if( neigh_parm_index >= 0 )
                 {
-                    n_involved = 0;
-                    parm_index = to_parameter[node];
-                    neigh_parm_index = to_parameter[neighbours[node][n]];
-                    if( parm_index >= 0 )
-                        ++n_involved;
-                    if( neigh_parm_index >= 0 )
-                        ++n_involved;
-
-                    n_parms_involved[eq] = n_involved;
-                    ALLOC( node_weights[eq], n_parms_involved[eq] );
-                    ALLOC( parm_list[eq], n_parms_involved[eq] );
-                    con = 0.0;
-
-                    n_involved = 0;
-                    if( parm_index >= 0 )
-                    {
-                        node_weights[eq][n_involved] = (ftype) 1.0;
-                        parm_list[eq][n_involved++] = IJ(parm_index,dim,3);
-                    }
-                    else
-                        con += RPoint_coord(model_points[node],dim);
-
-                    if( neigh_parm_index >= 0 )
-                    {
-                        node_weights[eq][n_involved] = (ftype) -1.0;
-                        parm_list[eq][n_involved] = IJ(neigh_parm_index,dim,3);
-                    }
-                    else
-                        con += -RPoint_coord(model_points[neigh_node],dim);
-
-                    constants[eq] = (ftype) con;
-
-                    ++eq;
+                    node_weights[eq][ind] = (ftype) (-1.0 /
+                                      (Real) n_neighbours[node]);
+                    parm_list[eq][ind] = IJ(neigh_parm_index,dim,3);
+                    ++ind;
                 }
+                else
+                    con += -RPoint_coord(model_points[neigh_node],dim)/
+                            (Real) n_neighbours[node];
             }
+
+            constants[eq] = (ftype) con;
+            ++eq;
         }
 
         update_progress_report( &progress, node+1 );
@@ -936,7 +930,7 @@ private  void   fit_polygons(
     Point              surface_points[],
     Point              model_points[],
     Real               model_weight,
-    Real               stretch_weight,
+    Real               centroid_weight,
     Volume             volume,
     Real               threshold,
     char               normal_direction,
@@ -959,7 +953,7 @@ private  void   fit_polygons(
     int                         sizes[N_DIMENSIONS];
     int                         *to_parameter;
     int                         parm_index, p;
-    int                         n_stretch_equations;
+    int                         n_centroid_equations;
     ftype                       *constants, **node_weights;
     Real                        *parameters, *weights, weight;
     polygons_struct             save_p;
@@ -999,7 +993,6 @@ private  void   fit_polygons(
     n_image_equations = n_image_per_point * n_moving_points;
 
     n_oversample_equations = 0;
-    n_stretch_equations = 0;
     for_less( point, 0, n_points )
     {
         for_less( n, 0, n_neighbours[point] )
@@ -1010,18 +1003,17 @@ private  void   fit_polygons(
                  to_parameter[neighbours[point][n]] >= 0) )
             {
                 n_oversample_equations += oversample;
-                ++n_stretch_equations;
             }
         }
     }
     n_oversample_equations *= n_image_per_point;
 
-    if( stretch_weight > 0.0 )
-        n_stretch_equations *= 3;
+    if( centroid_weight > 0.0 )
+        n_centroid_equations = 3 * n_moving_points;
     else
-        n_stretch_equations = 0;
+        n_centroid_equations = 0;
 
-    n_equations = n_model_equations + n_stretch_equations;
+    n_equations = n_model_equations + n_centroid_equations;
 
     ALLOC( n_parms_involved, n_equations );
     ALLOC( constants, n_equations );
@@ -1042,23 +1034,23 @@ private  void   fit_polygons(
             node_weights[eq][n] *= (ftype) model_weight;
     }
 
-    if( stretch_weight > 0.0 )
+    if( centroid_weight > 0.0 )
     {
-        create_stretch_coefficients( n_points, to_parameter, surface_points,
+        create_centroid_coefficients( n_points, to_parameter, surface_points,
                                      model_points, n_neighbours, neighbours,
                                      &n_parms_involved[n_model_equations],
                                      &parm_list[n_model_equations],
                                      &constants[n_model_equations],
                                      &node_weights[n_model_equations] );
 
-        stretch_weight = sqrt( stretch_weight / (Real) n_stretch_equations );
+        centroid_weight = sqrt( centroid_weight / (Real) n_centroid_equations );
 
         for_less( eq, n_model_equations,
-                      n_model_equations + n_stretch_equations )
+                      n_model_equations + n_centroid_equations )
         {
-            constants[eq] *= (ftype) stretch_weight;
+            constants[eq] *= (ftype) centroid_weight;
             for_less( n, 0, n_parms_involved[eq] )
-                node_weights[eq][n] *= (ftype) stretch_weight;
+                node_weights[eq][n] *= (ftype) centroid_weight;
         }
     }
 
@@ -1099,7 +1091,7 @@ private  void   fit_polygons(
         RESET_LSQ( n_parameters, &constant, linear_terms,
                    square_terms, n_cross_terms, cross_parms, cross_terms );
 
-        for_less( eq, 0, n_model_equations + n_stretch_equations )
+        for_less( eq, 0, n_model_equations + n_centroid_equations )
         {
             for_less( p, 0, n_parms_involved[eq] )
                 weights[p] = (Real) node_weights[eq][p];
