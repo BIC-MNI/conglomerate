@@ -1,9 +1,12 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#define  BINTREE_FACTOR 0.4
+
 private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
+    int               method,
     Real              ratio,
     Real              movement_threshold,
     int               n_iters );
@@ -19,7 +22,7 @@ int  main(
     object_struct        **model_objects, **src_objects;
     polygons_struct      *original, *model;
     Real                 movement_threshold, ratio;
-    int                  n_iters;
+    int                  n_iters, method;
 
     initialize_argument_processing( argc, argv );
 
@@ -33,6 +36,7 @@ int  main(
 
     (void) get_int_argument( 1, &n_iters );
     (void) get_real_argument( 1.0, &ratio );
+    (void) get_int_argument( 0, &method );
     (void) get_real_argument( 0.0, &movement_threshold );
 
     if( input_graphics_file( input_filename, &src_format,
@@ -67,13 +71,38 @@ int  main(
         return( 1 );
     }
 
-    reparameterize( original, model, ratio, movement_threshold, n_iters );
+    reparameterize( original, model, method, ratio,
+                    movement_threshold, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
                               src_objects ) != OK )
         return( 1 );
 
     return( 0 );
+}
+
+private  void  map_2d_to_3d(
+    polygons_struct   *unit_sphere,
+    polygons_struct   *original,
+    Real              u,
+    Real              v,
+    Real              *x,
+    Real              *y,
+    Real              *z )
+{
+    Real    x_sphere, y_sphere, z_sphere;
+    Point   unit_sphere_point, original_point;
+
+    map_uv_to_sphere( u, v, &x_sphere, &y_sphere, &z_sphere );
+
+    fill_Point( unit_sphere_point, x_sphere, y_sphere, z_sphere );
+
+    map_unit_sphere_to_point( unit_sphere, &unit_sphere_point,
+                              original, &original_point );
+
+    *x = RPoint_x( original_point );
+    *y = RPoint_y( original_point );
+    *z = RPoint_z( original_point );
 }
 
 private  Real  evaluate_fit(
@@ -101,6 +130,22 @@ private  Real  evaluate_fit(
     }
 
     return( fit );
+}
+
+private  Real  evaluate_fit_2d(
+    polygons_struct   *unit_sphere,
+    polygons_struct   *original,
+    Real              point[],
+    int               n_neighbours,
+    Real              (*neighbours)[N_DIMENSIONS],
+    Real              lengths[] )
+{
+    Real   point_3d[N_DIMENSIONS];
+
+    map_2d_to_3d( unit_sphere, original, point[0], point[1],
+                  &point_3d[X], &point_3d[Y], &point_3d[Z] );
+
+    return( evaluate_fit( point_3d, n_neighbours, neighbours, lengths ) );
 }
 
 private  void  get_edge_deriv(
@@ -406,6 +451,142 @@ private  Real  perturb_vertices(
     return( max_movement );
 }
 
+private  Real  optimize_vertex_2d(
+    polygons_struct   *unit_sphere,
+    polygons_struct   *original,
+    Real              (*original_points)[N_DIMENSIONS],
+    Real              (*points)[N_DIMENSIONS],
+    Real              point[],
+    int               n_neighbours,
+    Real              (*neighbours)[N_DIMENSIONS],
+    Real              lengths[],
+    int               *which_triangle,
+    int               n_steps,
+    Real              (*steps)[2] )
+{
+    int    which, step;
+    Real   movement, x1, y1, z1, x2, y2, z2;
+    Real   new_point[N_DIMENSIONS];
+    Real   dx, dy, dz;
+    Real   best_fit, new_fit;
+
+    best_fit = evaluate_fit_2d( unit_sphere, original,
+                                point, n_neighbours, neighbours, lengths );
+    which = -1;
+
+    for_less( step, 0, n_steps )
+    {
+        new_point[0] = point[0] + steps[step][0];
+        new_point[1] = point[1] + steps[step][1];
+
+        while( new_point[0] < 0.0 )
+            new_point[0] += 1.0;
+        while( new_point[0] >= 1.0 )
+            new_point[0] -= 1.0;
+
+        if( new_point[1] > 1.0 )
+            new_point[1] = 2.0 - new_point[1];
+        if( new_point[1] < 0.0 )
+            new_point[1] = -new_point[1];
+
+        new_fit = evaluate_fit_2d( unit_sphere, original,
+                                   new_point, n_neighbours, neighbours,
+                                   lengths );
+
+        if( new_fit < best_fit )
+        {
+            best_fit = new_fit;
+            which = step;
+        }
+    }
+
+    if( which >= 0 )
+    {
+        map_2d_to_3d( unit_sphere, original, point[0], point[1], &x1, &y1, &z1);
+
+        point[0] = point[0] + steps[which][0];
+        point[1] = point[1] + steps[which][1];
+
+        map_2d_to_3d( unit_sphere, original, point[0], point[1], &x2, &y2, &z2);
+
+        dx = (x2 - x1);
+        dy = (y2 - y1);
+        dz = (z2 - z1);
+        movement = dx * dx + dy * dy + dz * dz;
+        if( movement > 0.0 )
+            movement = sqrt( movement );
+    }
+    else
+        movement = 0.0;
+
+    return( movement );
+}
+
+private  Real  perturb_vertices_2d(
+    polygons_struct   *unit_sphere,
+    polygons_struct   *original,
+    Real              (*original_points)[N_DIMENSIONS],
+    Real              model_lengths[],
+    int               n_neighbours[],
+    int               *neighbours[],
+    Real              (*new_points)[N_DIMENSIONS],
+    int               which_triangle[],
+    Real              ratio )
+{
+    int    point_index, max_neighbours, n, ind, neigh, n_steps, step;
+    Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
+    Real   (*steps)[2], angle;
+
+    max_neighbours = 0;
+    for_less( point_index, 0, original->n_points )
+        max_neighbours = MAX( max_neighbours, n_neighbours[point_index] );
+
+    ALLOC( points, max_neighbours );
+    ALLOC( lengths, max_neighbours );
+
+    n_steps = 30;
+    ALLOC( steps, n_steps );
+    for_less( step, 0, n_steps )
+    {
+        angle = (Real) step / (Real) n_steps * 2.0 * PI;
+        steps[step][0] = ratio * cos( angle );
+        steps[step][1] = ratio * sin( angle );
+    }
+
+    max_movement = 0.0;
+    ind = 0;
+    for_less( point_index, 0, original->n_points )
+    {
+        for_less( n, 0, n_neighbours[point_index] )
+        {
+            lengths[n] = model_lengths[ind];
+            ++ind;
+
+            neigh = neighbours[point_index][n];
+
+            map_2d_to_3d( unit_sphere, original,
+                          new_points[neigh][X], new_points[neigh][Y],
+                          &points[n][X], &points[n][Y], &points[n][Z] );
+        }
+
+        movement = optimize_vertex_2d( unit_sphere, original,
+                                       original_points, new_points,
+                                       new_points[point_index],
+                                       n_neighbours[point_index],
+                                       points, lengths,
+                                       &which_triangle[point_index],
+                                       n_steps, steps );
+
+        max_movement = MAX( max_movement, movement );
+    }
+
+    FREE( points );
+    FREE( lengths );
+    FREE( steps );
+
+    return( max_movement );
+}
+
 private  void  get_errors(
     int   n_points,
     int   n_neighbours[],
@@ -444,16 +625,113 @@ private  void  get_errors(
     *avg_error /= (Real) ind;
 }
 
+private  void  reparameterize_by_minimization(
+    polygons_struct   *original,
+    polygons_struct   *model,
+    int               n_neighbours[],
+    int               *neighbours[],
+    Real              model_lengths[],
+    Real              (*original_points)[N_DIMENSIONS],
+    Real              (*new_points)[N_DIMENSIONS],
+    int               which_triangle[],
+    Real              ratio,
+    Real              movement_threshold,
+    int               n_iters )
+{
+    int   iter;
+    Real  movement;
+    Real  max_error, avg_error;
+
+    iter = 0;
+    movement = -1.0;
+    while( iter < n_iters && (movement < 0.0 || movement >= movement_threshold))
+    {
+        movement = perturb_vertices( original, original_points, model_lengths,
+                                     n_neighbours, neighbours,
+                                     new_points, which_triangle, ratio );
+
+        get_errors( original->n_points, n_neighbours, neighbours,
+                    new_points, model_lengths, &max_error, &avg_error );
+
+        ++iter;
+        print( "%3d: %20g\t%20g\t%20g\n", iter, movement, avg_error, max_error );
+    }
+}
+
+private  void  reparameterize_by_looking(
+    polygons_struct   *original,
+    polygons_struct   *model,
+    int               n_neighbours[],
+    int               *neighbours[],
+    Real              model_lengths[],
+    Real              (*original_points)[N_DIMENSIONS],
+    Real              (*new_points)[N_DIMENSIONS],
+    int               which_triangle[],
+    Real              ratio,
+    Real              movement_threshold,
+    int               n_iters )
+{
+    int              iter, point;
+    Real             movement;
+    polygons_struct  unit_sphere;
+    Point            centre, unit_sphere_point;
+
+    fill_Point( centre, 0.0, 0.0, 0.0 );
+    create_tetrahedral_sphere( &centre, 1.0, 1.0, 1.0, original->n_items,
+                               &unit_sphere );
+
+    create_polygons_bintree( original,
+                         ROUND( BINTREE_FACTOR * (Real) original->n_items ) );
+    create_polygons_bintree( &unit_sphere,
+                         ROUND( BINTREE_FACTOR * (Real) unit_sphere.n_items ) );
+
+    for_less( point, 0, original->n_points )
+    {
+        map_point_to_unit_sphere( original, &original->points[point],
+                                  &unit_sphere, &unit_sphere_point );
+        map_sphere_to_uv( RPoint_x(unit_sphere_point),
+                          RPoint_y(unit_sphere_point),
+                          RPoint_z(unit_sphere_point),
+                          &new_points[point][X],
+                          &new_points[point][Y] );
+    }
+
+    iter = 0;
+    movement = -1.0;
+    while( iter < n_iters && (movement < 0.0 || movement >= movement_threshold))
+    {
+        movement = perturb_vertices_2d( &unit_sphere, original, original_points,
+                                     model_lengths,
+                                     n_neighbours, neighbours,
+                                     new_points, which_triangle, ratio );
+
+        ++iter;
+        print( "%3d: %20g\n", iter, movement );
+    }
+
+    for_less( point, 0, original->n_points )
+    {
+        map_2d_to_3d( &unit_sphere, original,
+                      new_points[point][X], new_points[point][Y],
+                      &new_points[point][X],
+                      &new_points[point][Y],
+                      &new_points[point][Z] );
+    }
+
+    delete_polygons( &unit_sphere );
+}
+
 private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
+    int               method,
     Real              ratio,
     Real              movement_threshold,
     int               n_iters )
 {
     int   total_neighbours, ind, point, n, *n_neighbours, **neighbours, dim;
-    int   *which_triangle, size, vertex, poly, iter;
-    Real  *model_lengths, movement, (*new_points)[N_DIMENSIONS];
+    int   *which_triangle, size, vertex, poly;
+    Real  *model_lengths, (*new_points)[N_DIMENSIONS];
     Real  (*original_points)[N_DIMENSIONS];
     Real  scale, total_model, total_original;
     Real  max_error, avg_error;
@@ -517,19 +795,21 @@ private  void  reparameterize(
         }
     }
 
-    iter = 0;
-    movement = -1.0;
-    while( iter < n_iters && (movement < 0.0 || movement >= movement_threshold))
+    if( method == 0 )
     {
-        movement = perturb_vertices( original, original_points, model_lengths,
-                                     n_neighbours, neighbours,
-                                     new_points, which_triangle, ratio );
-
-        get_errors( original->n_points, n_neighbours, neighbours,
-                    new_points, model_lengths, &max_error, &avg_error );
-
-        ++iter;
-        print( "%3d: %20g\t%20g\t%20g\n", iter, movement, avg_error, max_error );
+        reparameterize_by_minimization( original, model, n_neighbours,
+                                        neighbours, model_lengths,
+                                        original_points, new_points,
+                                        which_triangle,
+                                        ratio, movement_threshold, n_iters );
+    }
+    else if( method == 1 )
+    {
+        reparameterize_by_looking( original, model, n_neighbours,
+                                   neighbours, model_lengths,
+                                   original_points, new_points,
+                                   which_triangle,
+                                   ratio, movement_threshold, n_iters );
     }
 
     for_less( point, 0, original->n_points )
