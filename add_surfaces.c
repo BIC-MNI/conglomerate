@@ -81,7 +81,7 @@ int  main(
     if( !get_string_argument( "", &output_filename ) )
     {
         print_error(
-          "Usage: %s output.obj [weight|input1.mnc] [weight|input2.mnc] ...\n",
+          "Usage: %s output.obj [weight|input1.obj] [weight|input2.obj] ...\n",
           argv[0] );
         return( 1 );
     }
