@@ -184,6 +184,19 @@ int  main(
     return( 0 );
 }
 
+private  void  clear_slice(
+    Volume            volume,
+    Real              **slice )
+{
+    int    x, y, sizes[MAX_DIMENSIONS];
+
+    get_volume_sizes( volume, sizes );
+
+    for_less( x, 0, sizes[0] )
+    for_less( y, 0, sizes[1] )
+        slice[x][y] = 0.0;
+}
+
 private  void  input_slice(
     Minc_file         minc_file,
     Volume            volume,
@@ -203,6 +216,20 @@ private  void  input_slice(
                                    &slice[0][0] );
 }
 
+private  Real  get_slice_value(
+    Real      ***slices,
+    int       x_size,
+    int       y_size,
+    int       z,
+    int       x,
+    int       y )
+{
+    if( x < 0 || x >= x_size || y < 0 || y >= y_size )
+        return( 0.0 );
+    else
+        return( slices[z][x][y] );
+}
+
 private  void  clear_points(
     int         x_size,
     int         y_size,
@@ -210,9 +237,9 @@ private  void  clear_points(
 {
     int    x, y, edge;
 
-    for_less( x, 0, x_size )
+    for_less( x, 0, x_size+2 )
     {
-        for_less( y, 0, y_size )
+        for_less( y, 0, y_size+2 )
         {
             for_less( edge, 0, N_DIMENSIONS )
                 point_ids[x][y][edge] = -1;
@@ -308,13 +335,12 @@ private  void  extract_isosurface(
         ALLOC2D( label_slices[1], x_size, y_size );
     }
 
-    ALLOC3D( point_ids[0], x_size, y_size, N_DIMENSIONS );
-    ALLOC3D( point_ids[1], x_size, y_size, N_DIMENSIONS );
+    ALLOC3D( point_ids[0], x_size+2, y_size+2, N_DIMENSIONS );
+    ALLOC3D( point_ids[1], x_size+2, y_size+2, N_DIMENSIONS );
 
-    input_slice( minc_file, volume, slices[1] );
-
+    clear_slice( volume, slices[1] );
     if( label_volume != NULL )
-        input_slice( label_file, label_volume, label_slices[1] );
+        clear_slice( volume, label_slices[1] );
 
     clear_points( x_size, y_size, point_ids[0] );
     clear_points( x_size, y_size, point_ids[1] );
@@ -326,22 +352,28 @@ private  void  extract_isosurface(
     Surfprop_t(spr) = 1.0f;
     initialize_polygons( polygons, WHITE, &spr );
 
-    initialize_progress_report( &progress, FALSE, n_slices-1,
+    initialize_progress_report( &progress, FALSE, n_slices+1,
                                 "Extracting Surface" );
 
-    for_less( slice, 0, n_slices-1 )
+    for_less( slice, -1, n_slices )
     {
         tmp_slices = slices[0];
         slices[0] = slices[1];
         slices[1] = tmp_slices;
-        input_slice( minc_file, volume, slices[1] );
+        if( slice < n_slices - 1 )
+            input_slice( minc_file, volume, slices[1] );
+        else
+            clear_slice( volume, slices[1] );
 
         if( label_volume != NULL )
         {
             tmp_slices = label_slices[0];
             label_slices[0] = label_slices[1];
             label_slices[1] = tmp_slices;
-            input_slice( label_file, label_volume, label_slices[1] );
+            if( slice < n_slices - 1 )
+                input_slice( label_file, label_volume, label_slices[1] );
+            else
+                clear_slice( volume, label_slices[1] );
         }
 
         tmp_point_ids = point_ids[0];
@@ -356,7 +388,7 @@ private  void  extract_isosurface(
                          right_handed, spatial_axes, voxel_to_world_transform,
                          point_ids, polygons );
 
-        update_progress_report( &progress, slice+1 );
+        update_progress_report( &progress, slice+2 );
     }
 
     terminate_progress_report( &progress );
@@ -384,6 +416,8 @@ private  int   get_point_index(
     int                 x,
     int                 y,
     int                 slice_index,
+    int                 x_size,
+    int                 y_size,
     voxel_point_type    *point,
     Real                **slices[],
     int                 spatial_axes[],
@@ -404,15 +438,17 @@ private  int   get_point_index(
     voxel[Z] = point->coord[Z];
     edge = point->edge_intersected;
 
-    point_index = point_ids[voxel[Z]][voxel[X]][voxel[Y]][edge];
+    point_index = point_ids[voxel[Z]][voxel[X]+1][voxel[Y]+1][edge];
     if( point_index < 0 )
     {
-        value1 = slices[voxel[Z]][voxel[X]][voxel[Y]];
+        value1 = get_slice_value( slices, x_size, y_size,
+                                  voxel[Z], voxel[X], voxel[Y] );
         fill_Point( v1, voxel[X], voxel[Y],
                     (Real) voxel[Z] + (Real) slice_index );
 
         ++voxel[edge];
-        value2 = slices[voxel[Z]][voxel[X]][voxel[Y]];
+        value2 = get_slice_value( slices, x_size, y_size,
+                                  voxel[Z], voxel[X], voxel[Y] );
         fill_Point( v2, voxel[X], voxel[Y],
                     (Real) voxel[Z] + (Real) slice_index );
 
@@ -429,7 +465,7 @@ private  int   get_point_index(
         ADD_ELEMENT_TO_ARRAY( polygons->points, polygons->n_points,
                               world_point, CHUNK_SIZE );
 
-        point_ids[voxel[Z]][voxel[X]][voxel[Y]][edge] = point_index;
+        point_ids[voxel[Z]][voxel[X]+1][voxel[Y]+1][edge] = point_index;
     }
 
     return( point_index );
@@ -457,19 +493,20 @@ private  void  extract_surface(
     int                x, y, *sizes, tx, ty, tz, n_polys, ind;
     int                p, point_index, poly, size, start_points, dir;
     voxel_point_type   *points;
-    Real               corners[2][2][2];
+    Real               corners[2][2][2], label;
     BOOLEAN            valid;
 
-    for_less( x, 0, x_size-1 )
+    for_less( x, -1, x_size )
     {
-        for_less( y, 0, y_size-1 )
+        for_less( y, -1, y_size )
         {
             valid = TRUE;
             for_less( tx, 0, 2 )
             for_less( ty, 0, 2 )
             for_less( tz, 0, 2 )
             {
-                corners[tx][ty][tz] = slices[tz][x+tx][y+ty];
+                corners[tx][ty][tz] = get_slice_value( slices, x_size, y_size,
+                                                       tz, x + tx, y + ty );
 
                 if( valid_low <= valid_high &&
                     (corners[tx][ty][tz] < min_threshold ||
@@ -478,10 +515,13 @@ private  void  extract_surface(
                      corners[tx][ty][tz] > valid_high) )
                     valid = FALSE;
 
-                if( min_label <= max_label &&
-                    (label_slices[tz][x+tx][y+ty] < min_label ||
-                     label_slices[tz][x+tx][y+ty] > max_label) )
-                    corners[tx][ty][tz] = 0.0;
+                if( min_label <= max_label )
+                {
+                    label = get_slice_value( label_slices, x_size, y_size,
+                                             tz, x + tx, y + ty );
+                    if( label < min_label || label > max_label )
+                        corners[tx][ty][tz] = 0.0;
+                }
             }
 
             if( !valid )
@@ -517,8 +557,7 @@ private  void  extract_surface(
                 {
                     ind = start_points + p * dir;
                     point_index = get_point_index( x, y, slice_index,
-                                   &points[ind],
-                                   slices,
+                                   x_size, y_size, &points[ind], slices,
                                    spatial_axes, voxel_to_world_transform,
                                    binary_flag, min_threshold, max_threshold,
                                    point_ids, polygons );
