@@ -90,6 +90,8 @@ int  main(
     return( 0 );
 }
 
+static  Real  global_radius;
+
 private  Real  evaluate_fit(
     int     n_parameters,
     dtype   parameters[],
@@ -98,7 +100,7 @@ private  Real  evaluate_fit(
     int     *neighbours[] )
 {
     int     p, n_points, max_neighbours, n, neigh, p_index, n_index;
-    Real    fit, height, dx, dy, dz;
+    Real    fit, height, dx, dy, dz, dist;
     Point   *neigh_points, centroid, this_point, model_point;
     Vector  normal;
 
@@ -129,8 +131,15 @@ private  Real  evaluate_fit(
         }
 
         get_points_centroid( n_neighbours[p], neigh_points, &centroid );
+
+        dist = 0.0;
+        for_less( n, 0, n_neighbours[p] )
+            dist += sq_distance_between_points( &centroid, &neigh_points[n] );
+        dist /= (Real) n_neighbours[p];
+
         find_polygon_normal( n_neighbours[p], neigh_points, &normal );
-        height = (Real) heights[p];
+        height = global_radius -
+                 sqrt( global_radius*global_radius - dist );
         GET_POINT_ON_RAY( model_point, centroid, normal, height );
            
         dx = RPoint_x(this_point) - RPoint_x(model_point);
@@ -153,7 +162,7 @@ private  void  evaluate_fit_derivative(
     dtype    deriv[] )
 {
     int    p, n_points, n, neigh, p_index, n_index, max_neighbours;
-    Real   height;
+    Real   height, dist;
     Real   dx, dy, dz;
     Point  *neigh_points, this_point, centroid, model_point;
     Vector normal;
@@ -188,7 +197,13 @@ private  void  evaluate_fit_derivative(
         get_points_centroid( n_neighbours[p], neigh_points, &centroid );
         find_polygon_normal( n_neighbours[p], neigh_points, &normal );
 
-        height = (Real) heights[p];
+        dist = 0.0;
+        for_less( n, 0, n_neighbours[p] )
+            dist += sq_distance_between_points( &centroid, &neigh_points[n] );
+        dist /= (Real) n_neighbours[p];
+
+        height = global_radius -
+                 sqrt( global_radius*global_radius - dist );
         GET_POINT_ON_RAY( model_point, centroid, normal, height );
            
         dx = RPoint_x(this_point) - RPoint_x(model_point);
@@ -362,6 +377,8 @@ private  void  flatten_polygons(
     for_less( point, 0, n_points )
         radius += distance_between_points( &points[point], &centroid );
     radius /= (Real) n_points;
+
+    global_radius = radius;
 
     ALLOC( heights, n_points );
 
