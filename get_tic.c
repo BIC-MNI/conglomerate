@@ -36,8 +36,8 @@ int  main(
     Real                 min_value, max_value, radius;
     Real                 voxel_radius[MAX_DIMENSIONS], diff, dist;
     Real                 voxel_centre[MAX_DIMENSIONS];
-    Real                 min_pos, max_pos;
-    BOOLEAN              median_is_exact, done, use_world_space;
+    Real                 min_pos, max_pos, median_error;
+    BOOLEAN              done, use_world_space;
     BOOLEAN              is_spatial_dim[MAX_DIMENSIONS];
     int                  n_samples;
     int                  sizes[MAX_DIMENSIONS], voxel[MAX_DIMENSIONS];
@@ -118,11 +118,6 @@ int  main(
     if( use_world_space )
     {
         convert_world_to_voxel( volume, pos[0], pos[1], pos[2], voxel_centre );
-for_less( dim, 0, n_dims )
-{
-    print( " %g", voxel_centre[dim] );
-}
-print( "\n" );
     }
     else
     {
@@ -221,14 +216,14 @@ print( "\n" );
                 }
 
                 get_statistics( &stats, &n_samples, &mean, &median,
-                                &median_is_exact,
+                                &median_error,
                                 &min_sample_value, &max_sample_value,
                                 &std_dev );
 
-                if( !median_is_exact )
+                if( median_error > 0.0 )
                     restart_statistics_with_narrower_median_range( &stats );
             }
-            while( !median_is_exact );
+            while( median_error > 0.0 );
 
             terminate_statistics( &stats );
 
