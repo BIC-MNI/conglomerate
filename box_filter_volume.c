@@ -81,7 +81,7 @@ int  main(
     {
         get_volume_separations( volume, separations );
         for_less( c, 0, N_DIMENSIONS )
-            voxel_filter_widths[c] /= ABS( separations[c] );
+            voxel_filter_widths[c] /= FABS( separations[c] );
     }
 
     new_volume = create_box_filtered_volume( volume, data_type, FALSE,
