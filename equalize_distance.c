@@ -96,7 +96,7 @@ private  Real  evaluate_fit(
         if( dist > 0.0 )
             dist = sqrt( dist );
 
-        diff = dist - lengths[n];
+        diff = (dist - lengths[n]) / lengths[n];
         fit += diff * diff;
     }
 
@@ -120,7 +120,7 @@ private  void  get_edge_deriv(
 
     diff = dist - length;
 
-    factor = 2.0 * diff / dist;
+    factor = 2.0 * diff / dist / length / length;
 
     deriv[X] = factor * dx;
     deriv[Y] = factor * dy;
@@ -406,6 +406,44 @@ private  Real  perturb_vertices(
     return( max_movement );
 }
 
+private  void  get_errors(
+    int   n_points,
+    int   n_neighbours[],
+    int   *neighbours[],
+    Real  (*points)[N_DIMENSIONS],
+    Real  model_lengths[],
+    Real  *max_error,
+    Real  *avg_error )
+{
+    int    ind, point, n;
+    Real   dx, dy, dz, dist, diff;
+
+    *max_error = 0.0;
+    *avg_error = 0.0;
+
+    ind = 0;
+    for_less( point, 0, n_points )
+    {
+        for_less( n, 0, n_neighbours[point] )
+        {
+            dx = points[point][X] - points[neighbours[point][n]][X];
+            dy = points[point][Y] - points[neighbours[point][n]][Y];
+            dz = points[point][Z] - points[neighbours[point][n]][Z];
+            dist = dx * dx + dy * dy + dz * dz;
+
+            if( dist > 0.0 )  dist = sqrt( dist );
+
+            diff = dist - model_lengths[ind];
+            diff = FABS( diff ) / model_lengths[ind];
+            *max_error = MAX( diff, *max_error );
+            *avg_error += diff;
+            ++ind;
+        }
+    }
+
+    *avg_error /= (Real) ind;
+}
+
 private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
@@ -418,7 +456,7 @@ private  void  reparameterize(
     Real  *model_lengths, movement, (*new_points)[N_DIMENSIONS];
     Real  (*original_points)[N_DIMENSIONS];
     Real  scale, total_model, total_original;
-    Real  len, diff, max_error;
+    Real  max_error, avg_error;
 
     create_polygon_point_neighbours( original, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -486,8 +524,12 @@ private  void  reparameterize(
         movement = perturb_vertices( original, original_points, model_lengths,
                                      n_neighbours, neighbours,
                                      new_points, which_triangle, ratio );
+
+        get_errors( original->n_points, n_neighbours, neighbours,
+                    new_points, model_lengths, &max_error, &avg_error );
+
         ++iter;
-        print( "%3d: %g\n", iter, movement );
+        print( "%3d: %20g\t%20g\t%20g\n", iter, movement, avg_error, max_error );
     }
 
     for_less( point, 0, original->n_points )
@@ -497,23 +539,10 @@ private  void  reparameterize(
                     new_points[point][Z] );
     }
 
-    max_error = 0.0;
+    get_errors( original->n_points, n_neighbours, neighbours,
+                new_points, model_lengths, &max_error, &avg_error );
 
-    ind = 0;
-    for_less( point, 0, original->n_points )
-    {
-        for_less( n, 0, n_neighbours[point] )
-        {
-            len = distance_between_points( &original->points[point],
-                                   &original->points[neighbours[point][n]] );
-
-            diff = len - model_lengths[ind];
-            diff = FABS( diff ) / model_lengths[ind];
-            max_error = MAX( diff, max_error );
-            ++ind;
-        }
-    }
-
+    print( "Avg error: %g\t", avg_error );
     print( "Max error: %g\n", max_error );
 
     delete_polygon_point_neighbours( original, n_neighbours,
