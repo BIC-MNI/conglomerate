@@ -42,7 +42,8 @@ private  void  triangulate_polygons(
     polygons_struct  *polygons,
     polygons_struct  *triangles )
 {
-    int    poly, p, size, index, n_indices;
+    int                poly, size, index, n_indices;
+    progress_struct    progress;
 
     *triangles = *polygons;
 
@@ -50,19 +51,14 @@ private  void  triangulate_polygons(
     ALLOC( triangles->colours, 1 );
     triangles->colours[0] = polygons->colours[0];
 
-    ALLOC( triangles->points, triangles->n_points );
-    for_less( p, 0, triangles->n_points )
-        triangles->points[p] = polygons->points[p];
-
-    if( polygons->normals != NULL )
-    {
-        ALLOC( triangles->normals, triangles->n_points );
-        for_less( p, 0, triangles->n_points )
-            triangles->normals[p] = polygons->normals[p];
-    }
+    triangles->points = polygons->points;
+    triangles->normals = polygons->normals;
 
     triangles->n_items = 0;
     n_indices = 0;
+
+    initialize_progress_report( &progress, FALSE, polygons->n_items,
+                                "Triangulating" );
 
     for_less( poly, 0, polygons->n_items )
     {
@@ -70,18 +66,33 @@ private  void  triangulate_polygons(
 
         for_less( index, 1, size-1 )
         {
-            ADD_ELEMENT_TO_ARRAY( triangles->end_indices,
-                                  triangles->n_items, n_indices + 3,
-                                  DEFAULT_CHUNK_SIZE );
             ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices,
-                  polygons->indices[POINT_INDEX(polygons->end_indices,poly,0)],
+                                  polygons->indices[POINT_INDEX(
+                                    polygons->end_indices,poly,0)],
                                   DEFAULT_CHUNK_SIZE );
+
             ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices,
-               polygons->indices[POINT_INDEX(polygons->end_indices,poly,index)],
+                                  polygons->indices[POINT_INDEX(
+                                    polygons->end_indices,poly,index)],
                                   DEFAULT_CHUNK_SIZE );
+
             ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices,
-             polygons->indices[POINT_INDEX(polygons->end_indices,poly,index+1)],
+                                  polygons->indices[POINT_INDEX(
+                                        polygons->end_indices,poly,index+1)],
                                   DEFAULT_CHUNK_SIZE );
+
+            ++triangles->n_items;
         }
+
+        update_progress_report( &progress, poly+1 );
     }
+
+    terminate_progress_report( &progress );
+
+    FREE( polygons->end_indices );
+    FREE( polygons->indices );
+
+    ALLOC( triangles->end_indices, triangles->n_items );
+    for_less( poly, 0, triangles->n_items )
+        triangles->end_indices[poly] = 3 * (poly + 1);
 }
