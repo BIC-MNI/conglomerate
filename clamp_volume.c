@@ -1,4 +1,23 @@
+#include  <internal_volume_io.h>
 #include  <bicpl.h>
+
+private   void  check_neighbours(
+    Volume   volume,
+    int      x,
+    int      y,
+    int      z,
+    int      dx_min,
+    int      dx_max,
+    int      dy_min,
+    int      dy_max,
+    int      dz_min,
+    int      dz_max,
+    Real     min_threshold,
+    Real     max_threshold,
+    Real     min_voxel,
+    Real     max_voxel,
+    int      *n_lower,
+    int      *n_higher );
 
 int  main(
     int   argc,
@@ -6,11 +25,9 @@ int  main(
 {
     char                 *input_filename, *output_filename;
     Volume               volume;
-    Real                 min_threshold, max_threshold, value;
+    Real                 min_threshold, max_threshold;
     Real                 min_voxel, max_voxel;
-    BOOLEAN              lower, change;
     int                  x, y, z, sizes[N_DIMENSIONS];
-    int                  dx, dy, dz;
     int                  dx_min, dx_max, dy_min, dy_max, dz_min, dz_max;
     int                  n_lower, n_higher;
     progress_struct      progress;
@@ -63,10 +80,6 @@ int  main(
                 dy_max = 1;
             for_less( z, 0, sizes[2] )
             {
-                GET_VALUE_3D( value, volume, x, y, z );
-                if( value >= min_threshold && value <= max_threshold )
-                    continue;
-
                 if( z == 0 )
                     dz_min = 0;
                 else
@@ -76,38 +89,11 @@ int  main(
                 else
                     dz_max = 1;
 
-                lower = (value < min_threshold);
-
-                change = TRUE;
-                for_inclusive( dx, dx_min, dx_max )
-                {
-                    for_inclusive( dy, dy_min, dy_max )
-                    {
-                        for_inclusive( dz, dz_min, dz_max )
-                        {
-                            GET_VALUE_3D( value, volume, x+dx, y+dy, z+dz );
-                            if( lower && value >= min_threshold ||
-                                !lower && value <= max_threshold )
-                            {
-                                change = FALSE;
-                                break;
-                            }
-                        }
-                        if( !change ) break;
-                    }
-                    if( !change ) break;
-                }
-
-                if( change && lower )
-                {
-                    SET_VOXEL_3D( volume, x, y, z, min_voxel )
-                    ++n_lower;
-                }
-                else if( change && !lower )
-                {
-                    SET_VOXEL_3D( volume, x, y, z, max_voxel )
-                    ++n_higher;
-                }
+                check_neighbours( volume, x, y, z, dx_min, dx_max,
+                                  dy_min, dy_max, dz_min, dz_max,
+                                  min_threshold, max_threshold,
+                                  min_voxel, max_voxel,
+                                  &n_lower, &n_higher );
             }
 
             update_progress_report( &progress, x * sizes[1] + y + 1 );
@@ -126,4 +112,64 @@ int  main(
     delete_volume( volume );
 
     return( 0 );
+}
+
+private   void  check_neighbours(
+    Volume   volume,
+    int      x,
+    int      y,
+    int      z,
+    int      dx_min,
+    int      dx_max,
+    int      dy_min,
+    int      dy_max,
+    int      dz_min,
+    int      dz_max,
+    Real     min_threshold,
+    Real     max_threshold,
+    Real     min_voxel,
+    Real     max_voxel,
+    int      *n_lower,
+    int      *n_higher )
+{
+    int      dx, dy, dz;
+    Real     value;
+    BOOLEAN  lower, change;
+
+    GET_VALUE_3D( value, volume, x, y, z );
+    if( value >= min_threshold && value <= max_threshold )
+        return;
+
+    lower = (value < min_threshold);
+
+    change = TRUE;
+    for_inclusive( dx, dx_min, dx_max )
+    {
+        for_inclusive( dy, dy_min, dy_max )
+        {
+            for_inclusive( dz, dz_min, dz_max )
+            {
+                GET_VALUE_3D( value, volume, x+dx, y+dy, z+dz );
+                if( lower && value >= min_threshold ||
+                    !lower && value <= max_threshold )
+                {
+                    change = FALSE;
+                    break;
+                }
+            }
+            if( !change ) break;
+        }
+        if( !change ) break;
+    }
+
+    if( change && lower )
+    {
+        SET_VOXEL_3D( volume, x, y, z, min_voxel )
+        ++(*n_lower);
+    }
+    else if( change && !lower )
+    {
+        SET_VOXEL_3D( volume, x, y, z, max_voxel )
+        ++(*n_higher);
+    }
 }
