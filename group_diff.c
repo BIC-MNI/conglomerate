@@ -120,19 +120,19 @@ int  main(
 
         SUB_POINTS( offset, avg1_points[p], avg2_points[p] );
 
-        tx = Vector_x(offset) * inv_s[0][0] +
-             Vector_y(offset) * inv_s[1][0] +
-             Vector_z(offset) * inv_s[2][0];
-        ty = Vector_x(offset) * inv_s[0][1] +
-             Vector_y(offset) * inv_s[1][1] +
-             Vector_z(offset) * inv_s[2][1];
-        tz = Vector_x(offset) * inv_s[0][2] +
-             Vector_y(offset) * inv_s[1][2] +
-             Vector_z(offset) * inv_s[2][2];
+        tx = (Real) Vector_x(offset) * inv_s[0][0] +
+             (Real) Vector_y(offset) * inv_s[1][0] +
+             (Real) Vector_z(offset) * inv_s[2][0];
+        ty = (Real) Vector_x(offset) * inv_s[0][1] +
+             (Real) Vector_y(offset) * inv_s[1][1] +
+             (Real) Vector_z(offset) * inv_s[2][1];
+        tz = (Real) Vector_x(offset) * inv_s[0][2] +
+             (Real) Vector_y(offset) * inv_s[1][2] +
+             (Real) Vector_z(offset) * inv_s[2][2];
 
-        mahalanobis = tx * Vector_x(offset) +
-                      ty * Vector_y(offset) +
-                      tz * Vector_z(offset);
+        mahalanobis = tx * (Real) Vector_x(offset) +
+                      ty * (Real) Vector_y(offset) +
+                      tz * (Real) Vector_z(offset);
 
 
         (void) output_real( file, mahalanobis );
@@ -166,9 +166,9 @@ private  void   compute_inv_variance(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = Point_x(samples[0][s][p]) - Point_x(*avg1);
-        dy = Point_y(samples[0][s][p]) - Point_y(*avg1);
-        dz = Point_z(samples[0][s][p]) - Point_z(*avg1);
+        dx = (Real) Point_x(samples[0][s][p]) - (Real) Point_x(*avg1);
+        dy = (Real) Point_y(samples[0][s][p]) - (Real) Point_y(*avg1);
+        dz = (Real) Point_z(samples[0][s][p]) - (Real) Point_z(*avg1);
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -180,9 +180,9 @@ private  void   compute_inv_variance(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = Point_x(samples[1][s][p]) - Point_x(*avg2);
-        dy = Point_y(samples[1][s][p]) - Point_y(*avg2);
-        dz = Point_z(samples[1][s][p]) - Point_z(*avg2);
+        dx = (Real) Point_x(samples[1][s][p]) - (Real) Point_x(*avg2);
+        dy = (Real) Point_y(samples[1][s][p]) - (Real) Point_y(*avg2);
+        dz = (Real) Point_z(samples[1][s][p]) - (Real) Point_z(*avg2);
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
