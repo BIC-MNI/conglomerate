@@ -1,6 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+typedef  float  dtype;
+
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
@@ -69,8 +71,8 @@ int  main(
 
 private  Real  evaluate_fit(
     int     n_parameters,
-    Real    parameters[],
-    Real    distances[],
+    dtype   parameters[],
+    dtype   distances[],
     int     n_neighbours[],
     int     *neighbours[],
     Real    centroid_weight,
@@ -92,12 +94,12 @@ private  Real  evaluate_fit(
             if( neigh < p )
                 continue;
 
-            dist = distances[ind];
+            dist = (Real) distances[ind];
             ++ind;
 
-            dx = parameters[IJ(p,0,3)] - parameters[IJ(neigh,0,3)];
-            dy = parameters[IJ(p,1,3)] - parameters[IJ(neigh,1,3)];
-            dz = parameters[IJ(p,2,3)] - parameters[IJ(neigh,2,3)];
+            dx = (Real)parameters[IJ(p,0,3)] - (Real)parameters[IJ(neigh,0,3)];
+            dy = (Real)parameters[IJ(p,1,3)] - (Real)parameters[IJ(neigh,1,3)];
+            dz = (Real)parameters[IJ(p,2,3)] - (Real)parameters[IJ(neigh,2,3)];
             act_dist = dx * dx + dy * dy + dz * dz;
             diff = dist - act_dist;
             fit += diff * diff;
@@ -114,18 +116,18 @@ private  Real  evaluate_fit(
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
-                xc += parameters[IJ(neigh,0,3)];
-                yc += parameters[IJ(neigh,1,3)];
-                zc += parameters[IJ(neigh,2,3)];
+                xc += (Real) parameters[IJ(neigh,0,3)];
+                yc += (Real) parameters[IJ(neigh,1,3)];
+                zc += (Real) parameters[IJ(neigh,2,3)];
             }
 
             xc /= (Real) n_neighbours[p];
             yc /= (Real) n_neighbours[p];
             zc /= (Real) n_neighbours[p];
 
-            x = parameters[IJ(p,0,3)];
-            y = parameters[IJ(p,1,3)];
-            z = parameters[IJ(p,2,3)];
+            x = (Real) parameters[IJ(p,0,3)];
+            y = (Real) parameters[IJ(p,1,3)];
+            z = (Real) parameters[IJ(p,2,3)];
 
             dx = x - xc;
             dy = y - yc;
@@ -139,13 +141,13 @@ private  Real  evaluate_fit(
 
     if( sphere_weight > 0.0 )
     {
-        radius = parameters[n_parameters-1];
+        radius = (Real) parameters[n_parameters-1];
 
         for_less( p, 0, n_points )
         {
-            dx = parameters[IJ(p,0,3)];
-            dy = parameters[IJ(p,1,3)];
-            dz = parameters[IJ(p,2,3)];
+            dx = (Real) parameters[IJ(p,0,3)];
+            dy = (Real) parameters[IJ(p,1,3)];
+            dz = (Real) parameters[IJ(p,2,3)];
             act_dist = dx * dx + dy * dy + dz * dz;
             diff = radius * radius - act_dist;
             fit += sphere_weight * diff * diff;
@@ -156,14 +158,14 @@ private  Real  evaluate_fit(
 }
 
 private  void  evaluate_fit_derivative(
-    int     n_parameters,
-    Real    parameters[],
-    Real    distances[],
-    int     n_neighbours[],
-    int     *neighbours[],
-    Real    centroid_weight,
-    Real    sphere_weight,
-    Real    deriv[] )
+    int      n_parameters,
+    dtype    parameters[],
+    dtype    distances[],
+    int      n_neighbours[],
+    int      *neighbours[],
+    Real     centroid_weight,
+    Real     sphere_weight,
+    dtype    deriv[] )
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
     Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
@@ -172,28 +174,29 @@ private  void  evaluate_fit_derivative(
     Real   x_factor, y_factor, z_factor, x_diff, y_diff, z_diff;
 
     for_less( p, 0, n_parameters )
-        deriv[p] = 0.0;
+        deriv[p] = (dtype) 0.0;
 
     n_points = n_parameters / 3;
-    radius = parameters[n_parameters-1];
+    if( sphere_weight > 0.0 )
+        radius = (Real) parameters[n_parameters-1];
 
     ind = 0;
     for_less( p, 0, n_points )
     {
         p_index = IJ(p,0,3);
-        x1 = parameters[p_index+0];
-        y1 = parameters[p_index+1];
-        z1 = parameters[p_index+2];
+        x1 = (Real) parameters[p_index+0];
+        y1 = (Real) parameters[p_index+1];
+        z1 = (Real) parameters[p_index+2];
 
         if( sphere_weight > 0.0 )
         {
             act_dist = x1 * x1 + y1 * y1 + z1 * z1;
             diff = act_dist - radius * radius;
             weight = 4.0 * sphere_weight * diff;
-            deriv[p_index+0] += weight * x1;
-            deriv[p_index+1] += weight * y1;
-            deriv[p_index+2] += weight * z1;
-            deriv[n_parameters-1] += -weight * radius;
+            deriv[p_index+0] += (dtype) (weight * x1);
+            deriv[p_index+1] += (dtype) (weight * y1);
+            deriv[p_index+2] += (dtype) (weight * z1);
+            deriv[n_parameters-1] += (dtype) (-weight * radius);
         }
 
         for_less( n, 0, n_neighbours[p] )
@@ -202,28 +205,28 @@ private  void  evaluate_fit_derivative(
             if( neigh < p )
                 continue;
 
-            dist = distances[ind];
+            dist = (Real) distances[ind];
             ++ind;
 
             n_index = IJ(neigh,0,3);
-            x2 = parameters[n_index+0];
-            y2 = parameters[n_index+1];
-            z2 = parameters[n_index+2];
+            x2 = (Real) parameters[n_index+0];
+            y2 = (Real) parameters[n_index+1];
+            z2 = (Real) parameters[n_index+2];
 
-            x2 = parameters[IJ(neigh,0,3)];
-            y2 = parameters[IJ(neigh,1,3)];
-            z2 = parameters[IJ(neigh,2,3)];
+            x2 = (Real) parameters[IJ(neigh,0,3)];
+            y2 = (Real) parameters[IJ(neigh,1,3)];
+            z2 = (Real) parameters[IJ(neigh,2,3)];
             dx = x1 - x2;
             dy = y1 - y2;
             dz = z1 - z2;
             act_dist = dx * dx + dy * dy + dz * dz;
             factor = 2.0 * (act_dist - dist);
-            deriv[p_index+0] += dx * factor;
-            deriv[p_index+1] += dy * factor;
-            deriv[p_index+2] += dz * factor;
-            deriv[n_index+0] += -dx * factor;
-            deriv[n_index+1] += -dy * factor;
-            deriv[n_index+2] += -dz * factor;
+            deriv[p_index+0] += (dtype) (dx * factor);
+            deriv[p_index+1] += (dtype) (dy * factor);
+            deriv[p_index+2] += (dtype) (dz * factor);
+            deriv[n_index+0] += (dtype) (-dx * factor);
+            deriv[n_index+1] += (dtype) (-dy * factor);
+            deriv[n_index+2] += (dtype) (-dz * factor);
         }
     }
 
@@ -232,9 +235,9 @@ private  void  evaluate_fit_derivative(
         for_less( p, 0, n_points )
         {
             p_index = IJ(p,0,3);
-            x1 = parameters[p_index+0];
-            y1 = parameters[p_index+1];
-            z1 = parameters[p_index+2];
+            x1 = (Real) parameters[p_index+0];
+            y1 = (Real) parameters[p_index+1];
+            z1 = (Real) parameters[p_index+2];
             xc = 0.0;
             yc = 0.0;
             zc = 0.0;
@@ -242,9 +245,9 @@ private  void  evaluate_fit_derivative(
             {
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
-                xc += parameters[n_index+0];
-                yc += parameters[n_index+1];
-                zc += parameters[n_index+2];
+                xc += (Real) parameters[n_index+0];
+                yc += (Real) parameters[n_index+1];
+                zc += (Real) parameters[n_index+2];
             }
 
             weight = 1.0 / (Real) n_neighbours[p];
@@ -261,9 +264,9 @@ private  void  evaluate_fit_derivative(
             y_factor = centroid_weight * 4.0 * y_diff;
             z_factor = centroid_weight * 4.0 * z_diff;
 
-            deriv[p_index+0] += -x_factor;
-            deriv[p_index+1] += -y_factor;
-            deriv[p_index+2] += -z_factor;
+            deriv[p_index+0] += (dtype) (-x_factor);
+            deriv[p_index+1] += (dtype) (-y_factor);
+            deriv[p_index+2] += (dtype) (-z_factor);
             x_factor *= weight;
             y_factor *= weight;
             z_factor *= weight;
@@ -272,9 +275,9 @@ private  void  evaluate_fit_derivative(
             {
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
-                deriv[n_index+0] += x_factor;
-                deriv[n_index+1] += y_factor;
-                deriv[n_index+2] += z_factor;
+                deriv[n_index+0] += (dtype) x_factor;
+                deriv[n_index+1] += (dtype) y_factor;
+                deriv[n_index+2] += (dtype) z_factor;
             }
         }
     }
@@ -282,9 +285,9 @@ private  void  evaluate_fit_derivative(
 
 private  void  evaluate_fit_along_line(
     int     n_parameters,
-    Real    parameters[],
-    Real    delta[],
-    Real    distances[],
+    dtype   parameters[],
+    dtype   delta[],
+    dtype   distances[],
     int     n_neighbours[],
     int     *neighbours[],
     Real    centroid_weight,
@@ -303,8 +306,11 @@ private  void  evaluate_fit_along_line(
 
     n_points = n_parameters / 3;
 
-    radius = parameters[n_parameters-1];
-    dr = delta[n_parameters-1];
+    if( sphere_weight > 0.0 )
+    {
+        radius = (Real) parameters[n_parameters-1];
+        dr = (Real) delta[n_parameters-1];
+    }
 
     if( sphere_weight > 0.0 )
         sphere_weight = sqrt( sphere_weight );
@@ -313,12 +319,12 @@ private  void  evaluate_fit_along_line(
     for_less( p, 0, n_points )
     {
         p_index = IJ(p,0,3);
-        x1 = parameters[p_index+0];
-        y1 = parameters[p_index+1];
-        z1 = parameters[p_index+2];
-        dx1 = delta[p_index+0];
-        dy1 = delta[p_index+1];
-        dz1 = delta[p_index+2];
+        x1 = (Real) parameters[p_index+0];
+        y1 = (Real) parameters[p_index+1];
+        z1 = (Real) parameters[p_index+2];
+        dx1 = (Real) delta[p_index+0];
+        dy1 = (Real) delta[p_index+1];
+        dz1 = (Real) delta[p_index+2];
 
         line_coefs[0] = x1 * x1 + y1 * y1 + z1 * z1 - radius * radius;
         line_coefs[1] = 2.0 * (x1 * dx1 + y1 * dy1 + z1 * dz1 - radius * dr);
@@ -340,16 +346,16 @@ private  void  evaluate_fit_along_line(
             if( neigh < p )
                 continue;
 
-            dist = distances[ind];
+            dist = (Real) distances[ind];
             ++ind;
 
             n_index = IJ(neigh,0,3);
-            x = x1 - parameters[n_index+0];
-            y = y1 - parameters[n_index+1];
-            z = z1 - parameters[n_index+2];
-            dx = dx1 - delta[n_index+0];
-            dy = dy1 - delta[n_index+1];
-            dz = dz1 - delta[n_index+2];
+            x = x1 - (Real) parameters[n_index+0];
+            y = y1 - (Real) parameters[n_index+1];
+            z = z1 - (Real) parameters[n_index+2];
+            dx = dx1 - (Real) delta[n_index+0];
+            dy = dy1 - (Real) delta[n_index+1];
+            dz = dz1 - (Real) delta[n_index+2];
 
             line_coefs[0] = x * x + y * y + z * z - dist;
             line_coefs[1] = 2.0 * (x * dx + y * dy + z * dz);
@@ -384,12 +390,12 @@ private  void  evaluate_fit_along_line(
             {
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
-                ax += delta[n_index+0];
-                ay += delta[n_index+1];
-                az += delta[n_index+2];
-                bx += parameters[n_index+0];
-                by += parameters[n_index+1];
-                bz += parameters[n_index+2];
+                ax += (Real) delta[n_index+0];
+                ay += (Real) delta[n_index+1];
+                az += (Real) delta[n_index+2];
+                bx += (Real) parameters[n_index+0];
+                by += (Real) parameters[n_index+1];
+                bz += (Real) parameters[n_index+2];
             }
 
             weight = 1.0 / (Real) n_neighbours[p];
@@ -401,12 +407,12 @@ private  void  evaluate_fit_along_line(
             by *= weight;
             bz *= weight;
 
-            ax += -delta[p_index+0];
-            ay += -delta[p_index+1];
-            az += -delta[p_index+2];
-            bx += -parameters[p_index+0];
-            by += -parameters[p_index+1];
-            bz += -parameters[p_index+2];
+            ax += (Real) -delta[p_index+0];
+            ay += (Real) -delta[p_index+1];
+            az += (Real) -delta[p_index+2];
+            bx += (Real) -parameters[p_index+0];
+            by += (Real) -parameters[p_index+1];
+            bz += (Real) -parameters[p_index+2];
 
             a = ax * ax;
             b = 2.0 * ax * bx;
@@ -446,9 +452,9 @@ private  void  evaluate_fit_along_line(
 
 private  void  minimize_along_line(
     int     n_parameters,
-    Real    parameters[],
-    Real    delta[],
-    Real    distances[],
+    dtype   parameters[],
+    dtype   delta[],
+    dtype   distances[],
     int     n_neighbours[],
     int     *neighbours[],
     Real    centroid_weight,
@@ -515,18 +521,14 @@ private  void  minimize_along_line(
         t = solutions[best_index];
 
         for_less( p, 0, n_parameters )
-            parameters[p] = parameters[p] + t * delta[p];
+            parameters[p] = (dtype) ((Real) parameters[p] + t*(Real) delta[p]);
     }
 
-    if( sphere_weight > 0.0 && parameters[n_parameters-1] < 0.0 )
-        parameters[n_parameters-1] *= -1.0;
+    if( sphere_weight > 0.0 && parameters[n_parameters-1] < (dtype) 0.0 )
+        parameters[n_parameters-1] *= (dtype) -1.0;
 
     FREE( test );
 }
-
-#define TOLERANCE   1.0e-10
-
-typedef  float  dtype;
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
@@ -538,11 +540,11 @@ private  void  flatten_polygons(
     int              p, n, point, *n_neighbours, **neighbours;
     int              n_parameters, total_neighbours;
     Real             gg, dgg, gam, current_time, last_update_time;
-    Real             *parameters, fit, *unit_dir;
-    Real             *distances, len, radius;
+    Real             fit;
+    Real             len, radius;
     Point            centroid;
     int              iter, ind, update_rate;
-    dtype            *g, *h, *xi;
+    dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
 
     if( sphere_weight > 0.0 )
     {
@@ -573,7 +575,7 @@ private  void  flatten_polygons(
         {
             if( neighbours[point][n] < point )
                 continue;
-            distances[ind] = sq_distance_between_points(
+            distances[ind] = (dtype) sq_distance_between_points(
                                    &polygons->points[point],
                                    &polygons->points[neighbours[point][n]] );
             ++ind;
@@ -591,13 +593,13 @@ private  void  flatten_polygons(
 
     for_less( point, 0, polygons->n_points )
     {
-        parameters[IJ(point,0,3)] = RPoint_x(init_points[point] );
-        parameters[IJ(point,1,3)] = RPoint_y(init_points[point] );
-        parameters[IJ(point,2,3)] = RPoint_z(init_points[point] );
+        parameters[IJ(point,0,3)] = (dtype) Point_x(init_points[point] );
+        parameters[IJ(point,1,3)] = (dtype) Point_y(init_points[point] );
+        parameters[IJ(point,2,3)] = (dtype) Point_z(init_points[point] );
     }
 
     if( sphere_weight > 0.0 )
-        parameters[n_parameters-1] = radius;
+        parameters[n_parameters-1] = (dtype) radius;
 
     sphere_weight *= (Real) total_neighbours / (Real) polygons->n_points;
     centroid_weight *= (Real) total_neighbours / (Real) polygons->n_points;
@@ -611,11 +613,10 @@ private  void  flatten_polygons(
 
     evaluate_fit_derivative( n_parameters, parameters, distances,
                              n_neighbours, neighbours, centroid_weight,
-                             sphere_weight, unit_dir );
+                             sphere_weight, xi );
 
     for_less( p, 0, n_parameters )
     {
-        xi[p] = (dtype) unit_dir[p];
         g[p] = -xi[p];
         h[p] = g[p];
         xi[p] = g[p];
@@ -632,7 +633,7 @@ private  void  flatten_polygons(
 
         len = sqrt( len );
         for_less( p, 0, n_parameters )
-            unit_dir[p] = (Real) xi[p] / len;
+            unit_dir[p] = (dtype) ((Real) xi[p] / len);
 
         minimize_along_line( n_parameters, parameters, unit_dir, distances,
                              n_neighbours, neighbours,
@@ -646,7 +647,7 @@ private  void  flatten_polygons(
 
             print( "%d: %g", iter+1, fit );
             if( sphere_weight > 0.0 )
-                print( "\t Radius: %g", parameters[n_parameters-1] );
+                print( "\t Radius: %g", (Real) parameters[n_parameters-1] );
             print( "\n" );
 
             (void) flush_file( stdout );
@@ -659,17 +660,16 @@ private  void  flatten_polygons(
 
         evaluate_fit_derivative( n_parameters, parameters, distances,
                                  n_neighbours, neighbours, centroid_weight,
-                                 sphere_weight, unit_dir );
+                                 sphere_weight, xi );
 
         gg = 0.0;
         dgg = 0.0;
         for_less( p, 0, n_parameters )
         {
-            xi[p] = (dtype) unit_dir[p];
             gg += (Real) g[p] * (Real) g[p];
-            dgg += (unit_dir[p] + (Real) g[p]) * unit_dir[p];
+            dgg += ((Real) xi[p] + (Real) g[p]) * (Real) xi[p];
 /*
-            dgg += (unit_dir[p] * unit_dir[p];
+            dgg += ((Real) xi[p] * (Real) xi[p];
 */
         }
 
