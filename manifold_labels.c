@@ -1,18 +1,6 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-private  BOOLEAN  ones_surrounded(
-    Volume    volume );
-
-private  int  dilate(
-    Volume    volume,
-    Volume    out_volume,
-    int       n_dirs,
-    int       dx[],
-    int       dy[],
-    int       dz[],
-    int       value );
-
 private  int  erode(
     Volume    volume,
     int       c0,
@@ -41,11 +29,14 @@ int  main(
 {
     STRING               input_filename, output_filename;
     Volume               volume, out_volume;
-    int                  v1, v2, v3, v4, v5, n_changed, value, n_neighs;
+    int                  v1, v2, v3, v4, v5, n_neighs, dim;
     int                  n_dirs, *dx, *dy, *dz, max_label;
     int                  total_added, n_eroded;
     int                  c1, c2, c3, n_non_empty;
-    Real                 voxel;
+    int                  sizes[N_DIMENSIONS];
+    int                  min_voxel[N_DIMENSIONS];
+    int                  max_voxel[N_DIMENSIONS];
+    Real                 value;
     Neighbour_types      connectivity;
 
     initialize_argument_processing( argc, argv );
@@ -74,53 +65,93 @@ int  main(
                       NULL ) != OK )
         return( 1 );
 
+    out_volume = copy_volume( volume );
+
     c1 = 0;
     c2 = 0;
     c3 = 0;
     n_non_empty = 0;
     BEGIN_ALL_VOXELS( volume, v1, v2, v3, v4, v5 )
-        voxel = get_volume_voxel_value( volume, v1, v2, v3, v4, v5);
-        if( voxel > 0.0 )
+        value = get_volume_real_value( volume, v1, v2, v3, v4, v5 );
+        if( value > 0.0 )
         {
+            if( n_non_empty == 0 )
+            {
+                min_voxel[0] = v1;
+                max_voxel[0] = v1;
+                min_voxel[1] = v2;
+                max_voxel[1] = v2;
+                min_voxel[2] = v3;
+                max_voxel[2] = v3;
+            }
+            else
+            {
+                if( v1 < min_voxel[0] )
+                    min_voxel[0] = v1;
+                else if( v1 > max_voxel[0] )
+                    max_voxel[0] = v1;
+
+                if( v2 < min_voxel[1] )
+                    min_voxel[1] = v2;
+                else if( v2 > max_voxel[1] )
+                    max_voxel[1] = v2;
+
+                if( v3 < min_voxel[2] )
+                    min_voxel[2] = v3;
+                else if( v3 > max_voxel[2] )
+                    max_voxel[2] = v3;
+            }
+
             c1 += v1;
             c2 += v2;
             c3 += v3;
             ++n_non_empty;
+            value = 1.0;
         }
+        else
+            value = 0.0;
+
+        set_volume_real_value( out_volume, v1, v2, v3, v4, v5, value );
+
     END_ALL_VOXELS
+
+    delete_volume( volume );
 
     c1 /= n_non_empty;
     c2 /= n_non_empty;
     c3 /= n_non_empty;
 
-    out_volume = copy_volume( volume );
-    total_added = 0;
-
-    n_changed = 1;
-
-    value = 2;
-    while( /* !ones_surrounded( volume ) && */ n_changed > 0 && value < max_label )
+    get_volume_sizes( out_volume, sizes );
+    for_less( dim, 0, N_DIMENSIONS )
     {
-        if( value > 2 )
-        {
-            BEGIN_ALL_VOXELS( volume, v1, v2, v3, v4, v5 )
-                voxel = get_volume_voxel_value( out_volume, v1, v2, v3, v4, v5);
-                set_volume_voxel_value( volume, v1, v2, v3, v4, v5, voxel );
-            END_ALL_VOXELS
-        }
-
-        n_changed = dilate( volume, out_volume, n_dirs, dx, dy, dz,
-                            value );
-        total_added += n_changed;
-        print( "Dilated %d: %d\n", value, n_changed );
-        ++value;
+        min_voxel[dim] = MAX( 0, min_voxel[dim] - 1 );
+        max_voxel[dim] = MIN( sizes[dim]-1, max_voxel[dim] + 1 );
     }
 
-    delete_volume( volume );
+/*
+for_less( dim, 0, N_DIMENSIONS )
+{
+    min_voxel[dim] = 0;
+    max_voxel[dim] = sizes[dim]-1;
+}
+*/
+
+    total_added = (max_voxel[0] - min_voxel[0] + 1) *
+                  (max_voxel[1] - min_voxel[1] + 1) *
+                  (max_voxel[2] - min_voxel[2] + 1) - n_non_empty;
+
+    print( "Initially changed: %d\n", total_added );
+
+    for_inclusive( v1, min_voxel[0], max_voxel[0] )
+    for_inclusive( v2, min_voxel[1], max_voxel[1] )
+    for_inclusive( v3, min_voxel[2], max_voxel[2] )
+    {
+        if( get_volume_real_value( out_volume, v1, v2, v3, 0, 0 ) <= 0.0 )
+            set_volume_real_value( out_volume, v1, v2, v3, 0, 0, 2.0 );
+    }
 
     n_eroded = erode( out_volume, c1, c2, c3, n_dirs, dx, dy, dz );
 
-    print( "Initially changed: %d\n", total_added );
     print( "Final changed: %d\n", total_added - n_eroded );
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
@@ -128,84 +159,6 @@ int  main(
                                    "Dilated\n", NULL );
 
     return( 0 );
-}
-
-private  BOOLEAN  ones_surrounded(
-    Volume    volume )
-{
-    int   v0, v1, v2, v3, v4, sizes[N_DIMENSIONS];
-    int   t0, t1, t2, s0, s1, s2, e0, e1, e2;
-
-    get_volume_sizes( volume, sizes );
-
-    BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
-
-        if( get_volume_real_value( volume,v0,v1,v2,0,0 ) != 1.0 )
-            continue;
-
-        s0 = MAX( 0, v0 - 1 );
-        e0 = MIN( sizes[0]-1, v0 + 1 );
-        s1 = MAX( 0, v1 - 1 );
-        e1 = MIN( sizes[1]-1, v1 + 1 );
-        s2 = MAX( 0, v2 - 1 );
-        e2 = MIN( sizes[2]-1, v2 + 1 );
-
-        for_inclusive( t0, s0, e0 )
-        for_inclusive( t1, s1, e1 )
-        for_inclusive( t2, s2, e2 )
-        {
-            if( get_volume_real_value( volume,t0,t1,t2,0,0 ) == 0.0 )
-                return( FALSE );
-        }
-
-    END_ALL_VOXELS
-
-    return( TRUE );
-}
-
-private  int  dilate(
-    Volume    volume,
-    Volume    out_volume,
-    int       n_dirs,
-    int       dx[],
-    int       dy[],
-    int       dz[],
-    int       value )
-{
-    int   dir, n_changed, v0, v1, v2, v3, v4, sizes[N_DIMENSIONS];
-    int   t0, t1, t2;
-
-    get_volume_sizes( volume, sizes );
-    n_changed = 0;
-
-    BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
-        if( get_volume_real_value( volume,v0,v1,v2,0,0 ) != 0.0 )
-            continue;
-
-        for_less( dir, 0, n_dirs )
-        {
-            t0 = v0 + dx[dir];
-            t1 = v1 + dy[dir];
-            t2 = v2 + dz[dir];
-
-            if( t0 >= 0 && t0 < sizes[0] &&
-                t1 >= 0 && t1 < sizes[1] &&
-                t2 >= 0 && t2 < sizes[2] &&
-                get_volume_real_value(volume,t0,t1,t2,0,0) > 0.0 )
-            {
-                break;
-            }
-        }
-
-        if( dir < n_dirs )
-        {
-            set_volume_real_value( out_volume,v0,v1,v2,0,0, (Real) value );
-            ++n_changed;
-        }
-
-    END_ALL_VOXELS
-
-    return( n_changed );
 }
 
 typedef  struct

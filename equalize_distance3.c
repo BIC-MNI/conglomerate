@@ -8,6 +8,8 @@ private  void  reparameterize(
     object_struct     *initial,
     polygons_struct   *model,
     Real              scale,
+    Real              ratio,
+    Real              delta_ratio,
     Real              tolerance,
     int               n_iters );
 
@@ -21,7 +23,7 @@ int  main(
     int                  n_init_objects, n_src_objects, n_model_objects;
     object_struct        **src_objects, **model_objects, **init_objects;
     polygons_struct      *original, *model, *initial;
-    Real                 tolerance, ratio, scale;
+    Real                 tolerance, ratio, delta_ratio, scale;
     int                  n_iters, method, grid_size;
 
     initialize_argument_processing( argc, argv );
@@ -38,6 +40,8 @@ int  main(
     (void) get_int_argument( 1, &n_iters );
     (void) get_real_argument( 0.0, &tolerance );
     (void) get_real_argument( 0.0, &scale );
+    (void) get_real_argument( 0.01, &ratio );
+    (void) get_real_argument( 0.01, &delta_ratio );
 
     if( input_graphics_file( input_filename, &src_format,
                              &n_src_objects, &src_objects ) != OK ||
@@ -88,7 +92,7 @@ int  main(
         return( 1 );
     }
 
-    reparameterize( original, init_objects[0], model, scale,
+    reparameterize( original, init_objects[0], model, scale, ratio, delta_ratio,
                     tolerance, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
@@ -802,14 +806,16 @@ private  void  reparameterize(
     object_struct     *initial,
     polygons_struct   *model,
     Real              scale,
+    Real              ratio,
+    Real              delta_ratio,
     Real              tolerance,
     int               n_iters )
 {
-    int               total_neighbours, ind, point, n, obj_index;
-    int               *n_neighbours, **neighbours, dim, iter;
-    Real              *model_lengths, fit, *deltas, u, v;
-    Real              *parameters, x, y, z;
-    Real              total_model, total_original, test_fit, rms;
+    int               total_neighbours, ind, point, n, obj_index, p;
+    int               *n_neighbours, **neighbours, dim, iter, step1, step2;
+    Real              *model_lengths, fit, *deltas, *new_deltas, u, v;
+    Real              *parameters, x, y, z, *test_parms;
+    Real              total_model, total_original, test_fit, rms, r;
     Point             *new_points, unit_sphere_point, centre;
     Point             original_point;
     object_struct     *object;
@@ -897,7 +903,7 @@ private  void  reparameterize(
 
     print( "Initial fit: %.6g\n", fit );
 
-/*
+#ifdef AMOEBA
     ALLOC( deltas, 2 * original->n_points );
 
     for_less( point, 0, 2 * original->n_points )
@@ -924,9 +930,15 @@ private  void  reparameterize(
     (void) get_amoeba_parameters( &amoeba, parameters );
 
     terminate_amoeba( &amoeba );
-*/
+#endif
 
+#ifdef RANDOM_METHOD
+    ALLOC( test_parms, 2 * original->n_points );
     ALLOC( deltas, 2 * original->n_points );
+    ALLOC( new_deltas, 2 * original->n_points );
+
+    for_less( point, 0, 2 * original->n_points )
+        deltas[point] = tolerance;
 
     last_update = current_realtime_seconds();
     update_interval = 1;
@@ -935,27 +947,116 @@ private  void  reparameterize(
     {
         for_less( point, 0, 2 * original->n_points )
         {
-            deltas[point] = parameters[point] + (2.0 * get_random_0_to_1() - 1.0)
-                            * tolerance; 
+            r = 2.0 * get_random_0_to_1();
+            if( r < 1.0 )
+                r = 1.0 / (2.0 - r);
+
+            new_deltas[point] = deltas[point] * r;
+            if( new_deltas[point] < 1.0e-20 )
+                new_deltas[point] = 1.0e-20;
+        }
+
+        for_less( point, 0, 2 * original->n_points )
+        {
+            test_parms[point] = parameters[point] + (2.0 * get_random_0_to_1() - 1.0)
+                            * new_deltas[point]; 
         }
 
         for_less( point, 0, original->n_points )
         {
-            get_normalized_uv( deltas[IJ(point,0,2)],
-                               deltas[IJ(point,1,2)],
-                               &deltas[IJ(point,0,2)],
-                               &deltas[IJ(point,1,2)] );
+            get_normalized_uv( test_parms[IJ(point,0,2)],
+                               test_parms[IJ(point,1,2)],
+                               &test_parms[IJ(point,0,2)],
+                               &test_parms[IJ(point,1,2)] );
         }
 
         test_fit = evaluate_fit( original, &unit_sphere,
-                                 deltas, n_neighbours, neighbours,
+                                 test_parms, n_neighbours, neighbours,
                                  model_lengths );
 
         if( test_fit < fit )
         {
             fit = test_fit;
             for_less( point, 0, 2 * original->n_points )
-                parameters[point] = deltas[point];
+                parameters[point] = test_parms[point];
+            for_less( point, 0, 2 * original->n_points )
+            {
+                deltas[point] = INTERPOLATE( ratio, deltas[point],
+                                             new_deltas[point] );
+            }
+        }
+        else
+        {
+            for_less( point, 0, 2 * original->n_points )
+            {
+                deltas[point] *= delta_ratio;
+                if( deltas[point] < 1.0e-20 )
+                    deltas[point] = 1.0e-20;
+            }
+        }
+
+        if( iter == n_iters-1 || ((iter+1) % update_interval) == 0 )
+        {
+            if( current_realtime_seconds() - last_update < 1.0 )
+                update_interval *= 10;
+
+            last_update = current_realtime_seconds();
+ 
+            print( "%d: %.8g %.8g\n", iter+1, fit, test_fit );
+
+            for_less( p, 0, 10 )
+                print( " %.3g", deltas[p * 2 * original->n_points / 10] );
+            print( "\n" );
+        }
+    }
+
+    FREE( test_parms );
+    FREE( deltas );
+    FREE( new_deltas );
+#endif
+
+#ifndef GRID
+    ALLOC( test_parms, 2 * original->n_points );
+
+    last_update = current_realtime_seconds();
+    update_interval = 1;
+
+    for_less( iter, 0, n_iters )
+    {
+        for_less( point, 0, 2 * original->n_points )
+            test_parms[point] = parameters[point];
+
+        for_less( point, 0, original->n_points )
+        {
+            for_inclusive( step1, -1, 1 )
+            for_inclusive( step2, -1, 1 )
+            {
+                if( step1 == 0 && step2 == 0 )
+                    continue;
+
+                test_parms[2*point] = parameters[2*point] +
+                                   (Real) (step1 * 2 - 1) * tolerance;
+                test_parms[2*point+1] = parameters[2*point+1] +
+                                   (Real) (step2 * 2 - 1) * tolerance;
+
+                get_normalized_uv( test_parms[IJ(point,0,2)],
+                                   test_parms[IJ(point,1,2)],
+                                   &test_parms[IJ(point,0,2)],
+                                   &test_parms[IJ(point,1,2)] );
+
+                test_fit = evaluate_fit( original, &unit_sphere,
+                                 test_parms, n_neighbours, neighbours,
+                                 model_lengths );
+
+                if( test_fit < fit )
+                {
+                    fit = test_fit;
+                    parameters[2*point] = test_parms[2*point];
+                    parameters[2*point+1] = test_parms[2*point+1];
+                }
+            }
+
+            test_parms[point] = parameters[point];
         }
 
         if( iter == n_iters-1 || ((iter+1) % update_interval) == 0 )
@@ -969,7 +1070,10 @@ private  void  reparameterize(
         }
     }
 
+    FREE( test_parms );
     FREE( deltas );
+    FREE( new_deltas );
+#endif
 
     print( "After %d iterations: %.6g\n", iter, fit );
 

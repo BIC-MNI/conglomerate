@@ -53,7 +53,7 @@ int  main(
         {
             polygons = get_polygons_ptr( object_list[i] );
 
-            if( sampling_specified )
+            if( sampling_specified && new_n_polygons != polygons->n_items * 4 )
             {
                 if( !is_this_tetrahedral_topology( polygons ) )
                 {

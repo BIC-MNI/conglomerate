@@ -77,7 +77,8 @@ private  Volume  create_gradient_volume(
 {
     Volume           gradient_volume;
     int              volume_sizes[N_DIMENSIONS];
-    int              x, y, z, dx, dy, dz;
+    int              x, y, z;
+    Real             dx, dy, dz;
     Real             voxel[MAX_DIMENSIONS];
     Real             grad, value;
     Real             **first_deriv, ***second_deriv;

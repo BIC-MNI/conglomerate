@@ -17,8 +17,8 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &mask_volume_filename ) ||
-        !get_string_argument( "", &volume_filename ) ||
+    if( !get_string_argument( NULL, &mask_volume_filename ) ||
+        !get_string_argument( NULL, &volume_filename ) ||
         !get_real_argument( 0.0, &min_threshold ) ||
         !get_real_argument( 0.0, &max_threshold ) )
     {
@@ -31,12 +31,14 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, NULL ) != OK )
         return( 1 );
 
-    if( input_volume( mask_volume_filename, 3, XYZ_dimension_names,
+    if( equal_strings( volume_filename, mask_volume_filename ) )
+        mask_volume = volume;
+    else if( input_volume( mask_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &mask_volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &mask_volume, NULL ) != OK )
         return( 1 );
 
     get_volume_sizes( mask_volume, mask_sizes );

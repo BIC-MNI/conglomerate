@@ -26,6 +26,7 @@ int  main(
     BOOLEAN              mask_volume_present;
     Volume               volume, mask_volume;
     int                  i, n_dilations, n_neighs, n_changed;
+    int                  range_changed[2][N_DIMENSIONS];
     Neighbour_types      connectivity;
 
     initialize_argument_processing( argc, argv );
@@ -38,7 +39,7 @@ int  main(
         return( 1 );
     }
 
-    (void) get_int_argument( 8, &n_neighs );
+    (void) get_int_argument( 26, &n_neighs );
     (void) get_int_argument( 1, &n_dilations );
 
     mask_volume_present = get_string_argument( "", &mask_filename );
@@ -93,7 +94,8 @@ int  main(
                                       value_to_dilate, value_to_dilate,
                                       0.0, -1.0,
                                       0.0, -1.0, min_mask, max_mask,
-                                      value_to_dilate, connectivity );
+                                      value_to_dilate, connectivity,
+                                      range_changed );
         print( "%d\n", n_changed );
     }
 

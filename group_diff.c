@@ -7,6 +7,7 @@ private  void   compute_inv_variance(
     int     p,
     Point   *avg1,
     Point   *avg2,
+    Real    **variance,
     Real    **inv_s );
 
 int  main(
@@ -25,14 +26,15 @@ int  main(
     Vector           offset;
     Real             **inv_s, tx, ty, tz, mahalanobis, variance;
     Real             mean[2], var[2], sum_x, sum_xx, dist;
-    Real             conversion_to_f_statistic, value;
-    BOOLEAN          one_d_flag;
+    Real             conversion_to_f_statistic, value, **var_mat;
+    Real             determinant;
+    BOOLEAN          one_d_flag, t_flag, m_dist_flag;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &output_filename ) )
     {
-        print( "Usage: %s  output.f_stat  [1] file1 file2 + file3 file4 ..\n",
+        print( "Usage: %s  output.f_stat  [1] [-t] file1 file2 + file3 file4 ..\n",
                argv[0] );
         return( 1 );
     }
@@ -42,12 +44,30 @@ int  main(
     group = 0;
 
     one_d_flag = FALSE;
+    t_flag = FALSE;
+    m_dist_flag = FALSE;
 
     while( get_string_argument( NULL, &filename ) )
     {
         if( equal_strings( filename, "1" ) )
         {
             one_d_flag = TRUE;
+            t_flag = FALSE;
+            m_dist_flag = FALSE;
+            continue;
+        }
+        else if( equal_strings( filename, "-t" ) )
+        {
+            one_d_flag = FALSE;
+            t_flag = TRUE;
+            m_dist_flag = FALSE;
+            continue;
+        }
+        else if( equal_strings( filename, "-m" ) )
+        {
+            one_d_flag = FALSE;
+            t_flag = FALSE;
+            m_dist_flag = TRUE;
             continue;
         }
         else if( equal_strings( filename, "+" ) )
@@ -117,12 +137,12 @@ int  main(
 
     for_less( i, 0, n_points )
     {
-        SCALE_POINT( avg1_points[i], avg1_points[i], 1.0 / (Real)n_surfaces[0]);
-        SCALE_POINT( avg2_points[i], avg2_points[i], 1.0 / (Real)n_surfaces[1]);
-
         ADD_POINTS( polygons.points[i], avg1_points[i], avg2_points[i] );
         SCALE_POINT( polygons.points[i], polygons.points[i],
                      1.0 / (Real) (n_surfaces[0]+n_surfaces[1]) );
+
+        SCALE_POINT( avg1_points[i], avg1_points[i], 1.0 / (Real)n_surfaces[0]);
+        SCALE_POINT( avg2_points[i], avg2_points[i], 1.0 / (Real)n_surfaces[1]);
     }
 
     if( one_d_flag )
@@ -139,6 +159,8 @@ int  main(
                                 ((Real) v * (Real) N_DIMENSIONS *
                                  (1.0 / (Real) n_surfaces[0] +
                                   1.0 / (Real) n_surfaces[1]));
+
+    ALLOC2D( var_mat, 3, 3 );
 
     for_less( p, 0, n_points )
     {
@@ -163,21 +185,27 @@ int  main(
                     var[which] = 0.0;
                 else
                     var[which] = (sum_xx - sum_x * sum_x /
-                       (Real) n_surfaces[which]) / (Real) n_surfaces[which];
+                       (Real) n_surfaces[which]) / (Real) (n_surfaces[which]-1);
             }
 
-            variance = sqrt( ((Real) n_surfaces[0] * var[0] +
-                              (Real) n_surfaces[1] * var[1]) /
+#ifndef OLD
+            variance = sqrt( ((Real) (n_surfaces[0]-1) * var[0] +
+                              (Real) (n_surfaces[1]-1) * var[1]) /
                              (Real) v );
 
             value = (mean[0] - mean[1]) /
                        (variance * sqrt( 1.0 / (Real) n_surfaces[0] +
                                          1.0 / (Real) n_surfaces[1] ));
+#else
+            value = (mean[0] - mean[1]) /
+                       (sqrt( var[0] / (Real) n_surfaces[0] +
+                              var[1] / (Real) n_surfaces[1] ));
+#endif
         }
         else
         {
             compute_inv_variance( n_surfaces, samples, p, &avg1_points[p],
-                                  &avg2_points[p], inv_s );
+                                  &avg2_points[p], var_mat, inv_s );
 
             SUB_POINTS( offset, avg1_points[p], avg2_points[p] );
 
@@ -195,12 +223,30 @@ int  main(
                           ty * (Real) Vector_y(offset) +
                           tz * (Real) Vector_z(offset);
 
-            value = mahalanobis * conversion_to_f_statistic;
+            if( t_flag )
+            {
+                determinant = var_mat[0][0] * (var_mat[1][1] * var_mat[2][2] -
+                                               var_mat[1][2] * var_mat[2][1]) -
+                              var_mat[0][1] * (var_mat[1][0] * var_mat[2][2] -
+                                               var_mat[1][2] * var_mat[2][0]) +
+                              var_mat[0][2] * (var_mat[1][0] * var_mat[2][1] -
+                                               var_mat[1][1] * var_mat[2][0]);
+
+                value = exp( -0.5 * mahalanobis ) /
+                        pow(2.0*PI,(Real) N_DIMENSIONS/2.0) /
+                        sqrt( determinant );
+            }
+            else if( m_dist_flag )
+                value = mahalanobis;
+            else
+                value = mahalanobis * conversion_to_f_statistic;
         }
 
         (void) output_real( file, value );
         (void) output_newline( file );
     }
+
+    FREE2D( var_mat );
 
     return( 0 );
 }
@@ -211,15 +257,13 @@ private  void   compute_inv_variance(
     int     p,
     Point   *avg1,
     Point   *avg2,
+    Real    **variance,
     Real    **inv_s )
 {
     int     s, i, j;
-    Real    **variance;
     Real    dx, dy, dz;
 
     /*--- compute the variance at each of the two nodes */
-
-    ALLOC2D( variance, 3, 3 );
 
     for_less( i, 0, 3 )
     for_less( j, 0, 3 )
@@ -267,6 +311,4 @@ private  void   compute_inv_variance(
 
     if( !invert_square_matrix( 3, variance, inv_s ) )
         print_error( "Error getting inverse of variance\n" );
-
-    FREE2D( variance );
 }

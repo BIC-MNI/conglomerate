@@ -212,9 +212,10 @@ private  void  minimize_node(
     b2 = 0.0;
     for_less( p, 0, n_neighbours )
     {
-        dist = distance_between_points( &nodes[node], &nodes[neighbours[p]] );
-        linear = 1.0 / (dist / total_length);
-        constant = -node_values[neighbours[p]] / (dist / total_length);
+        dist = distance_between_points( &nodes[node], &nodes[neighbours[p]] ) /
+               total_length;;
+        linear = 1.0 / dist;
+        constant = -node_values[neighbours[p]] / dist;
         a2 += smooth_weight * linear * linear;
         b2 += smooth_weight * 2.0 * constant * linear;
     }
@@ -381,7 +382,7 @@ private  void   create_surface_interpolation(
 
     for_less( point, 0, polygons->n_points )
     {
-        node_values[point] = 1.0 + sum_x / (Real) n_points;
+        node_values[point] = sum_x / (Real) n_points;
     }
 
     interp_weight = 1.0 / (Real) n_points / std_dev;

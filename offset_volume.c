@@ -63,9 +63,7 @@ int  main(
 
     chamfer_volume( volume );
 
-/*
     peel_volume( volume, distance );
-*/
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
                                    0.0, 0.0, volume, input_filename,
@@ -179,7 +177,7 @@ private  void  count_connected(
 #endif
     int         x, y, z, tx, ty, tz, nx, ny, nz;
     int         dir, offset, new_id;
-    BOOLEAN     changed;
+    int         queue[27][3], queue_head, queue_tail;
 
     for_less( x, 0, 3 )
     for_less( y, 0, 3 )
@@ -213,36 +211,37 @@ private  void  count_connected(
         }
         
         cube[x][y][z] = new_id;
+        queue[0][0] = x;
+        queue[0][1] = x;
+        queue[0][2] = x;
+        queue_head = 0;
+        queue_tail = 1;
 
-        do
+        while( queue_head < queue_tail )
         {
-            changed = FALSE;
-
-            for_less( nx, 0, 3 )
-            for_less( ny, 0, 3 )
-            for_less( nz, 0, 3 )
+            nx = queue[queue_head][0];
+            ny = queue[queue_head][1];
+            nz = queue[queue_head][2];
+            ++queue_head;
+            for_less( dir, 0, SIZEOF_STATIC_ARRAY( dx ) )
             {
-                if( cube[nx][ny][nz] != new_id )
-                    continue;
+                tx = nx + dx[dir];
+                ty = ny + dy[dir];
+                tz = nz + dz[dir];
 
-                for_less( dir, 0, SIZEOF_STATIC_ARRAY( dx ) )
+                if( tx >= 0 && tx < 3 &&
+                    ty >= 0 && ty < 3 &&
+                    tz >= 0 && tz < 3 &&
+                    cube[tx][ty][tz] == offset )
                 {
-                    tx = nx + dx[dir];
-                    ty = ny + dy[dir];
-                    tz = nz + dz[dir];
-
-                    if( tx >= 0 && tx < 3 &&
-                        ty >= 0 && ty < 3 &&
-                        tz >= 0 && tz < 3 &&
-                        cube[tx][ty][tz] == offset )
-                    {
-                        cube[tx][ty][tz] = new_id;
-                        changed = TRUE;
-                    }
+                    cube[tx][ty][tz] = new_id;
+                    queue[queue_tail][0] = tx;
+                    queue[queue_tail][1] = ty;
+                    queue[queue_tail][2] = tz;
+                    ++queue_tail;
                 }
             }
         }
-        while( changed );
     }
 
     for_less( x, 0, 3 )

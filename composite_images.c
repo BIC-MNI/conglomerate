@@ -8,6 +8,7 @@ int  main(
     STRING            input_filename, output_filename;
     int               x, y, n_files, r, g, b, a;
     int               x_offset, y_offset, x_min, x_max, y_min, y_max;
+    int               y_offset_flipped;
     pixels_struct     pixels, top_pixels;
     Colour            bottom, top, col;
     BOOLEAN           add_flag;
@@ -68,17 +69,20 @@ int  main(
             pixels = top_pixels;
         else
         {
+            y_offset_flipped = pixels.y_size - 1 -
+                               (y_offset + top_pixels.y_size - 1);
             x_min = MAX( 0, x_offset );
             x_max = MIN( pixels.x_size-1, x_offset + top_pixels.x_size - 1 );
-            y_min = MAX( 0, y_offset );
-            y_max = MIN( pixels.y_size-1, y_offset + top_pixels.y_size - 1 );
+            y_min = MAX( 0, y_offset_flipped );
+            y_max = MIN( pixels.y_size-1, y_offset_flipped +
+                         top_pixels.y_size - 1 );
 
             for_inclusive( x, x_min, x_max )
             {
                 for_inclusive( y, y_min, y_max )
                 {
                     bottom = PIXEL_RGB_COLOUR(pixels,x,y);
-                    top = PIXEL_RGB_COLOUR(top_pixels,x-x_offset,y-y_offset);
+                    top = PIXEL_RGB_COLOUR(top_pixels,x-x_offset,y-y_offset_flipped);
 
                     if( add_flag )
                     {

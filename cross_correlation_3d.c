@@ -65,9 +65,9 @@ int  main(
     get_volume_sizes( volume1, sizes );
     get_volume_separations( volume1, separations );
 
-    nx = ROUND( (Real) sizes[X] * separations[X] / x_sampling );
-    ny = ROUND( (Real) sizes[Y] * separations[Y] / y_sampling );
-    nz = ROUND( (Real) sizes[Z] * separations[Z] / z_sampling );
+    nx = ROUND( (Real) sizes[X] * FABS(separations[X]) / x_sampling );
+    ny = ROUND( (Real) sizes[Y] * FABS(separations[Y]) / y_sampling );
+    nz = ROUND( (Real) sizes[Z] * FABS(separations[Z]) / z_sampling );
 
     if( equal_strings( input_filename1, input_filename2 ) )
     {
@@ -125,13 +125,22 @@ int  main(
         update_progress_report( &progress, sample+1 );
     }
 
+    for_less( sample, 0, n_samples )
+    {
+        fill_Point( lines->points[sample],
+                    Point_x(lines->points[sample]),
+                    (Point_y(lines->points[sample]) - min_value) /
+                    (max_value - min_value),
+                    0.0 );
+    }
+
     terminate_progress_report( &progress );
 
     objects[1] = create_object( LINES );
     lines = get_lines_ptr( objects[1] );
     initialize_lines_with_size( lines, RED, 2, FALSE );
-    fill_Point( lines->points[0], 0.0, min_value, 0.0 );
-    fill_Point( lines->points[1], 0.0, max_value, 0.0 );
+    fill_Point( lines->points[0], 0.0, 0.0, 0.0 );
+    fill_Point( lines->points[1], 0.0, 1.0, 0.0 );
 
     (void) output_graphics_file( output_filename, ASCII_FORMAT, 2, objects );
 
@@ -155,6 +164,8 @@ private  Real  compute_cross_correlation(
     int        nz )
 {
     Real  voxel[MAX_DIMENSIONS];
+    Real  voxel2[MAX_DIMENSIONS];
+    Real  delta[MAX_DIMENSIONS];
     int   sizes[MAX_DIMENSIONS], grid[MAX_DIMENSIONS];
     int   i, j, k, dim;
     Real  value1, value2, corr, xw, yw, zw, diff;
@@ -162,6 +173,24 @@ private  Real  compute_cross_correlation(
     corr = 0.0;
 
     get_volume_sizes( volume1, sizes );
+
+    voxel[0] = 0.0;
+    voxel[1] = 0.0;
+    voxel[2] = INTERPOLATE( ((Real) 0 + 0.5) / (Real) nz,
+                                        -0.5, (Real) sizes[Z] - 0.5 );
+    convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
+    transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
+    convert_world_to_voxel( volume2, xw, yw, zw, voxel2 );
+
+    voxel[2] = INTERPOLATE( ((Real) 1 + 0.5) / (Real) nz,
+                                        -0.5, (Real) sizes[Z] - 0.5 );
+    convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
+    transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
+    convert_world_to_voxel( volume2, xw, yw, zw, delta );
+
+    delta[0] -= voxel2[0];
+    delta[1] -= voxel2[1];
+    delta[2] -= voxel2[2];
 
     for_less( i, 0, nx )
     {
@@ -178,17 +207,23 @@ private  Real  compute_cross_correlation(
                 voxel[Z] = INTERPOLATE( ((Real) k + 0.5) / (Real) nz,
                                         -0.5, (Real) sizes[Z] - 0.5 );
 
+                if( k == 0 )
+                {
+                    convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
+                    transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
+                    convert_world_to_voxel( volume2, xw, yw, zw, voxel2 );
+                }
+                else
+                {
+                    voxel2[0] += delta[0];
+                    voxel2[1] += delta[1];
+                    voxel2[2] += delta[2];
+                }
+
                 (void) evaluate_volume( volume1, voxel, NULL, 0, FALSE, 0.0,
                                         &value1, NULL, NULL );
-
-                convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
-
-                transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
-
-                evaluate_volume_in_world( volume2, xw, yw, zw, 0, FALSE, 0.0,
-                                          &value2, NULL, NULL, NULL,
-                                                   NULL, NULL, NULL,
-                                                   NULL, NULL, NULL );
+                (void) evaluate_volume( volume2, voxel2, NULL, 0, FALSE, 0.0,
+                                        &value2, NULL, NULL );
 
                 diff = value1 - value2;
                 corr += diff * diff;

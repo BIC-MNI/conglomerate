@@ -438,6 +438,24 @@ private  int  convert_manifold_to_sheet(
     if( path_size == 1 )
         handle_internal_error( "path_size" );
 
+    {
+        int  p1, p2, p3, n1, n3;
+
+        for_less( p, 1, path_size-1 )
+        {
+            p1 = path[p-1];
+            p2 = path[p];
+            p3 = path[p+1];
+
+            n1 = get_neigh_index( p2, n_neighbours, neighbours, p1 );
+            n3 = get_neigh_index( p2, n_neighbours, neighbours, p3 );
+
+            if( n1 == (n3 + 1) % n_neighbours[p2] ||
+                n3 == (n1 + 1) % n_neighbours[p2] )
+                handle_internal_error( "path" );
+        }
+    }
+
     FREE( distances[0] );
     FREE( distances );
 

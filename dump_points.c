@@ -6,18 +6,27 @@ int  main(
     char *argv[] )
 {
     FILE           *file;
-    STRING         input_filename, output_filename;
+    STRING         input_filename, output_filename, ascii_binary;
     File_formats   format;
     object_struct  **object_list;
-    int            n_objects, n_points, i;
+    int            n_objects, n_points, i, obj;
     Point          *points;
+    BOOLEAN        ascii_binary_present;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &input_filename ) ||
         !get_string_argument( NULL, &output_filename ) )
     {
-        print_error( "Usage: %s input.obj output.txt\n" );
+        print_error( "Usage: %s input.obj output.pt [ascii|binary]\n" );
+        return( 1 );
+    }
+
+    ascii_binary_present = get_string_argument( NULL, &ascii_binary );
+    if( ascii_binary_present && ascii_binary[0] != 'a' &&
+        ascii_binary[0] != 'b' )
+    {
+        print_error( "Usage: %s input.obj output.pt [ascii|binary]\n" );
         return( 1 );
     }
 
@@ -28,24 +37,26 @@ int  main(
         return( 1 );
     }
 
-    if( n_objects != 1 )
-    {
-        print( "File must contain exactly 1 object.\n" );
-        return( 1 );
-    }
+    if( ascii_binary_present && ascii_binary[0] == 'a' )
+        format = ASCII_FORMAT;
+    else if( ascii_binary_present && ascii_binary[0] == 'b' )
+        format = BINARY_FORMAT;
 
-    n_points = get_object_points( object_list[0], &points );
-
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    if( open_file( output_filename, WRITE_FILE, format, &file ) != OK )
         return( 1 );
 
-    for_less( i, 0, n_points )
+    for_less( obj, 0, n_objects )
     {
-        if( output_real( file, (Real) Point_x(points[i]) ) != OK ||
-            output_real( file, (Real) Point_y(points[i]) ) != OK ||
-            output_real( file, (Real) Point_z(points[i]) ) != OK ||
-            output_newline( file ) != OK )
-            return( 1 );
+        n_points = get_object_points( object_list[obj], &points );
+
+        for_less( i, 0, n_points )
+        {
+            if( io_point( file, WRITE_FILE, format, &points[i] ) != OK )
+                return( 1 );
+
+            if( format == ASCII_FORMAT && output_newline( file ) != OK )
+                return( 1 );
+        }
     }
 
     (void) close_file( file );

@@ -9,7 +9,9 @@ int  main(
     STRING               input_filename, output_filename;
     STRING               volume_filename;
     int                  i, n_objects, p, n_points, degree, n_values;
-    Real                 value, *values;
+    int                  dim, sizes[MAX_DIMENSIONS];
+    Real                 *values, *evaluate_values;
+    Real                 xyz_voxel[N_DIMENSIONS], voxel[MAX_DIMENSIONS];
     Point                *points;
     File_formats         format, output_format;
     object_struct        **object_list;
@@ -26,10 +28,26 @@ int  main(
 
     (void) get_int_argument( 0, &degree );
 
-    if( input_volume( volume_filename, 3, File_order_dimension_names,
+    if( input_volume( volume_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
+
+    xyz_voxel[X] = 1.0;
+    xyz_voxel[Y] = 2.0;
+    xyz_voxel[Z] = 3.0;
+
+    reorder_xyz_to_voxel( volume, xyz_voxel, voxel );
+
+    n_values = 1;
+    get_volume_sizes( volume, sizes );
+    for_less( dim, 0, get_volume_n_dimensions(volume) )
+    {
+        if( voxel[dim] == 0.0 )
+            n_values *= sizes[dim];
+    }
+
+    ALLOC( evaluate_values, n_values );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK )
@@ -52,14 +70,17 @@ int  main(
             evaluate_volume_in_world( volume,
                                       (Real) Point_x(points[p]),
                                       (Real) Point_y(points[p]),
-                                      (Real)  Point_z(points[p]),
-                                      degree, FALSE, 0.0, &value,
+                                      (Real) Point_z(points[p]),
+                                      degree, FALSE, 0.0, evaluate_values,
                                       NULL, NULL, NULL,
                                       NULL, NULL, NULL, NULL, NULL, NULL );
 
-            ADD_ELEMENT_TO_ARRAY( values, n_values, value, DEFAULT_CHUNK_SIZE );
+            ADD_ELEMENT_TO_ARRAY( values, n_values, evaluate_values[0],
+                                  DEFAULT_CHUNK_SIZE );
         }
     }
+
+    FREE( evaluate_values );
 
     (void) output_texture_values( output_filename, output_format, n_values,
                                   values );

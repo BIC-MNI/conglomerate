@@ -128,7 +128,7 @@ int  main(
     return( 0 );
 }
 
-private  int  create_coefficients(
+private  void  create_coefficients(
     Real             interp_weight,
     Real             smooth_weight,
     int              n_interp_points,
@@ -139,16 +139,19 @@ private  int  create_coefficients(
     int              n_neighbours[],
     int              **neighbours,
     Smallest_int     interior_flags[],
-    int              *n_nodes_involved[],
-    int              **node_list[],
-    lsq_type         *constants[],
-    lsq_type         **node_weights[] )
+    Real             *constant,
+    lsq_type         *linear_terms[],
+    lsq_type         *square_terms[],
+    int              *n_cross_terms[],
+    int              **cross_parms[],
+    lsq_type         **cross_terms[] )
 {
-    int              i, n_equations, eq, poly, node, p, size;
+    int              i, poly, node, p, size;
+    int              n_parameters, *indices;
     polygons_struct  *polygons;
     Point            polygon_points[MAX_POINTS_PER_POLYGON];
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             weights[MAX_POINTS_PER_POLYGON], dist, avg_dist, weight;
+    Real             *weights, dist, avg_dist, weight;
     Real             x_flat[MAX_POINTS_PER_POLYGON];
     Real             y_flat[MAX_POINTS_PER_POLYGON];
     Real             consistency_weights[MAX_POINTS_PER_POLYGON];
@@ -156,14 +159,14 @@ private  int  create_coefficients(
 
     polygons = get_polygons_ptr( object );
 
-    n_equations = polygons->n_points + n_interp_points;
+    n_parameters = polygons->n_points;
 
-    ALLOC( *n_nodes_involved, n_equations );
-    ALLOC( *constants, n_equations );
-    ALLOC( *node_weights, n_equations );
-    ALLOC( *node_list, n_equations );
+    initialize_lsq_terms_float( n_parameters, constant, linear_terms,
+                                square_terms, n_cross_terms, cross_parms,
+                                cross_terms );
 
-    eq = 0;
+    ALLOC( indices, n_parameters );
+    ALLOC( weights, n_parameters );
 
     for_less( p, 0, n_interp_points )
     {
@@ -175,24 +178,21 @@ private  int  create_coefficients(
         
         size = get_polygon_points( polygons, poly, polygon_points );
 
-        (*n_nodes_involved)[eq] = size;
-        ALLOC( (*node_list)[eq], size );
-        ALLOC( (*node_weights)[eq], size );
-
-        (*constants)[eq] = (lsq_type) (- values[p] * interp_weight);
-
         get_polygon_interpolation_weights( &point_on_surface, size,
                                            polygon_points, weights );
 
         for_less( i, 0, size )
         {
-            (*node_list)[eq][i] = polygons->indices[POINT_INDEX(
+            indices[i] = polygons->indices[POINT_INDEX(
                                          polygons->end_indices,poly,i)];
-            (*node_weights)[eq][i] = (lsq_type)
-                                     (weights[i] * interp_weight);
+            weights[i] *= interp_weight;
         }
 
-        ++eq;
+        add_to_lsq_terms_float( n_parameters, constant,
+                                *linear_terms, *square_terms,
+                                *n_cross_terms, *cross_parms, *cross_terms,
+                                size, indices, weights,
+                                -values[p] * interp_weight, 5 );
     }
 
     FREE( polygons->normals );
@@ -216,13 +216,8 @@ private  int  create_coefficients(
 
         weight = smooth_weight / sqrt( avg_dist / total_length );
 
-        (*constants)[eq] = (lsq_type) 0.0;
-        (*n_nodes_involved)[eq] = 1 + n_neighbours[node];
-        ALLOC( (*node_list)[eq], (*n_nodes_involved)[eq] );
-        ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
-
-        (*node_list)[eq][0] = node;
-        (*node_weights)[eq][0] = (lsq_type) weight;
+        indices[0] = node;
+        weights[0] = weight;
 
 #define FLATTEN
 #ifdef  FLATTEN
@@ -247,15 +242,22 @@ private  int  create_coefficients(
 
         for_less( p, 0, n_neighbours[node] )
         {
-            (*node_list)[eq][1+p] = neighbours[node][p];
-            (*node_weights)[eq][1+p] = (lsq_type) 
-                                       (-weight * consistency_weights[p]);
+            indices[1+p] = neighbours[node][p];
+            weights[1+p] = -weight * consistency_weights[p];
         }
 
-        ++eq;
+        add_to_lsq_terms_float( n_parameters, constant,
+                                *linear_terms, *square_terms,
+                                *n_cross_terms, *cross_parms, *cross_terms,
+                                n_neighbours[node]+1, indices, weights, 0.0,
+                                5 );
     }
 
-    return( n_equations );
+    FREE( weights );
+    FREE( indices );
+
+    realloc_lsq_terms_float( n_parameters,
+                             *n_cross_terms, *cross_parms, *cross_terms );
 }
 
 private  Real   create_surface_interpolation(
@@ -270,13 +272,13 @@ private  Real   create_surface_interpolation(
 {
     polygons_struct   *polygons;
     Real              total_length, sum_x, sum_xx, variance;
-    Real              dist, interp_weight, smooth_weight, fit;
+    Real              dist, interp_weight, smooth_weight, fit, constant;
     int               point, *n_point_neighbours, **point_neighbours;
     int               neigh, n_edges;
-    int               n_equations, *n_nodes_per_equation, **node_list;
     int               n_points;
-    lsq_type          **node_weights, *constants;
     Smallest_int      *interior_flags;
+    int               *n_cross_terms, **cross_parms;
+    lsq_type          *linear_terms, *square_terms, **cross_terms;
 
     polygons = get_polygons_ptr( object );
 
@@ -331,32 +333,27 @@ private  Real   create_surface_interpolation(
     interp_weight = sqrt( interp_weight );
     smooth_weight = sqrt( smooth_weight );
 
-    n_equations = create_coefficients( interp_weight, smooth_weight,
-                                       n_interp_points, points, values,
-                                       object, total_length,
-                                       n_point_neighbours, point_neighbours,
-                                       interior_flags,
-                                       &n_nodes_per_equation,
-                                       &node_list, &constants, &node_weights );
+    create_coefficients( interp_weight, smooth_weight,
+                         n_interp_points, points, values,
+                         object, total_length,
+                         n_point_neighbours, point_neighbours,
+                         interior_flags,
+                         &constant, &linear_terms, &square_terms,
+                         &n_cross_terms, &cross_parms,
+                         &cross_terms );
 
     delete_polygon_point_neighbours( polygons, n_point_neighbours,
                                      point_neighbours, interior_flags, NULL );
 
     delete_object( object );
 
-    fit = minimize_lsq_float( n_points, n_equations, n_nodes_per_equation,
-                              node_list, constants, node_weights, -1.0,
-                              n_iters, node_values );
+    fit = minimize_lsq_float( n_points, constant, linear_terms, square_terms,
+                              n_cross_terms, cross_parms, cross_terms,
+                              -1.0, n_iters, node_values );
 
-    for_less( point, 0, n_equations )
-    {
-        FREE( node_weights[point] );
-        FREE( node_list[point] );
-    }
-    FREE( node_weights );
-    FREE( node_list );
-    FREE( n_nodes_per_equation );
-    FREE( constants );
+    delete_lsq_terms_float( n_points, linear_terms,
+                            square_terms, n_cross_terms, cross_parms,
+                            cross_terms );
 
     return( fit );
 }

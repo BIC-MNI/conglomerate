@@ -41,9 +41,9 @@ int  main(
         for_less( p, 0, n_points )
         {
             general_transform_point( &transform,
-                                     Point_x(points[p]),
-                                     Point_y(points[p]),
-                                     Point_z(points[p]), &x, &y, &z );
+                                     (Real) Point_x(points[p]),
+                                     (Real) Point_y(points[p]),
+                                     (Real) Point_z(points[p]), &x, &y, &z );
 
             fill_Point( trans, x, y, z );
 

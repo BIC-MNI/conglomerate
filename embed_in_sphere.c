@@ -11,6 +11,7 @@ private  void  convert_to_lines(
 private  void  embed_in_sphere(
     polygons_struct  *polygons,
     Real             radius,
+    int              north_pole,
     Point            sphere_points[] );
 
 int  main(
@@ -18,7 +19,7 @@ int  main(
     char   *argv[] )
 {
     STRING               src_filename, dest_filename;
-    int                  n_objects, p, p1;
+    int                  n_objects, p, p1, north_pole;
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
@@ -35,6 +36,7 @@ int  main(
     }
 
     (void) get_real_argument( 1.0, &radius );
+    (void) get_int_argument( 0, &north_pole );
 
     set_random_seed( 933482171 );
 
@@ -67,7 +69,7 @@ int  main(
 
     ALLOC( sphere_points, polygons->n_points );
 
-    embed_in_sphere( polygons, radius, sphere_points );
+    embed_in_sphere( polygons, radius, north_pole, sphere_points );
 
 #ifdef DEBUG
     {
@@ -479,6 +481,9 @@ private  void  assign_used_flags(
         }
     }
 
+    if( path_size == 2 )
+        return;
+
     CONVERT_POINT_TO_VECTOR( v1, sphere_points[path[0]] );
     CONVERT_POINT_TO_VECTOR( v2, sphere_points[path[path_size-1]] );
 
@@ -685,8 +690,10 @@ private  void  position_patch(
     int               *n_done,
     progress_struct   *progress )
 {
-    int               attempt, n_attempts, ind1, ind2, tmp, i, p;
+    int               attempt, n_attempts, ind1, ind2, tmp, i, p, n;
     int               *new_loop, new_loop_size, path_size, *path;
+    int               point, prev, next, prev_index, next_index, offset;
+    int               n_to_do, neigh;
     Smallest_int      *new_corner_flags;
 
     if( max_depth >= 0 && depth >= max_depth )
@@ -702,18 +709,59 @@ private  void  position_patch(
         return;
 
 /*
-for_less( p, 0, loop_length )
-{
-    if( corner_flags[p] )
-        print( "%g %g %g\n",
-               RPoint_x(sphere_points[loop[p]]),
-               RPoint_y(sphere_points[loop[p]]),
-               RPoint_z(sphere_points[loop[p]]) );
-}
-print( "\n" );
+    for_less( p, 0, loop_length )
+    {
+        if( corner_flags[p] )
+            print( "%g %g %g\n",
+                   RPoint_x(sphere_points[loop[p]]),
+                   RPoint_y(sphere_points[loop[p]]),
+                   RPoint_z(sphere_points[loop[p]]) );
+    }
+    print( "\n" );
 */
 
     n_attempts = 500;
+    for_less( p, 0, loop_length )
+    {
+        point = loop[p];
+        prev = loop[(p-1+loop_length)%loop_length];
+        next = loop[(p+1)%loop_length];
+        prev_index = get_neigh_index( point, n_neighbours, neighbours, prev );
+        next_index = get_neigh_index( point, n_neighbours, neighbours, next );
+
+        offset = (next_index + 1) % n_neighbours[point];
+        n_to_do = (prev_index - next_index + n_neighbours[point]) %
+                  n_neighbours[point] - 1;
+
+        for_less( n, 0, n_to_do )
+        {
+            neigh = neighbours[point][(n+offset)%n_neighbours[point]];
+            if( used_flags[neigh] )
+                break;
+        }
+
+        if( n < n_to_do )
+        {
+            ind1 = p;
+            for_less( ind2, 0, loop_length )
+                if( loop[ind2] == neigh )
+                    break;
+            if( ind2 >= loop_length )
+                handle_internal_error( "ind2 >= loop_length" );
+            n_attempts = 0;
+            if( ind1 > ind2 )
+            {
+                tmp = ind1;
+                ind1 = ind2;
+                ind2 = tmp;
+            }
+            ALLOC( path, 2 );
+            path[0] = loop[ind1];
+            path[1] = loop[ind2];
+            path_size = 2;
+            break;
+        }
+    }
 
     for_less( attempt, 0, n_attempts )
     {
@@ -768,7 +816,7 @@ print( "\n" );
             break;
     }
 
-    if( attempt >= n_attempts )
+    if( n_attempts > 0 && attempt >= n_attempts )
     {
         print( "\nToo many attempts.\n" );
         for_less( p, 0, loop_length )
@@ -853,6 +901,7 @@ print( "\n" );
 private  void  embed_in_sphere(
     polygons_struct  *polygons,
     Real             radius,
+    int              north_pole,
     Point            sphere_points[] )
 {
     int               point, *n_neighbours, **neighbours, south_pole;
@@ -860,7 +909,7 @@ private  void  embed_in_sphere(
     float             **distances;
     float             **equator_distances;
     int               left_size, *left_path, right_size, *right_path;
-    int               total_neighbours, north_pole;
+    int               total_neighbours;
     int               *long_path, long_path_size, equator_point;
     int               other_equator_point, size1, size2;
     int               *equator1_path, *equator2_path, equator_index, size;
@@ -898,8 +947,6 @@ private  void  embed_in_sphere(
     ALLOC( distances[0], total_neighbours );
     for_less( p, 1, n_points )
         distances[p] = &distances[p-1][n_neighbours[p-1]];
-
-    north_pole = 0;
 
     ALLOC( used_flags, n_points );
     for_less( point, 0, n_points )

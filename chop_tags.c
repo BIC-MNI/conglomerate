@@ -41,6 +41,13 @@ int  main(
                         &patient_ids, &labels ) != OK )
         return( 1 );
 
+    new_structure_ids = NULL;
+    new_patient_ids = NULL;
+    new_tags1 = NULL;
+    new_tags2 = NULL;
+    new_weights = NULL;
+    new_labels = NULL;
+
     while( get_string_argument( NULL, &axis_name ) &&
            get_real_argument( 0.0, &min_pos ) &&
            get_real_argument( 0.0, &max_pos ) )

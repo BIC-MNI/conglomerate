@@ -65,7 +65,7 @@ int  main(
 */
 
     status = input_volume( input_filename, 3, File_order_dimension_names,
-                      NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                      NC_BYTE, FALSE, 0.0, 255.0,
                       TRUE, &volume, (minc_input_options *) NULL ) ;
 
     if( status != OK )

@@ -78,7 +78,7 @@ int  main(
     int        n_labels;
     int        *values;
     STRING     *labels;
-    BOOLEAN    list_all, by_value, found;
+    BOOLEAN    list_all, by_value;
 
     /* --- check for enough arguments */
 
@@ -138,14 +138,14 @@ int  main(
                     usage( argv[0] );
                     return( 1 );
                 }
-                found = lookup_label_for_value( n_labels, values, labels,
-                                                value, &label );
+                (void) lookup_label_for_value( n_labels, values, labels,
+                                               value, &label );
             }
             else
             {
                 label = argv[a];
-                found = lookup_value_for_label( n_labels, values, labels,
-                                                label, &value );
+                (void) lookup_value_for_label( n_labels, values, labels,
+                                               label, &value );
             }
 
             print_label( value, label );

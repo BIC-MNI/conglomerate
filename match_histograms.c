@@ -92,11 +92,14 @@ private  void  match_histograms(
     lines_struct   *new_hist,
     lines_struct   *offsets )
 {
-    int              extra, p, int_pos, ip, **which, best_which;
+    int              extra, p, int_pos, **which, best_which;
+    int              point_index, current, prev;
     Real             min_pos, max_pos, pos, *target_values, *values;
     Real             min_x, max_x, target_scale, target_trans;
     Real             used_scale, used_trans, *best, *next_best, *tmp;
-    Real             best_so_far, diff, x, value;
+    Real             best_so_far, diff, x;
+    Real             integral, a1, b1, a2, b2;
+    Real             value1, value2;
     progress_struct  progress;
 
     initialize_lines_with_size( new_hist, WHITE, lines->n_points, FALSE );
@@ -151,29 +154,44 @@ private  void  match_histograms(
 
     for_less( p, 0, n_targets )
     {
-        diff = values[0] - target_values[p];
-        best[p] = diff * diff;
+        best[p] = 0.0;
     }
 
     initialize_progress_report( &progress, FALSE, lines->n_points-1,
                                 "Minimizing" );
 
-    for_less( ip, 1, lines->n_points )
+    for_less( point_index, 1, lines->n_points )
     {
-        value = values[ip];
+        value1 = values[point_index-1];
+        value2 = values[point_index];
 
-        best_so_far = best[ip-1];
-        best_which = ip-1;
-        for_less( p, ip, n_targets )
+        for_less( current, point_index, n_targets )
         {
-            diff = value - target_values[p];
-            diff = diff * diff;
-            next_best[p] = best_so_far + diff * diff;
-            which[ip][p] = best_which;
-            if( best[p] < best_so_far )
+            for_less( prev, point_index-1, current )
             {
-                best_so_far = best[p];
-                best_which = p;
+                integral = 0.0;
+                for_less( p, prev, current )
+                {
+                    a1 = INTERPOLATE( (Real) (p-prev) / (Real)(current-prev),
+                                      value1, value2 );
+                    a2 = INTERPOLATE( (Real) (p-prev+1) / (Real)(current-prev),
+                                      value1, value2 );
+                    b1 = target_values[p] - a1;
+                    b2 = target_values[p+1] - a2;
+
+                    if( b1 != b2 )
+                    {
+                        integral += (b1 * b1 + b2 * b2 + b1 * b2) / 3.0;
+                    }
+                }
+
+                diff = best[prev] + integral;
+
+                if( prev == point_index-1 || diff < next_best[current] )
+                {
+                    next_best[current] = diff;
+                    which[point_index][current] = prev;
+                }
             }
         }
 
@@ -181,11 +199,12 @@ private  void  match_histograms(
         best = next_best;
         next_best = tmp;
 
-        update_progress_report( &progress, ip );
+        update_progress_report( &progress, point_index );
     }
 
     terminate_progress_report( &progress );
 
+    best_so_far = 0.0;
     for_less( p, lines->n_points-1, n_targets )
     {
         if( p == lines->n_points-1 || best[p] < best_so_far )
@@ -202,7 +221,7 @@ private  void  match_histograms(
         x = used_scale * (Real) best_which + used_trans;
         fill_Point( new_hist->points[p],
                     x,
-                    Point_y(lines->points[p]),
+                    scale * (Real) Point_y(lines->points[p]),
                     Point_z(lines->points[p]) );
 
         best_which = which[p][best_which];

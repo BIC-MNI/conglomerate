@@ -1,6 +1,9 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#define DEBUG
+#undef  DEBUG
+
 private  void  usage(
     STRING   executable )
 {
@@ -12,7 +15,6 @@ Usage: %s sphere.obj sphere_flat.obj input.obj output_flat.obj output_fixed dist
     print_error( usage_str, executable, executable );
 }
 
-
 int  main(
     int    argc,
     char   *argv[] )
@@ -22,6 +24,9 @@ int  main(
     int                  p, n_objects, best_index;
     int                  sphere_vertex, patch_vertex;
     int                  n_fixed, *fixed_indices;
+#ifdef DEBUG
+    int                  *sphere_indices;
+#endif
     Smallest_int         *init_points_done;
     Real                 distance, best_dist;
     File_formats         format;
@@ -69,6 +74,9 @@ int  main(
 
     ALLOC( init_points, patch->n_points );
     ALLOC( init_points_done, patch->n_points );
+#ifdef DEBUG
+    ALLOC( sphere_indices, patch->n_points );
+#endif
     for_less( patch_vertex, 0, patch->n_points )
     {
         fill_Point( init_points[patch_vertex], 0.0, 0.0, 0.0 );
@@ -95,6 +103,9 @@ int  main(
             ADD_ELEMENT_TO_ARRAY( fixed_indices, n_fixed, best_index,
                                   DEFAULT_CHUNK_SIZE );
             init_points[best_index] = sphere_flat->points[sphere_vertex];
+#ifdef DEBUG
+            sphere_indices[best_index] = sphere_vertex;
+#endif
             init_points_done[best_index] = TRUE;
         }
 
@@ -127,6 +138,30 @@ int  main(
     }
 
     (void) close_file( file );
+
+#ifdef  DEBUG
+    {
+        object_struct  *object;
+        lines_struct   *lines;
+
+        object = create_object( LINES );
+        lines = get_lines_ptr( object );
+        initialize_lines( lines, RED );
+
+        for_less( p, 0, n_fixed )
+        {
+            start_new_line( lines );
+            add_point_to_line( lines, &patch->points[fixed_indices[p]] );
+            add_point_to_line( lines, &sphere->points[
+                                      sphere_indices[fixed_indices[p]]] );
+        }
+
+        (void) output_graphics_file( "lines.obj", ASCII_FORMAT, 1, &object );
+        delete_object( object );
+    }
+
+    FREE( sphere_indices );
+#endif
 
     FREE( patch->points );
     patch->points = init_points;

@@ -34,9 +34,6 @@ int  main(
 
     volume_present = !equal_strings( input_volume_filename, "-" );
 
-    if( volume_present )
-        (void) get_string_argument( NULL, &space );
-
     if( equal_strings( axis_name, "x" ) )
         axis = X;
     else if( equal_strings( axis_name, "y" ) )
@@ -48,6 +45,9 @@ int  main(
 
     if( axis >= 0 )
     {
+        if( volume_present )
+            (void) get_string_argument( NULL, &space );
+
         voxel_slice = TRUE;
 
         (void) get_real_argument( 0.0, &pos );

@@ -22,10 +22,10 @@ int  main(
 {
     STRING               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
-    int                  *n_neighbours, **neighbours;
+    int                  *n_neighbours, **neighbours, n_points;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
-    polygons_struct      *polygons, *init_polygons;
+    polygons_struct      *polygons, *init_polygons, p;
     Point                *init_points, *points;
     Real                 sphere_weight, centroid_weight;
 
@@ -71,14 +71,16 @@ int  main(
                                      &neighbours, NULL, NULL );
 
     points = polygons->points;
+    n_points = polygons->n_points;
     ALLOC( polygons->points, 1 );
     delete_object_list( 1, object_list );
 
-    flatten_polygons( polygons->n_points, points, n_neighbours, neighbours,
+    flatten_polygons( n_points, points, n_neighbours, neighbours,
                       init_points, centroid_weight,
                       sphere_weight, n_iters );
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+    p.n_points = n_points;
+    delete_polygon_point_neighbours( &p, n_neighbours, neighbours,
                                      NULL, NULL );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
@@ -564,6 +566,7 @@ private  void  minimize_along_line(
     evaluate_fit_along_line( n_parameters, parameters, delta, distances,
                              n_neighbours, neighbours, centroid_weight,
                              centroid_weights, sphere_weight, coefs );
+
 
     for_less( p, 0, 4 )
         deriv[p] = (Real) (p+1) * coefs[p+1];

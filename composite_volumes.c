@@ -17,8 +17,11 @@ int  main(
     Volume             volume, rgb_volume;
     STRING             input_filename, output_filename;
     STRING             under_colour_name, over_colour_name;
-    int                v[MAX_DIMENSIONS];
     int                n_dims, sizes[MAX_DIMENSIONS], dim, n_volumes;
+    int                v[MAX_DIMENSIONS];
+    Real               vr[MAX_DIMENSIONS];
+    Real               vv[MAX_DIMENSIONS], xw, yw, zw;
+    int                ivv[MAX_DIMENSIONS], x, y, z;
     STRING             *dim_names, *dim_names_rgb;
     STRING             coding_type_string;
     Real               value, low, high, r, g, b, a;
@@ -115,9 +118,26 @@ int  main(
             END_ALL_VOXELS
         }
 
-        BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
+        for_less( x, 0, sizes[X] )
+        {
+        for_less( y, 0, sizes[Y] )
+        for_less( z, 0, sizes[Z] )
+        {
+            v[0] = x;
+            v[1] = y;
+            v[2] = z;
+            vr[0] = (Real) x;
+            vr[1] = (Real) y;
+            vr[2] = (Real) z;
+            convert_voxel_to_world( rgb_volume, vr, &xw, &yw, &zw );
+            convert_world_to_voxel( volume, xw, yw, zw, vv );
 
-            value = get_volume_real_value( volume, v[0], v[1], v[2], v[3],v[4]);
+            convert_real_to_int_voxel( 3, vv, ivv );
+            if( !int_voxel_is_within_volume( volume, ivv ) )
+                continue;
+
+            value = get_volume_real_value( volume, ivv[0], ivv[1], ivv[2], ivv[3],
+                                           ivv[4]);
 
             new_col = get_colour_code( &colour_coding, value );
 
@@ -142,7 +162,6 @@ int  main(
 
                 v[n_dims] = 3;
                 a = get_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4]);
-                v[n_dims] = 0;
 
                 old_col = make_rgba_Colour_0_1( r, g, b, a );
 
@@ -168,8 +187,9 @@ int  main(
                                    get_Colour_a_0_1(colour) );
 
             v[n_dims] = 0;
-
-        END_ALL_VOXELS
+        }
+        print( "%d/%d\n", x+1, sizes[0] );
+        }
 
         delete_volume( volume );
 

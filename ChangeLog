@@ -1,5 +1,9 @@
 2001-05-11  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
+	* Update: Updated all the current files from the checked-out
+	versions in ~david/Source/Batch_processing.  This is tagged with
+	David-RCS-update.
+
 	* RCS: The first import into CVS is a straight copy of
 	~david/Source/Batch_processing/RCS, plus this ChangeLog file.
 	This collection of files is tagged David-RCS.

@@ -8,7 +8,7 @@ private  void  usage(
 Usage: %s input.mnc output.mnc x_width y_width z_width\n\
            [world|voxel] [byte]\n\
 \n\
-     Box filters a volume with the given voxel widths, or, if [world] specified,\n\
+     Filters a volume with the given voxel widths, or, if [world] specified,\n\
      then in mm widths.  If byte is specified, then a byte volume is created.\n\n";
 
     print_error( usage_str, executable );
@@ -18,12 +18,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    int              x, y, z, x1, y1, z1;
-    int              sizes[N_DIMENSIONS], n_voxels;
-    float            ***float_ptr, *ptr, weight, value;
-    Real             min_value, max_value;
+    int              x, y, z, xf, yf, dim;
+    int              sizes[N_DIMENSIONS];
+    int              filter_start[N_DIMENSIONS];
+    int              filter_end[N_DIMENSIONS];
+    int              filter_size[N_DIMENSIONS];
+    Real             *weights;
     Volume           volume, new_volume;
     STRING           input_filename, output_filename;
+    STRING           exec, source_file;
+    char             command[EXTREMELY_LARGE_STRING_SIZE];
     progress_struct  progress;
 
     initialize_argument_processing( argc, argv );
@@ -42,8 +46,6 @@ int  main(
 
     new_volume = copy_volume_definition( volume, NC_FLOAT, FALSE, 0.0, 0.0 );
 
-    float_ptr = (float ***) new_volume->array.data;
-
     get_volume_sizes( volume, sizes );
 
     initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
@@ -53,106 +55,62 @@ int  main(
     for_less( y, 0, sizes[Y] )
     {
         for_less( z, 0, sizes[Z] )
-            float_ptr[x][y][z] = (float) 0.0;
+            set_volume_real_value( new_volume, x, y, z, 0, 0, 0.0 );
+
         update_progress_report( &progress, x * sizes[Y] + y + 1 );
     }
 
     terminate_progress_report( &progress );
 
-    get_volume_sizes( volume, sizes );
+    (void) output_volume( output_filename, NC_UNSPECIFIED, FALSE,
+                          0.0, 0.0, new_volume, NULL, NULL );
 
-    n_voxels = sizes[X] * sizes[Y] * sizes[Z];
+    for_less( dim, 0, N_DIMENSIONS )
+    {
+        filter_start[dim] = -(sizes[dim]-1);
+        filter_end[dim] = sizes[dim]-1;
+        filter_size[dim] = filter_end[dim] - filter_start[dim] + 1;
+    }
+
+    ALLOC( weights, filter_size[2] );
 
     initialize_progress_report( &progress, FALSE,
-                                sizes[X] * sizes[Y] * sizes[Z], "Filtering" );
+                                filter_size[X] * filter_size[Y], "Filtering" );
 
-    weight = 1.0f;
+    exec = "./tmp.out";
+    source_file = "tmp_source.c";
 
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    for_less( z, 0, sizes[Z] )
+    for_less( xf, 0, filter_size[X] )
+    for_less( yf, 0, filter_size[Y] )
     {
-        value = (float) get_volume_real_value( volume, x, y, z, 0, 0 );
+        generate_filter( xf, yf, filter_start, filter_size, weights );
 
-        ptr = &float_ptr[0][0][0];
-        for_less( x1, 0, sizes[X] )
-        for_less( y1, 0, sizes[Y] )
-        {
-            ptr[0] += 0.3 * value;
-            ptr[1] += 0.4 * value;
-            ptr[2] += 0.5 * value;
-            ptr[3] += 0.2 * value;
-            ptr[4] += 0.1 * value;
-            ptr[5] += 0.2 * value;
-            ptr[6] += 0.1 * value;
-            ptr[7] += 0.1 * value;
-            ptr[8] += 0.5 * value;
-            ptr[9] += 0.2 * value;
-            ptr[10] += 0.5 * value;
-            ptr[11] += 0.1 * value;
-            ptr[12] += 0.2 * value;
-            ptr[13] += 0.5 * value;
-            ptr[14] += 0.1 * value;
-            ptr[15] += 0.2 * value;
-            ptr[16] += 0.1 * value;
-            ptr[17] += 0.2 * value;
-            ptr[18] += 0.1 * value;
-            ptr[19] += 0.1 * value;
-            ptr[20] += 0.5 * value;
-            ptr[21] += 0.2 * value;
-            ptr[22] += 0.5 * value;
-            ptr[23] += 0.1 * value;
-            ptr[24] += 0.1 * value;
-            ptr[25] += 0.1 * value;
-            ptr[26] += 0.1 * value;
-            ptr[27] += 0.2 * value;
-            ptr[28] += 0.1 * value;
-            ptr[29] += 0.1 * value;
-            ptr[30] += 0.2 * value;
-            ptr[31] += 0.1 * value;
-            ptr[32] += 0.1 * value;
-            ptr[33] += 0.5 * value;
-            ptr[34] += 0.2 * value;
-            ptr[35] += 0.1 * value;
-            ptr[36] += 0.5 * value;
-            ptr[37] += 0.5 * value;
-            ptr[38] += 0.1 * value;
-            ptr[39] += 0.1 * value;
-        }
+        generate_file( source_file, filter_size[Z], weights, sizes );
 
-        update_progress_report( &progress,
-                                z + 1 + sizes[Z] * (y + x * sizes[Y]) );
+        (void) sprintf( command, "cc -O3 %s -o %s", source_file, exec );
+        system( command );
+
+        unlink( source_file );
+
+        (void) sprintf( command, "%s %s %s", exec, input_filename,
+                        output_filename );
+        system( command );
+
+        unlink( exec );
+
+        update_progress_report( &progress, yf + xf * filter_size[Y] );
     }
 
     terminate_progress_report( &progress );
 
-    min_value = (Real) float_ptr[0][0][0];
-    max_value = (Real) float_ptr[0][0][0];
-
-    initialize_progress_report( &progress, FALSE,
-                                sizes[X] * sizes[Y], "Computing Range" );
-
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    {
-        for_less( z, 0, sizes[Z] )
-        {
-            if( (Real) float_ptr[x][y][z] < min_value )
-                min_value = (Real) float_ptr[x][y][z];
-            else if( (Real) float_ptr[x][y][z] > max_value )
-                max_value = (Real) float_ptr[x][y][z];
-        }
-
-        update_progress_report( &progress,
-                                y + 1 + x * sizes[Y] );
-    }
-
-
-    set_volume_real_range( new_volume, min_value, max_value );
-
-    (void) output_volume( output_filename, NC_BYTE, FALSE,
-                          0.0, 0.0, new_volume, NULL, NULL );
-
-
     return( 0 );
+}
+
+private  void  generate_filter(
+    int           x,
+    int           y,
+    int           filter_start[],
+    int           filter_sizes[],
+    Real          weights[] )
+{
 }

@@ -21,6 +21,7 @@ int  main(
     File_formats        format;
     int                 n_volumes, n_tag_points, n_objects, tag;
     Real                **tags1, **tags2, u1, v1, u2, v2, x, y, z;
+    Real                du, dv;
     FILE                *file1, *file2;
     Point               point, centre, unit_point;
     polygons_struct     *polygons, unit_sphere;
@@ -82,9 +83,9 @@ int  main(
 
         if( rotate_flag )
         {
-            x = RPoint_z( unit_point );
+            x = -RPoint_z( unit_point );
             y = RPoint_y( unit_point );
-            z = -RPoint_x( unit_point );
+            z = RPoint_x( unit_point );
         }
         else
         {
@@ -100,9 +101,9 @@ int  main(
 
         if( rotate_flag )
         {
-            x = RPoint_z( unit_point );
+            x = -RPoint_z( unit_point );
             y = RPoint_y( unit_point );
-            z = -RPoint_x( unit_point );
+            z = RPoint_x( unit_point );
         }
         else
         {
@@ -113,15 +114,23 @@ int  main(
 
         map_sphere_to_uv( x, y, z, &u2, &v2 );
 
+        du = u2 - u1;
+        if( du > 0.5 )
+            du = du - 1.0;
+        else if( du < -0.5 )
+            du = du + 1.0;
+
+        dv = v2 - v1;
+
         if( output_real( file1, tags1[tag][X] ) != OK ||
             output_real( file1, tags1[tag][Y] ) != OK ||
             output_real( file1, tags1[tag][Z] ) != OK ||
-            output_real( file1, u2 - u1 ) != OK ||
+            output_real( file1, du ) != OK ||
             output_newline( file1 ) != OK ||
             output_real( file2, tags1[tag][X] ) != OK ||
             output_real( file2, tags1[tag][Y] ) != OK ||
             output_real( file2, tags1[tag][Z] ) != OK ||
-            output_real( file2, v2 - v1 ) != OK ||
+            output_real( file2, dv ) != OK ||
             output_newline( file2 ) != OK )
             return( 1 );
     }

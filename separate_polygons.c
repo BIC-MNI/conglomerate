@@ -24,9 +24,9 @@ int  main(
     STRING           input_filename, output_prefix;
     char             out_filename[EXTREMELY_LARGE_STRING_SIZE];
     int              n_objects, n_out;
-    int              i, j, biggest, desired_index;
+    int              i, desired_index;
     File_formats     format;
-    object_struct    **object_list, **out, *tmp;
+    object_struct    **object_list, **out;
     polygons_struct  *polygons;
 
     initialize_argument_processing( argc, argv );
@@ -54,24 +54,12 @@ int  main(
 
     n_out = separate_polygons( polygons, desired_index, &out );
 
-    for_less( i, 0, n_out-1 )
-    {
-        biggest = i;
-        for_less( j, i+1, n_out )
-        {
-            if( get_polygons_ptr(out[j])->n_items >
-                get_polygons_ptr(out[biggest])->n_items )
-                biggest = j;
-        }
-
-        tmp = out[i];
-        out[i] = out[biggest];
-        out[biggest] = tmp;
-    }
-
     for_less( i, 0, n_out )
     {
-        (void) sprintf( out_filename, "%s_%d.obj", output_prefix, i+1 );
+        if( n_out == 1 )
+            (void) sprintf( out_filename, "%s", output_prefix );
+        else
+            (void) sprintf( out_filename, "%s_%d.obj", output_prefix, i+1 );
 
         (void) output_graphics_file( out_filename, format, 1, &out[i] );
     }
@@ -81,7 +69,8 @@ int  main(
 
 private  int   make_connected_components(
     polygons_struct    *polygons,
-    Smallest_int       polygon_classes[] )
+    Smallest_int       polygon_classes[],
+    int                n_in_class[] )
 {
     int                poly, current_poly, edge, size;
     int                neigh;
@@ -110,6 +99,7 @@ private  int   make_connected_components(
         INITIALIZE_QUEUE( queue );
         INSERT_IN_QUEUE( queue, poly );
         polygon_classes[poly] = (Smallest_int) n_components;
+        n_in_class[n_components] = 1;
 
         while( !IS_QUEUE_EMPTY(queue) )
         {
@@ -124,6 +114,7 @@ private  int   make_connected_components(
                     polygon_classes[neigh] == not_done )
                 {
                     polygon_classes[neigh] = (Smallest_int) n_components;
+                    ++n_in_class[n_components];
                     INSERT_IN_QUEUE( queue, neigh );
                 }
             }
@@ -142,24 +133,47 @@ private  int   separate_polygons(
     int                desired_index,
     object_struct      **out[] )
 {
-    int                point, ind, p_ind, poly, vertex, size;
-    int                point_index, *new_point_ids, n_objects, comp;
+    int                point, ind, p_ind, poly, vertex, size, i, j, tmp;
+    int                point_index, *new_point_ids, n_objects, comp, c;
+    int                biggest;
     Smallest_int       *poly_classes;
-    int                n_components;
+    int                n_components, *n_in_class, *ordered;
     polygons_struct    *new_poly;
 
     ALLOC( poly_classes, polygons->n_items );
+    ALLOC( n_in_class, 256 );
+    ALLOC( ordered, 256 );
 
-    n_components = make_connected_components( polygons, poly_classes );
+    n_components = make_connected_components( polygons, poly_classes,
+                                              n_in_class );
+
+    for_less( i, 0, n_components )
+        ordered[i] = i;
+
+    for_less( i, 0, n_components-1 )
+    {
+        biggest = i;
+        for_less( j, i+1, n_components )
+        {
+            if( n_in_class[ordered[j]] > n_in_class[ordered[biggest]] )
+                biggest = j;
+        }
+
+        tmp = ordered[i];
+        ordered[i] = ordered[biggest];
+        ordered[biggest] = tmp;
+    }
 
     ALLOC( new_point_ids, polygons->n_points );
 
     n_objects = 0;
 
-    for_less( comp, 0, n_components )
+    for_less( c, 0, n_components )
     {
-        if( desired_index >= 0 && comp != desired_index )
+        if( desired_index >= 0 && c != desired_index )
             continue;
+
+        comp = ordered[c];
 
         for_less( point, 0, polygons->n_points )
             new_point_ids[point] = -1;
@@ -275,6 +289,8 @@ private  int   separate_polygons(
 
     FREE( poly_classes );
     FREE( new_point_ids );
+    FREE( n_in_class );
+    FREE( ordered );
 
     return( n_objects );
 }

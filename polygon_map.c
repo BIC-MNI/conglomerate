@@ -11,7 +11,8 @@ int  main(
     File_formats         format;
     int                  i, n_points;
     int                  n_src_objects, n_dest_objects, n_objects;
-    Point                *points;
+    Point                *points, point;
+    Real                 x, y, z;
     object_struct        **objects, **src_objects, **dest_objects;
 
     initialize_argument_processing( argc, argv );
@@ -47,30 +48,69 @@ int  main(
                                             src_objects[0])->n_items *
                                     BINTREE_FACTOR ) );
 
-    while( get_string_argument( NULL, &input_filename ) &&
-           get_string_argument( NULL, &output_filename ) )
+    while( get_string_argument( NULL, &input_filename ) )
     {
-        if( input_objects_any_format( NULL, input_filename, WHITE, 1.0,
-                              SPHERE_MARKER, &n_objects, &objects ) != OK )
-
-            return( 1 );
-
-        for_less( i, 0, n_objects )
+        if( equal_strings( input_filename, "-" ) )
         {
-            n_points = get_object_points( objects[i], &points );
-
+            if( !get_real_argument( 0.0, &x ) ||
+                !get_real_argument( 0.0, &y ) ||
+                !get_real_argument( 0.0, &z ) )
+            {
+                print( "Missing x y z\n" );
+                return( 1 );
+            }
+            fill_Point( point, x, y, z );
             polygon_transform_points( get_polygons_ptr(src_objects[0]),
                                       get_polygons_ptr(dest_objects[0]),
-                                      n_points, points, points );
-
-            compute_polygon_normals( get_polygons_ptr(objects[i]) );
+                                      1, &point, &point );
+            print( "Transformed point: %g %g %g\n",
+                   RPoint_x( point ),
+                   RPoint_y( point ),
+                   RPoint_z( point ) );
         }
+        else
+        {
+            if( !get_string_argument( NULL, &output_filename ) )
+            {
+                print( "Missing output filename\n" );
+                return( 1 );
+            }
 
-        if( output_graphics_file( output_filename, ASCII_FORMAT, n_objects,
-                                  objects ) != OK )
-            return( 1 );
+            if( input_objects_any_format( NULL, input_filename, WHITE, 1.0,
+                              SPHERE_MARKER, &n_objects, &objects ) != OK )
 
-        delete_object_list( n_objects, objects );
+                return( 1 );
+
+            for_less( i, 0, n_objects )
+            {
+                n_points = get_object_points( objects[i], &points );
+
+                polygon_transform_points( get_polygons_ptr(src_objects[0]),
+                                          get_polygons_ptr(dest_objects[0]),
+                                          n_points, points, points );
+
+                
+                switch( get_object_type(objects[i]) )
+                {
+                case POLYGONS:
+                    compute_polygon_normals( get_polygons_ptr(objects[i]) );
+                    break;
+
+                case QUADMESH:
+                    compute_quadmesh_normals( get_quadmesh_ptr(objects[i]) );
+                    break;
+
+                default:
+                    break;
+                }
+            }
+
+            if( output_graphics_file( output_filename, ASCII_FORMAT, n_objects,
+                                      objects ) != OK )
+                return( 1 );
+
+            delete_object_list( n_objects, objects );
+        }
     }
 
     delete_object_list( n_src_objects, src_objects );

@@ -28,6 +28,7 @@ int  main(
     Real          *deriv[1], deriv_info[3], pos;
     Real          x_step, y_step, z_step, *sum, min_value, max_value;
     Real          voxel[N_DIMENSIONS], mag, value, hist;
+    Real          upper_limit;
     int           *count, n_x_steps, n_y_steps, n_z_steps;
     int           ignore_threshold;
 
@@ -43,6 +44,7 @@ int  main(
         return( 1 );
     }
 
+    (void) get_real_argument( 1e30, &upper_limit );
     (void) get_int_argument( 0, &ignore_threshold );
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
@@ -81,8 +83,11 @@ int  main(
         mag = deriv_info[0] * deriv_info[0] +
               deriv_info[1] * deriv_info[1] +
               deriv_info[2] * deriv_info[2];
+
+/*
         if( mag > 0.0 )
             mag = sqrt( mag );
+*/
 
         v_step = (int)
             ((value - min_value) / (max_value - min_value) * (Real) n_steps);
@@ -103,7 +108,8 @@ int  main(
         else
             hist = sum[step] / (Real) count[step];
 
-        print( "%g %g\n", pos, hist );
+        if( pos < upper_limit )
+            print( "%g %g\n", pos, hist );
     }
 
     FREE( count );

@@ -7,14 +7,22 @@ int  main(
 {
     STRING               surface_filename, unit_sphere_filename;
     STRING               output_filename;
+    STRING               input_values_filename, output_values_filename;
     int                  n_objects, n_triangles, p;
-    int                  n_s_objects, poly;
+    int                  n_s_objects, poly, size, i;
     Point                centre, *new_points, poly_point;
     File_formats         format;
     object_struct        **object_list, **s_object_list, *out_object;
-    Real                 dist;
+    Real                 dist, value, *in_values;
+    FILE                 *in_file, *out_file;
     polygons_struct      *surface, *dest_sphere, *sphere;
     progress_struct      progress;
+    BOOLEAN              values_specified;
+    Point                poly1_points[MAX_POINTS_PER_POLYGON];
+    Point                poly2_points[MAX_POINTS_PER_POLYGON];
+    Point                scaled_point;
+    Real                 weights[MAX_POINTS_PER_POLYGON];
+
 
     initialize_argument_processing( argc, argv );
 
@@ -27,6 +35,9 @@ int  main(
                      argv[0] );
         return( 1 );
     }
+
+    values_specified = get_string_argument( NULL, &input_values_filename ) &&
+                       get_string_argument( NULL, &output_values_filename );
 
     if( input_graphics_file( surface_filename, &format, &n_objects,
                              &object_list ) != OK ||
@@ -67,6 +78,30 @@ int  main(
                              ROUND( (Real) sphere->n_items * 0.7 ) );
 
     ALLOC( new_points, dest_sphere->n_points );
+
+    if( values_specified )
+    {
+        ALLOC( in_values, surface->n_points );
+        if( open_file( input_values_filename, READ_FILE, ASCII_FORMAT,
+                       &in_file ) != OK )
+            return( 1 );
+
+        for_less( p, 0, surface->n_points )
+        {
+            if( input_real( in_file, &in_values[p] ) != OK )
+            {
+                print_error( "Error reading values.\n" );
+                return( 1 );
+            }
+        }
+
+        (void) close_file( in_file );
+
+        if( open_file( output_values_filename, WRITE_FILE, ASCII_FORMAT,
+                       &out_file ) != OK )
+            return( 1 );
+    }
+
     initialize_progress_report( &progress, FALSE, dest_sphere->n_points,
                                 "Mapping" );
     for_less( p, 0, dest_sphere->n_points )
@@ -76,16 +111,47 @@ int  main(
 
         dist = distance_between_points( &poly_point, &dest_sphere->points[p] );
 
-        if( dist > 0.001 )
+        if( dist > 0.01 )
             print( "%d:  %g\n", p, dist );
+        
+        size = get_polygon_points( sphere, poly, poly1_points );
 
-        map_point_between_polygons( sphere, poly, &poly_point, surface,
-                                    &new_points[p] );
+        get_polygon_interpolation_weights( &poly_point, size, poly1_points,
+                                           weights );
+
+        if( get_polygon_points( surface, poly, poly2_points ) != size )
+            handle_internal_error( "map_point_between_polygons" );
+
+        fill_Point( new_points[p], 0.0, 0.0, 0.0 );
+        if( values_specified )
+            value = 0.0;
+
+        for_less( i, 0, size )
+        {
+            SCALE_POINT( scaled_point, poly2_points[i], weights[i] );
+            ADD_POINTS( new_points[p], new_points[p], scaled_point );
+            if( values_specified )
+                value += weights[i] * in_values[surface->indices[
+                            POINT_INDEX(surface->end_indices,poly,i)]];
+        }
+
+        if( values_specified )
+        {
+            if( output_real( out_file, value ) != OK ||
+                output_newline( out_file ) != OK )
+            {
+                print_error( "Error writing values.\n" );
+                return( 1 );
+            }
+        }
 
         update_progress_report( &progress, p+1 );
     }
 
     terminate_progress_report( &progress );
+
+    if( values_specified )
+        close_file( out_file );
 
     for_less( p, 0, dest_sphere->n_points )
         dest_sphere->points[p] = new_points[p];

@@ -13,9 +13,7 @@ private  void  flatten_polygons(
     Point            init_points[],
     Real             radius,
     Real             ratio,
-    BOOLEAN          min_specified,
-    Real             minimum_value,
-    Real             maximum_value,
+    Real             distance_weight,
     int              start_vertex,
     int              n_vertices_to_do,
     Real             weight,
@@ -29,13 +27,13 @@ int  main(
     int                  n_objects, n_i_objects, n_iters, poly;
     int                  *n_neighbours, **neighbours, n_points;
     int                  start_vertex, n_vertices_to_do;
-    Real                 radius, ratio, minimum_value, maximum_value;
+    Real                 radius, ratio, distance_weight;
     Real                 weight;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons, p;
     Point                *init_points, *points;
-    BOOLEAN              min_specified, init_specified;
+    BOOLEAN              init_specified;
 
     initialize_argument_processing( argc, argv );
 
@@ -51,10 +49,8 @@ int  main(
     (void) get_int_argument( 100, &n_iters );
     init_specified = get_string_argument( NULL, &initial_filename ) &&
                      !equal_strings( initial_filename, "-" );
+    (void) get_real_argument( 1.0, &distance_weight );
     (void) get_real_argument( 1.0, &ratio );
-    min_specified = get_real_argument( 0.0, &minimum_value ) &&
-                    get_real_argument( 0.0, &maximum_value ) &&
-                    minimum_value <= maximum_value;
 
     (void) get_int_argument( -1, &start_vertex );
     (void) get_int_argument( -1, &n_vertices_to_do );
@@ -107,8 +103,7 @@ int  main(
     delete_object_list( 1, object_list );
 
     flatten_polygons( n_points, points, n_neighbours, neighbours,
-                      init_points, radius, ratio,
-                      min_specified, minimum_value, maximum_value,
+                      init_points, radius, ratio, distance_weight,
                       start_vertex, n_vertices_to_do, weight, n_iters );
 
     p.n_points = n_points;
@@ -132,21 +127,46 @@ int  main(
 private  Real  evaluate_fit(
     int     n_parameters,
     dtype   parameters[],
+    Real    distance_weight,
+    dtype   distances[],
     dtype   volumes[],
     dtype   weights[],
     int     n_neighbours[],
     int     *neighbours[] )
 {
     int     p, n_points, n, p_index, ind, n_neighs;
-    int     n_index, next_index;
-    Real    fit, diff, weight;
+    int     n_index, next_index, neigh;
+    Real    fit, diff, weight, dist, act_dist;
     dtype   x1, y1, z1, vol;
     dtype   cx, cy, cz;
     dtype   dx2, dy2, dz2, dx3, dy3, dz3, dx4, dy4, dz4;
+    Real    dx, dy, dz;
 
     fit = 0.0;
 
     n_points = n_parameters / 3;
+
+    ind = 0;
+    for_less( p, 0, n_points )
+    {
+        for_less( n, 0, n_neighbours[p] )
+        {
+            neigh = neighbours[p][n];
+            if( neigh < p )
+                continue;
+
+            dist = (Real) distances[ind];
+            ++ind;
+
+            dx = (Real)parameters[IJ(p,0,3)] - (Real)parameters[IJ(neigh,0,3)];
+            dy = (Real)parameters[IJ(p,1,3)] - (Real)parameters[IJ(neigh,1,3)];
+            dz = (Real)parameters[IJ(p,2,3)] - (Real)parameters[IJ(neigh,2,3)];
+            act_dist = dx * dx + dy * dy + dz * dz;
+            diff = dist - act_dist;
+            fit += diff * diff;
+        }
+    }
+    fit *= distance_weight;
 
     ind = 0;
     for_less( p, 0, n_points )
@@ -202,6 +222,8 @@ private  Real  evaluate_fit(
 private  void  evaluate_fit_derivative(
     int      n_parameters,
     dtype    parameters[],
+    Real     distance_weight,
+    dtype    distances[],
     dtype    volumes[],
     dtype    weights[],
     int      n_neighbours[],
@@ -209,15 +231,65 @@ private  void  evaluate_fit_derivative(
     dtype    deriv[] )
 {
     int     p, n_points, n, p_index, prev_index, ind;
-    int     n_index, next_index;
+    int     n_index, next_index, neigh;
     dtype   x1, y1, z1, x2, y2, z2, vol, d2, diff;
     dtype   x3, y3, z3, cx, cy, cz, x4, y4, z4;
     dtype   dx2, dy2, dz2, dx3, dy3, dz3, dx4, dy4, dz4;
+    Real    rx1, ry1, rz1, rx2, ry2, rz2;
+    Real    dx, dy, dz, act_dist, dist;
+    Real    x_deriv, y_deriv, z_deriv, factor;
 
     for_less( p, 0, n_parameters )
         deriv[p] = (dtype) 0.0;
 
     n_points = n_parameters / 3;
+
+    ind = 0;
+    for_less( p, 0, n_points )
+    {
+        p_index = IJ(p,0,3);
+        rx1 = (Real) parameters[p_index+0];
+        ry1 = (Real) parameters[p_index+1];
+        rz1 = (Real) parameters[p_index+2];
+
+        x_deriv = 0.0;
+        y_deriv = 0.0;
+        z_deriv = 0.0;
+
+        for_less( n, 0, n_neighbours[p] )
+        {
+            neigh = neighbours[p][n];
+            if( neigh < p )
+                continue;
+
+            dist = (Real) distances[ind];
+            ++ind;
+
+            n_index = IJ(neigh,0,3);
+            rx2 = (Real) parameters[n_index+0];
+            ry2 = (Real) parameters[n_index+1];
+            rz2 = (Real) parameters[n_index+2];
+
+            dx = rx1 - rx2;
+            dy = ry1 - ry2;
+            dz = rz1 - rz2;
+            act_dist = dx * dx + dy * dy + dz * dz;
+            factor = 4.0 * distance_weight * (act_dist - dist);
+            dx *= factor;
+            dy *= factor;
+            dz *= factor;
+            x_deriv += dx;
+            y_deriv += dy;
+            z_deriv += dz;
+            deriv[n_index+0] += (dtype) -dx;
+            deriv[n_index+1] += (dtype) -dy;
+            deriv[n_index+2] += (dtype) -dz;
+        }
+
+        deriv[p_index+0] += (dtype) x_deriv;
+        deriv[p_index+1] += (dtype) y_deriv;
+        deriv[p_index+2] += (dtype) z_deriv;
+    }
 
     ind = 0;
     for_less( p, 0, n_points )
@@ -294,6 +366,8 @@ private  Real  evaluate_fit_along_line(
     dtype   line_dir[],
     dtype   buffer[],
     Real    dist,
+    Real    distance_weight,
+    dtype   distances[],
     dtype   volumes[],
     dtype   weights[],
     int     n_neighbours[],
@@ -305,8 +379,8 @@ private  Real  evaluate_fit_along_line(
     for_less( p, 0, n_parameters )
         buffer[p] = (float) ( (Real) parameters[p] + dist * (Real) line_dir[p]);
 
-    fit = evaluate_fit( n_parameters, buffer, volumes, weights,
-                        n_neighbours, neighbours );
+    fit = evaluate_fit( n_parameters, buffer, distance_weight, distances,
+                        volumes, weights, n_neighbours, neighbours );
 
     return( fit );
 }
@@ -318,6 +392,8 @@ private  Real  minimize_along_line(
     int     n_parameters,
     dtype   parameters[],
     dtype   line_dir[],
+    Real    distance_weight,
+    dtype   distances[],
     dtype   volumes[],
     dtype   weights[],
     int     n_neighbours[],
@@ -345,6 +421,7 @@ private  Real  minimize_along_line(
 
         f0 = evaluate_fit_along_line( n_parameters, parameters, line_dir,
                                       test_parameters, t0,
+                                      distance_weight, distances,
                                       volumes, weights,
                                       n_neighbours, neighbours );
     }
@@ -360,6 +437,7 @@ private  Real  minimize_along_line(
 
         f2 = evaluate_fit_along_line( n_parameters, parameters, line_dir,
                                       test_parameters, t2,
+                                      distance_weight, distances,
                                       volumes, weights,
                                       n_neighbours, neighbours );
     }
@@ -372,6 +450,7 @@ private  Real  minimize_along_line(
 
         f_next = evaluate_fit_along_line( n_parameters, parameters, line_dir,
                                           test_parameters, t_next,
+                                          distance_weight, distances,
                                           volumes, weights,
                                           n_neighbours, neighbours );
 
@@ -525,9 +604,7 @@ private  void  flatten_polygons(
     Point            init_points[],
     Real             radius,
     Real             ratio,
-    BOOLEAN          min_specified,
-    Real             minimum_value,
-    Real             maximum_value,
+    Real             distance_weight,
     int              start_vertex,
     int              n_vertices_to_do,
     Real             weight,
@@ -538,10 +615,10 @@ private  void  flatten_polygons(
     Real             len, step, d_orig, d_sphere;
     Point            p1, p2, p3, p4;
     Vector           v2, v3, v4, cross;
-    int              iter, update_rate, n, total_neighbours, n_affected;
+    int              iter, update_rate, n, total_neighbours;
     int              *queue, current, n_done, nn;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *volumes;
-    dtype            *weights, **start_weights;
+    dtype            *weights, **start_weights, *distances;
     BOOLEAN          init_supplied, changed, debug, testing;
 
     debug = getenv( "DEBUG" ) != NULL;
@@ -556,7 +633,6 @@ private  void  flatten_polygons(
 
     ALLOC( volumes, total_neighbours );
 
-    n_affected = 0;
     ind = 0;
     for_less( point, 0, n_points )
     {
@@ -584,33 +660,9 @@ private  void  flatten_polygons(
 
             volumes[ind] = (float) (d_orig + (d_sphere - d_orig) * ratio);
 
-            if( min_specified )
-            {
-                if( d_orig < minimum_value && d_sphere > d_orig )
-                {
-                    volumes[ind] = MIN( (float) minimum_value, volumes[ind] );
-                    ++n_affected;
-                }
-                else if( d_orig > maximum_value && d_sphere < d_orig )
-                {
-                    volumes[ind] = MAX( (float) maximum_value, volumes[ind] );
-                    ++n_affected;
-                }
-                else
-                    volumes[ind] = (float) d_orig;
-            }
-            else
-                volumes[ind] = (float) (d_orig + (d_sphere - d_orig) * ratio);
-
-            if( getenv( "FLAT" ) != NULL )
-                volumes[ind] /= 2.0f;
-
             ++ind;
         }
     }
-
-    if( min_specified )
-        print( "N to be brought up to the minimum %d\n", n_affected );
 
     ALLOC( weights, total_neighbours );
     for_less( p, 0, total_neighbours )
@@ -621,8 +673,9 @@ private  void  flatten_polygons(
         ALLOC( start_weights, n_points );
         start_weights[0] = weights;
         for_less( point, 1, n_points )
+            start_weights[point] =
+                 &start_weights[point-1][n_neighbours[point-1]];
 
-        start_weights[point] = &start_weights[point-1][n_neighbours[point-1]];
         ALLOC( queue, n_points );
         queue[0] = start_vertex;
         for_less( n, 0, n_neighbours[start_vertex] )
@@ -655,6 +708,19 @@ private  void  flatten_polygons(
         FREE( start_weights );
     }
 
+    ALLOC( distances, total_neighbours );
+    ind = 0;
+    for_less( point, 0, n_points )
+    {
+        for_less( n, 0, n_neighbours[point] )
+        {
+            distances[ind] = (dtype) sq_distance_between_points(
+                                       &points[point],
+                                       &points[neighbours[point][n]] );
+            ++ind;
+        }
+    }
+
     n_parameters = 3 * n_points;
 
     ALLOC( parameters, n_parameters );
@@ -673,13 +739,15 @@ private  void  flatten_polygons(
     if( init_supplied )
         FREE( init_points );
 
-    fit = evaluate_fit( n_parameters, parameters, volumes, weights,
-                        n_neighbours, neighbours );
+    fit = evaluate_fit( n_parameters, parameters, distance_weight, distances,
+                        volumes, weights, n_neighbours, neighbours );
 
     print( "Initial  %g\n", fit );
     (void) flush_file( stdout );
 
-    evaluate_fit_derivative( n_parameters, parameters, volumes, weights,
+    evaluate_fit_derivative( n_parameters, parameters,
+                             distance_weight, distances,
+                             volumes, weights,
                              n_neighbours, neighbours, xi );
 
     if( getenv( "STEP" ) != NULL && sscanf( getenv("STEP"), "%lf", &step ) == 1)
@@ -696,10 +764,12 @@ private  void  flatten_polygons(
         {
             save = parameters[p];
             parameters[p] = (dtype) ((Real) save - step);
-            f1 = evaluate_fit( n_parameters, parameters, volumes, weights,
+            f1 = evaluate_fit( n_parameters, parameters, distance_weight,
+                               distances, volumes, weights,
                                n_neighbours, neighbours );
             parameters[p] = (dtype) ((Real) save + step);
-            f2 = evaluate_fit( n_parameters, parameters, volumes, weights,
+            f2 = evaluate_fit( n_parameters, parameters, distance_weight,
+                               distances, volumes, weights,
                                n_neighbours, neighbours );
             parameters[p] = save;
 
@@ -744,6 +814,7 @@ private  void  flatten_polygons(
         }
 
         fit = minimize_along_line( fit, n_parameters, parameters, unit_dir,
+                                   distance_weight, distances,
                                    volumes, weights, n_neighbours, neighbours,
                                    &changed );
 
@@ -767,7 +838,8 @@ private  void  flatten_polygons(
             last_update_time = current_time;
         }
 
-        evaluate_fit_derivative( n_parameters, parameters, volumes, weights,
+        evaluate_fit_derivative( n_parameters, parameters,
+                                 distance_weight, distances,  volumes, weights,
                                  n_neighbours, neighbours, xi );
 
         if( testing )
@@ -779,10 +851,12 @@ private  void  flatten_polygons(
             {
                 save = parameters[p];
                 parameters[p] = (dtype) ((Real) save - step);
-                f1 = evaluate_fit( n_parameters, parameters, volumes, weights,
+                f1 = evaluate_fit( n_parameters, parameters, distance_weight,
+                                   distances, volumes, weights,
                                    n_neighbours, neighbours );
                 parameters[p] = (dtype) ((Real) save + step);
-                f2 = evaluate_fit( n_parameters, parameters, volumes, weights,
+                f2 = evaluate_fit( n_parameters, parameters, distance_weight,
+                                   distances, volumes, weights,
                                    n_neighbours, neighbours );
                 parameters[p] = save;
 
@@ -830,6 +904,7 @@ private  void  flatten_polygons(
                     parameters[IJ(point,2,3)] );
     }
 
+    FREE( distances );
     FREE( volumes );
     FREE( weights );
     FREE( parameters );

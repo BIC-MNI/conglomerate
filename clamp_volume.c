@@ -58,14 +58,14 @@ int  main(
     get_volume_voxel_range( volume, &min_voxel, &max_voxel );
 
     set_low = convert_value_to_voxel( volume, min_threshold );
-    set_low = ROUND( set_low );
+    set_low = (Real) ROUND( set_low );
     while( convert_voxel_to_value( volume, set_low ) > min_threshold )
         set_low -= 1.0;
     if( set_low < min_voxel )
         set_low = min_voxel;
 
     set_high = convert_value_to_voxel( volume, max_threshold );
-    set_high = ROUND( set_high );
+    set_high = (Real) ROUND( set_high );
     while( convert_voxel_to_value( volume, set_high ) < max_threshold )
         set_high += 1.0;
     if( set_high > max_voxel )
@@ -105,7 +105,7 @@ int  main(
                 Threshold_types  type;
                 Real             value;
 
-                GET_VALUE_3D( value, volume, x + slice, y, z );
+                value = get_volume_real_value( volume, x + slice, y, z, 0, 0 );
 
                 if( value < min_threshold )
                     type = BELOW_THRESHOLD;
@@ -194,7 +194,7 @@ private   void  check_neighbours(
     BOOLEAN          change;
     Threshold_types  type, desired_type;
 
-    desired_type = flags[1][y][z];
+    desired_type = (Threshold_types) flags[1][y][z];
     if( desired_type == WITHIN_THRESHOLD )
         return;
 
@@ -205,7 +205,7 @@ private   void  check_neighbours(
         {
             for_inclusive( dz, dz_min, dz_max )
             {
-                type = flags[1+dx][y+dy][z+dz];
+                type = (Threshold_types) flags[1+dx][y+dy][z+dz];
                 if( desired_type != type )
                 {
                     change = FALSE;

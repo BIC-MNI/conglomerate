@@ -783,6 +783,7 @@ private  void  fit_curve(
 {
     int                p, n_iterations;
     Real               *parameters, range_tolerance, domain_tolerance, fit;
+    Real               line_min_range_tolerance, line_min_domain_tolerance;
     func_data_struct   data;
 
     stretch_weight *= (Real) n_points / (Real) (n_cvs-1);
@@ -802,6 +803,8 @@ private  void  fit_curve(
 
     range_tolerance = 1.0e-3;
     domain_tolerance = 1.0e-3;
+    line_min_range_tolerance = 1.0e-3;
+    line_min_domain_tolerance = 1.0e-3;
     n_iterations = 300;
 
     data.n_segments = n_cvs-1;
@@ -813,7 +816,10 @@ private  void  fit_curve(
     fit = conjugate_minimize_function( 3 * n_cvs, parameters,
                                        function, function_deriv,
                                        (void *) &data, range_tolerance,
-                                       domain_tolerance, n_iterations, 2,
+                                       domain_tolerance,
+                                       line_min_range_tolerance,
+                                       line_min_domain_tolerance,
+                                       n_iterations, 2,
                                        parameters );
 
     for_less( p, 0, n_cvs )

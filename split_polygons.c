@@ -23,10 +23,11 @@ int  main(
     int    argc,
     char   *argv[] )
 {
+    FILE             *file;
     STRING           input_filename, output1_filename, output2_filename;
     STRING           translation_filename;
     int              n_objects, *translation1, *translation2;
-    int              n_in_half;
+    int              n_in_half, p;
     File_formats     format;
     object_struct    **object_list, *object1, *object2;
     polygons_struct  *polygons;
@@ -73,6 +74,29 @@ int  main(
                                  1, &object1 );
     (void) output_graphics_file( output2_filename, format,
                                  1, &object2 );
+
+    if( translation_filename != NULL )
+    {
+        if( open_file( translation_filename, WRITE_FILE, BINARY_FORMAT,
+                       &file ) != OK )
+            return( 1 );
+
+        for_less( p, 0, get_polygons_ptr(object1)->n_points )
+        {
+            if( io_int( file, WRITE_FILE, BINARY_FORMAT, &translation1[p] ) !=
+                        OK )
+                return( 1 );
+        }
+
+        for_less( p, 0, get_polygons_ptr(object2)->n_points )
+        {
+            if( io_int( file, WRITE_FILE, BINARY_FORMAT, &translation2[p] ) !=
+                        OK )
+                return( 1 );
+        }
+
+        (void) close_file( file );
+    }
 
     return( 0 );
 }
@@ -148,15 +172,51 @@ private  BOOLEAN   can_include(
     return( n_connected == n_neighbours );
 }
 
+private  int  count_neighbours_included(
+    polygons_struct    *polygons,
+    int                poly,
+    Smallest_int       included[],
+    int                *n_borders )
+{
+    int      size, neigh_poly, vertex, n_polys, p, n_included, polys[10000];
+    BOOLEAN  closed_flag;
+
+    n_included = 0;
+
+    *n_borders = 0;
+    size = GET_OBJECT_SIZE( *polygons, poly );
+    for_less( vertex, 0, size )
+    {
+        neigh_poly = polygons->neighbours[
+                        POINT_INDEX(polygons->end_indices,poly,vertex)];
+        if( neigh_poly >= 0 && included[neigh_poly] )
+            ++(*n_borders);
+
+        n_polys = get_polygons_around_vertex( polygons, poly, vertex,
+                                              polys, 10000, &closed_flag );
+
+        for_less( p, 0, n_polys )
+        {
+            if( included[polys[p]] )
+                ++n_included;
+        }
+    }
+
+    return( n_included - *n_borders );
+}
+
 private  int   assign_included(
     polygons_struct    *polygons,
     Smallest_int       included[] )
 {
-    int                init_poly, poly, neigh_poly, size;
-    int                n_included, edge;
-    Smallest_int       *connected;
-    BOOLEAN            found;
-    QUEUE_STRUCT(int)  queue;
+    int                         init_poly, poly, neigh_poly, size;
+    int                         n_included, edge, n_neighbours_included;
+    int                         n_borders;
+    Real                        priority, next_priority;
+    Smallest_int                *connected;
+    BOOLEAN                     found;
+    PRIORITY_QUEUE_STRUCT(int)  queue;
+    progress_struct             progress;
 
     found = FALSE;
     init_poly = -1;
@@ -189,15 +249,19 @@ private  int   assign_included(
     for_less( poly, 0, polygons->n_items )
         included[poly] = (Smallest_int) FALSE;
 
-    INITIALIZE_QUEUE( queue );
-    INSERT_IN_QUEUE( queue, init_poly );
+    INITIALIZE_PRIORITY_QUEUE( queue );
+    INSERT_IN_PRIORITY_QUEUE( queue, init_poly, -0.5 );
     included[init_poly] = (Smallest_int) TRUE;
     n_included = 1;
 
+    initialize_progress_report( &progress, FALSE, polygons->n_items / 2,
+                                "Splitting" );
+
     while( n_included < polygons->n_items / 2 &&
-           !IS_QUEUE_EMPTY( queue ) )
+           !IS_PRIORITY_QUEUE_EMPTY( queue ) )
     {
-        REMOVE_FROM_QUEUE( queue, poly );
+        REMOVE_FROM_PRIORITY_QUEUE( queue, poly, priority );
+        priority = -priority;
 
         size = GET_OBJECT_SIZE( *polygons, poly );
         for_less( edge, 0, size )
@@ -209,14 +273,24 @@ private  int   assign_included(
                 !included[neigh_poly] &&
                 can_include( polygons, neigh_poly, included, connected ) )
             {
-                INSERT_IN_QUEUE( queue, neigh_poly );
+                n_neighbours_included = count_neighbours_included(
+                                             polygons, neigh_poly, included,
+                                             &n_borders );
+                next_priority = (Real) ((int) priority + 1) + 1.0 -
+                                (Real) n_borders / 100.0 -
+                                (Real) n_neighbours_included / 10000.0;
+                INSERT_IN_PRIORITY_QUEUE( queue, neigh_poly,
+                                          -next_priority );
                 included[neigh_poly] = (Smallest_int) TRUE;
                 ++n_included;
+                update_progress_report( &progress, n_included - 1 );
             }
         }
     }
 
-    DELETE_QUEUE( queue );
+    terminate_progress_report( &progress );
+
+    DELETE_PRIORITY_QUEUE( queue );
 
     FREE( connected );
 
@@ -240,16 +314,16 @@ private  int   split_polygons(
 
     n_included = assign_included( polygons, included );
 
+    ALLOC( translation[0], polygons->n_items );
+    ALLOC( translation[1], polygons->n_items );
     for_less( p, 0, polygons->n_points )
     {
-        translation1[p] = -1;
-        translation2[p] = -1;
+        translation[0][p] = -1;
+        translation[1][p] = -1;
     }
 
     out[0] = out1;
     out[1] = out2;
-    translation[0] = translation1;
-    translation[1] = translation2;
     n_indices[0] = 0;
     n_indices[1] = 0;
 
@@ -286,6 +360,24 @@ private  int   split_polygons(
     }
 
     FREE( included );
+
+    for_less( p, 0, polygons->n_points )
+    {
+        translation1[p] = -1;
+        translation2[p] = -1;
+    }
+
+    for_less( p, 0, polygons->n_points )
+    {
+        if( translation[0][p] >= 0 )
+            translation1[translation[0][p]] = p;
+
+        if( translation[1][p] >= 0 )
+            translation2[translation[1][p]] = p;
+    }
+
+    FREE( translation[0] );
+    FREE( translation[1] );
 
     return( n_included );
 }

@@ -1,8 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#undef   USING_FLOAT
 #define  USING_FLOAT
+#undef   USING_FLOAT
 
 #ifdef USING_FLOAT
 
@@ -340,11 +340,11 @@ private  void  create_coefficients(
     ftype            **cross_terms[] )
 {
     int              dim, n_nodes_in, n_parameters, n, nn, point;
-    int              max_neighbours, next_n;
+    int              max_neighbours, next_n, offset, tmp;
     int              indices[6], nodes[3], dim2, n_to_do;
     Real             con, node_weights[6], x, y;
     Real             weights[2][3][2], len;
-    Point            *flat;
+    Point            *flat, flat_point[3], tmp_point;
     Vector           v12, v13, v12_rotated;
     BOOLEAN          found;
     progress_struct  progress;
@@ -393,11 +393,30 @@ private  void  create_coefficients(
             nodes[0] = point;
             nodes[1] = neighbours[point][nn];
             nodes[2] = neighbours[point][next_n];
+            fill_Point( flat_point[0], 0.0, 0.0, 0.0 );
+            flat_point[1] = flat[nn];
+            flat_point[2] = flat[next_n];
 
-            CONVERT_POINT_TO_VECTOR( v12, flat[nn] );
-            CONVERT_POINT_TO_VECTOR( v13, flat[next_n] );
+            for_less( offset, 0, 3 )
+            {
+            tmp = nodes[0];
+            nodes[0] = nodes[1];
+            nodes[1] = nodes[2];
+            nodes[2] = tmp;
+
+            tmp_point = flat_point[0];
+            flat_point[0] = flat_point[1];
+            flat_point[1] = flat_point[2];
+            flat_point[2] = tmp_point;
+
+            SUB_POINTS( v12, flat_point[1], flat_point[0] );
+            SUB_POINTS( v13, flat_point[2], flat_point[0] );
 
             len = DOT_VECTORS( v12, v12 );
+
+            if( len == 0.0 )
+                continue;
+
             x = DOT_VECTORS( v12, v13 ) / len;
 
             fill_Vector( v12_rotated, -Vector_y(v12), Vector_x(v12), 0.0 );
@@ -417,6 +436,7 @@ private  void  create_coefficients(
             weights[1][2][0] = 0.0;
             weights[1][2][1] = 1.0;
 
+#define DEBUG
 #ifdef DEBUG
 {
     Real  sum;
@@ -428,10 +448,7 @@ private  void  create_coefficients(
         for_less( n, 0, 3 )
         for_less( dim2, 0, 2 )
         {
-            if( n == 1 )
-                sum += RPoint_coord( flat[nn], dim2 ) * weights[dim][n][dim2];
-            else if( n == 2 )
-                sum += RPoint_coord(flat[next_n],dim2) * weights[dim][n][dim2];
+            sum += RPoint_coord( flat_point[n], dim2 ) * weights[dim][n][dim2];
         }
 
         if( sum > 1.0e-3 || sum < -1.0e-3 )
@@ -472,6 +489,7 @@ private  void  create_coefficients(
                 ADD_TO_LSQ( n_parameters, constant, *linear_terms, *square_terms,
                             *n_cross_terms, *cross_parms, *cross_terms,
                             n_nodes_in, indices, node_weights, con, 5 );
+            }
             }
         }
 
@@ -594,6 +612,10 @@ private  void  flatten_polygons(
                               interior_flags, flat );
 
         n_fixed = n_neighbours[which]+1;
+
+        if( getenv( "TRIANGLE" ) != NULL )
+            n_fixed = 2;
+
         ALLOC( fixed_indices, n_fixed );
         ALLOC( fixed_pos[0], n_fixed );
         ALLOC( fixed_pos[1], n_fixed );
@@ -605,10 +627,20 @@ private  void  flatten_polygons(
         fixed_pos[0][0] = 0.0;
         fixed_pos[1][0] = 0.0;
 
-        for_less( n, 0, n_fixed-1 )
+        if( getenv( "TRIANGLE" ) != NULL )
         {
-            fixed_pos[0][1+n] = RPoint_x(flat[n]);
-            fixed_pos[1][1+n] = RPoint_y(flat[n]);
+            fixed_pos[0][1] = distance_between_points(
+                                                &points[fixed_indices[1]],
+                                                &points[fixed_indices[0]] );
+            fixed_pos[1][1] = 0.0;
+        }
+        else
+        {
+            for_less( n, 0, n_fixed-1 )
+            {
+                fixed_pos[0][1+n] = RPoint_x(flat[n]);
+                fixed_pos[1][1+n] = RPoint_y(flat[n]);
+            }
         }
 
         FREE( flat );
@@ -688,11 +720,19 @@ private  void  flatten_polygons(
         {
             if( init_points == NULL )
             {
+if( getenv( "ZERO" ) != NULL )
+{
+    parameters[2*to_parameters[point]] = 0.0f;
+    parameters[2*to_parameters[point]+1] = 0.0f;
+}
+else
+{
                 SUB_POINTS( offset, points[point], points[which] );
                 parameters[2*to_parameters[point]] =
                                DOT_VECTORS( offset, x_dir );
                 parameters[2*to_parameters[point]+1] =
                                DOT_VECTORS( offset, y_dir );
+}
             }
             else
             {

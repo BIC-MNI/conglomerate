@@ -1,6 +1,9 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#define  MIN_INTERP .45
+#define  MAX_INTERP .55
+
 private  void  usage(
     STRING   executable )
 {
@@ -21,7 +24,7 @@ int  main(
     STRING              u2_filename, v2_filename;
     File_formats        format;
     int                 n_objects, p;
-    Real                u, v, u_off, v_off, x, y, z, t1, t2;
+    Real                u, v, u_off, v_off, x, y, z, t1;
     Real                len;
     FILE                *u1_file, *u2_file, *v1_file, *v2_file;
     Point               centre, unit_point, *new_points, trans_point;
@@ -95,10 +98,9 @@ int  main(
         y = RPoint_y( unit_point );
         z = RPoint_z( unit_point );
 
-        t1 = FABS( z );
-        t2 = FABS( x );
-
         map_sphere_to_uv( x, y, z, &u, &v );
+
+        t1 = 2.0 * FABS( (v - 0.5) );
 
         u += u_off;
         v += v_off;
@@ -150,23 +152,12 @@ int  main(
 
             fill_Point( trans_point2, z, y, -x );
 
-            if( t1 == 0.0 && t2 == 0.0 )
-                ratio = 0.5;
-            else
-            {
-                ratio = t1 / (t1 + t2);
-                if( ratio < 0.0 )
-                    ratio = 0.0;
-                else if( ratio > 1.0 )
-                    ratio = 1.0;
-            }
-
-            if( ratio < 0.4 )
+            if( t1 <= MIN_INTERP )
                 ratio = 0.0;
-            else if( ratio > 0.6 )
+            else if( t1 >= MAX_INTERP )
                 ratio = 1.0;
             else
-                ratio = (ratio - 0.4) / 0.2;
+                ratio = (t1 - MIN_INTERP) / (MAX_INTERP - MIN_INTERP);
 
             INTERPOLATE_POINTS( trans_point, trans_point, trans_point2, ratio );
 

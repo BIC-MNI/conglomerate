@@ -6,10 +6,10 @@ int  main(
     char   *argv[] )
 {
     Real           x, y, z, dist, best_dist;
-    Point          position, *points;
+    Point          position, *points, p;
     Status         status;
     STRING         input_filename;
-    int            i, n_objects, ind, n_points;
+    int            i, n_objects, ind, n_points, best_poly, n_items;
     File_formats   format;
     object_struct  **object_list;
 
@@ -48,6 +48,23 @@ int  main(
             Point_x(points[ind]),
             Point_y(points[ind]),
             Point_z(points[ind]), best_dist );
+
+    if( get_object_type( object_list[0] ) == POLYGONS )
+    {
+        n_items = get_polygons_ptr( object_list[0] )->n_items;
+        best_dist = 0.0;
+        for_less( i, 0, n_items )
+        {
+            dist = get_point_object_distance_sq( &position, object_list[0], i, &p );
+            if( i == 0 || dist < best_dist )
+            {
+                best_dist = dist;
+                best_poly = i;
+            }
+        }
+
+        print( "Closest polygon: %d\n", best_poly );
+    }
 
     return( status != OK );
 }

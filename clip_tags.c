@@ -165,6 +165,13 @@ int  main(
                             "Clipping" );
 #endif
 
+    new_tags1 = NULL;
+    new_tags2 = NULL;
+    new_weights = NULL;
+    new_structure_ids = NULL;
+    new_patient_ids = NULL;
+    new_labels = NULL;
+
     for_less( i, 0, n_tag_points )
     {
         fill_Point( point, tags1[i][X], tags1[i][Y], tags1[i][Z] );
@@ -288,7 +295,7 @@ int  main(
         else
             handle_internal_error( "Oh oh\n" );
 
-        if( Vector_y( princ_normal ) < 0.0 )
+        if( Vector_y( princ_normal ) < 0.0f )
             SCALE_VECTOR( princ_normal, princ_normal, -1.0 );
 
         NORMALIZE_VECTOR( princ_normal, princ_normal );
@@ -524,9 +531,9 @@ private  Real  get_voxel_plane_volume(
     convert_3D_world_to_voxel( volume, x, y, z,
                                 &voxel[0], &voxel[1], &voxel[2] );
 
-    voxel[0] = ROUND( voxel[0] );
-    voxel[1] = ROUND( voxel[1] );
-    voxel[2] = ROUND( voxel[2] );
+    voxel[0] = (Real) ROUND( voxel[0] );
+    voxel[1] = (Real) ROUND( voxel[1] );
+    voxel[2] = (Real) ROUND( voxel[2] );
 
     axis = X;
     a1 = (axis + 1) % N_DIMENSIONS;
@@ -683,9 +690,9 @@ private  void   get_plane_normal(
 
     make_rotation_transform( angle * DEG_TO_RAD, X, &transform );
     transform_vector( &transform,
-                      Vector_x(*base_normal),
-                      Vector_y(*base_normal),
-                      Vector_z(*base_normal),
+                      (Real) Vector_x(*base_normal),
+                      (Real) Vector_y(*base_normal),
+                      (Real) Vector_z(*base_normal),
                       &x, &y, &z );
     fill_Vector( *normal, x, y, z );
 

@@ -32,7 +32,7 @@ int  main(
     if( !get_string_argument( NULL, &src_filename ) ||
         !get_string_argument( NULL, &dest_filename ) )
     {
-        print_error( "Usage: %s  input.obj output.obj [cw] [sw] [n_iters]\n",
+        print_error( "Usage: %s  input.obj output.obj [n_iters] [init]\n",
                      argv[0] );
         return( 1 );
     }
@@ -113,57 +113,57 @@ private  Real  evaluate_fit(
     int     n_neighbours[],
     int     *neighbours[] )
 {
-    int     p, n_points, n, neigh, p_index, ind;
-    int     n_index, prev, next, prev_index, next_index;
+    int     p, n_points, n, p_index;
+    int     n_index, next_index;
     Real    fit, diff;
     dtype   nx, ny, nz, x1, y1, z1, x2, y2, z2, vol;
-    dtype   x3, y3, z3, x4, y4, z4;
+    dtype   x3, y3, z3, cx, cy, cz;
 
     fit = 0.0;
 
     n_points = n_parameters / 3;
 
-    ind = 0;
     for_less( p, 0, n_points )
     {
         p_index = IJ(p,0,3);
         x1 = parameters[p_index+0];
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
+        nx = 0.0f;
+        ny = 0.0f;
+        nz = 0.0f;
+        cx = 0.0f;
+        cy = 0.0f;
+        cz = 0.0f;
 
         for_less( n, 0, n_neighbours[p] )
         {
-            neigh = neighbours[p][n];
-            if( neigh < p )
-                continue;
+            n_index = IJ(neighbours[p][n],0,3);
+            x2 = parameters[n_index+0];
+            y2 = parameters[n_index+1];
+            z2 = parameters[n_index+2];
 
-            n_index = IJ(neigh,0,3);
-            x3 = parameters[n_index+0];
-            y3 = parameters[n_index+1];
-            z3 = parameters[n_index+2];
+            next_index = IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
+            x3 = parameters[next_index+0];
+            y3 = parameters[next_index+1];
+            z3 = parameters[next_index+2];
 
-            prev = neighbours[p][(n-1+n_neighbours[p])%n_neighbours[p]];
-            prev_index = IJ(prev,0,3);
-            x2 = parameters[prev_index+0];
-            y2 = parameters[prev_index+1];
-            z2 = parameters[prev_index+2];
+            cx += x2;
+            cy += y2;
+            cz += z2;
 
-            next = neighbours[p][(n+1)%n_neighbours[p]];
-            next_index = IJ(next,0,3);
-            x4 = parameters[next_index+0];
-            y4 = parameters[next_index+1];
-            z4 = parameters[next_index+2];
-
-            nx = (y2 - y1) * (z3 - z1) - (y3 - y1) * (z2 - z1);
-            ny = (z2 - z1) * (x3 - x1) - (z3 - z1) * (x2 - x1);
-            nz = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
-            vol = nx * (x4 - x1) + ny * (y4 - y1) + nz * (z4 - z1);
-
-            diff = (Real) (vol - volumes[ind]);
-            ++ind;
-
-            fit += diff * diff;
+            nx += y3 * z2 - y2 * z3;
+            ny += z3 * x2 - z2 * x3;
+            nz += x3 * y2 - x2 * y3;
         }
+
+        cx /= (dtype) n_neighbours[p];
+        cy /= (dtype) n_neighbours[p];
+        cz /= (dtype) n_neighbours[p];
+        vol = nx * (x1 - cx) + ny * (y1 - cy) + nz * (z1 - cz);
+
+        diff = (Real) (vol - volumes[p]);
+        fit += diff * diff;
     }
 
     return( fit );
@@ -177,71 +177,82 @@ private  void  evaluate_fit_derivative(
     int      *neighbours[],
     dtype    deriv[] )
 {
-    int     p, n_points, n, neigh, p_index, ind;
-    int     n_index, prev, next, prev_index, next_index;
+    int     p, n_points, n, p_index;
+    int     n_index, prev_index, next_index;
     dtype   nx, ny, nz, x1, y1, z1, x2, y2, z2, diff, d2, vol;
-    dtype   x3, y3, z3, x4, y4, z4;
+    dtype   x3, y3, z3, xp, yp, zp, nn, cx, cy, cz;
 
     for_less( p, 0, n_parameters )
         deriv[p] = (dtype) 0.0;
 
     n_points = n_parameters / 3;
 
-    ind = 0;
     for_less( p, 0, n_points )
     {
         p_index = IJ(p,0,3);
         x1 = parameters[p_index+0];
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
+        nx = 0.0f;
+        ny = 0.0f;
+        nz = 0.0f;
+        cx = 0.0f;
+        cy = 0.0f;
+        cz = 0.0f;
 
         for_less( n, 0, n_neighbours[p] )
         {
-            neigh = neighbours[p][n];
-            if( neigh < p )
-                continue;
+            n_index = IJ(neighbours[p][n],0,3);
+            x2 = parameters[n_index+0];
+            y2 = parameters[n_index+1];
+            z2 = parameters[n_index+2];
 
-            n_index = IJ(neigh,0,3);
-            x3 = parameters[n_index+0];
-            y3 = parameters[n_index+1];
-            z3 = parameters[n_index+2];
+            next_index = IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
+            x3 = parameters[next_index+0];
+            y3 = parameters[next_index+1];
+            z3 = parameters[next_index+2];
 
-            prev = neighbours[p][(n-1+n_neighbours[p])%n_neighbours[p]];
-            prev_index = IJ(prev,0,3);
-            x2 = parameters[prev_index+0];
-            y2 = parameters[prev_index+1];
-            z2 = parameters[prev_index+2];
+            cx += x2;
+            cy += y2;
+            cz += z2;
 
-            next = neighbours[p][(n+1)%n_neighbours[p]];
-            next_index = IJ(next,0,3);
-            x4 = parameters[next_index+0];
-            y4 = parameters[next_index+1];
-            z4 = parameters[next_index+2];
+            nx += y3 * z2 - y2 * z3;
+            ny += z3 * x2 - z2 * x3;
+            nz += x3 * y2 - x2 * y3;
+        }
 
-            nx = (y2 - y1) * (z3 - z1) - (y3 - y1) * (z2 - z1);
-            ny = (z2 - z1) * (x3 - x1) - (z3 - z1) * (x2 - x1);
-            nz = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
-            vol = nx * (x4 - x1) + ny * (y4 - y1) + nz * (z4 - z1);
+        nn = 1.0f / (dtype) n_neighbours[p];
 
-            diff = vol - volumes[ind];
-            ++ind;
-            d2 = 2.0f * diff;
+        cx *= nn;
+        cy *= nn;
+        cz *= nn;
+        vol = nx * (x1 - cx) + ny * (y1 - cy) + nz * (z1 - cz);
 
-            deriv[p_index+0] += d2 *((y4-y1) * (z3-z2) + (z4-z1) * (y2-y3)-nx);
-            deriv[p_index+1] += d2 *((z4-z1) * (x3-x2) + (x4-x1) * (z2-z3)-ny);
-            deriv[p_index+2] += d2 *((x4-x1) * (y3-y2) + (y4-y1) * (x2-x3)-nz);
+        diff = vol - volumes[p];
+        d2 = 2.0f * diff;
 
-            deriv[prev_index+0] += d2 *((y4-y1) * (z1-z3) + (z4-z1) * (y3-y1));
-            deriv[prev_index+1] += d2 *((z4-z1) * (x1-x3) + (x4-x1) * (z3-z1));
-            deriv[prev_index+2] += d2 *((x4-x1) * (y1-y3) + (y4-y1) * (x3-x1));
+        deriv[p_index+0] += 2.0f * diff * nx;
+        deriv[p_index+1] += 2.0f * diff * ny;
+        deriv[p_index+2] += 2.0f * diff * nz;
 
-            deriv[n_index+0] += d2 *((y4-y1) * (z2-z1) + (z4-z1) * (y1-y2));
-            deriv[n_index+1] += d2 *((z4-z1) * (x2-x1) + (x4-x1) * (z1-z2));
-            deriv[n_index+2] += d2 *((x4-x1) * (y2-y1) + (y4-y1) * (x1-x2));
+        for_less( n, 0, n_neighbours[p] )
+        {
+            n_index = IJ(neighbours[p][n],0,3);
 
-            deriv[next_index+0] += d2 * nx;
-            deriv[next_index+1] += d2 * ny;
-            deriv[next_index+2] += d2 * nz;
+            prev_index = IJ(neighbours[p][(n-1+n_neighbours[p])%
+                                          n_neighbours[p]],0,3);
+            xp = parameters[prev_index+0];
+            yp = parameters[prev_index+1];
+            zp = parameters[prev_index+2];
+
+            next_index = IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
+            x3 = parameters[next_index+0];
+            y3 = parameters[next_index+1];
+            z3 = parameters[next_index+2];
+
+            deriv[n_index+0] += d2*(-nx*nn + (y1-cy)*(z3-zp) + (z1-cz)*(yp-y3));
+            deriv[n_index+1] += d2*(-ny*nn + (z1-cz)*(x3-xp) + (x1-cx)*(zp-z3));
+            deriv[n_index+2] += d2*(-nz*nn + (x1-cx)*(y3-yp) + (y1-cy)*(xp-x3));
         }
     }
 
@@ -378,11 +389,11 @@ private  void  flatten_polygons(
     int              p, point, max_neighbours, n_parameters;
     Real             gg, dgg, gam, current_time, last_update_time, fit;
     Real             len, step;
-    Point            p1, p2, p3, p4;
-    Vector           offset, v12, v13, v14;
-    int              iter, update_rate, neigh, n;
-    int              n_edges, ind;
+    Point            centroid, *neigh_points, p1;
+    Vector           offset;
+    int              iter, update_rate, n, nn;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *volumes;
+    dtype            nx, ny, nz;
     BOOLEAN          init_supplied, changed, debug, testing;
 
     debug = getenv( "DEBUG" ) != NULL;
@@ -391,47 +402,41 @@ private  void  flatten_polygons(
     if( !init_supplied )
         init_points = points;
 
-    n_edges = 0;
-    for_less( point, 0, n_points )
-    {
-        for_less( n, 0, n_neighbours[point] )
-        {
-            neigh = neighbours[point][n];
-            if( point < neigh )
-                ++n_edges;
-        }
-    }
-
-    ALLOC( volumes, n_edges );
-
-    ind = 0;
-    for_less( point, 0, n_points )
-    {
-        p1 = points[point];
-        for_less( n, 0, n_neighbours[point] )
-        {
-            neigh = neighbours[point][n];
-            if( neigh < point )
-                continue;
-
-            p2 = points[neighbours[point][(n-1+n_neighbours[point]) %
-                                          n_neighbours[point]]];
-            p3 = points[neigh];
-            p4 = points[neighbours[point][(n+1)%n_neighbours[point]]];
-
-            SUB_POINTS( v12, p2, p1 );
-            SUB_POINTS( v13, p3, p1 );
-            SUB_POINTS( v14, p4, p1 );
-
-            CROSS_VECTORS( offset, v12, v13 );
-            volumes[ind] = (dtype) DOT_VECTORS( offset, v14 );
-            ++ind;
-        }
-    }
-
     max_neighbours = 0;
     for_less( p, 0, n_points )
         max_neighbours = MAX( max_neighbours, n_neighbours[p] );
+    ALLOC( neigh_points, max_neighbours );
+
+    ALLOC( volumes, n_points );
+
+    for_less( point, 0, n_points )
+    {
+        p1 = points[point];
+
+        for_less( n, 0, n_neighbours[point] )
+            neigh_points[n] = points[neighbours[point][n]];
+
+        get_points_centroid( n_neighbours[point], neigh_points, &centroid );
+        nx = 0.0f;
+        ny = 0.0f;
+        nz = 0.0f;
+        for_less( n, 0, n_neighbours[point] )
+        {
+            nn = (n+1) % n_neighbours[point];
+            nx += Point_y(neigh_points[nn]) * Point_z(neigh_points[n]) -
+                  Point_y(neigh_points[n]) * Point_z(neigh_points[nn]);
+            ny += Point_z(neigh_points[nn]) * Point_x(neigh_points[n]) -
+                  Point_z(neigh_points[n]) * Point_x(neigh_points[nn]);
+            nz += Point_x(neigh_points[nn]) * Point_y(neigh_points[n]) -
+                  Point_x(neigh_points[n]) * Point_y(neigh_points[nn]);
+        }
+        SUB_POINTS( offset, p1, centroid );
+        volumes[point] = nx * Vector_x(offset) +
+                         ny * Vector_y(offset) +
+                         nz * Vector_z(offset);
+    }
+
+    FREE( neigh_points );
 
     n_parameters = 3 * n_points;
 

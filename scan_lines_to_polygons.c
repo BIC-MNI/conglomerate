@@ -164,7 +164,9 @@ private  void  scan_lines_to_polygons(
     {
         REMOVE_FROM_PRIORITY_QUEUE( queue, current, priority );
 
-        if( priority != (Real) -distances[poly_vertex] )
+        priority = -priority;
+
+        if( priority > (Real) distances[current] * 1.01 )
             continue;
 
         for_less( n, 0, n_neighbours[current] )

@@ -5,6 +5,7 @@
 
 private  void  reparameterize(
     polygons_struct   *original,
+    polygons_struct   *model,
     int               method,
     int               grid_size,
     Real              ratio,
@@ -16,19 +17,21 @@ int  main(
     char  *argv[] )
 {
     STRING               input_filename, output_filename;
-    File_formats         src_format;
-    int                  n_src_objects;
-    object_struct        **src_objects;
-    polygons_struct      *original;
+    STRING               model_filename;
+    File_formats         src_format, model_format;
+    int                  n_src_objects, n_model_objects;
+    object_struct        **src_objects, **model_objects;
+    polygons_struct      *original, *model;
     Real                 movement_threshold, ratio;
     int                  n_iters, method, grid_size;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &input_filename ) ||
+        !get_string_argument( NULL, &model_filename ) ||
         !get_string_argument( NULL, &output_filename ) )
     {
-        print_error( "Usage: %s  input.obj  output.obj\n", argv[0] );
+        print_error( "Usage: %s  input.obj  model.obj output.obj\n", argv[0] );
         return( 1 );
     }
 
@@ -46,9 +49,31 @@ int  main(
         return( 1 );
     }
 
-    original = get_polygons_ptr( src_objects[0] );
+    if( input_graphics_file( model_filename, &model_format,
+                             &n_model_objects, &model_objects ) != OK ||
+        n_model_objects != 1 || get_object_type(model_objects[0]) != POLYGONS )
+    {
+        print_error( "Error in %s\n", model_filename );
+        return( 1 );
+    }
 
-    reparameterize( original, method, grid_size, ratio,
+    original = get_polygons_ptr( src_objects[0] );
+    model = get_polygons_ptr( model_objects[0] );
+
+    if( !objects_are_same_topology( original->n_points,
+                                    original->n_items,
+                                    original->end_indices,
+                                    original->indices,
+                                    model->n_points,
+                                    model->n_items,
+                                    model->end_indices,
+                                    model->indices ) )
+    {
+        print_error( "Mismatched topology.\n" );
+        return( 1 );
+    }
+
+    reparameterize( original, model, method, grid_size, ratio,
                     movement_threshold, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
@@ -60,61 +85,6 @@ int  main(
     output_alloc_to_file( NULL );
 
     return( 0 );
-}
-
-private  void  map_2d_to_3d(
-    polygons_struct   *unit_sphere,
-    polygons_struct   *original,
-    Real              u,
-    Real              v,
-    Real              *x,
-    Real              *y,
-    Real              *z )
-{
-    Real    x_sphere, y_sphere, z_sphere;
-    Point   unit_sphere_point, original_point;
-
-    while( u < 0.0 )
-        u += 1.0;
-    while( u >= 1.0 )
-        u -= 1.0;
-
-    if( v > 1.0 )
-        v = 2.0 - v;
-    if( v < 0.0 )
-        v = -v;
-
-    map_uv_to_sphere( u, v, &x_sphere, &y_sphere, &z_sphere );
-
-    fill_Point( unit_sphere_point, x_sphere, y_sphere, z_sphere );
-
-    map_unit_sphere_to_point( unit_sphere, &unit_sphere_point,
-                              original, &original_point );
-
-    *x = RPoint_x( original_point );
-    *y = RPoint_y( original_point );
-    *z = RPoint_z( original_point );
-}
-
-private  void  map_3d_to_2d(
-    polygons_struct   *unit_sphere,
-    polygons_struct   *original,
-    Real              x,
-    Real              y,
-    Real              z,
-    Real              *u,
-    Real              *v )
-{
-    Point   unit_sphere_point, original_point;
-
-    fill_Point( original_point, x, y, z );
-    map_point_to_unit_sphere( original, &original_point,
-                              unit_sphere, &unit_sphere_point );
-
-    map_sphere_to_uv( RPoint_x(unit_sphere_point),
-                      RPoint_y(unit_sphere_point),
-                      RPoint_z(unit_sphere_point),
-                      u, v );
 }
 
 private  Real  dot_vectors(
@@ -148,15 +118,17 @@ private  Real  evaluate_fit(
     Real    point[],
     int     n_neighbours,
     Real    (*neighbours)[N_DIMENSIONS],
-    Real    lengths[] )
+    Real    lengths[],
+    Real    normal[] )
 {
     int    n, next_n;
-    Real   v1[N_DIMENSIONS], v2[N_DIMENSIONS], normal[N_DIMENSIONS];
-    Real   fit, dist, diff, dx, dy, dz, len_p, len_n;
+    Real   v1[N_DIMENSIONS], v2[N_DIMENSIONS];
+    Real   test_normal[N_DIMENSIONS];
+    Real   fit, dist, diff, dx, dy, dz, len_t, len_n;
 
     fit = 0.0;
 
-    len_p = dot_vectors( point, point );
+    len_n = dot_vectors( normal, normal );
 
     for_less( n, 0, n_neighbours )
     {
@@ -164,9 +136,9 @@ private  Real  evaluate_fit(
 
         sub_vectors( neighbours[n], point, v1 );
         sub_vectors( neighbours[next_n], point, v2 );
-        cross_vectors( v1, v2, normal );
-        len_n = dot_vectors( normal, normal );
-        if( dot_vectors( point, normal ) / sqrt( len_n * len_p ) <= 0.1 )
+        cross_vectors( v1, v2, test_normal );
+        len_t = dot_vectors( test_normal, test_normal );
+        if( dot_vectors( test_normal, normal ) / sqrt( len_n * len_t ) <= 0.1 )
             return( 1.0e30 );
     }
 
@@ -320,7 +292,7 @@ private  Real  find_distance_to_neighbour_edge(
 }
 
 private  Real  optimize_vertex(
-    polygons_struct   *unit_sphere,
+    polygons_struct   *model,
     Real              (*original_points)[N_DIMENSIONS],
     Real              point[],
     int               n_neighbours,
@@ -347,11 +319,11 @@ private  Real  optimize_vertex(
             deriv[dim] -= edge_deriv[dim];
     }
 
-    size = GET_OBJECT_SIZE( *unit_sphere, *which_triangle );
+    size = GET_OBJECT_SIZE( *model, *which_triangle );
     for_less( v, 0, size )
     {
-        vertex[v] = unit_sphere->indices[
-                       POINT_INDEX(unit_sphere->end_indices,*which_triangle,v)];
+        vertex[v] = model->indices[
+                       POINT_INDEX(model->end_indices,*which_triangle,v)];
     }
 
     get_plane_normal( size, original_points, vertex, normal );
@@ -401,7 +373,7 @@ private  Real  optimize_vertex(
 
     /*----------------------------------------- */
 
-    best_fit = evaluate_fit( point, n_neighbours, neighbours, lengths );
+    best_fit = evaluate_fit( point, n_neighbours, neighbours, lengths, normal );
 
     max_step = MIN( max_dist, max_dist_to_neighbour * 1.0e-1 );
 
@@ -425,7 +397,8 @@ private  Real  optimize_vertex(
             new_point[dim] /= len;
 */
 
-        new_fit = evaluate_fit( new_point, n_neighbours, neighbours, lengths );
+        new_fit = evaluate_fit( new_point, n_neighbours, neighbours, lengths,
+                                normal );
 
         if( new_fit < best_fit )
         {
@@ -440,8 +413,8 @@ private  Real  optimize_vertex(
 
     if( position == max_dist )
     {
-        *which_triangle = unit_sphere->neighbours[
-           POINT_INDEX(unit_sphere->end_indices,*which_triangle,exit_neighbour)];
+        *which_triangle = model->neighbours[
+           POINT_INDEX(model->end_indices,*which_triangle,exit_neighbour)];
     }
     else
         position *= ratio;
@@ -464,7 +437,7 @@ private  Real  optimize_vertex(
 }
 
 private  Real  perturb_vertices(
-    polygons_struct   *unit_sphere,
+    polygons_struct   *model,
     Real              (*original_points)[N_DIMENSIONS],
     Real              model_lengths[],
     int               n_neighbours[],
@@ -477,7 +450,7 @@ private  Real  perturb_vertices(
     Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
 
     max_neighbours = 0;
-    for_less( point_index, 0, unit_sphere->n_points )
+    for_less( point_index, 0, model->n_points )
         max_neighbours = MAX( max_neighbours, n_neighbours[point_index] );
 
     ALLOC( points, max_neighbours );
@@ -485,7 +458,7 @@ private  Real  perturb_vertices(
 
     max_movement = 0.0;
     ind = n_neighbours[0];
-    for_less( point_index, 1, unit_sphere->n_points )
+    for_less( point_index, 1, model->n_points )
     {
         for_less( n, 0, n_neighbours[point_index] )
         {
@@ -495,7 +468,7 @@ private  Real  perturb_vertices(
                 points[n][d] = new_points[neighbours[point_index][n]][d];
         }
 
-        movement = optimize_vertex( unit_sphere, original_points,
+        movement = optimize_vertex( model, original_points,
                                     new_points[point_index],
                                     n_neighbours[point_index],
                                     points, lengths,
@@ -549,7 +522,7 @@ private  void  get_errors(
 }
 
 private  void  reparameterize_by_minimization(
-    polygons_struct   *unit_sphere,
+    polygons_struct   *model,
     int               n_neighbours[],
     int               *neighbours[],
     Real              model_lengths[],
@@ -568,12 +541,12 @@ private  void  reparameterize_by_minimization(
     movement = -1.0;
     while( iter < n_iters && (movement < 0.0 || movement >= movement_threshold))
     {
-        movement = perturb_vertices( unit_sphere, original_points,
+        movement = perturb_vertices( model, original_points,
                                      model_lengths,
                                      n_neighbours, neighbours,
                                      new_points, which_triangle, ratio );
 
-        get_errors( unit_sphere->n_points, n_neighbours, neighbours,
+        get_errors( model->n_points, n_neighbours, neighbours,
                     new_points, model_lengths, &max_error, &avg_error );
 
         ++iter;
@@ -583,6 +556,7 @@ private  void  reparameterize_by_minimization(
 
 private  void  reparameterize(
     polygons_struct   *original,
+    polygons_struct   *model,
     int               method,
     int               grid_size,
     Real              ratio,
@@ -595,17 +569,12 @@ private  void  reparameterize(
     Real  (*original_points)[N_DIMENSIONS];
     Real  scale, total_model, total_original;
     Real  max_error, avg_error;
-    Point             centre, *unit_sphere_points;
-    polygons_struct   unit_sphere;
-
-    fill_Point( centre, 0.0, 0.0, 0.0 );
-    create_tetrahedral_sphere( &centre, 1.0, 1.0, 1.0, original->n_items,
-                               &unit_sphere );
+    Point             *model_points;
 
     create_polygon_point_neighbours( original, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
 
-    check_polygons_neighbours_computed( &unit_sphere );
+    check_polygons_neighbours_computed( model );
 
     total_neighbours = 0;
     for_less( point, 0, original->n_points )
@@ -624,9 +593,8 @@ private  void  reparameterize(
             model_lengths[ind] = distance_between_points( &original->points[point],
                                    &original->points[neighbours[point][n]] );
             total_original += model_lengths[ind];
-            total_model += distance_between_points(
-                                   &unit_sphere.points[point],
-                                   &unit_sphere.points[neighbours[point][n]] );
+            total_model += distance_between_points( &model->points[point],
+                                   &model->points[neighbours[point][n]] );
             ++ind;
         }
     }
@@ -642,7 +610,7 @@ private  void  reparameterize(
     for_less( dim, 0, N_DIMENSIONS )
     {
         original_points[point][dim] =
-                         RPoint_coord(unit_sphere.points[point],dim);
+                         RPoint_coord(model->points[point],dim);
         new_points[point][dim] = original_points[point][dim];
     }
 
@@ -669,7 +637,7 @@ private  void  reparameterize(
     print( "Initial Avg error: %g\t", avg_error );
     print( "Initial Max error: %g\n\n", max_error );
 
-    reparameterize_by_minimization( &unit_sphere, n_neighbours,
+    reparameterize_by_minimization( model, n_neighbours,
                                     neighbours, model_lengths,
                                     original_points, new_points,
                                     which_triangle,
@@ -688,25 +656,24 @@ private  void  reparameterize(
     FREE( original_points );
     FREE( which_triangle );
 
-    ALLOC( unit_sphere_points, original->n_points );
+    ALLOC( model_points, original->n_points );
     for_less( point, 0, original->n_points )
     {
-        unit_sphere_points[point] = unit_sphere.points[point];
-        fill_Point( unit_sphere.points[point],
+        model_points[point] = model->points[point];
+        fill_Point( model->points[point],
                     new_points[point][X], new_points[point][Y],
                     new_points[point][Z] );
     }
 
-    create_polygons_bintree( &unit_sphere,
+    create_polygons_bintree( model,
                          ROUND( BINTREE_FACTOR * (Real) original->n_items ) );
 
     for_less( point, 0, original->n_points )
     {
-        map_unit_sphere_to_point( &unit_sphere, &unit_sphere_points[point],
+        map_unit_sphere_to_point( model, &model_points[point],
                                   original, &original->points[point] );
     }
 
-    delete_polygons( &unit_sphere );
     FREE( new_points );
-    FREE( unit_sphere_points );
+    FREE( model_points );
 }

@@ -1,6 +1,7 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#ifdef ADJUST
 private  void  adjust_tetrahedral_sphere(
     Point            *centre,
     Real             rx,
@@ -8,6 +9,7 @@ private  void  adjust_tetrahedral_sphere(
     Real             rz,
     polygons_struct  *polygons,
     int              n_iters );
+#endif
 
 int  main(
     int    argc,
@@ -15,7 +17,10 @@ int  main(
 {
     Status          status;
     STRING          output_filename;
-    int             n_triangles, n_adjustment_iters;
+    int             n_triangles;
+#ifdef ADJUST
+    int             n_adjustment_iters;
+#endif
     Point           centre;
     object_struct   *object;
     polygons_struct *polygons;
@@ -33,12 +38,15 @@ int  main(
         !get_real_argument( 0.0, &ry ) ||
         !get_real_argument( 0.0, &rz ) )
     {
-        (void) fprintf( stderr, "Must have a filename and n_triangles.\n" );
+        print_error( "Usage: %s filename cx cy cz rx ry rz n_triangles.\n",
+                     argv[0] );
         return( 1 );
     }
 
     (void) get_int_argument( 4, &n_triangles );
+#ifdef ADJUST
     (void) get_int_argument( 0, &n_adjustment_iters );
+#endif
 
     fill_Point( centre, cx, cy, cz );
 
@@ -46,11 +54,13 @@ int  main(
     polygons = get_polygons_ptr(object);
     create_tetrahedral_sphere( &centre, rx, ry, rz, n_triangles, polygons );
 
+#ifdef ADJUST
     if( n_adjustment_iters > 0 )
     {
         adjust_tetrahedral_sphere( &centre, rx, ry, rz, polygons,
                                    n_adjustment_iters );
     }
+#endif
 
     compute_polygon_normals( polygons );
 
@@ -65,6 +75,7 @@ int  main(
     return( status != OK );
 }
 
+#ifdef ADJUST
 private  void  convert_uv_to_point(
     Point            *centre,
     Real             rx,
@@ -119,10 +130,9 @@ private  Real  evaluate_rms(
     int               **neighbours,
     Real              parameters[] )
 {
-    int    p, n;
-    Real   dist, sum_dist, sum_dist2, variance;
+    int    p, p1;
+    Real   dist, sum_dist;
     Point  centre = { 0.0f, 0.0f, 0.0f };
-    Point  centroid;
 
     for_less( p, 0, polygons->n_points )
     {
@@ -132,29 +142,23 @@ private  Real  evaluate_rms(
     }
 
     sum_dist = 0.0;
-    sum_dist2 = 0.0;
 
-    for_less( p, 0, polygons->n_points )
+    for_less( p, 0, polygons->n_points-1 )
     {
-        fill_Point( centroid, 0.0, 0.0, 0.0 );
-
-        for_less( n, 0, n_neighbours[p] )
+        for_less( p1, p+1, polygons->n_points )
         {
-            ADD_POINTS( centroid, centroid, polygons->points[neighbours[p][n]]);
+            dist = distance_between_points( &polygons->points[p1],
+                                            &polygons->points[p] );
+            if( dist == 0.0 )
+                dist = 1.0e30;
+            else
+                dist = 1.0 / dist / dist;
+
+            sum_dist += dist;
         }
-        SCALE_POINT( centroid, centroid, 1.0 / (Real) n_neighbours[p] );
-
-        NORMALIZE_VECTOR( centroid, centroid );
-
-        dist = distance_between_points( &centroid, &polygons->points[p] );
-
-        sum_dist += dist;
-        sum_dist2 += dist * dist;
     }
 
-    variance = sum_dist2 - sum_dist * sum_dist / (Real) polygons->n_points;
-
-    return( variance );
+    return( sum_dist );
 }
     
 
@@ -289,3 +293,4 @@ private  void  adjust_tetrahedral_sphere(
     FREE( neighbours );
     FREE( total_neighbours );
 }
+#endif

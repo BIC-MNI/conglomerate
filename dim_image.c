@@ -49,6 +49,11 @@ int  main(
             g = g_scale * get_Colour_g_0_1( col );
             b = b_scale * get_Colour_b_0_1( col );
             a = a_scale * get_Colour_a_0_1( col );
+
+            if( r > 1.0 ) r = 1.0;
+            if( g > 1.0 ) g = 1.0;
+            if( b > 1.0 ) b = 1.0;
+            if( a > 1.0 ) a = 1.0;
             col = make_rgba_Colour_0_1( r, g, b, a );
             PIXEL_RGB_COLOUR(pixels,x,y) = col;
         }

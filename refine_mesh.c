@@ -1,8 +1,8 @@
 #include <internal_volume_io.h>
 #include <bicpl.h>
 
-private  void  refine_mesh(
-    polygons_struct    *length,
+private  int  refine_mesh(
+    Point              *length_points[],
     polygons_struct    *polygons,
     Real               max_length,
     polygons_struct    *new_polygons );
@@ -26,10 +26,11 @@ int  main(
     STRING             input_filename, output_filename;
     STRING             length_filename;
     STRING             values_filename;
-    int                n_objects, n_len_objects;
+    int                n_objects, n_len_objects, n_done, i;
     File_formats       format;
     object_struct      **object_list, **len_object_list, *object;
-    polygons_struct    *polygons, *length, *new_polygons;
+    polygons_struct    *polygons, *length, new_polygons;
+    Point              *length_points;
     Real               max_length;
 
     initialize_argument_processing( argc, argv );
@@ -75,14 +76,24 @@ int  main(
         return( 1 );
     }
 
-    object = create_object( POLYGONS );
-    new_polygons = get_polygons_ptr( object );
+    SET_ARRAY_SIZE( length_points, 0, length->n_points, DEFAULT_CHUNK_SIZE );
+    for_less( i, 0, length->n_points )
+        length_points[i] = length->points[i];
 
-    refine_mesh( length, polygons, max_length, new_polygons );
+    do
+    {
+        n_done = refine_mesh( &length_points, polygons, max_length,
+                              &new_polygons );
 
-    print( "Resampled into %d polygons.\n", new_polygons->n_items );
+        delete_polygons( polygons );
+        *polygons = new_polygons;
+    }
+    while( n_done > 0 );
 
-    (void) output_graphics_file( output_filename, format, 1, &object );
+    print( "Resampled into %d polygons.\n", polygons->n_items );
+
+    (void) output_graphics_file( output_filename, format, n_objects,
+                                 object_list );
 
     return( 0 );
 }
@@ -112,29 +123,19 @@ private  void  subdivide_edge(
     int    midpoint;
     Point  mid;
 
-    if( normalized_length > 1.0 &&
-        !lookup_edge_midpoint( edge_lookup, p1, p2, &midpoint ) )
-    {
-        midpoint = new_polygons->n_points;
-        INTERPOLATE_POINTS( mid, new_polygons->points[p1],
-                                 new_polygons->points[p2], 0.5 );
-        ADD_ELEMENT_TO_ARRAY( new_polygons->points, new_polygons->n_points,
-                              mid, DEFAULT_CHUNK_SIZE );
+    midpoint = new_polygons->n_points;
+    INTERPOLATE_POINTS( mid, new_polygons->points[p1],
+                             new_polygons->points[p2], 0.5 );
+    ADD_ELEMENT_TO_ARRAY( new_polygons->points, new_polygons->n_points,
+                          mid, DEFAULT_CHUNK_SIZE );
 
-        INTERPOLATE_POINTS( mid, (*length_points)[p1], (*length_points)[p2],
-                            0.5 );
-        --new_polygons->n_points;
-        ADD_ELEMENT_TO_ARRAY( *length_points, new_polygons->n_points,
-                              mid, DEFAULT_CHUNK_SIZE );
+    INTERPOLATE_POINTS( mid, (*length_points)[p1], (*length_points)[p2], 0.5 );
+    --new_polygons->n_points;
+    ADD_ELEMENT_TO_ARRAY( *length_points, new_polygons->n_points,
+                          mid, DEFAULT_CHUNK_SIZE );
 
-        insert_in_hash2_table( edge_lookup, MIN(p1,p2), MAX(p1,p2),
-                               (void *) &midpoint );
-
-        subdivide_edge( edge_lookup, normalized_length / 2.0,
-                        p1, midpoint, new_polygons, length_points );
-        subdivide_edge( edge_lookup, normalized_length / 2.0,
-                        midpoint, p2, new_polygons, length_points );
-    }
+    insert_in_hash2_table( edge_lookup, MIN(p1,p2), MAX(p1,p2),
+                           (void *) &midpoint );
 }
 
 public  void  add_polygons(
@@ -259,36 +260,32 @@ public  void  add_polygons(
     }
 }
 
-private  void  refine_mesh(
-    polygons_struct    *length,
+private  int  refine_mesh(
+    Point              *length_points[],
     polygons_struct    *polygons,
     Real               max_length,
     polygons_struct    *new_polygons )
 {
     int                  n_indices, p1, p2, size, point, edge, midpoint, poly;
     Real                 normalized_length;
-    Point                *length_points;
     hash2_table_struct   edge_lookup;
 
     initialize_polygons( new_polygons, WHITE, NULL );
 
-    SET_ARRAY_SIZE( length_points, 0, length->n_points, DEFAULT_CHUNK_SIZE );
-
-    SET_ARRAY_SIZE( new_polygons->points, 0, length->n_points,
+    SET_ARRAY_SIZE( new_polygons->points, 0, polygons->n_points,
                     DEFAULT_CHUNK_SIZE );
-    new_polygons->n_points = length->n_points;
 
-    for_less( point, 0, length->n_points )
+    new_polygons->n_points = polygons->n_points;
+
+    for_less( point, 0, polygons->n_points )
         new_polygons->points[point] = polygons->points[point];
-    for_less( point, 0, length->n_points )
-        length_points[point] = length->points[point];
 
-    initialize_hash2_table( &edge_lookup, 10 * length->n_points,
+    initialize_hash2_table( &edge_lookup, 10 * polygons->n_points,
                             sizeof(int), 0.25, 0.125 );
 
-    for_less( poly, 0, length->n_items )
+    for_less( poly, 0, polygons->n_items )
     {
-        size = GET_OBJECT_SIZE( *length, poly );
+        size = GET_OBJECT_SIZE( *polygons, poly );
         if( size != 3 )
         {
             print_error( "Cannot handle non-triangles\n" );
@@ -296,37 +293,40 @@ private  void  refine_mesh(
 
         for_less( edge, 0, size )
         {
-            p1 = length->indices[POINT_INDEX(length->end_indices,poly,edge)];
-            p2 = length->indices[POINT_INDEX(length->end_indices,poly,
+            p1 =polygons->indices[POINT_INDEX(polygons->end_indices,poly,edge)];
+            p2 =polygons->indices[POINT_INDEX(polygons->end_indices,poly,
                                  (edge+1)%size)];
 
-            normalized_length = distance_between_points( &length->points[p1],
-                                                         &length->points[p2])/
+            normalized_length = distance_between_points( &(*length_points)[p1],
+                                                         &(*length_points)[p2])/
                                   max_length;
 
             if( normalized_length > 1.0 &&
                 !lookup_edge_midpoint( &edge_lookup, p1, p2, &midpoint ) )
             {
                 subdivide_edge( &edge_lookup, normalized_length,
-                                p1, p2, new_polygons, &length_points );
+                                p1, p2, new_polygons, length_points );
             }
         }
     }
 
     n_indices = 0;
-    for_less( poly, 0, length->n_items )
+    for_less( poly, 0, polygons->n_items )
     {
-        add_polygons( length->indices[POINT_INDEX(length->end_indices,poly,0)],
-                      length->indices[POINT_INDEX(length->end_indices,poly,1)],
-                      length->indices[POINT_INDEX(length->end_indices,poly,2)],
-                      length_points, &edge_lookup, new_polygons, &n_indices );
+        add_polygons( polygons->indices[
+                               POINT_INDEX(polygons->end_indices,poly,0)],
+                      polygons->indices[
+                               POINT_INDEX(polygons->end_indices,poly,1)],
+                      polygons->indices[
+                               POINT_INDEX(polygons->end_indices,poly,2)],
+                      *length_points, &edge_lookup, new_polygons, &n_indices );
     }
-
-    FREE( length_points );
 
     ALLOC( new_polygons->normals, new_polygons->n_points );
 
     compute_polygon_normals( new_polygons );
 
     delete_hash2_table( &edge_lookup );
+
+    return( new_polygons->n_items - polygons->n_items );
 }

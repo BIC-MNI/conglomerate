@@ -100,11 +100,17 @@ private  Real  evaluate_fit(
     int     *neighbours[] )
 {
     int     p, n_points, max_neighbours, n, neigh, p_index, n_index;
-    Real    fit, height, dx, dy, dz, dist;
-    Point   *neigh_points, centroid, this_point, model_point;
-    Vector  normal;
+    Real    fit;
+    Point   *neigh_points;
+    dtype   dist, len, radius, radius2;
+    dtype   cx, cy, cz, nx, ny, nz, x2, y2, z2, factor;
+    dtype   tx, ty, tz, x, y, z, height, dx, dy, dz;
+    dtype   *lookup;
 
     fit = 0.0;
+
+    radius = (dtype) global_radius;
+    radius2 = radius * radius;
 
     n_points = (n_parameters-1) / 3;
 
@@ -113,42 +119,75 @@ private  Real  evaluate_fit(
         max_neighbours = MAX( max_neighbours, n_neighbours[p] );
 
     ALLOC( neigh_points, max_neighbours );
+    ALLOC( lookup, max_neighbours+1 );
+    for_less( n, 1, max_neighbours+1 )
+        lookup[n] = (dtype) (1.0 / (Real) n);
 
     for_less( p, 0, n_points )
     {
-        p_index = IJ( p, 0, 3 );
-        fill_Point( this_point,
-                    parameters[p_index+0], parameters[p_index+1],
-                    parameters[p_index+2] );
+        cx = 0.0f;
+        cy = 0.0f;
+        cz = 0.0f;
+        nx = 0.0f;
+        ny = 0.0f;
+        nz = 0.0f;
+        x2 = 0.0f;
+        y2 = 0.0f;
+        z2 = 0.0f;
+        neigh = neighbours[p][n_neighbours[p]-1];
+        n_index = IJ(neigh,0,3);
+        tx = parameters[n_index+0];
+        ty = parameters[n_index+1];
+        tz = parameters[n_index+2];
+
         for_less( n, 0, n_neighbours[p] )
         {
+            x = tx;
+            y = ty;
+            z = tz;
+
             neigh = neighbours[p][n];
-            n_index = IJ( neigh, 0, 3 );
-            fill_Point( neigh_points[n],
-                        parameters[n_index+0],
-                        parameters[n_index+1],
-                        parameters[n_index+2] );
+            n_index = IJ(neigh,0,3);
+
+            tx = parameters[n_index+0];
+            ty = parameters[n_index+1];
+            tz = parameters[n_index+2];
+            cx += tx;
+            cy += ty;
+            cz += tz;
+            x2 += tx * tx;
+            y2 += ty * ty;
+            z2 += tz * tz;
+
+            nx += y * tz - ty * z;
+            ny += z * tx - tz * x;
+            nz += x * ty - tx * y;
         }
 
-        get_points_centroid( n_neighbours[p], neigh_points, &centroid );
+        factor = lookup[n_neighbours[p]];
+        cx *= factor;
+        cy *= factor;
+        cz *= factor;
 
-        dist = 0.0;
-        for_less( n, 0, n_neighbours[p] )
-            dist += sq_distance_between_points( &centroid, &neigh_points[n] );
-        dist /= (Real) n_neighbours[p];
+        len = nx * nx + ny * ny + nz * nz;
 
-        find_polygon_normal( n_neighbours[p], neigh_points, &normal );
-        height = global_radius -
-                 sqrt( global_radius*global_radius - dist );
-        GET_POINT_ON_RAY( model_point, centroid, normal, height );
-           
-        dx = RPoint_x(this_point) - RPoint_x(model_point);
-        dy = RPoint_y(this_point) - RPoint_y(model_point);
-        dz = RPoint_z(this_point) - RPoint_z(model_point);
-        fit += dx * dx + dy * dy + dz * dz;
+        if( len == 0.0f )
+            continue;
+
+        len = sqrtf( len );
+        dist = (x2 + y2 + z2) * factor - cx*cx - cy*cy - cz*cz;
+
+        height = (radius - sqrtf(radius2-dist)) / len;
+
+        p_index = IJ( p, 0, 3 );
+        dx = parameters[p_index+0] - (cx + nx * height);
+        dy = parameters[p_index+1] - (cy + ny * height);
+        dz = parameters[p_index+2] - (cz + nz * height);
+        fit += (Real) (dx * dx + dy * dy + dz * dz);
     }
 
     FREE( neigh_points );
+    FREE( lookup );
 
     return( fit );
 }

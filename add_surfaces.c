@@ -72,7 +72,6 @@ int  main(
     object_struct    *out_object;
     object_struct    **object_list;
     polygons_struct  *polygons;
-    BOOLEAN          done;
 
     status = OK;
 
@@ -87,19 +86,14 @@ int  main(
     }
 
     scale_colours = 1.0;
-    done = FALSE;
     n_polygons = 0;
     weight = 1.0;
 
     out_object = create_object( POLYGONS );
 
-    while( !done )
+    while( get_string_argument( NULL, &filename ) )
     {
-        if( get_real_argument( 0.0, &new_weight ) )
-            weight = new_weight;
-        else if( !get_string_argument( "", &filename ) )
-            done = TRUE;
-        else if( equal_strings( filename, "-scale_colours" ) )
+        if( equal_strings( filename, "-scale_colours" ) )
         {
             if( !get_real_argument( 0.0, &scale_colours ) )
             {
@@ -107,6 +101,9 @@ int  main(
                 return( 1 );
             }
         }
+        else if( !filename_extension_matches( filename, "obj" ) &&
+                 sscanf( filename, "%lf", &new_weight ) )
+            weight = new_weight;
         else if( input_graphics_file( filename, &format, &n_objects,
                                       &object_list ) != OK )
         {

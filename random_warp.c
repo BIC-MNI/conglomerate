@@ -72,10 +72,10 @@ int  main(
     {
         for_less( dim, 0, N_DIMENSIONS )
         {
-            tags1[ind][dim] = Point_coord(centroid,dim) +
+            tags1[ind][dim] = (Real) Point_coord(centroid,dim) +
                               (Real) delta[dim] * domain_factor *
-                              (Point_coord(max_corner,dim) -
-                               Point_coord(min_corner,dim));
+                              ((Real) Point_coord(max_corner,dim) -
+                               (Real) Point_coord(min_corner,dim));
             tags2[ind][dim] = tags1[ind][dim];
         }
 
@@ -84,15 +84,15 @@ int  main(
 
     point = points[get_random_int(n_points)];
 
-    tags1[27][X] = Point_x(point);
-    tags1[27][Y] = Point_y(point);
-    tags1[27][Z] = Point_z(point);
+    tags1[27][X] = (Real) Point_x(point);
+    tags1[27][Y] = (Real) Point_y(point);
+    tags1[27][Z] = (Real) Point_z(point);
 
     get_random_unit_vector( &offset );
 
     for_less( dim, 0, N_DIMENSIONS )
         tags2[27][dim] = tags1[27][dim] +
-                         warp_distance * Vector_coord(offset,dim );
+                         warp_distance * (Real) Vector_coord(offset,dim );
 
     safe_compute_transform_from_tags( 28, tags2, tags1, TRANS_TPS,
                                       &transform );
@@ -117,9 +117,8 @@ int  main(
             marker->label = create_string( "Source" );
             marker->structure_id = 0;
             marker->patient_id = 0;
-            Point_x(marker->position) = tags1[i][X];
-            Point_y(marker->position) = tags1[i][Y];
-            Point_z(marker->position) = tags1[i][Z];
+            fill_Point( marker->position,
+                        tags1[i][X], tags1[i][Y], tags1[i][Z] );
 
             marker = get_marker_ptr(tag_objects[i+28]);
             initialize_marker( marker, SPHERE_MARKER, WHITE );
@@ -127,9 +126,8 @@ int  main(
             marker->label = create_string( "Dest" );
             marker->structure_id = 0;
             marker->patient_id = 0;
-            Point_x(marker->position) = tags2[i][X];
-            Point_y(marker->position) = tags2[i][Y];
-            Point_z(marker->position) = tags2[i][Z];
+            fill_Point( marker->position,
+                        tags2[i][X], tags2[i][Y], tags2[i][Z] );
         }
 
         (void) output_graphics_file( tag_filename, ASCII_FORMAT,

@@ -23,8 +23,10 @@ int  main(
     FILE                 *file;
     Status               status;
     STRING               volume_filename, tag_filename;
-    STRING               output_filename;
+    STRING               output_filename, label;
     Real                 voxel[MAX_DIMENSIONS];
+    Real                 value_to_set;
+    Real                 volume_min, volume_max;
     BOOLEAN              crop_flag;
     STRING               history, dummy;
     Volume               volume, new_volume, used_volume;
@@ -39,9 +41,9 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &volume_filename ) ||
-        !get_string_argument( "", &tag_filename ) ||
-        !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( NULL, &volume_filename ) ||
+        !get_string_argument( NULL, &tag_filename ) ||
+        !get_string_argument( NULL, &output_filename ) )
     {
         usage( argv[0] );
         return( 1 );
@@ -63,7 +65,9 @@ int  main(
     cancel_volume_input( volume, &volume_input );
 
     get_volume_sizes( new_volume, sizes );
-    set_volume_real_range( new_volume, 0.0, 255.0 );
+    volume_min = 0.0;
+    volume_max = 255.0;
+    set_volume_real_range( new_volume, volume_min, volume_max );
 
     for_less( x, 0, sizes[X] )
     {
@@ -71,7 +75,7 @@ int  main(
         {
             for_less( z, 0, sizes[Z] )
             {
-                set_volume_voxel_value( new_volume, x, y, z, 0, 0, 0.0 );
+                set_volume_real_value( new_volume, x, y, z, 0, 0, 0.0 );
             }
         }
     }
@@ -90,8 +94,8 @@ int  main(
 
     limits[0][0] = 0;
 
-    while( input_one_tag( file, n_volumes, tags1, NULL, NULL, &tag_id,
-                          NULL, NULL, NULL ) )
+    while( input_one_tag( file, n_volumes, tags1, NULL, NULL, NULL, &tag_id,
+                          &label, NULL ) )
     {
         if( structure_id < 0 || structure_id == tag_id )
         {
@@ -103,8 +107,18 @@ int  main(
                 x = ROUND( voxel[X] );
                 y = ROUND( voxel[Y] );
                 z = ROUND( voxel[Z] );
-                set_volume_voxel_value( new_volume, x, y, z, 0, 0,
-                                        (Real) tag_id );
+
+                value_to_set = (Real) tag_id;
+                if( value_to_set < volume_min || value_to_set > volume_max )
+                {
+                    if( label == NULL ||
+                        sscanf( label, "%lf", &value_to_set ) != 1 ||
+                        value_to_set < volume_min || value_to_set > volume_max )
+                    value_to_set = volume_max;
+                }
+
+                set_volume_real_value( new_volume, x, y, z, 0, 0,
+                                       value_to_set );
 
                 if( n_inside_tag_points == 0 )
                 {

@@ -12,6 +12,7 @@ int  main(
     char   *argv[] )
 {
     STRING           filename, output_filename, *filenames;
+    FILE             *file;
     int              i, j, ni, nj, n_objects, n_surfaces, object_index;
     int              surf;
     File_formats     format;
@@ -20,7 +21,7 @@ int  main(
     Real             left_x, right_x, y, z, dist, avg;
     BOOLEAN          **samples_valid;
     Real             ***samples, **means, **variance, **t_stat;
-    Real             sum_x, sum_xx, s, se, min_t, max_t;
+    Real             sum_x, sum_xx, s, se, min_t, max_t, y_pos, z_pos;
     Real             sx, sy, sz, prob;
     Point            point, ray_origin, min_range, max_range, origin;
     Vector           ray_direction;
@@ -28,6 +29,7 @@ int  main(
     int              sizes[N_DIMENSIONS];
     Transform        linear;
     General_transform  transform;
+    BOOLEAN            outputting_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -37,7 +39,24 @@ int  main(
     {
         print_error( "Usage: %s output.mnc  ni nj input1.obj input2.obj ... \n",
                     argv[0] );
+        print_error( "or: %s output.mnc  0 0 y z input1.obj input2.obj ... \n",
+                    argv[0] );
         return( 1 );
+    }
+
+    outputting_flag = (ni > 0 && nj > 0);
+    if( !outputting_flag )
+    {
+        if( !get_real_argument( 0.0, &y_pos ) ||
+            !get_real_argument( 0.0, &z_pos ) )
+        {
+            print_error( "Usage: %s output.mnc  0 0 y z input1.obj input2.obj ... \n",
+                    argv[0] );
+            return( 1 );
+        }
+
+        ni = 1;
+        nj = 1;
     }
 
     n_surfaces = 0;
@@ -54,6 +73,12 @@ int  main(
     for_less( i, 0, ni )
     for_less( j, 0, nj )
         samples_valid[i][j] = TRUE;
+
+    if( !outputting_flag &&
+        open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    {
+        return( 1 );
+    }
 
     for_less( surf, 0, n_surfaces )
     {
@@ -72,9 +97,14 @@ int  main(
         {
             polygons = get_polygons_ptr( object_list[0] );
 
-            create_polygons_bintree( polygons,
-                                     ROUND( (Real) polygons->n_items *
-                                            BINTREE_FACTOR ) );
+            if( ni > 10 && nj > 10 )
+                create_polygons_bintree( polygons,
+                                         ROUND( (Real) polygons->n_items *
+                                                .1 ) );
+            else
+                create_polygons_bintree( polygons,
+                                         ROUND( (Real) polygons->n_items *
+                                                BINTREE_FACTOR ) );
 
             if( surf == 0 )
             {
@@ -85,12 +115,20 @@ int  main(
             for_less( i, 0, ni )
             for_less( j, 0, nj )
             {
-                y = INTERPOLATE( (Real) i / (Real) (ni-1),
-                                 (Real) Point_y(min_range),
-                                 (Real) Point_y(max_range) );
-                z = INTERPOLATE( (Real) j / (Real) (nj-1),
-                                 (Real) Point_z(min_range),
-                                 (Real) Point_z(max_range) );
+                if( outputting_flag )
+                {
+                    y = INTERPOLATE( (Real) i / (Real) (ni-1),
+                                     (Real) Point_y(min_range),
+                                     (Real) Point_y(max_range) );
+                    z = INTERPOLATE( (Real) j / (Real) (nj-1),
+                                     (Real) Point_z(min_range),
+                                     (Real) Point_z(max_range) );
+                }
+                else
+                {
+                    y = y_pos;
+                    z = z_pos;
+                }
 
                 fill_Point( ray_origin, (Real) Point_x(max_range) + 100.0,
                                         y, z );
@@ -134,6 +172,10 @@ int  main(
                     samples[surf][i][j] = (left_x - avg) / avg;
                 }
             }
+
+            if( output_real( file, samples[surf][0][0] ) != OK ||
+                output_newline( file ) != OK )
+                return( 1 );
 
             print( "%d:  %s\n", surf+1, filenames[surf] );
 
@@ -194,6 +236,12 @@ int  main(
             min_t = t_stat[i][j];
         if( i == 0 && j == 0 || t_stat[i][j] > max_t )
             max_t = t_stat[i][j];
+    }
+
+    if( !outputting_flag )
+    {
+        close_file( file );
+        return( 0 );
     }
 
     volume = create_volume( 3, XYZ_dimension_names, NC_SHORT, FALSE,

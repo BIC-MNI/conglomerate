@@ -5,6 +5,10 @@ private  void   convert_polygons_to_lines(
     polygons_struct   *polygons,
     lines_struct      *lines );
 
+private  void   convert_quadmesh_to_lines(
+    quadmesh_struct   *quadmesh,
+    lines_struct      *lines );
+
 #define  BINTREE_FACTOR  0.5
 
 int  main(
@@ -38,6 +42,14 @@ int  main(
         {
             object = create_object( LINES );
             convert_polygons_to_lines( get_polygons_ptr(objects[i]),
+                                       get_lines_ptr(object) );
+
+            add_object_to_list( &n_dest_objects, &dest_objects, object );
+        }
+        else if( get_object_type( objects[i] ) == QUADMESH )
+        {
+            object = create_object( LINES );
+            convert_quadmesh_to_lines( get_quadmesh_ptr(objects[i]),
                                        get_lines_ptr(object) );
 
             add_object_to_list( &n_dest_objects, &dest_objects, object );
@@ -96,4 +108,66 @@ private  void   convert_polygons_to_lines(
             }
         }
     }
+}
+
+private  void   convert_quadmesh_to_lines(
+    quadmesh_struct   *quadmesh,
+    lines_struct      *lines )
+{
+    int   i, j, n_indices, m, n, mc, nc;
+
+    initialize_lines( lines, WHITE );
+
+    m = quadmesh->m;
+    n = quadmesh->n;
+
+    lines->n_points = m * n;
+    ALLOC( lines->points, lines->n_points );
+
+    for_less( i, 0, m )
+    for_less( j, 0, n )
+    {
+        (void) get_quadmesh_point( quadmesh, i, j, &lines->points[IJ(i,j,n)] );
+    }
+
+    if( quadmesh->m_closed )
+        mc = m + 1;
+    else
+        mc = m;
+
+    if( quadmesh->n_closed )
+        nc = n + 1;
+    else
+        nc = n;
+
+    lines->n_items = m + n;
+    ALLOC( lines->end_indices, lines->n_items );
+    ALLOC( lines->indices, m * nc + n * mc );
+
+    n_indices = 0;
+
+    for_less( i, 0, m )
+    {
+        for_less( j, 0, nc )
+        {
+            lines->indices[n_indices] = IJ( i, j % n, n );
+            ++n_indices;
+        }
+
+        lines->end_indices[i] = n_indices;
+    }
+
+    for_less( j, 0, n )
+    {
+        for_less( i, 0, mc )
+        {
+            lines->indices[n_indices] = IJ( i % m, j, n );
+            ++n_indices;
+        }
+
+        lines->end_indices[m + j] = n_indices;
+    }
+
+    if( n_indices != m * nc + n * mc )
+        handle_internal_error( " n_indices !=  m * nc + n * mc " );
 }

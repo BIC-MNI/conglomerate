@@ -145,7 +145,7 @@ int  main(
             voxel_index = spatial_dims[dim];
 
             voxel_radius[voxel_index] = radius /
-                                       ABS(separations[voxel_index]);
+                                       FABS(separations[voxel_index]);
 
             min_pos = voxel_centre[voxel_index] - voxel_radius[voxel_index];
             max_pos = voxel_centre[voxel_index] + voxel_radius[voxel_index];

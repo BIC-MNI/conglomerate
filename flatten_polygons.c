@@ -155,8 +155,8 @@ private  void  flatten_polygons(
     ALLOC( buffer, polygons->n_points );
     ALLOC( save_points, polygons->n_points );
 
-    create_polygon_point_neighbours( polygons, &n_neighbours, &neighbours,
-                                     NULL );
+    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
+                                     &neighbours, NULL, NULL );
 
     get_points_centroid( polygons->n_points, polygons->points, &centroid );
     total_size = 0.0;
@@ -192,5 +192,6 @@ private  void  flatten_polygons(
     FREE( buffer );
     FREE( save_points );
 
-    delete_polygon_point_neighbours( n_neighbours, neighbours, NULL );
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     NULL, NULL );
 }

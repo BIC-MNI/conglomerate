@@ -154,7 +154,8 @@ int  main(
                                surface->n_items, &unit_sphere );
 
     create_polygons_bintree( &unit_sphere,
-                             unit_sphere.n_items * BINTREE_FACTOR );
+                             ROUND( (Real) unit_sphere.n_items *
+                                    BINTREE_FACTOR ) );
 
     image = create_volume( 3, dim_names, NC_SHORT, FALSE, 0.0, 0.0 );
 
@@ -204,9 +205,9 @@ int  main(
             if( use_volume )
             {
                 evaluate_volume_in_world( volume,
-                                          Point_x(surface_point),
-                                          Point_y(surface_point),
-                                          Point_z(surface_point),
+                                          (Real) Point_x(surface_point),
+                                          (Real) Point_y(surface_point),
+                                          (Real) Point_z(surface_point),
                                           degree, FALSE, 0.0,
                                           &value,
                                           NULL, NULL, NULL,
@@ -267,7 +268,7 @@ private  void   map_2d_to_unit_sphere(
     Real  angle_around, angle_up, x, y, z, r;
 
     angle_around = ((Real) i + 0.5)  / (Real) ni * 2.0 * PI;
-    angle_up = -PI/2 + ((Real) j + 0.5) / (Real) nj * PI;
+    angle_up = -PI/2.0 + ((Real) j + 0.5) / (Real) nj * PI;
 
     z = sin( angle_up );
 

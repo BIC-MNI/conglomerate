@@ -41,16 +41,11 @@ int  main(
 
     ALLOC( curvatures, polygons->n_points );
 
-    if( curvature_distance > 0.0 )
-        create_polygon_point_neighbours( polygons, TRUE, &n_neighbours,
-                                         &neighbours, NULL );
+    create_polygon_point_neighbours( polygons, TRUE, &n_neighbours,
+                                     &neighbours, FALSE, NULL );
 
     get_polygon_vertex_curvatures( polygons, n_neighbours, neighbours,
                                    curvature_distance, 0.0, curvatures );
-
-    if( curvature_distance > 0.0 )
-        delete_polygon_point_neighbours( polygons, n_neighbours,
-                                         neighbours, NULL );
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );

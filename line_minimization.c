@@ -1,9 +1,9 @@
 #include  <internal_volume_io.h>
 
 
-#define  SEARCH_RATIO           5.0
+#define  SEARCH_RATIO   5.0
 #define  GOLDEN_RATIO   0.618034
-#define  DEFAULT_STEP           1.0e-10
+#define  DEFAULT_STEP   1.0e-10
 
 private  Real  evaluate_along_line(
     int      n_parameters,
@@ -22,7 +22,7 @@ private  Real  evaluate_along_line(
     return( (*function) ( test_parameters, function_data ) );
 }
 
-public  BOOLEAN  minimize_along_line(
+public  Real  minimize_along_line(
     int      n_parameters,
     Real     parameters[],
     Real     line_direction[],
@@ -32,12 +32,12 @@ public  BOOLEAN  minimize_along_line(
     Real     range_tolerance,
     Real     domain_tolerance,
     Real     current_value,
-    Real     *final_value )
+    Real     *max_movement )
 {
     int              p;
     Real             t0, t1, t2, f0, f1, f2, t_next, f_next, step, fsize;
     Real             swap, bottom, new_size, old_size;
-    Real             search_ratio;
+    Real             search_ratio, prev_step, final_value, movement;
     BOOLEAN          done, prev_failed;
 
     search_ratio = SEARCH_RATIO;
@@ -77,9 +77,11 @@ public  BOOLEAN  minimize_along_line(
     }
 
     done = FALSE;
-    while( !done )
+    prev_step = -step;
+    while( !done && step != prev_step )
     {
         t2 = t1 + step;
+        prev_step = step;
         step *= search_ratio;
 
         f2 = evaluate_along_line( n_parameters, parameters, line_direction,
@@ -177,14 +179,21 @@ public  BOOLEAN  minimize_along_line(
     while( (domain_tolerance < 0.0 || (t2 - t0) > domain_tolerance) &&
            (range_tolerance < 0.0 || fsize > range_tolerance) );
 
-    if( t1 != 0.0 )
+    *max_movement = 0.0;
+
+    if( t1 != 0.0 && f1 != current_value )
     {
-        *final_value = f1;
+        final_value = f1;
         for_less( p, 0, n_parameters )
+        {
+            movement = FABS( t1 * line_direction[p] );
+            if( movement > *max_movement )
+                *max_movement = movement;
             parameters[p] += t1 * line_direction[p];
+        }
     }
     else
-        *final_value = current_value;
+        final_value = current_value;
 
-    return( f1 != current_value );
+    return( final_value );
 }

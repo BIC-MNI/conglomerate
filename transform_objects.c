@@ -41,7 +41,6 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status              status;
     STRING              input_filename, output_filename, transform_filename;
     STRING              dummy;
     int                 i, n_objects;
@@ -49,8 +48,7 @@ int  main(
     General_transform   transform;
     File_formats        format;
     object_struct       **object_list;
-
-    status = OK;
+    BOOLEAN             is_left_handed;
 
     initialize_argument_processing( argc, argv );
 
@@ -70,33 +68,44 @@ int  main(
     if( invert )
         invert_general_transform( &transform );
 
-    status = input_graphics_file( input_filename, &format, &n_objects,
-                                  &object_list );
+    if( input_graphics_file( input_filename, &format, &n_objects,
+                             &object_list ) != OK )
+        return( 1 );
 
-    if( status == OK )
-        print( "Objects input.\n" );
-
-    if( status == OK )
+    if( get_transform_type( &transform ) == LINEAR )
     {
-        for_less( i, 0, n_objects )
-        {
-            if( status == OK )
-                transform_object( &transform, object_list[i] );
-        }
+        is_left_handed = !is_transform_right_handed(
+                             get_linear_transform_ptr(&transform) );
+    }
+    else
+        is_left_handed = FALSE;
 
-        if( status == OK )
-            print( "Objects processed.\n" );
+    for_less( i, 0, n_objects )
+    {
+        transform_object( &transform, object_list[i] );
+        switch( get_object_type(object_list[i]) )
+        {
+        case POLYGONS:
+            if( is_left_handed )
+                reverse_polygons_vertices( get_polygons_ptr(object_list[i]) );
+            compute_polygon_normals( get_polygons_ptr(object_list[i]) );
+            break;
+
+        case QUADMESH:
+            if( is_left_handed )
+                reverse_quadmesh_vertices( get_quadmesh_ptr(object_list[i]) );
+            compute_quadmesh_normals( get_quadmesh_ptr(object_list[i]) );
+            break;
+
+        default:
+            break;
+        }
     }
 
-    if( status == OK )
-        status = output_graphics_file( output_filename, format,
-                                       n_objects, object_list );
+    (void) output_graphics_file( output_filename, format,
+                                 n_objects, object_list );
 
-    if( status == OK )
-        delete_object_list( n_objects, object_list );
+    delete_object_list( n_objects, object_list );
 
-    if( status == OK )
-        print( "Objects output.\n" );
-
-    return( status != OK );
+    return( 0 );
 }

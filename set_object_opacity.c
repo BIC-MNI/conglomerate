@@ -46,7 +46,7 @@ int  main(
     {
         spr = get_object_surfprop( objects[i] );
         if( spr != NULL )
-            Surfprop_t(*spr) = opacity;
+            Surfprop_t(*spr) = (Spr_type) opacity;
 
         colour_flag = *get_object_colours( objects[i], &colours );
 

@@ -1,13 +1,13 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#undef   USING_FLOAT
 #define  USING_FLOAT
+#undef   USING_FLOAT
 
 #ifdef USING_FLOAT
 
 typedef  float  ftype;
-#define  MINIMIZE_LSQ    minimize_lsq_float2
+#define  MINIMIZE_LSQ    minimize_lsq_float
 #define  INITIALIZE_LSQ  initialize_lsq_terms_float
 #define  ADD_TO_LSQ      add_to_lsq_terms_float
 #define  REALLOC_LSQ     realloc_lsq_terms_float
@@ -25,10 +25,11 @@ typedef  Real   ftype;
 
 #endif
 
+typedef ftype LSQ_TYPE;
+
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
-    Real             step_size,
     int              n_iters );
 
 int  main(
@@ -41,7 +42,6 @@ int  main(
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons;
     Point                *init_points;
-    Real                 step_size;
 
     initialize_argument_processing( argc, argv );
 
@@ -53,7 +53,6 @@ int  main(
         return( 1 );
     }
 
-    (void) get_real_argument( .001, &step_size );
     (void) get_int_argument( 100, &n_iters );
 
     if( get_string_argument( NULL, &initial_filename ) )
@@ -80,7 +79,7 @@ int  main(
 
     polygons = get_polygons_ptr( object_list[0] );
 
-    flatten_polygons( polygons, init_points, step_size, n_iters );
+    flatten_polygons( polygons, init_points, n_iters );
 
     (void) output_graphics_file( dest_filename, format, 1, object_list );
 
@@ -223,7 +222,10 @@ private  void  create_coefficients(
     FREE( weights[1][1] );
 }
 
-typedef  float  LSQ_TYPE;
+#define   MAX_SAVES        100
+#define   N_SAVES            0
+#define   N_BETWEEN_SAVES    3
+#define   DEFAULT_RATIO      1.0
 
 private  Real  evaluate_fit(
     int              n_parameters,
@@ -248,190 +250,243 @@ private  Real  evaluate_fit(
 
         for_less( n, 0, n_cross_terms[parm] )
             fit += parm_val * parm_values[cross_parms[parm][n]] *
-
                    (Real) cross_terms[parm][n];
     }
 
     return( fit );
 }
 
-private  void   minimize_around_node(
-    int              node,
-    int              n_levels,
-    int              neighs[],
-    int              n_neighbours[],
-    int              *neighbours[],
+private  void  evaluate_fit_derivative(
     int              n_parameters,
     Real             constant_term,
-    float            linear_terms[],
-    float            square_terms[],
+    LSQ_TYPE         *linear_terms,
+    LSQ_TYPE         *square_terms,
     int              n_cross_terms[],
     int              *cross_parms[],
-    float            *cross_terms[],
-    Real             node_values[] )
+    LSQ_TYPE         *cross_terms[],
+    Real             parm_values[],
+    Real             derivatives[] )
 {
-    int   nn, neigh, n, n2, n3, prev_nn, *to_parameter;
-    int   i, j, level, m1, m2, parm, neigh_parm, p, c;
-    Real  **first_deriv, *constants, *solution;
+    int   parm, n, neigh_parm;
+    Real  term, parm_val;
 
-    nn = 1;
-    neighs[0] = node;
-    for_less( level, 0, n_levels )
+    for_less( parm, 0, n_parameters )
+        derivatives[parm] = 0.0;
+
+    for_less( parm, 0, n_parameters )
     {
-        prev_nn = nn;
-        for_less( n, 0, prev_nn )
-        {
-            for_less( n2, 0, n_neighbours[neighs[n]] )
-            {
-                neigh = neighbours[neighs[n]][n2];
+        parm_val = parm_values[parm];
 
-                if( level == 0 )
-                {
-                    neighs[nn] = neigh;
-                    ++nn;
-                }
-                else
-                {
-                    for_less( n3, 0, nn )
-                    {
-                        if( neighs[n3] == neigh )
-                            break;
-                    }
-                    if( n3 >= nn )
-                    {
-                        neighs[nn] = neigh;
-                        ++nn;
-                    }
-                }
-            }
+        derivatives[parm] += (Real) linear_terms[parm] +
+                             2.0 * parm_val * (Real) square_terms[parm];
+
+        for_less( n, 0, n_cross_terms[parm] )
+        {
+            neigh_parm = cross_parms[parm][n];
+            term = (Real) cross_terms[parm][n];
+            derivatives[parm] += parm_values[neigh_parm] * term;
+            derivatives[neigh_parm] += (Real) parm_val * term;
         }
     }
-
-    ALLOC2D( first_deriv, nn, nn );
-    ALLOC( constants, nn );
-    ALLOC( to_parameter, n_parameters );
-
-    for_less( i, 0, nn )
-    {
-        constants[i] = 0.0;
-        for_less( j, 0, nn )
-            first_deriv[i][j] = 0.0;
-    }
-
-    for_less( p, 0, n_parameters )
-        to_parameter[p] = -1;
-
-    for_less( i, 0, nn )
-        to_parameter[neighs[i]] = i;
-
-    for_less( p, 0, n_parameters )
-    {
-        parm = to_parameter[p];
-        if( parm >= 0 )
-        {
-            constants[parm] -= (Real) linear_terms[p];
-            first_deriv[parm][parm] += 2.0 * (Real) square_terms[p];
-        }
-
-        for_less( c, 0, n_cross_terms[p] )
-        {
-            neigh = cross_parms[p][c];
-            neigh_parm = to_parameter[neigh];
-            if( parm >= 0 && neigh_parm >= 0 )
-            {
-                m1 = MIN( neigh_parm, parm );
-                m2 = MAX( neigh_parm, parm );
-                first_deriv[m1][m2] += (Real) cross_terms[p][c];
-            }
-            else if( parm >= 0 )
-                constants[parm] -= (Real) cross_terms[p][c] *node_values[neigh];
-            else if( neigh_parm >= 0 )
-                constants[neigh_parm] -= (Real) cross_terms[p][c] *
-                                         node_values[p];
-        }
-    }
-
-    for_less( i, 0, nn-1 )
-    for_less( j, i+1, nn )
-        first_deriv[j][i] = first_deriv[i][j];
-
-    ALLOC( solution, nn );
-
-    if( !solve_linear_system( nn, first_deriv, constants, solution ) )
-    {
-        print_error(
-             "Could not solve least squares, non-invertible matrix.\n" );
-        for_less( i, 0, nn )
-            solution[i] = 0.0;
-    }
-
-    for_less( i, 0, nn )
-        node_values[neighs[i]] = solution[i];
-
-    FREE2D( first_deriv );
-    FREE( constants );
-    FREE( solution );
-    FREE( to_parameter );
 }
 
-private  void   minimize_lsq_float2(
+private  void  evaluate_fit_along_line(
     int              n_parameters,
-    int              n_neighbours[],
-    int              *neighbours[],
     Real             constant_term,
-    float            linear_terms[],
-    float            square_terms[],
+    LSQ_TYPE         *linear_terms,
+    LSQ_TYPE         *square_terms,
     int              n_cross_terms[],
     int              *cross_parms[],
-    float            *cross_terms[],
-    Real             step_size,
-    int              n_iters,
-    Real             node_values[] )
+    LSQ_TYPE         *cross_terms[],
+    Real             parm_values[],
+    Real             line_coefs[],
+    Real             *a_ptr,
+    Real             *b_ptr )
 {
-    int              p, n_levels, *neighs;
-    Real             fit;
-    progress_struct  progress;
+    int   parm, n, neigh_parm;
+    Real  weight, n_line_coef, square, a, b, parm_val, line_coef;
 
-    n_levels = ROUND( step_size );
-    ALLOC( neighs, n_parameters );
+    a = 0.0;
+    b = 0.0;
 
-    initialize_progress_report( &progress, FALSE, n_parameters,
-                                "Minimizing" );
-
-    for_less( p, 0, n_parameters )
+    for_less( parm, 0, n_parameters )
     {
-        minimize_around_node( p, n_levels, neighs, n_neighbours, neighbours,
-                              n_parameters,
-                              constant_term, linear_terms, square_terms,
-                              n_cross_terms, cross_parms, cross_terms,
-                              node_values );
+        parm_val = parm_values[parm];
+        square = (Real) square_terms[parm];
+        line_coef = line_coefs[parm];
 
-        fit = evaluate_fit(  n_parameters,
-                             constant_term, linear_terms, square_terms,
-                             n_cross_terms, cross_parms, cross_terms,
-                             node_values );
+        b += line_coef * ((Real) linear_terms[parm] +
+                               square * 2.0 * parm_val);
+        a += square * line_coef * line_coef;
 
-        print( "Parm %d: %g\n", p, fit );
-
-        update_progress_report( &progress, p + 1 );
+        for_less( n, 0, n_cross_terms[parm] )
+        {
+            neigh_parm = cross_parms[parm][n];
+            weight = (Real) cross_terms[parm][n];
+            n_line_coef = line_coefs[neigh_parm];
+            b += weight * (line_coef * parm_values[neigh_parm] +
+                           n_line_coef * parm_val);
+            a += weight * line_coef * n_line_coef;
+        }
     }
 
-    terminate_progress_report( &progress );
+    *a_ptr = a;
+    *b_ptr = b;
+}
 
-    FREE( neighs );
+private  void  minimize_along_line(
+    int              n_parameters,
+    Real             constant_term,
+    LSQ_TYPE         *linear_terms,
+    LSQ_TYPE         *square_terms,
+    int              n_cross_terms[],
+    int              *cross_parms[],
+    LSQ_TYPE         *cross_terms[],
+    Real             max_step_size,
+    Real             parm_values[],
+    Real             line_coefs[] )
+{
+    int     parm;
+    Real    a, b, t, step_size;
+    static  Real     ratio;
+    static  BOOLEAN  first = TRUE;
+
+    if( first )
+    {
+        first = FALSE;
+        if( getenv( "LSQ_STEP_RATIO" ) == 0 ||
+            sscanf( getenv( "LSQ_STEP_RATIO" ), "%lf", &ratio ) != 1 )
+            ratio = DEFAULT_RATIO;
+    }
+
+    evaluate_fit_along_line( n_parameters, constant_term, linear_terms,
+                             square_terms, n_cross_terms, cross_parms,
+                             cross_terms, parm_values, line_coefs, &a, &b );
+
+    if( a == 0.0 )
+        return;
+
+    t = ratio * -b / (2.0 * a);
+
+    if( max_step_size >= 0.0 )
+    {
+        step_size = 0.0;
+        for_less( parm, 0, n_parameters )
+            step_size += t * t * line_coefs[parm] * line_coefs[parm];
+
+        step_size = sqrt( step_size );
+        if( step_size > max_step_size )
+            t *= max_step_size / step_size;
+    }
+
+    for_less( parm, 0, n_parameters )
+        parm_values[parm] += t * line_coefs[parm];
+}
+
+private  Real   test_minimize(
+    int              n_parameters,
+    Real             constant_term,
+    LSQ_TYPE         *linear_terms,
+    LSQ_TYPE         *square_terms,
+    int              n_cross_terms[],
+    int              *cross_parms[],
+    LSQ_TYPE         *cross_terms[],
+    Real             max_step_size,
+    int              n_iters,
+    Real             parm_values[] )
+{
+    Real              fit, len, gg, dgg, gam;
+    int               iter, p, n_between_saves, n_saves;
+    int               update_rate, s;
+    Real              *unit_dir, *g, *h, *xi;
+    Real              *saves[MAX_SAVES], *swap;
+    Real              last_update_time, current_time;
+
+    ALLOC( g, n_parameters );
+    ALLOC( h, n_parameters );
+    ALLOC( xi, n_parameters );
+    ALLOC( unit_dir, n_parameters );
+
+    fit = evaluate_fit( n_parameters, constant_term, linear_terms,
+                        square_terms, n_cross_terms, cross_parms, cross_terms,
+                        parm_values );
+
+    print( "Initial  %g\n", fit );
+    (void) flush_file( stdout );
+
+    update_rate = 1;
+    last_update_time = current_cpu_seconds();
+
+    for_less( iter, 0, n_iters )
+    {
+        evaluate_fit_derivative( n_parameters, constant_term, linear_terms,
+                                 square_terms, n_cross_terms,
+                                 cross_parms, cross_terms,
+                                 parm_values, g );
+
+        for_less( p, 0, n_parameters )
+        {
+            unit_dir[p] = 2.0 * square_terms[p];
+            xi[p] = -(g[p] - 2.0 * square_terms[p] * parm_values[p]);
+        }
+
+        len = 0.0;
+        for_less( p, 0, n_parameters )
+            len += unit_dir[p] * unit_dir[p];
+
+        len = sqrt( len );
+        for_less( p, 0, n_parameters )
+            unit_dir[p] /= len;
+
+
+        minimize_along_line( n_parameters, constant_term, linear_terms,
+                             square_terms, n_cross_terms, cross_parms,
+                             cross_terms,
+                             max_step_size, xi, unit_dir );
+
+        gam = evaluate_fit( n_parameters, constant_term, linear_terms,
+                            square_terms, n_cross_terms, cross_parms,
+                            cross_terms, xi );
+
+        if( gam < fit )
+        {
+            fit = gam;
+            for_less( p, 0, n_parameters )
+                parm_values[p] = xi[p];
+        }
+        else
+            break;
+
+
+        if( ((iter+1) % update_rate) == 0 || iter == n_iters - 1 )
+        {
+            print( "%d: %g\n", iter+1, fit );
+            (void) flush_file( stdout );
+            current_time = current_cpu_seconds();
+            if( current_time - last_update_time < 1.0 )
+                update_rate *= 10;
+            last_update_time = current_time;
+        }
+    }
+
+    FREE( g );
+    FREE( h );
+    FREE( xi );
+    FREE( unit_dir );
+
+    return( fit );
 }
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
-    Real             step_size,
     int              n_iters )
 {
     int              i, p, point, *n_neighbours, **neighbours, n, neigh, which;
-    int              n_fixed, *fixed_indices, iter;
+    int              n_fixed, *fixed_indices;
     Real             *fixed_pos[2], scale, dist1, dist2;
     Real             sum_xx, sum_xy;
-    Real             constant, fit;
+    Real             constant;
     int              *n_cross_terms, **cross_parms;
     ftype            *linear_terms, *square_terms, **cross_terms;
     Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
@@ -520,27 +575,33 @@ private  void  flatten_polygons(
         }
     }
 
-    fit = evaluate_fit(  2 * (polygons->n_points - n_fixed),
+#ifdef DEBUG
+    {
+        int  parm1, parm2, x_size, y_size;
+        Real  x_min, y_min, x_max, y_max, scale, p1, p2;
+
+        if( getenv( "DEBUG_FLAT" ) != NULL &&
+            sscanf( getenv( "DEBUG_FLAT" ), "%d %d %d %d %lf %lf %lf %lf %lf",
+                    &parm1, &parm2, &x_size, &y_size, &x_min, &x_max,
+                    &y_min, &y_max, &scale ) != 0 )
+        {
+            p1 = parameters[parm1];
+            p2 = parameters[parm2];
+            create_lsq_hypersurface_float( "surface.obj",
+                       parm1, parm2, x_size, y_size, p1+x_min,
+                       p1+x_max, p2+y_min, p2+y_max, scale,
+                       2 * (polygons->n_points - n_fixed),
+                       constant, linear_terms, square_terms,
+                       n_cross_terms, cross_parms, cross_terms,
+                       parameters );
+        }
+    }
+#endif
+
+    (void) test_minimize( 2 * (polygons->n_points - n_fixed),
                          constant, linear_terms, square_terms,
                          n_cross_terms, cross_parms, cross_terms,
-                         parameters );
-
-    print( "Initial: %g\n", fit );
-
-    for_less( iter, 0, n_iters )
-    {
-        MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed),
-                      n_neighbours, neighbours,
-                      constant, linear_terms, square_terms,
-                      n_cross_terms, cross_parms, cross_terms,
-                      step_size, n_iters, parameters );
-        fit = evaluate_fit(  2 * (polygons->n_points - n_fixed),
-                             constant, linear_terms, square_terms,
-                             n_cross_terms, cross_parms, cross_terms,
-                             parameters );
-
-        print( "%d: %g\n", iter+1, fit );
-    }
+                         -1.0, n_iters, parameters );
 
     FREE( linear_terms );
     FREE( square_terms );

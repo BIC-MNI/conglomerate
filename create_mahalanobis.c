@@ -79,19 +79,19 @@ int  main(
             if( input_real( variance_file, &transform[i][j] ) != OK )
                 return( 1 );
 
-        tx = Vector_x(offset) * transform[0][0] +
-             Vector_y(offset) * transform[1][0] +
-             Vector_z(offset) * transform[2][0];
-        ty = Vector_x(offset) * transform[0][1] +
-             Vector_y(offset) * transform[1][1] +
-             Vector_z(offset) * transform[2][1];
-        tz = Vector_x(offset) * transform[0][2] +
-             Vector_y(offset) * transform[1][2] +
-             Vector_z(offset) * transform[2][2];
+        tx = (Real) Vector_x(offset) * transform[0][0] +
+             (Real) Vector_y(offset) * transform[1][0] +
+             (Real) Vector_z(offset) * transform[2][0];
+        ty = (Real) Vector_x(offset) * transform[0][1] +
+             (Real) Vector_y(offset) * transform[1][1] +
+             (Real) Vector_z(offset) * transform[2][1];
+        tz = (Real) Vector_x(offset) * transform[0][2] +
+             (Real) Vector_y(offset) * transform[1][2] +
+             (Real) Vector_z(offset) * transform[2][2];
 
-        mahalanobis = tx * Vector_x(offset) +
-                      ty * Vector_y(offset) +
-                      tz * Vector_z(offset);
+        mahalanobis = tx * (Real) Vector_x(offset) +
+                      ty * (Real) Vector_y(offset) +
+                      tz * (Real) Vector_z(offset);
 
         if( output_real( output_file, mahalanobis ) != OK ||
             output_newline( output_file ) != OK )

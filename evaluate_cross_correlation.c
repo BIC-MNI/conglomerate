@@ -4,7 +4,8 @@
 private  Real  compute_cross_correlation(
     Volume    volume1,
     Volume    volume2,
-    Real      x );
+    Real      x,
+    Real      super_sampling );
 
 private  void  usage(
     STRING  executable )
@@ -24,7 +25,7 @@ int  main(
 {
     STRING     input_filename1, input_filename2;
     Volume     volume1, volume2;
-    Real       x, x_min, x_max, x_inc, value, diff;
+    Real       x, x_min, x_max, x_inc, value, super_sampling;
 
     initialize_argument_processing( argc, argv );
 
@@ -38,6 +39,7 @@ int  main(
     (void) get_real_argument( 0.0, &x_min );
     (void) get_real_argument( 0.0, &x_max );
     (void) get_real_argument( 1.0, &x_inc );
+    (void) get_real_argument( 1.0, &super_sampling );
 
     if( input_volume( input_filename1, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -51,7 +53,7 @@ int  main(
 
     for( x = x_min;  x <= x_max;  x += x_inc )
     {
-        value = compute_cross_correlation( volume1, volume2, x );
+        value = compute_cross_correlation( volume1, volume2, x, super_sampling);
 
         print( "%g %g\n", x, value );
     }
@@ -65,38 +67,56 @@ int  main(
 private  Real  compute_cross_correlation(
     Volume    volume1,
     Volume    volume2,
-    Real      x )
+    Real      x,
+    Real      super_sampling )
 {
-    Real  v[MAX_DIMENSIONS];
-    int   v0, v1, v2, v3, v4, sizes[MAX_DIMENSIONS];
+    Real  voxel[MAX_DIMENSIONS];
+    int   sizes[MAX_DIMENSIONS], grid[MAX_DIMENSIONS];
+    int   i, j, k, dim;
     Real  value1, value2, corr, xw, yw, zw, diff;
 
     corr = 0.0;
 
     get_volume_sizes( volume1, sizes );
 
-    BEGIN_ALL_VOXELS( volume1, v0, v1, v2, v3, v4 )
+    for_less( dim, 0, N_DIMENSIONS )
+    {
+        grid[dim] = ROUND( super_sampling * (Real) (sizes[dim] - 1) + 1.0 );
+    }
 
-        value1 = get_volume_real_value( volume1, v0, v1, v2, v3, v4 );
+    for_less( i, 0, grid[0] )
+    {
+        voxel[0] = INTERPOLATE( (Real) i / (Real) (grid[0]-1),
+                                0.0, (Real) sizes[0] - 1.0 );
 
-        v[0] = (Real) v0;
-        v[1] = (Real) v1;
-        v[2] = (Real) v2;
+        for_less( j, 0, grid[1] )
+        {
+            voxel[1] = INTERPOLATE( (Real) j / (Real) (grid[1]-1),
+                                    0.0, (Real) sizes[1] - 1.0 );
 
-        convert_voxel_to_world( volume1, v, &xw, &yw, &zw );
-        xw += x;
+            for_less( k, 0, grid[2] )
+            {
+                voxel[2] = INTERPOLATE( (Real) k / (Real) (grid[2]-1),
+                                        0.0, (Real) sizes[2] - 1.0 );
 
-        evaluate_volume_in_world( volume2, xw, yw, zw, 0, FALSE, 0.0,
-                                  &value2, NULL, NULL, NULL,
-                                           NULL, NULL, NULL,
-                                           NULL, NULL, NULL );
+                (void) evaluate_volume( volume1, voxel, NULL, 0, FALSE, 0.0,
+                                        &value1, NULL, NULL );
 
-        diff = value1 - value2;
-        corr += diff * diff;
+                convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
+                xw += x;
 
-    END_ALL_VOXELS
+                evaluate_volume_in_world( volume2, xw, yw, zw, 0, FALSE, 0.0,
+                                          &value2, NULL, NULL, NULL,
+                                                   NULL, NULL, NULL,
+                                                   NULL, NULL, NULL );
 
-    corr /= (Real) (sizes[0] * sizes[1] * sizes[2]);
+                diff = value1 - value2;
+                corr += diff * diff;
+            }
+        }
+    }
+
+    corr /= (Real) (grid[0] * grid[1] * grid[2]);
 
     return( corr );
 }

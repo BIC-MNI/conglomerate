@@ -3,10 +3,6 @@
 
 #define  BINTREE_FACTOR  0.3
 
-private  void  resample_polygons(
-    polygons_struct    *polygons,
-    int                new_n_polygons );
-
 private  void  usage(
     STRING   executable )
 {
@@ -70,7 +66,7 @@ int  main(
         values[p] = 1.0e30;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
-                                     &neighbours, NULL );
+                                     &neighbours, NULL, NULL );
 
     for_less( p, n_read, polygons->n_points )
     {
@@ -90,7 +86,8 @@ int  main(
         values[p] = avg / 2.0;
     }
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours, NULL );
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     NULL, NULL );
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );

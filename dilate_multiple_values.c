@@ -1,27 +1,17 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-private  void  dilate_values_in_row(
-    int    n,
-    Real   values[],
-    Real   out_values[],
-    Real   min_inside,
-    Real   max_inside,
-    Real   min_outside,
-    Real   max_outside,
-    int    n_dilations,
-    int    max_buffer[] );
-
 private  void  usage(
     STRING  executable )
 {
     STRING  usage_str = "\n\
-Usage: %s input.mnc output.mnc  min_region max_region \n\
-            [n_dilations]  [min_outside] [max_outside]\n\
+Usage: dilate_volume input.mnc output.mnc  dilation_value\n\
+            [6|26]  [n_dilations]  [mask.mnc min_mask max_mask]\n\
 \n\
-     Dilates all regions within the specified range in a 3X3X3 kernel,\n\
-     (1 dilation by default).  The regions dilated into are specified by \n\
-     the min_outside and max_outside, defaulting to 0 and 0.\n\n";
+     Dilates all regions of value dilation_value, by n_dilations of 3X3X3,\n\
+     (1 dilation by default).  You can specify 6 or 26 neighbours, default\n\
+     being 26.  If the mask volume and range is specified, then only voxels\n\
+     in the specified mask range will be dilated.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -30,149 +20,89 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Real                 min_inside, max_inside;
-    Real                 min_outside, max_outside;
-    Volume               volume;
-    int                  n_dilations, dim;
-    Real                 *values, *out_values;
-    int                  *max_buffer;
-    int                  sizes[N_DIMENSIONS];
-    int                  tmp_voxel[N_DIMENSIONS];
-    int                  min_voxel[N_DIMENSIONS];
-    int                  max_voxel[N_DIMENSIONS];
-    int                  n_voxels[N_DIMENSIONS];
-    int                  voxel[N_DIMENSIONS];
+    STRING               input_filename, output_filename, mask_filename;
+    STRING               *dim_names;
+    Real                 min_mask, max_mask, value_to_dilate;
+    BOOLEAN              mask_volume_present;
+    Volume               volume, mask_volume;
+    int                  i, n_dilations, n_neighs, n_changed;
+    int                  range_changed[2][N_DIMENSIONS];
+    Neighbour_types      connectivity;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( NULL, &input_filename ) ||
-        !get_string_argument( NULL, &output_filename ) ||
-        !get_real_argument( 0.0, &min_inside ) ||
-        !get_real_argument( 0.0, &max_inside ) )
+    if( !get_string_argument( "", &input_filename ) ||
+        !get_string_argument( "", &output_filename ) ||
+        !get_real_argument( 0.0, &value_to_dilate ) )
     {
         usage( argv[0] );
         return( 1 );
     }
 
+    (void) get_int_argument( 26, &n_neighs );
     (void) get_int_argument( 1, &n_dilations );
-    (void) get_real_argument( 0.0, &min_outside );
-    (void) get_real_argument( 0.0, &max_outside );
+
+    mask_volume_present = get_string_argument( "", &mask_filename );
+
+    if( mask_volume_present &&
+        (!get_real_argument( 0.0, &min_mask ) ||
+         !get_real_argument( 0.0, &max_mask )) )
+    {
+        usage( argv[0] );
+        return( 1 );
+    }
+
+    switch( n_neighs )
+    {
+    case 6:   connectivity = FOUR_NEIGHBOURS;  break;
+    case 26:   connectivity = EIGHT_NEIGHBOURS;  break;
+    default:  print_error( "# neighs must be 6 or 26.\n" );  return( 1 );
+    }
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
                       (minc_input_options *) NULL ) != OK )
         return( 1 );
 
-    get_volume_sizes( volume, sizes );
-
-    ALLOC( values, MAX3(sizes[0],sizes[1],sizes[2]) );
-    ALLOC( out_values, MAX3(sizes[0],sizes[1],sizes[2]) );
-    ALLOC( max_buffer, MAX3(sizes[0],sizes[1],sizes[2]) );
-
-    if( n_dilations < 0 )
-        n_dilations = MAX3(sizes[0],sizes[1],sizes[2]);
-
-    for_less( dim, 0, N_DIMENSIONS )
+    if( mask_volume_present )
     {
-        min_voxel[0] = 0;
-        max_voxel[0] = sizes[0]-1;
-        min_voxel[1] = 0;
-        max_voxel[1] = sizes[1]-1;
-        min_voxel[2] = 0;
-        max_voxel[2] = sizes[2]-1;
+        dim_names = get_volume_dimension_names( volume );
 
-        n_voxels[0] = 1;
-        n_voxels[1] = 1;
-        n_voxels[2] = 1;
-        n_voxels[dim] = sizes[dim];
+        if( input_volume( mask_filename, 3, dim_names,
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &mask_volume,
+                          (minc_input_options *) NULL ) != OK )
+            return( 1 );
 
-        max_voxel[dim] = 0;
+        delete_dimension_names( volume, dim_names );
 
-        for_inclusive( voxel[0], min_voxel[0], max_voxel[0] )
-        for_inclusive( voxel[1], min_voxel[1], max_voxel[1] )
-        for_inclusive( voxel[2], min_voxel[2], max_voxel[2] )
+        if( !volumes_are_same_grid( mask_volume, volume ) )
         {
-            get_volume_value_hyperslab_3d( volume, voxel[0], voxel[1], voxel[2],
-                                           n_voxels[0], n_voxels[1],
-                                           n_voxels[2], values );
-
-            dilate_values_in_row( sizes[dim], values, out_values,
-                                  min_inside, max_inside,
-                                  min_outside, max_outside,
-                                  n_dilations, max_buffer );
-
-            tmp_voxel[0] = voxel[0];
-            tmp_voxel[1] = voxel[1];
-            tmp_voxel[2] = voxel[2];
-            for_less( tmp_voxel[dim], 0, sizes[dim] )
-                set_volume_real_value( volume,
-                                       tmp_voxel[0], tmp_voxel[1], tmp_voxel[2],
-                                       0, 0, out_values[tmp_voxel[dim]] );
+            print_error( "Mask volume must be on same grid as volume.\n" );
+            return( 1 );
         }
     }
+    else
+    {
+        mask_volume = NULL;
+        min_mask = 0.0;
+        max_mask = -1.0;
+    }
 
-    FREE( values );
-    FREE( max_buffer );
+    for_less( i, 0, n_dilations )
+    {
+        n_changed = dilate_voxels_3d( mask_volume, volume,
+                                      value_to_dilate, value_to_dilate,
+                                      0.0, -1.0,
+                                      0.0, -1.0, min_mask, max_mask,
+                                      value_to_dilate, connectivity,
+                                      range_changed );
+        print( "%d\n", n_changed );
+    }
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
                                    0.0, 0.0, volume, input_filename,
-                                   "dilate_all_labels\n",
-                                   NULL );
+                                   "Dilated\n",
+                                   (minc_output_options *) NULL );
 
     return( 0 );
-}
-
-private  void  dilate_values_in_row(
-    int    n,
-    Real   values[],
-    Real   out_values[],
-    Real   min_inside,
-    Real   max_inside,
-    Real   min_outside,
-    Real   max_outside,
-    int    n_dilations,
-    int    max_buffer[] )
-{
-    int    i, current, n_maxes, start, end, n_init;
-
-    n_init = MIN( n, n_dilations+1 );
-
-    n_maxes = 0;
-
-    for_less( i, 0, n_init )
-    {
-        while( n_maxes > 0 && values[i] >= values[max_buffer[n_maxes-1]] )
-            --n_maxes;
-
-        max_buffer[n_maxes] = i;
-        ++n_maxes;
-    }
-
-    end = n_dilations;
-    start = -n_dilations;
-
-    for_less( current, 0, n )
-    {
-        out_values[current] = values[max_buffer[0]];
-
-        ++end;
-        if( end < n )
-        {
-            while( n_maxes > 0 && values[end] >= values[max_buffer[n_maxes-1]] )
-                --n_maxes;
-
-            max_buffer[n_maxes] = end;
-            ++n_maxes;
-        }
-
-        if( start >= 0 && start == max_buffer[0] )
-        {
-            --n_maxes;
-            for_less( i, 0, n_maxes )
-                max_buffer[i] = max_buffer[i+1];
-        }
-
-        ++start;
-    }
 }

@@ -8,10 +8,10 @@ private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  full_topology.obj  input.pt  output.obj\n\
+Usage: %s  full_topology.obj  input.pt  output.obj [ascii|binary]\n\
 \n\
      Creates an output file which has the topology of the first argument.\n\
-     but the points of the second argument.\n\n";
+     but the points of the second argument. (Default = binary input format)\n\n";
 
     print_error( usage_str, executable );
 }
@@ -21,9 +21,10 @@ int  main(
     char   *argv[] )
 {
     STRING              input_filename, output_filename, points_filename;
+    STRING              format_name;
     int                 i, pt, n_objects, n_points;
     Point               *points;
-    File_formats        format;
+    File_formats        format, input_format;
     object_struct       **object_list;
     FILE                *file;
 
@@ -37,12 +38,16 @@ int  main(
         return( 1 );
     }
 
+    if( !get_string_argument( NULL, &format_name ) || format_name[0] != 'a' )
+        input_format = BINARY_FORMAT;
+    else
+        input_format = ASCII_FORMAT;
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK )
         return( 1 );
 
-    if( open_file( points_filename, READ_FILE, BINARY_FORMAT, &file ) != OK )
+    if( open_file( points_filename, READ_FILE, input_format, &file ) != OK )
         return( 1 );
 
     for_less( i, 0, n_objects )
@@ -51,7 +56,7 @@ int  main(
 
         for_less( pt, 0, n_points )
         {
-            if( io_point( file, READ_FILE, BINARY_FORMAT, &points[pt] ) != OK )
+            if( io_point( file, READ_FILE, input_format, &points[pt] ) != OK )
             {
                 print( "Error reading %d'th point.\n", pt );
                 return( 1 );

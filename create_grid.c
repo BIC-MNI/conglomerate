@@ -66,6 +66,9 @@ int  main(
     found[0] = FALSE;
     found[1] = FALSE;
 
+    positions = NULL;
+    axes = NULL;
+
     while( get_string_argument( "", &axis_name ) &&
            get_axis_from_name( axis_name, &line_axis ) &&
            get_real_argument( 0.0, &line_pos ) )
@@ -103,15 +106,15 @@ int  main(
 
     for_less( i, 0, n_grids )
     {
-        Point_coord( point1, slice_axis ) = slice_pos;
-        Point_coord( point1, a1 ) = limits[0][0];
-        Point_coord( point1, a2 ) = limits[1][0];
-        Point_coord( point2, slice_axis ) = slice_pos;
-        Point_coord( point2, a1 ) = limits[0][1];
-        Point_coord( point2, a2 ) = limits[1][1];
+        Point_coord( point1, slice_axis ) = (Point_coord_type) slice_pos;
+        Point_coord( point1, a1 ) = (Point_coord_type) limits[0][0];
+        Point_coord( point1, a2 ) = (Point_coord_type) limits[1][0];
+        Point_coord( point2, slice_axis ) = (Point_coord_type) slice_pos;
+        Point_coord( point2, a1 ) = (Point_coord_type) limits[0][1];
+        Point_coord( point2, a2 ) = (Point_coord_type) limits[1][1];
 
-        Point_coord( point1, axes[i] ) = positions[i];
-        Point_coord( point2, axes[i] ) = positions[i];
+        Point_coord( point1, axes[i] ) = (Point_coord_type) positions[i];
+        Point_coord( point2, axes[i] ) = (Point_coord_type) positions[i];
 
         start_new_line( lines );
         add_point_to_line( lines, &point1 );

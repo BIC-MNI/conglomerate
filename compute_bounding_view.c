@@ -20,18 +20,19 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING              input_filename;
-    Real                xview, yview, zview, xup, yup, zup;
+    STRING              input_filename, transform_filename;
+    Real                xview, yview, zview, xup, yup, zup, x, y, z;
     int                 point, n_points, n_objects, dim, i;
     Real                min_position[N_DIMENSIONS];
     Real                max_position[N_DIMENSIONS];
     Real                x_width, y_width, z_width, min_pos, max_pos;
-    Point               *points, centre;
+    Point               *points, centre, trans_point;
     Vector              x_axis, y_axis, z_axis;
     Vector              axis[N_DIMENSIONS];
+    General_transform   transform;
     File_formats        format;
     object_struct       **object_list;
-    BOOLEAN             first;
+    BOOLEAN             first, have_transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -44,6 +45,13 @@ int  main(
         !get_real_argument( 0.0, &zup ) )
     {
         usage( argv[0] );
+        return( 1 );
+    }
+
+    have_transform = get_string_argument( NULL, &transform_filename );
+    if( have_transform &&
+        input_transform_file( transform_filename, &transform ) != OK )
+    {
         return( 1 );
     }
 
@@ -76,9 +84,21 @@ int  main(
 
         for_less( point, 0, n_points )
         {
+            if( have_transform )
+            {
+                general_transform_point( &transform,
+                                         RPoint_x( points[point] ),
+                                         RPoint_y( points[point] ),
+                                         RPoint_z( points[point] ),
+                                         &x, &y, &z );
+                fill_Point( trans_point, x, y, z );
+            }
+            else
+                trans_point = points[point];
+
             for_less( dim, 0, N_DIMENSIONS )
             {
-                min_pos = DOT_VECTORS( axis[dim], points[point] );
+                min_pos = DOT_VECTORS( axis[dim], trans_point );
                 max_pos = min_pos;
                 if( get_object_type(object_list[i]) == LINES )
                 {

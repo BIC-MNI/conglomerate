@@ -23,13 +23,15 @@ int  main(
     Real                 set_value, separations[MAX_DIMENSIONS];
     Real                 min_value, max_value, value;
     Real                 xw, yw, zw, threshold, value_to_set;
+    Real                 sign_before, sign_after;
     Point                origin, dest;
     Real                 min_real_value, max_real_value;
+    Real                 *directions;
     Vector               direction;
     STRING               history;
     File_formats         format;
     Volume               volume;
-    int                  x, y, z, n_objects;
+    int                  x, y, z, n_objects, k;
     int                  sizes[MAX_DIMENSIONS];
     int                  obj_index;
     int                  i, j, best, n_intersections, ind;
@@ -112,9 +114,13 @@ int  main(
             SUB_POINTS( direction, dest, origin );
             NORMALIZE_VECTOR( direction, direction );
 
+            initialize_intersect_directions();
+
             n_intersections = intersect_ray_with_object( &origin, &direction,
                                        objects[0], &obj_index, &dist,
                                        &distances );
+
+            directions = get_intersect_directions();
 
             for_less( i, 0, n_intersections )
                 distances[i] = distances[i] / FABS( separations[Z] ) - OFFSET;
@@ -131,6 +137,71 @@ int  main(
                 tmp = distances[i];
                 distances[i] = distances[best];
                 distances[best] = tmp;
+                tmp = directions[i];
+                directions[i] = directions[best];
+                directions[best] = tmp;
+            }
+
+            j = 0;
+            i = 0;
+            while( i < n_intersections )
+            {
+                if( j == 0 || distances[i] - distances[j-1] > 1e-10 ||
+                    directions[i] != directions[j-1] )
+                {
+                    distances[j] = distances[i];
+                    directions[j] = directions[i];
+                    ++j;
+                }
+                ++i;
+            }
+            n_intersections = j;
+
+            while( TRUE )
+            {
+                for_less( i, 0, n_intersections-1 )
+                {
+                    if( distances[i+1] - distances[i] < 1e-10 )
+                        break;
+                }
+
+                if( i >= n_intersections-1 )
+                    break;
+
+                j = i+1;
+                while( j < n_intersections-1 &&
+                       distances[j+1] - distances[i] < 1e-10 )
+                    ++j;
+
+                if( i == 0 )
+                    sign_before = 1.0;
+                else
+                    sign_before = directions[i-1];
+
+                if( j == n_intersections-1 )
+                    sign_after = -1.0;
+                else
+                    sign_after = directions[j+1];
+
+                if( sign_before == sign_after )
+                {
+                    for_less( k, j, n_intersections )
+                    {
+                        distances[i+k-j] = distances[k];
+                        directions[i+k-j] = directions[k];
+                    }
+                    directions[j] = -sign_before;
+                    n_intersections -= j - i;
+                }
+                else
+                {
+                    for_less( k, j+1, n_intersections )
+                    {
+                        distances[i+k-j-1] = distances[k];
+                        directions[i+k-j-1] = directions[k];
+                    }
+                    n_intersections -= j - i + 1;
+                }
             }
 
             if( n_intersections % 2 == 0 )
@@ -181,7 +252,10 @@ int  main(
                 print( "N intersections: %d\n", n_intersections );
 
             if( n_intersections > 0 )
+            {
                 FREE( distances );
+                FREE( directions );
+            }
 
             update_progress_report( &progress, x * sizes[Y] + y + 1 );
         }

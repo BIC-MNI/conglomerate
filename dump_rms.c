@@ -8,7 +8,7 @@ int  main(
     FILE             *file;
     STRING           input1_filename, input2_filename, output_filename;
     int              i, n_objects, n_points1, n_points2;
-    Real             dx, dy, dz, dist_sq, rms;
+    Real             dx, dy, dz, dist_sq, rms, dist;
     Real             sum_x, sum_xx, std_dev, avg_dist, min_dist, max_dist;
     File_formats     format;
     object_struct    **object_list;
@@ -76,7 +76,12 @@ int  main(
 
         if( output_flag )
         {
-            (void) output_real( file, dist_sq );
+            if( dist_sq <= 0.0 )
+                dist = 0.0;
+            else
+                dist = sqrt( dist_sq );
+
+            (void) output_real( file, dist );
             (void) output_newline( file );
         }
 

@@ -151,6 +151,7 @@ private  void   coalesce_lines(
     Point             *new_points;
 
     n_new_points = 0;
+    new_points = NULL;
 
     ALLOC( translations, lines->n_points );
 

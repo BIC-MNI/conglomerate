@@ -74,10 +74,11 @@ int  main(
             if( fill_connected_voxels( volume, label_volume, connectivity,
                                        v, 0, 0, current_label,
                                        min_threshold, max_threshold,
-                                       range_changed ) &&
-                current_label < num_labels-1 )
+                                       range_changed ) )
             {
                 ++current_label;
+                if( current_label >= num_labels )
+                    current_label = 1;
             }
         }
 

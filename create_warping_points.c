@@ -6,7 +6,7 @@ private  void   get_n_tags(
     polygons_struct  *dest_surface,
     lines_struct     *lines,
     int              n_tags,
-    Real             **tags );
+    Point            tags[] );
 
 private  void  usage(
     STRING   executable )
@@ -31,7 +31,7 @@ int  main(
     object_struct        **objects1, **objects2, **objects;
     lines_struct         *lines1, *lines2;
     polygons_struct      *surface1, *surface2;
-    Point                point, point_on_sulcus;
+    Point                point_on_sulcus, *sulcal_points;
 
     initialize_argument_processing( argc, argv );
 
@@ -85,6 +85,10 @@ int  main(
                              ROUND( (Real) surface1->n_items * 0.2 ) );
     create_polygons_bintree( surface2,
                              ROUND( (Real) surface2->n_items * 0.2 ) );
+surface1->bintree = NULL;
+surface2->bintree = NULL;
+
+    ALLOC( sulcal_points, n_tags_per_line );
 
     for_less( i, 0, n_pairs )
     {
@@ -118,6 +122,7 @@ int  main(
         lines2 = get_lines_ptr( objects2[0] );
 
         create_lines_bintree( lines2, ROUND( (Real) lines2->n_points * 3.0 ) );
+lines2->bintree = NULL;
 
         SET_ARRAY_SIZE( tags1, n_tags, n_tags + n_tags_per_line,
                         DEFAULT_CHUNK_SIZE );
@@ -130,23 +135,30 @@ int  main(
             ALLOC( tags2[t], N_DIMENSIONS );
         }
 
-        get_n_tags( surface1, NULL, lines1, n_tags_per_line, &tags1[n_tags] );
+        get_n_tags( surface1, NULL, lines1, n_tags_per_line, sulcal_points );
 
         for_less( t, n_tags, n_tags + n_tags_per_line )
         {
-            fill_Point( point, tags1[t][X], tags1[t][Y], tags1[t][Z] );
-            (void) find_closest_point_on_object( &point, objects2[0],
+            (void) find_closest_point_on_object( &sulcal_points[t-n_tags],
+                                                 objects2[0],
                                                  &obj_index, &point_on_sulcus );
 
+            poly = find_closest_polygon_point( &sulcal_points[t-n_tags],
+                                               surface1,
+                                               &sulcal_points[t-n_tags] );
+
             poly = find_closest_polygon_point( &point_on_sulcus, surface2,
-                                               &point );
+                                               &point_on_sulcus );
+            map_point_between_polygons( surface2, poly, &point_on_sulcus,
+                                        surface1, &point_on_sulcus );
 
-            map_point_between_polygons( surface2, poly, &point,
-                                        surface1, &point );
+            tags1[t][X] = RPoint_x(sulcal_points[t-n_tags]);
+            tags1[t][Y] = RPoint_y(sulcal_points[t-n_tags]);
+            tags1[t][Z] = RPoint_z(sulcal_points[t-n_tags]);
 
-            tags2[t][X] = RPoint_x(point);
-            tags2[t][Y] = RPoint_y(point);
-            tags2[t][Z] = RPoint_z(point);
+            tags2[t][X] = RPoint_x(point_on_sulcus);
+            tags2[t][Y] = RPoint_y(point_on_sulcus);
+            tags2[t][Z] = RPoint_z(point_on_sulcus);
         }
 
         n_tags += n_tags_per_line;
@@ -186,10 +198,9 @@ private  void   get_n_tags(
     polygons_struct  *dest_surface,
     lines_struct     *lines,
     int              n_tags,
-    Real             **tags )
+    Point            tags[] )
 {
-    int      size, i, p0, p1, ind, poly;
-    Point    poly_point, point;
+    int      size, i, p0, p1, ind;
     Real     *lengths, total_length, fraction;
 
     size = GET_OBJECT_SIZE( *lines, 0 );
@@ -211,19 +222,8 @@ private  void   get_n_tags(
                             size-1, lengths, &fraction );
         p0 = lines->indices[ind];
         p1 = lines->indices[ind+1];
-        INTERPOLATE_POINTS( point, lines->points[p0], lines->points[p1],
+        INTERPOLATE_POINTS( tags[i], lines->points[p0], lines->points[p1],
                             fraction );
-        poly = find_closest_polygon_point( &point, surface, &poly_point );
-
-        if( dest_surface != NULL )
-        {
-            map_point_between_polygons( surface, poly, &poly_point,
-                                        dest_surface, &poly_point );
-        }
-
-        tags[i][X] = RPoint_x(poly_point);
-        tags[i][Y] = RPoint_y(poly_point);
-        tags[i][Z] = RPoint_z(poly_point);
     }
 
     FREE( lengths );

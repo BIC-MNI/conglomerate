@@ -1,27 +1,25 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  DEFAULT_N_INTERVALS  100
+#define  FILTER_WIDTH 0.02
 
-#define  FILTER_WIDTH 0.0
-#define  WINDOW_WIDTH 0.05
-
-#define  MAX_POINTS   10
+#define  DEFAULT_Y_SCALE  5.0
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    int                  x, y, z, sizes[N_DIMENSIONS], x_size, y_size;
+    int                  x, y, z, sizes[N_DIMENSIONS];
     int                  start[N_DIMENSIONS], end[N_DIMENSIONS];
     int                  slice, axis, xyz_axis;
     Real                 value, min_voxel, max_voxel, window_width;
     Real                 min_value, max_value, filter_ratio;
+    Real                 min_nonzero, max_nonzero, y_scale;
     STRING               input_volume_filename, output_filename;
     STRING               axis_name;
     lines_struct         *lines;
     histogram_struct     histogram;
-    Real                 grad, max_grad;
+    Real                 grad, max_grad, delta;
     Real                 xyz[N_DIMENSIONS], voxel[N_DIMENSIONS];
     Real                 *counts, pos_low, pos_max_grad, pos_high;
     Real                 scale, trans;
@@ -34,14 +32,20 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &input_volume_filename ) ||
-        !get_string_argument( "", &output_filename ) ||
-        !get_string_argument( "", &axis_name ) ||
-        !get_int_argument( 0, &slice ) )
+    if( !get_string_argument( "", &input_volume_filename ) )
     {
-        print( "Usage: %s  volume_file output_file\n", argv[0] );
+        print_error("Usage: %s volume_file output_filename|none [x|y|z|none]\n",
+                     argv[0] );
+        print_error( "   [slice_pos]  [filter_ratio] [y_scale]\n" );
         return( 1 );
     }
+
+    (void) get_string_argument( "none", &output_filename );
+    (void) get_string_argument( "none", &axis_name );
+    (void) get_int_argument( 0, &slice );
+    (void) get_real_argument( FILTER_WIDTH, &filter_ratio );
+    (void) get_real_argument( DEFAULT_Y_SCALE, &y_scale );
+    put_x_pos = get_real_argument( 0.0, &x_pos );
 
     if( axis_name[0] == 'x' || axis_name[0] == 'X' )
         axis = X;
@@ -51,11 +55,6 @@ int  main(
         axis = Z;
     else
         axis = -1;
-
-    (void) get_real_argument( FILTER_WIDTH, &filter_ratio );
-    (void) get_int_argument( DEFAULT_N_INTERVALS, &x_size );
-    (void) get_int_argument( x_size, &y_size );
-    put_x_pos = get_real_argument( 0.0, &x_pos );
 
     set_n_bytes_cache_threshold( 1 );
     set_default_max_bytes_in_cache( 1 );
@@ -70,9 +69,13 @@ int  main(
     get_volume_voxel_range( volume, &min_voxel, &max_voxel );
     get_volume_real_range( volume, &min_value, &max_value );
 
-    initialize_histogram( &histogram,
-                          (max_value - min_value) / (Real) (x_size-1),
-                          min_value );
+    scale = (max_value - min_value) / (max_voxel - min_voxel);
+
+    delta = scale;
+    if( (max_value - min_value) / delta > 10000.0 )
+        delta = (max_value - min_value) / 10000.0;
+
+    initialize_histogram( &histogram, delta, min_value - scale/2.0 );
 
     start[X] = 0;
     end[X] = sizes[X];
@@ -115,9 +118,19 @@ int  main(
         }
     }
 
-    window_width = filter_ratio * (max_value - min_value);
-
     /*--- find mins and maxes */
+
+    window_width = 0.0;
+
+    n = get_histogram_counts( &histogram, &counts, window_width,
+                              &scale, &trans );
+
+    min_nonzero = scale * (-0.5) + trans;
+    max_nonzero = scale * ((Real) n + 0.5) + trans;
+
+    FREE( counts );
+
+    window_width = filter_ratio * (max_nonzero - min_nonzero);
 
     n = get_histogram_counts( &histogram, &counts, window_width,
                               &scale, &trans );
@@ -130,7 +143,7 @@ int  main(
     }
 
     i = max_index;
-    while( i < n && counts[i] > counts[max_index] / 2.0 )
+    while( i < n && counts[i] > counts[max_index] / 3.0 )
         ++i;
 
     while( i < n && counts[i] > counts[i+1] )
@@ -173,7 +186,9 @@ int  main(
 
     objects[0] = create_object( LINES );
     lines = get_lines_ptr( objects[0] );
-    create_histogram_line( &histogram, x_size, y_size, window_width, lines );
+    create_histogram_line( &histogram, 1000,
+                           ROUND( y_scale * (max_nonzero-min_nonzero) ),
+                           window_width, lines );
 
     print( "Positions %g %g %g\n", pos_low, pos_max_grad, pos_high );
 

@@ -239,70 +239,131 @@ private  Real  sq_triangle_point_dist(
     Point tri_points[],
     Point *point )
 {
-    Real     v_dot_n, n_dot_n, dist, v_dot_v, v_dot_e, e_dot_e;
-    Point    p0, p1, p2;
-    Vector   v01, v12, v20, normal, to_p_0, to_p_1, to_p_2, towards_inside;
+    float    v_dot_n, n_dot_n, v_dot_v, v_dot_e, e_dot_e, dist;
     BOOLEAN  inside_edge0, inside_edge1, inside_edge2;
+    float    x0, y0, z0, x1, y1, z1, x2, y2, z2, px, py, pz;
+    float    v01x, v01y, v01z;
+    float    v12x, v12y, v12z;
+    float    v20x, v20y, v20z;
+    float    pv0x, pv0y, pv0z;
+    float    pv1x, pv1y, pv1z;
+    float    pv2x, pv2y, pv2z;
+    float    dx, dy, dz, nx, ny, nz, tx, ty, tz;
 
-    p0 = tri_points[0];
-    p1 = tri_points[1];
-    p2 = tri_points[2];
-    SUB_POINTS( v01, p1, p0 );
-    SUB_POINTS( v12, p2, p1 );
-    SUB_POINTS( v20, p0, p2 );
-    CROSS_VECTORS( normal, v20, v01 );
-    if( null_Vector( &normal ) )
-        return( sq_distance_between_points( point, &tri_points[0] ) );
+    x0 = Point_x( tri_points[0] );
+    y0 = Point_y( tri_points[0] );
+    z0 = Point_z( tri_points[0] );
+    x1 = Point_x( tri_points[1] );
+    y1 = Point_y( tri_points[1] );
+    z1 = Point_z( tri_points[1] );
+    x2 = Point_x( tri_points[2] );
+    y2 = Point_y( tri_points[2] );
+    z2 = Point_z( tri_points[2] );
 
-    SUB_POINTS( to_p_0, *point, p0 );
-    SUB_POINTS( to_p_1, *point, p1 );
-    SUB_POINTS( to_p_2, *point, p2 );
+    px = Point_x( *point );
+    py = Point_y( *point );
+    pz = Point_z( *point );
 
-    CROSS_VECTORS( towards_inside, normal, v01 );
-    inside_edge0 = DOT_VECTORS( towards_inside, to_p_0 ) >= 0.0;
-    CROSS_VECTORS( towards_inside, normal, v12 );
-    inside_edge1 = DOT_VECTORS( towards_inside, to_p_1 ) >= 0.0;
-    CROSS_VECTORS( towards_inside, normal, v20 );
-    inside_edge2 = DOT_VECTORS( towards_inside, to_p_2 ) >= 0.0;
+    v01x = x1 - x0;
+    v01y = y1 - y0;
+    v01z = z1 - z0;
+    v12x = x2 - x1;
+    v12y = y2 - y1;
+    v12z = z2 - z1;
+    v20x = x0 - x2;
+    v20y = y0 - y2;
+    v20z = z0 - z2;
+
+    nx = v20y * v01z - v20z * v01y;
+    ny = v20z * v01x - v20x * v01z;
+    nz = v20x * v01y - v20y * v01x;
+
+    if( nx == 0.0f && ny == 0.0f && nz == 0.0f )
+    {
+        dx = px - x0;
+        dy = py - y0;
+        dz = pz - z0;
+        return( (Real) (dx * dx + dy * dy + dz * dz) );
+    }
+
+    pv0x = px - x0;
+    pv0y = py - y0;
+    pv0z = pz - z0;
+    pv1x = px - x1;
+    pv1y = py - y1;
+    pv1z = pz - z1;
+    pv2x = px - x2;
+    pv2y = py - y2;
+    pv2z = pz - z2;
+
+    tx = ny * v01z - nz * v01y;
+    ty = nz * v01x - nx * v01z;
+    tz = nx * v01y - ny * v01x;
+    inside_edge0 = (tx * pv0x + ty * pv0y + tz * pv0z) >= 0.0f;
+
+    tx = ny * v12z - nz * v12y;
+    ty = nz * v12x - nx * v12z;
+    tz = nx * v12y - ny * v12x;
+    inside_edge1 = (tx * pv1x + ty * pv1y + tz * pv1z) >= 0.0f;
+
+    tx = ny * v20z - nz * v20y;
+    ty = nz * v20x - nx * v20z;
+    tz = nx * v20y - ny * v20x;
+    inside_edge2 = (tx * pv2x + ty * pv2y + tz * pv2z) >= 0.0f;
 
     if( inside_edge0 && inside_edge1 && inside_edge2 )
     {
-        v_dot_n = DOT_VECTORS( to_p_0, normal );
-        n_dot_n = DOT_VECTORS( normal, normal );
+        v_dot_n = pv0x * nx + pv0y * ny + pv0z * nz;
+        n_dot_n = nx * nx + ny * ny + nz * nz;
         dist = v_dot_n * v_dot_n / n_dot_n;
     }
     else if( inside_edge0 && !inside_edge1 && !inside_edge2 )
-        dist = sq_distance_between_points( point, &tri_points[2] );
+    {
+        dx = px - x2;
+        dy = py - y2;
+        dz = pz - z2;
+        dist = dx * dx + dy * dy + dz * dz;
+    }
     else if( !inside_edge0 && inside_edge1 && !inside_edge2 )
-        dist = sq_distance_between_points( point, &tri_points[0] );
+    {
+        dx = px - x0;
+        dy = py - y0;
+        dz = pz - z0;
+        dist = dx * dx + dy * dy + dz * dz;
+    }
     else if( !inside_edge0 && !inside_edge1 && inside_edge2 )
-        dist = sq_distance_between_points( point, &tri_points[1] );
+    {
+        dx = px - x1;
+        dy = py - y1;
+        dz = pz - z1;
+        dist = dx * dx + dy * dy + dz * dz;
+    }
     else
     {
         if( inside_edge0 && inside_edge1 && !inside_edge2 )
         {
-            v_dot_v = DOT_VECTORS( to_p_2, to_p_2 );
-            v_dot_e = DOT_VECTORS( to_p_2, v20 );
-            e_dot_e = DOT_VECTORS( v20, v20 );
+            v_dot_v = pv2x * pv2x + pv2y * pv2y + pv2z * pv2z;
+            v_dot_e = pv2x * v20x + pv2y * v20y + pv2z * v20z;
+            e_dot_e = v20x * v20x + v20y * v20y + v20z * v20z;
         }
         else if( inside_edge0 && !inside_edge1 && inside_edge2 )
         {
-            v_dot_v = DOT_VECTORS( to_p_1, to_p_1 );
-            v_dot_e = DOT_VECTORS( to_p_1, v12 );
-            e_dot_e = DOT_VECTORS( v12, v12 );
+            v_dot_v = pv1x * pv1x + pv1y * pv1y + pv1z * pv1z;
+            v_dot_e = pv1x * v12x + pv1y * v12y + pv1z * v12z;
+            e_dot_e = v12x * v12x + v12y * v12y + v12z * v12z;
         }
         else
         {
-            v_dot_v = DOT_VECTORS( to_p_0, to_p_0 );
-            v_dot_e = DOT_VECTORS( to_p_0, v01 );
-            e_dot_e = DOT_VECTORS( v01, v01 );
+            v_dot_v = pv0x * pv0x + pv0y * pv0y + pv0z * pv0z;
+            v_dot_e = pv0x * v01x + pv0y * v01y + pv0z * v01z;
+            e_dot_e = v01x * v01x + v01y * v01y + v01z * v01z;
         }
 
         dist = v_dot_v - v_dot_e * v_dot_e / e_dot_e;
     }
 
-    if( dist < 0.0 )
-        dist = 0.0;
+    if( dist < 0.0f )
+        dist = 0.0f;
 
-    return( dist );
+    return( (Real) dist );
 }

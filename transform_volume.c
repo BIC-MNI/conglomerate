@@ -34,7 +34,7 @@ int  main(
         return( 1 );
     }
  
-    if( input_volume( input_filename, 3, XYZ_dimension_names,
+    if( input_volume( input_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );

@@ -84,7 +84,7 @@ int  main(
     check_polygons_neighbours_computed( polygons );
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
-                                     &neighbours, NULL );
+                                     &neighbours, NULL, NULL );
 
     ALLOC( done_flags, polygons->n_points );
 
@@ -110,7 +110,8 @@ int  main(
 
     terminate_progress_report( &progress );
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours, NULL );
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     NULL, NULL );
 
     if( values_present )
     {

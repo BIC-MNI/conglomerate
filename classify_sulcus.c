@@ -44,14 +44,19 @@ int  main(
     polygons = get_polygons_ptr( object_list[0] );
 
     if( input_graphics_file( lines_filename, &format, &n_objects,
-                             &object_list ) != OK ||
-        n_objects < 1 || get_object_type(object_list[0]) != LINES )
+                             &object_list ) != OK )
     {
         print_error( "Error in file: %s\n", lines_filename );
         return( 1 );
     }
 
-    lines = get_lines_ptr( object_list[0] );
+    if( n_objects == 0 || get_object_type(object_list[0]) != LINES )
+    {
+        lines = get_lines_ptr( create_object( LINES ) );
+        initialize_lines( lines, WHITE );
+    }
+    else
+        lines = get_lines_ptr( object_list[0] );
 
     create_polygons_bintree( polygons,
                              ROUND((Real) polygons->n_items * BINTREE_FACTOR ));
@@ -115,7 +120,7 @@ int  main(
                                                    &polygon_point );
 
                 poly_size = get_polygon_points( polygons, poly, poly_points );
-                get_polygon_interpolation_weights( &polygon_point, size,
+                get_polygon_interpolation_weights( &polygon_point, poly_size,
                                                    poly_points, weights );
 
                 for_less( comp, 0, n_components )
@@ -138,10 +143,14 @@ int  main(
         {
             max_index = comp;
         }
+
+        print( "%s: %g\n", filenames[comp], probabilities[comp] );
     }
 
+    print( "\n" );
+
     if( probabilities[max_index] == 0.0 )
-        print( "-1\n" );
+        print( "Class: -1 0 none\n" );
     else
         print( "Class: %d %g %s\n", max_index, probabilities[max_index], filenames[max_index] );
 

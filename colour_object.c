@@ -7,7 +7,7 @@ private  void  usage(
     STRING  usage_str = "\n\
 Usage: %s  src.obj values_file dest.obj\n\
            gray|hot|spectral|blue|green|red|user [user.map] low high\n\
-           [under] [over] [opacity]\n\n";
+           [under] [over] [opacity] [replace|composite|mult]\n\n";
 
     print_error( usage_str, executable );
 }
@@ -19,6 +19,9 @@ Usage: %s  src.obj values_file dest.obj\n\
 #define  GREEN_STRING      "green"
 #define  BLUE_STRING       "blue"
 #define  USER_STRING       "user"
+
+typedef  enum { REPLACE_COLOUR, COMPOSITE_COLOUR, MULTIPLY_COLOUR }
+              Composite_methods;
 
 int  main(
     int    argc,
@@ -41,6 +44,8 @@ int  main(
     STRING               coding_type_string, dummy;
     Real                 low, high, r, g, b, a, opacity;
     BOOLEAN              per_vertex, dont_composite_flag;
+    Composite_methods    composite_method;
+    STRING               composite_method_name;
 
     initialize_argument_processing( argc, argv );
 
@@ -92,7 +97,19 @@ int  main(
     (void) get_string_argument( "BLACK", &under_colour_name );
     (void) get_string_argument( default_over, &over_colour_name );
     (void) get_real_argument( 1.0, &opacity );
-    dont_composite_flag = get_string_argument( NULL, &dummy );
+    (void) get_string_argument( "composite", &composite_method_name );
+
+    if( equal_strings( composite_method_name, "mult" ) )
+        composite_method = MULTIPLY_COLOUR;
+    else if( equal_strings( composite_method_name, "replace" ) )
+        composite_method = REPLACE_COLOUR;
+    else if( equal_strings( composite_method_name, "composite" ) )
+        composite_method = COMPOSITE_COLOUR;
+    else
+    {
+        usage( argv[0] );
+        return( 1 );
+    }
 
     under_colour = convert_string_to_colour( under_colour_name );
     over_colour = convert_string_to_colour( over_colour_name );
@@ -153,24 +170,40 @@ int  main(
 
             col = get_colour_code( &colour_coding, value );
 
-            if( !dont_composite_flag && opacity * get_Colour_a_0_1(col) < 1.0 )
+            if( per_vertex )
+                prev_colour = colours[p];
+
+            r = get_Colour_r_0_1( col );
+            g = get_Colour_g_0_1( col );
+            b = get_Colour_b_0_1( col );
+            a = opacity * get_Colour_a_0_1( col );
+
+            switch( composite_method )
             {
-                if( per_vertex )
-                    prev_colour = colours[p];
+            case COMPOSITE_COLOUR:
+                if( a < 1.0 )
+                {
+                    col = make_rgba_Colour_0_1( r, g, b, a);
+                    COMPOSITE_COLOURS( col, col, prev_colour );
+                    r = get_Colour_r_0_1( col );
+                    g = get_Colour_g_0_1( col );
+                    b = get_Colour_b_0_1( col );
+                    a = 1.0;
+                }
+                break;
 
-                r = get_Colour_r_0_1( col );
-                g = get_Colour_g_0_1( col );
-                b = get_Colour_b_0_1( col );
-                a = get_Colour_a_0_1( col );
-                col = make_rgba_Colour_0_1( r * opacity,
-                                            g * opacity,
-                                            b * opacity,
-                                            a * opacity );
+            case REPLACE_COLOUR:
+                break;
 
-                COMPOSITE_COLOURS( col, col, prev_colour );
+            case MULTIPLY_COLOUR:
+                r = r * get_Colour_r_0_1( prev_colour );
+                g = g * get_Colour_g_0_1( prev_colour );
+                b = b * get_Colour_b_0_1( prev_colour );
+                a = a * get_Colour_a_0_1( prev_colour );
+                break;
             }
 
-            colours[p] = col;
+            colours[p] = make_rgba_Colour_0_1( r, g, b, a );
 
             if( p == 0 || value < min_range )
                 min_range = value;

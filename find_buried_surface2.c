@@ -1,37 +1,6 @@
-#include  <internal_volume_io.h>
 #include  <bicpl.h>
 
 #define  BINTREE_FACTOR  0.5
-
-private  BOOLEAN  point_within_distance(
-    object_struct     *surface,
-    Point             *point,
-    Real              distance_threshold );
-private  void  get_block_centre(
-    Point       *min_point,
-    Real        block_size,
-    int         x_block,
-    int         y_block,
-    int         z_block,
-    Point       *block_centre );
-private  void  find_boundary_blocks(
-    Point              *min_point,
-    Real               block_size,
-    int                x_size,
-    int                y_size,
-    int                z_size,
-    bitlist_3d_struct  *on_boundary,
-    object_struct      *surface,
-    Real               radius_of_curvature );
-private  BOOLEAN  block_within_distance(
-    Point              *min_point,
-    Real               block_size,
-    int                x_size,
-    int                y_size,
-    int                z_size,
-    bitlist_3d_struct  *on_boundary,
-    Point              *point,
-    Real               radius );
 
 int  main(
     int   argc,
@@ -40,11 +9,9 @@ int  main(
     STRING               src_polygons_filename, dest_polygons_filename;
     STRING               input_filename, output_filename;
     File_formats         format;
-    int                  n_objects, poly, obj_index, size, dim;
-    int                  x_grid_size, y_grid_size, z_grid_size;
-    int                  x_block, y_block, z_block;
+    int                  n_src_objects, poly, obj_index, size;
     Real                 radius_of_curvature, dist;
-    object_struct        **objects;
+    object_struct        **src_objects;
     polygons_struct      *polygons;
     BOOLEAN              on_boundary;
     Point                centroid, sphere_centre, *points;
@@ -52,72 +19,43 @@ int  main(
     Vector               normal;
     progress_struct      progress;
     Real                 surface_area, buried_surface_area, total_surface_area;
-    Real                 block_size;
-    Point                min_point, max_point, block_centre;
-    BOOLEAN              intersects;
-    bitlist_3d_struct    bitlist;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &src_polygons_filename ) ||
         !get_string_argument( NULL, &dest_polygons_filename ) ||
-        !get_real_argument( 0.0, &radius_of_curvature ) ||
-        !get_real_argument( 0.0, &block_size ) )
+        !get_real_argument( 0.0, &radius_of_curvature ) )
     {
         print_error(
-             "Usage: %s  src_polygons  dest_polygons radius_of_curvature block_size\n",
+             "Usage: %s  src_polygons  dest_polygons radius_of_curvature\n",
                argv[0] );
         return( 1 );
     }
 
     if( input_graphics_file( src_polygons_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_src_objects, &src_objects ) != OK )
         return( 1 );
 
-    if( n_objects < 1 || get_object_type( objects[0] ) != POLYGONS )
+    if( n_src_objects < 1 || get_object_type( src_objects[0] ) != POLYGONS )
     {
         print( "Must specify polygons file.\n" );
         return( 1 );
     }
 
-    polygons = get_polygons_ptr(objects[0]);
+    polygons = get_polygons_ptr(src_objects[0]);
 
     set_polygon_per_item_colours( polygons );
 
     create_polygons_bintree( polygons,
                          ROUND( (Real) polygons->n_items * BINTREE_FACTOR ) );
 
-    get_range_points( polygons->n_points, polygons->points,
-                      &min_point, &max_point );
-
-    for_less( dim, 0, N_DIMENSIONS )
-    {
-        Point_coord( min_point,dim ) -=
-               (Point_coord_type) (3.0 * block_size + radius_of_curvature);
-        Point_coord( max_point,dim ) +=
-               (Point_coord_type) (3.0 * block_size + radius_of_curvature);
-    }
-
-    x_grid_size = ROUND( (RPoint_x(max_point) - RPoint_x(min_point)) /
-                          block_size) + 1;
-    y_grid_size = ROUND( (RPoint_y(max_point) - RPoint_y(min_point)) /
-                          block_size) + 1;
-    z_grid_size = ROUND( (RPoint_z(max_point) - RPoint_z(min_point)) /
-                          block_size) + 1;
-
-    print( "bytes: %d\n", x_grid_size * y_grid_size * z_grid_size / 8 );
-
-    find_boundary_blocks( &min_point, block_size,
-                          x_grid_size, y_grid_size, z_grid_size,
-                          &bitlist, objects[0], radius_of_curvature );
+    ALLOC( points, polygons->n_points );
 
     initialize_progress_report( &progress, FALSE, polygons->n_items,
-                                "Testing Polygons for Boundary" );
+                                "Pseudo-convex hulling" );
 
     total_surface_area = 0.0;
     buried_surface_area = 0.0;
-
-    ALLOC( points, polygons->n_points );
 
     for_less( poly, 0, polygons->n_items )
     {
@@ -129,7 +67,7 @@ int  main(
         GET_POINT_ON_RAY( sphere_centre, centroid, normal,
                           radius_of_curvature );
 
-        dist = find_closest_point_on_object( &sphere_centre, objects[0],
+        dist = find_closest_point_on_object( &sphere_centre, src_objects[0],
                                              &obj_index, &found_point );
 
         on_boundary = (obj_index == poly);
@@ -139,13 +77,6 @@ int  main(
             if( dist > radius_of_curvature * 1.0001 )
                 handle_internal_error( "dist > radius_of_curvature * 1.0001" );
         }
-
-        if( on_boundary &&
-            !block_within_distance( &min_point, block_size,
-                                    x_grid_size, y_grid_size, z_grid_size,
-                                    &bitlist, &sphere_centre,
-                                    radius_of_curvature ) )
-            on_boundary = FALSE;
         
         if( on_boundary )
             polygons->colours[poly] = WHITE;
@@ -166,300 +97,12 @@ int  main(
     print( "Percent buried: %g\n", 100.0 *
            buried_surface_area / total_surface_area );
 
-    FREE( points );
-    delete_bitlist_3d( &bitlist );
-
     (void) output_graphics_file( dest_polygons_filename,
-                                 format, n_objects, objects );
+                                 format, n_src_objects, src_objects );
 
-    delete_object_list( n_objects, objects );
+    delete_object_list( n_src_objects, src_objects );
 
-    output_alloc_to_file( ".alloc_debug" );
+    FREE( points  );
 
     return( 0 );
-}
-
-private  BOOLEAN  point_within_distance(
-    object_struct     *surface,
-    Point             *point,
-    Real              distance_threshold )
-{
-    int      obj_index;
-    Real     dist;
-    Point    found_point;
-
-    dist = find_closest_point_on_object( point, surface,
-                                         &obj_index, &found_point );
-
-    return( dist <= distance_threshold );
-}
-
-private  void  convert_world_to_block(
-    Point       *min_point,
-    Real        block_size,
-    Point       *point,
-    Real        *x_block,
-    Real        *y_block,
-    Real        *z_block )
-{
-    *x_block = (RPoint_x(*point) - RPoint_x(*min_point)) / block_size;
-    *y_block = (RPoint_y(*point) - RPoint_y(*min_point)) / block_size;
-    *z_block = (RPoint_z(*point) - RPoint_z(*min_point)) / block_size;
-}
-
-private  void  convert_block_to_world(
-    Point       *min_point,
-    Real        block_size,
-    Real        x_block,
-    Real        y_block,
-    Real        z_block,
-    Point       *point )
-{
-    fill_Point( *point,
-                RPoint_x(*min_point) + x_block * block_size,
-                RPoint_y(*min_point) + y_block * block_size,
-                RPoint_z(*min_point) + z_block * block_size );
-}
-
-typedef  struct
-{
-    unsigned short x;
-    unsigned short y;
-    unsigned short z;
-} voxel_struct;
-
-private  void  find_boundary_blocks(
-    Point              *min_point,
-    Real               block_size,
-    int                x_size,
-    int                y_size,
-    int                z_size,
-    bitlist_3d_struct  *on_boundary,
-    object_struct      *surface,
-    Real               radius_of_curvature )
-{
-    int                           n_to_do, poly, size;
-    polygons_struct               *polygons;
-    bitlist_3d_struct             visited_flags, intersects;
-    QUEUE_STRUCT( voxel_struct )  queue;
-    voxel_struct                  voxel;
-    int                           x, y, z, *dx, *dy, *dz, dir, n_dirs;
-    Real                          x_min_real, x_max_real, y_min_real;
-    Real                          y_max_real, z_min_real, z_max_real;
-    int                           x_min, x_max, y_min, y_max, z_min, z_max;
-    int                           nx, ny, nz;
-    Point                         block_centre, *points, lower, upper;
-    Point                         max_range, min_range, nearest_point;
-    Vector                        offset;
-    Real                          distance, dist;
-    int                           max_x, max_y, max_z;
-    progress_struct               progress;
-
-    distance = radius_of_curvature;
-
-    create_bitlist_3d( x_size, y_size, z_size, &intersects );
-    polygons = get_polygons_ptr( surface );
-
-    initialize_progress_report( &progress, FALSE, polygons->n_items,
-                                "Scanning Polygons" );
-
-    ALLOC( points, polygons->n_points );
-
-    for_less( poly, 0, polygons->n_items )
-    {
-        size = get_polygon_points( polygons, poly, points );
-
-        get_range_points( size, points, &min_range, &max_range );
-
-        fill_Vector( offset, distance, distance, distance );
-        SUB_POINT_VECTOR( lower, min_range, offset );
-        ADD_POINT_VECTOR( upper, max_range, offset );
-        convert_world_to_block( min_point, block_size, &lower,
-                                &x_min_real, &y_min_real, &z_min_real );
-        convert_world_to_block( min_point, block_size, &upper,
-                                &x_max_real, &y_max_real, &z_max_real );
-
-        x_min = MAX( 0, FLOOR( x_min_real ) );
-        x_max = MIN( x_size-1, CEILING( x_max_real ) );
-        y_min = MAX( 0, FLOOR( y_min_real ) );
-        y_max = MIN( y_size-1, CEILING( y_max_real ) );
-        z_min = MAX( 0, FLOOR( z_min_real ) );
-        z_max = MIN( z_size-1, CEILING( z_max_real ) );
-
-        for_inclusive( x, x_min, x_max )
-        for_inclusive( y, y_min, y_max )
-        for_inclusive( z, z_min, z_max )
-        {
-            if( get_bitlist_bit_3d( &intersects, x, y, z ) )
-                continue;
-
-            convert_block_to_world( min_point, block_size,
-                                    (Real) x + 0.5,
-                                    (Real) y + 0.5,
-                                    (Real) z + 0.5, &block_centre );
-
-            dist = get_point_object_distance_sq( &block_centre,
-                                                 surface, poly,
-                                                 &nearest_point );
-
-            if( dist < distance * distance )
-                set_bitlist_bit_3d( &intersects, x, y, z, TRUE );
-        }
-
-        update_progress_report( &progress, poly+1 );
-    }
-
-    terminate_progress_report( &progress );
-
-    FREE( points );
-
-    n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
-
-    create_bitlist_3d( x_size, y_size, z_size, on_boundary );
-    create_bitlist_3d( x_size, y_size, z_size, &visited_flags );
-
-    INITIALIZE_QUEUE( queue );
-    voxel.x = 0;
-    voxel.y = 0;
-    voxel.z = 0;
-    INSERT_IN_QUEUE( queue, voxel );
-
-    set_bitlist_bit_3d( &visited_flags, 0, 0, 0, TRUE );
-    set_bitlist_bit_3d( on_boundary, 0, 0, 0, FALSE );
-
-    max_x = 0;
-    max_y = 0;
-    max_z = 0;
-
-    initialize_progress_report( &progress, FALSE,
-                                MAX3(x_size,y_size,z_size),
-                                "Filling from Outside" );
-
-    while( !IS_QUEUE_EMPTY(queue) )
-    {
-        REMOVE_FROM_QUEUE( queue, voxel );
-
-        x = (int) voxel.x;
-        y = (int) voxel.y;
-        z = (int) voxel.z;
-
-        if( x > max_x || y > max_y || z > max_z )
-        {
-            max_x = MAX( x, max_x );
-            max_y = MAX( y, max_y );
-            max_z = MAX( z, max_z );
-            n_to_do = MAX3( x_size - max_x, y_size - max_y, z_size - max_z );
-            update_progress_report( &progress,
-                                    MAX3(x_size,y_size,z_size) -
-                                    n_to_do + 1 );
-        }
-
-        for_less( dir, 0, n_dirs )
-        {
-            nx = x + dx[dir];
-            ny = y + dy[dir];
-            nz = z + dz[dir];
-
-            if( nx < 0 || nx >= x_size ||
-                ny < 0 || ny >= y_size ||
-                nz < 0 || nz >= z_size ||
-                get_bitlist_bit_3d( &visited_flags, nx, ny, nz ) )
-                continue;
-
-            set_bitlist_bit_3d( &visited_flags, nx, ny, nz, TRUE );
-
-            if( get_bitlist_bit_3d( &intersects, nx, ny, nz ) )
-                set_bitlist_bit_3d( on_boundary, nx, ny, nz, TRUE );
-            else
-            {
-                voxel.x = nx;
-                voxel.y = ny;
-                voxel.z = nz;
-                INSERT_IN_QUEUE( queue, voxel );
-            }
-        }
-    }
-
-    terminate_progress_report( &progress );
-
-    DELETE_QUEUE( queue );
-
-    delete_bitlist_3d( &intersects );
-    delete_bitlist_3d( &visited_flags );
-}
-
-private  BOOLEAN  block_within_distance(
-    Point              *min_point,
-    Real               block_size,
-    int                x_size,
-    int                y_size,
-    int                z_size,
-    bitlist_3d_struct  *on_boundary,
-    Point              *point,
-    Real               radius )
-{
-    int        dim, x_min, x_max, y_min, y_max, z_min, z_max;
-    int        x, y, z;
-    Real       x_min_real, x_max_real, y_min_real;
-    Real       y_max_real, z_min_real, z_max_real;
-    Real       dist, delta;
-    Vector     offset;
-    Point      lower, upper, start_block, end_block;
-
-    fill_Vector( offset, radius, radius, radius );
-    SUB_POINT_VECTOR( lower, *point, offset );
-    ADD_POINT_VECTOR( upper, *point, offset );
-    convert_world_to_block( min_point, block_size, &lower,
-                            &x_min_real, &y_min_real, &z_min_real );
-    convert_world_to_block( min_point, block_size, &upper,
-                            &x_max_real, &y_max_real, &z_max_real );
-
-    x_min = MAX( 0, FLOOR( x_min_real ) );
-    x_max = MIN( x_size-1, CEILING( x_max_real ) );
-    y_min = MAX( 0, FLOOR( y_min_real ) );
-    y_max = MIN( y_size-1, CEILING( y_max_real ) );
-    z_min = MAX( 0, FLOOR( z_min_real ) );
-    z_max = MIN( z_size-1, CEILING( z_max_real ) );
-
-    for_inclusive( x, x_min, x_max )
-    for_inclusive( y, y_min, y_max )
-    for_inclusive( z, z_min, z_max )
-    {
-        if( get_bitlist_bit_3d( on_boundary, x, y, z ) )
-        {
-            convert_block_to_world( min_point, block_size,
-                                    (Real) x,
-                                    (Real) y,
-                                    (Real) z, &start_block );
-            convert_block_to_world( min_point, block_size,
-                                    (Real) x + 1.0,
-                                    (Real) y + 1.0,
-                                    (Real) z + 1.0, &end_block );
-
-            dist = 0.0;
-            for_less( dim, 0, N_DIMENSIONS )
-            {
-                if( RPoint_coord(*point,dim) < RPoint_coord(start_block,dim) )
-                {
-                    delta = RPoint_coord(*point,dim) -
-                            RPoint_coord(start_block,dim);
-                }
-                else if( RPoint_coord(*point,dim) >
-                         RPoint_coord(end_block,dim) )
-                {
-                    delta = RPoint_coord(*point,dim) -
-                            RPoint_coord(end_block,dim);
-                }
-                else
-                    delta = 0.0;
-
-                dist += delta * delta;
-            }
-
-            if( dist <= radius * radius )
-                return( TRUE );
-        }
-    }
-
-    return( FALSE );
 }

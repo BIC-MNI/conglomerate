@@ -9,7 +9,14 @@ int  main(
     Volume             volume;
     STRING             input_filename, output_filename;
     int                v[MAX_DIMENSIONS];
-    int                n_dims, sizes[MAX_DIMENSIONS];
+    int                n_dims, sizes[MAX_DIMENSIONS], slice_index;
+    STRING             dim_names2d[] = {
+                                         MIxspace,
+                                         MIyspace };
+    STRING             dim_names3d[] = {
+                                         MIzspace,
+                                         MIxspace,
+                                         MIyspace };
     Colour             colour;
     int                x, y, a1, a2;
     pixels_struct      pixels;
@@ -23,6 +30,8 @@ int  main(
         print( "Usage: %s input.mnc  output.rgb\n", argv[0] );
         return( 1 );
     }
+
+    (void) get_int_argument( 0, &slice_index );
 
     set_default_minc_input_options( &options );
     set_minc_input_vector_to_scalar_flag( &options, FALSE );
@@ -39,7 +48,8 @@ int  main(
     set_default_minc_input_options( &options );
     set_minc_input_vector_to_colour_flag( &options, TRUE );
 
-    if( input_volume( input_filename, n_dims, File_order_dimension_names,
+    if( input_volume( input_filename, n_dims,
+                      n_dims==2 ? dim_names2d : dim_names3d,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, &options ) != OK )
         return( 1 );
@@ -53,8 +63,16 @@ int  main(
     n_dims = get_volume_n_dimensions( volume );
     get_volume_sizes( volume, sizes );
 
-    a1 = 0;
-    a2 = 1;
+    if( n_dims == 2 )
+    {
+        a1 = 0;
+        a2 = 1;
+    }
+    else
+    {
+        a1 = 1;
+        a2 = 2;
+    }
 
     initialize_pixels( &pixels, 0, 0, sizes[a1], sizes[a2],
                         1.0, 1.0, RGB_PIXEL );
@@ -65,6 +83,9 @@ int  main(
     v[3] = 0;
     v[4] = 0;
 
+    if( n_dims == 3 )
+        v[0] = slice_index;
+
     for_less( x, 0, sizes[a1] )
     {
         v[a1] = x;
@@ -72,7 +93,7 @@ int  main(
         {
             v[a2] = y;
             colour = (Colour) get_volume_real_value( volume,
-                            v[0], v[1], v[2], v[3], v[4] );
+                                            v[0], v[1], v[2], v[3], v[4] );
 
             PIXEL_RGB_COLOUR(pixels,x,y) = colour;
         }

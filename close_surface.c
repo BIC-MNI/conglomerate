@@ -314,7 +314,8 @@ private  int   label_inside_convex_hull(
     if( BINTREE_FACTOR > 0.0 )
     {
         create_polygons_bintree( polygons,
-                                 polygons->n_items * BINTREE_FACTOR + 1);
+                                 ROUND( (Real) polygons->n_items *
+                                        BINTREE_FACTOR) + 1);
     }
 
     n_points = polygons->n_points;
@@ -326,9 +327,10 @@ private  int   label_inside_convex_hull(
     for_less( y, 0, 2 )
     for_less( z, 0, 2 )
     {
-        convert_world_to_voxel( volume, Point_x(point_range[x]),
-                                Point_y(point_range[y]),
-                                Point_z(point_range[z]), voxel );
+        convert_world_to_voxel( volume,
+                                (Real) Point_x(point_range[x]),
+                                (Real) Point_y(point_range[y]),
+                                (Real) Point_z(point_range[z]), voxel );
         for_less( c, 0, N_DIMENSIONS )
         {
             if( x == 0 && y == 0 && z == 0 || voxel[c] < limits[0][c] )
@@ -419,9 +421,9 @@ private  int   label_inside_convex_hull(
                         GET_POINT_ON_RAY( ray_point, ray_origin, ray_direction,
                                           distances[int_index] );
                         convert_world_to_voxel( volume, 
-                                                Point_x(ray_point),
-                                                Point_y(ray_point),
-                                                Point_z(ray_point),
+                                                (Real) Point_x(ray_point),
+                                                (Real) Point_y(ray_point),
+                                                (Real) Point_z(ray_point),
                                                 boundary_voxel );
                         next_z = CEILING( boundary_voxel[Z] );
                         inside = ((int_index % 2) == 1);
@@ -436,7 +438,7 @@ private  int   label_inside_convex_hull(
                 if( inside )
                 {
                     value = get_volume_real_value( volume, x, y, z, 0, 0);
-                    value = (int) value | value_to_set;
+                    value = (Real) ((int) value | value_to_set);
                     if( value > max_value )
                         value = max_value;
                     set_volume_real_value( volume, x, y, z, 0, 0, value);

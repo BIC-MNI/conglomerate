@@ -46,8 +46,8 @@ int  main(
     for_less( i, 0, polygons->n_points )
     {
         dist = distance_between_points( &polygons->points[i], &centre );
-        Point_x(polygons->points[i]) += distance *
-                      evaluate_gaussian( dist, fwhm );
+        Point_x(polygons->points[i]) += (Point_coord_type) (distance *
+                                 evaluate_gaussian( dist, fwhm ));
     }
 
     compute_polygon_normals( polygons );

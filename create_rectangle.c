@@ -47,10 +47,10 @@ int  main(
     fill_Point( points[2], limits[0][X], limits[0][Y], limits[0][Z] );
     fill_Point( points[3], limits[0][X], limits[0][Y], limits[0][Z] );
 
-    Point_coord( points[1], a1 ) = limits[1][a1];
-    Point_coord( points[2], a1 ) = limits[1][a1];
-    Point_coord( points[2], a2 ) = limits[1][a2];
-    Point_coord( points[3], a2 ) = limits[1][a2];
+    Point_coord( points[1], a1 ) = (Point_coord_type) limits[1][a1];
+    Point_coord( points[2], a1 ) = (Point_coord_type) limits[1][a1];
+    Point_coord( points[2], a2 ) = (Point_coord_type) limits[1][a2];
+    Point_coord( points[3], a2 ) = (Point_coord_type) limits[1][a2];
 
     add_point_to_polygon( polygons, &points[0], NULL );
     add_point_to_polygon( polygons, &points[1], NULL );

@@ -14,8 +14,9 @@ Usage: dilate_volume input.mnc output.mnc  d|e ratio\n\
 }
 
 private  void  continuous_dilate_voxels_3d(
-    Volume               input,
+    Real                 **input[3],
     Volume               output,
+    int                  slice,
     BOOLEAN              dilating_flag,
     Neighbour_types      connectivity,
     Real                 ratio );
@@ -27,9 +28,14 @@ int  main(
     STRING               input_filename, output_filename, command;
     Real                 ratio;
     BOOLEAN              dilating;
-    Volume               volume, dilated;
-    int                  n_neighs;
+    Volume               volume, dilated, input_3d;
+    int                  n_neighs, slice, n_slices, first_slice;
+    int                  sizes_2d[2], v0, v1, v2;
     Neighbour_types      connectivity;
+    static char          *dim_names[] = { "", "" };
+    Minc_file            minc_file;
+    Real                 **slices[3], **swap, amount_done;
+    progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -53,86 +59,141 @@ int  main(
     default:  print_error( "# neighs must be 6 or 26.\n" );  return( 1 );
     }
 
-    set_n_bytes_cache_threshold( 1 );
-    set_cache_block_sizes_hint( SLICE_ACCESS );
-    set_default_max_bytes_in_cache( 1000000 );
-
-    if( input_volume( input_filename, 3, File_order_dimension_names,
-                      NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
-                      NULL ) != OK )
+    if( input_volume_header_only( input_filename, 3,
+                       File_order_dimension_names, &input_3d, NULL ) != OK )
         return( 1 );
 
+    set_n_bytes_cache_threshold( 1 );
+    set_default_max_bytes_in_cache( 1 );
+    set_cache_block_sizes_hint( SLICE_ACCESS );
+
+    dilated = copy_volume_definition( input_3d,
+                                      NC_UNSPECIFIED, FALSE, 0.0, 0.0 );
+
+    set_cache_output_volume_parameters( dilated, output_filename,
+                                        NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                                        input_filename,
+                                        "Smooth-Dilated\n", NULL );
+
+    delete_volume( input_3d );
+
     set_n_bytes_cache_threshold( 80000000 );
+    set_default_max_bytes_in_cache( 80000000 );
 
-    dilated = copy_volume_definition( volume, NC_UNSPECIFIED, FALSE, 0.0, 0.0 );
+    volume = create_volume( 2, dim_names, NC_UNSPECIFIED, FALSE, 0.0, 0.0 );
 
-    continuous_dilate_voxels_3d( volume, dilated, dilating, connectivity,
-                                 ratio );
+    minc_file = initialize_minc_input( input_filename, volume, NULL );
 
-    delete_volume( volume );
+    if( minc_file == NULL )
+        return( 1 );
 
-    (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
-                                   0.0, 0.0, dilated, input_filename,
-                                   "Smooth-Dilated\n", NULL );
+    n_slices = get_n_input_volumes( minc_file );
+    get_volume_sizes( volume, sizes_2d );
+
+    for_less( v0, 0, 3 )
+    {
+        ALLOC2D( slices[v0], sizes_2d[0], sizes_2d[1] );
+
+        for_less( v1, 0, sizes_2d[0] )
+        for_less( v2, 0, sizes_2d[1] )
+            slices[v0][v1][v2] = 0.0;
+    }
+
+    first_slice = -3;
+
+    initialize_progress_report( &progress, FALSE, n_slices, "Smooth Dilating" );
+
+    for_less( slice, 0, n_slices )
+    {
+        while( first_slice < slice-1 )
+        {
+            swap = slices[0];
+            slices[0] = slices[1];
+            slices[1] = slices[2];
+            slices[2] = swap;
+            ++first_slice;
+
+            if( first_slice + 2 < n_slices )
+            {
+                while( input_more_minc_file( minc_file, &amount_done ) )
+                {}
+                (void) advance_input_volume( minc_file );
+
+                get_volume_value_hyperslab_2d( volume, 0, 0,
+                                               sizes_2d[0], sizes_2d[1],
+                                               &slices[2][0][0] );
+            }
+            else
+            {
+                for_less( v1, 0, sizes_2d[0] )
+                for_less( v2, 0, sizes_2d[1] )
+                    slices[2][v1][v2] = 0.0;
+            }
+        }
+
+        continuous_dilate_voxels_3d( slices, dilated, slice,
+                                     dilating, connectivity, ratio );
+
+        update_progress_report( &progress, slice + 1 );
+    }
+
+    terminate_progress_report( &progress );
+
+    delete_volume( dilated );
 
     return( 0 );
 }
 
 private  void  continuous_dilate_voxels_3d(
-    Volume               input,
+    Real                 **input[3],
     Volume               output,
+    int                  slice,
     BOOLEAN              dilating_flag,
     Neighbour_types      connectivity,
     Real                 ratio )
 {
     int               dir, n_dirs, *dx, *dy, *dz, sizes[N_DIMENSIONS];
-    int               v0, v1, v2, t0, t1, t2;
+    int               v1, v2, t0, t1, t2;
     Real              value, original, extreme;
-    BOOLEAN           found;
-    progress_struct   progress;
 
     n_dirs = get_3D_neighbour_directions( connectivity, &dx, &dy, &dz );
-    get_volume_sizes( input, sizes );
+    get_volume_sizes( output, sizes );
 
-    initialize_progress_report( &progress, FALSE, sizes[0] * sizes[1],
-                                "Smooth Dilating" );
-
-    for_less( v0, 0, sizes[0] )
     for_less( v1, 0, sizes[1] )
+    for_less( v2, 0, sizes[2] )
     {
-        for_less( v2, 0, sizes[2] )
+        extreme = 0.0;
+        for_less( dir, 0, n_dirs )
         {
-            extreme = 0.0;
-            found = FALSE;
-            for_less( dir, 0, n_dirs )
+            t0 = dx[dir] + 1;
+            t1 = v1 + dy[dir];
+            t2 = v2 + dz[dir];
+
+            if( t1 >= 0 && t1 < sizes[1] &&
+                t2 >= 0 && t2 < sizes[2] )
             {
-                t0 = v0 + dx[dir];
-                t1 = v1 + dy[dir];
-                t2 = v2 + dz[dir];
-
-                if( t0 >= 0 && t0 < sizes[0] &&
-                    t1 >= 0 && t1 < sizes[1] &&
-                    t2 >= 0 && t2 < sizes[2] )
-                {
-                    value = get_volume_real_value( input, t0, t1, t2, 0, 0 );
-                    if( !found )
-                    {
-                        extreme = value;
-                        found = TRUE;
-                    }
-                    else if( dilating_flag && value > extreme ||
-                             !dilating_flag && value < extreme )
-                         extreme = value;
-                }
+                value = input[t0][t1][t2];
             }
+            else
+                value = 0.0;
 
-            original = get_volume_real_value( input, v0, v1, v2, 0, 0 );
-            value = INTERPOLATE( ratio, original, extreme );
-            set_volume_real_value( output, v0, v1, v2, 0, 0, value );
+            if( dir == 0 ||
+                dilating_flag && value > extreme ||
+                !dilating_flag && value < extreme )
+            {
+                 extreme = value;
+            }
         }
 
-        update_progress_report( &progress, v0 * sizes[1] + v1 + 1 );
-    }
+        original = input[1][v1][v2];
+        if( dilating_flag && extreme > original ||
+            !dilating_flag && extreme < original )
+        {
+            value = INTERPOLATE( ratio, original, extreme );
+        }
+        else
+            value = original;
 
-    terminate_progress_report( &progress );
+        set_volume_real_value( output, slice, v1, v2, 0, 0, value );
+    }
 }

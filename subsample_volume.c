@@ -7,7 +7,7 @@ int  main(
     Volume     volume, new_volume;
     Status     status;
     int        nx, ny, nz;
-    STRING     input_filename, output_filename, history, dummy;
+    STRING     input_filename, output_filename, history;
 
     initialize_argument_processing( argc, argv );
 

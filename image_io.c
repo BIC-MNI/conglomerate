@@ -98,7 +98,7 @@ public  Status  write_image_file(
     pixels_struct  *pixels )
 {
     char           command[EXTREMELY_LARGE_STRING_SIZE+1];
-    int            x_size, y_size, x, y;
+    int            x_size, y_size, x, y, r, g, b, a;
     FILE           *file;
     unsigned char  colour[4];
     Colour         col;
@@ -109,12 +109,12 @@ public  Status  write_image_file(
     if( find_character(filename,':') < 0 &&
         string_ends_in( filename, ".rgb" ) )
     {
-        (void) sprintf( command, "convert -size %dx%d RGB:- SGI:%s",
+        (void) sprintf( command, "convert -size %dx%d RGBA:- SGI:%s",
                         x_size, y_size, filename );
     }
     else
     {
-        (void) sprintf( command, "convert -size %dx%d RGB:- %s",
+        (void) sprintf( command, "convert -size %dx%d RGBA:- %s",
                         x_size, y_size, filename );
     }
 
@@ -131,13 +131,24 @@ public  Status  write_image_file(
         {
             col = PIXEL_RGB_COLOUR(*pixels,x,y);
 
-            colour[0] = (unsigned char) get_Colour_r( col );
-            colour[1] = (unsigned char) get_Colour_g( col );
-            colour[2] = (unsigned char) get_Colour_b( col );
-            colour[3] = (unsigned char) get_Colour_a( col );
+            r = get_Colour_r( col );
+            g = get_Colour_g( col );
+            b = get_Colour_b( col );
+            a = get_Colour_a( col );
+
+            colour[0] = (unsigned char) r;
+            colour[1] = (unsigned char) g;
+            colour[2] = (unsigned char) b;
+            colour[3] = (unsigned char) a;
+
+/*
+            colour[0] = (unsigned char) ((Real) r * (Real) a / 255.0 + 0.5);
+            colour[1] = (unsigned char) ((Real) g * (Real) a / 255.0 + 0.5);
+            colour[2] = (unsigned char) ((Real) b * (Real) a / 255.0 + 0.5);
+*/
 
             if( io_binary_data( file, WRITE_FILE, colour, sizeof(colour[0]),
-                                3 ) != OK )
+                                4 ) != OK )
             {
                 print( "Error writing pixel[%d][%d]\n", x, y );
                 return( ERROR );

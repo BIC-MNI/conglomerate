@@ -12,7 +12,7 @@ private  void  increment_voxel_count(
 {
     Real   value;
 
-    GET_VOXEL_3D( value, volume, x, y, z );
+    GET_VOXEL_3D_TYPED( value, (Real), volume, x, y, z );
 
     value += SCALE_FACTOR;
 
@@ -141,9 +141,9 @@ int  main(
                     continue;
 
                 convert_world_to_voxel( volume,
-                                        Point_x(marker->position),
-                                        Point_y(marker->position),
-                                        Point_z(marker->position),
+                                        (Real) Point_x(marker->position),
+                                        (Real) Point_y(marker->position),
+                                        (Real) Point_z(marker->position),
                                         voxel );
 
                 if( voxel_is_within_volume( new_volume, voxel ) )
@@ -219,7 +219,8 @@ int  main(
 
     print( "Number subjects: %d\n", n_patients );
 
-    SET_VOXEL_3D( new_volume, 0, 0, 0, n_patients * SCALE_FACTOR );
+    set_volume_voxel_value( new_volume, 0, 0, 0, 0, 0,
+                            (Real) n_patients * SCALE_FACTOR );
 
     set_volume_voxel_range( new_volume, 0.0, (Real) n_patients * SCALE_FACTOR );
     set_volume_real_range( new_volume, 0.0, 100.0 );

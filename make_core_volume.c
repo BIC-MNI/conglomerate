@@ -18,7 +18,7 @@ int  main(
     STRING               volume_filename;
     STRING               output_filename;
     int                  v0, v1, v2, v3, v4;
-    Real                 v[MAX_DIMENSIONS];
+    Real                 v[MAX_DIMENSIONS], xr, yr, zr;
     Volume               volume;
     Real                 xc, yc, zc, xw, yw, zw, d, coef, min_value, max_value;
 
@@ -29,6 +29,9 @@ int  main(
         !get_real_argument( 0.0, &xc ) ||
         !get_real_argument( 0.0, &yc ) ||
         !get_real_argument( 0.0, &zc ) ||
+        !get_real_argument( 0.0, &xr ) ||
+        !get_real_argument( 0.0, &yr ) ||
+        !get_real_argument( 0.0, &zr ) ||
         !get_real_argument( 0.0, &coef ) )
     {
         usage( argv[0] );
@@ -51,9 +54,9 @@ int  main(
         v[2] = (Real) v2;
         convert_voxel_to_world( volume, v, &xw, &yw, &zw );
 
-        d = (xw - xc) * (xw - xc) +
-            (yw - yc) * (yw - yc) +
-            (zw - zc) * (zw - zc);
+        d = (xw - xc) * (xw - xc) / xr / xr +
+            (yw - yc) * (yw - yc) / yr / yr +
+            (zw - zc) * (zw - zc) / zr / zr;
 
         d *= coef;
 

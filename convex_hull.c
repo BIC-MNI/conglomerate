@@ -305,6 +305,8 @@ private  void  get_edge_keys(
     keys[1] = MAX( p0, p1 );
 }
 
+#define  KEY_FACTOR  1000000
+
 private  void  add_edge_to_list(
     queue_struct                 *queue,
     hash_table_struct            *edge_table,
@@ -318,7 +320,10 @@ private  void  add_edge_to_list(
 
     get_edge_keys( polygons, poly, edge, keys );
 
-    if( lookup_in_hash_table( edge_table, keys, (void **) &edge_ptr ) )
+    edge_ptr = NULL;   /* avoid compiler message */
+
+    if( lookup_in_hash_table( edge_table, IJ(keys[0],keys[1],KEY_FACTOR),
+                              (void *) &edge_ptr ) )
     {
         ++edge_ptr->ref_count;
     }
@@ -326,7 +331,8 @@ private  void  add_edge_to_list(
     {
         ALLOC( edge_ptr, 1 );
         edge_ptr->ref_count = 1;
-        insert_in_hash_table( edge_table, keys, edge_ptr );
+        insert_in_hash_table( edge_table, IJ(keys[0],keys[1],KEY_FACTOR),
+                              edge_ptr );
 
         entry.poly = poly;
         entry.edge = edge;
@@ -358,6 +364,7 @@ private  int   get_plane_polygon_vertices(
                                            0.0 );
 
     n_in_plane = 0;
+    plane_points = NULL;
 
     for_less( i, 0, n_points )
     {
@@ -431,6 +438,8 @@ private  void  get_convex_hull(
 
     initialize_polygons( polygons, WHITE, NULL );
 
+    edge_ptr = NULL;  /* avoid compiler message */
+
     if( n_points == 0 )
         return;
 
@@ -486,7 +495,7 @@ private  void  get_convex_hull(
 
     INITIALIZE_QUEUE( queue );
 
-    initialize_hash_table( &edge_table, 2, 1000,
+    initialize_hash_table( &edge_table, 1000, sizeof(edge_struct *),
                            ENLARGE_THRESHOLD, NEW_DENSITY );
 
     for_less( i, 0, n_vertices )
@@ -501,7 +510,8 @@ private  void  get_convex_hull(
 
         get_edge_keys( polygons, poly, edge, keys );
 
-        if( !lookup_in_hash_table( &edge_table, keys, (void **) &edge_ptr ) )
+        if( !lookup_in_hash_table( &edge_table, IJ(keys[0],keys[1],KEY_FACTOR),
+                                   (void *) &edge_ptr ) )
             handle_internal_error( "Convex hull" );
 
         if( edge_ptr->ref_count >= 2 )
@@ -541,7 +551,7 @@ private  void  get_convex_hull(
 
     n_bad_ref_count = 0;
     n_edges = 0;
-    while( get_next_hash_entry( &edge_table, &hash_ptr, (void **) &edge_ptr ) )
+    while( get_next_hash_entry( &edge_table, &hash_ptr, (void *) &edge_ptr ) )
     {
         if( edge_ptr->ref_count != 2 )
         {

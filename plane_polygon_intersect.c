@@ -79,6 +79,18 @@ int  main(
 
             add_object_to_list( &n_dest_objects, &dest_objects, object );
         }
+        else if( get_object_type( objects[i] ) == QUADMESH )
+        {
+            object = create_object( LINES );
+            intersect_planes_with_quadmesh( get_quadmesh_ptr(objects[i]),
+                                            &plane_origin, &plane_normal,
+                                            get_lines_ptr(object) );
+
+            (void) get_object_colour( objects[i], &colour );
+            set_object_colour( object, colour );
+
+            add_object_to_list( &n_dest_objects, &dest_objects, object );
+        }
     }
 
     if( output_graphics_file( dest_lines_filename, format, n_dest_objects,

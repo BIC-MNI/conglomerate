@@ -2,6 +2,7 @@
 #include  <internal_volume_io.h>
 
 FILE  *file;
+FILE  *in_file;
 
 static   int  n_on = 0;
 static   int  total_bytes_read = 0;
@@ -14,7 +15,7 @@ private  BOOLEAN  get_bit(
 
     if( n_bits_left == 0 )
     {
-        data = getchar();
+        data = fgetc( in_file );
         if( data == EOF )
             return( FALSE );
         n_bits_left = 8;
@@ -64,62 +65,97 @@ int  main(
     int  argc,
     char *argv[] )
 {
-    STRING     bit_pattern, out_filename;
-    Real       prob_on;
+    STRING     bit_pattern, out_filename, in_filename;
+    Real       total_bits, l;
     BOOLEAN    bit, expected;
-    int        seed, n_correct;
+    int        n_pattern_bits, *count, n_patterns, b, p, value;
+    int        smallest, second_smallest, total_chunks;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_real_argument( 0.0, &prob_on ) ||
+    if( !get_int_argument( 0, &n_pattern_bits ) ||
+        !get_string_argument( NULL, &in_filename ) ||
         !get_string_argument( NULL, &out_filename ) )
     {
         print_error( "Usage: %s pattern out", argv[0] );
         return( 1 );
     }
 
-    (void) get_int_argument( 341424341, &seed );
+    n_patterns = 1 << n_pattern_bits;
+    l = log( (Real) (n_patterns-1) ) / log( 2.0 );
 
-    set_random_seed( seed );
+    if( open_file( in_filename, READ_FILE, BINARY_FORMAT, &in_file ) != OK )
+        return( 1 );
 
+    ALLOC( count, n_patterns );
+    for_less( p, 0, n_patterns )
+        count[p] = 0;
+
+    while( 1 )
+    {
+        value = 0;
+        for_less( b, 0, n_pattern_bits )
+        {
+            if( !get_bit( &bit ) )
+                break;
+
+            value = (value << 1) | bit;
+        }
+
+        if( b < n_pattern_bits )
+            break;
+
+        ++count[value];
+    }
+
+    close_file( in_file );
+
+    if( count[0] < count[1] )
+        smallest = 0;
+    else
+        smallest = 1;
+    second_smallest = 1 - smallest;
+
+    for_less( p, 2, n_patterns )
+    {
+        if( count[p] < smallest )
+        {
+            second_smallest = smallest;
+            smallest = count[p];
+        }
+        else if( count[p] < second_smallest )
+            second_smallest = count[p];
+    }
+
+    total_chunks = 0;
+    for_less( p, 0, n_patterns )
+    {
+         print( "%d %d\n", p, count[p] );
+         total_chunks += count[p];
+    }
+
+    print( "Smallest: %d %d\n", smallest, count[smallest] );
+    print( "Second Smallest: %d %d\n", second_smallest, count[second_smallest] );
+
+    total_bits = 0.0;
+    for_less( p, 0, n_patterns )
+        total_bits += (Real) count[p] * l;
+
+    total_bits += (Real) count[smallest] +
+                  (Real) count[second_smallest];
+
+    print( "Percentage: %g %g", 2.0 / (Real) n_patterns,
+            ((Real) count[smallest] + (Real) count[second_smallest]) /
+            (Real) total_chunks );
+
+    print( "Ratio: %g\n", total_bits / (Real) total_bytes_read / 8.0 );
+
+/*
     if( open_file( out_filename, WRITE_FILE, BINARY_FORMAT, &file ) != OK )
         return( 1 );
 
-    n_correct = 0;
-
-    while( get_bit( &bit ) )
-    {
-        expected = get_random_0_to_1() < prob_on;
-
-        if( bit == expected )
-            ++n_correct;
-
-        if( n_correct == 2 || bit != expected && n_correct > 0 )
-        {
-            if( n_correct == 2 )
-            {
-                output_bit( 1 );
-            }
-            else if( n_correct == 1 )
-            {
-                output_bit( 0 );
-                output_bit( 1 );
-            }
-        }
-
-        if( bit != expected && (n_correct == 0 || n_correct == 2) )
-        {
-            output_bit( 0 );
-            output_bit( 0 );
-        }
-
-        if( n_correct == 2 || bit != expected && n_correct > 0 )
-            n_correct = 0;
-    }
-
-    flush_bits();
-
     close_file( file );
+*/
 
     return( 0 );
 }

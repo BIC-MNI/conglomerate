@@ -48,10 +48,10 @@ private  void  expand_polygons(
     int           p1, p2, t1, t2, total_neighbours, vertex, n_found;
     int           n, point, n_in_plane, new_n_in_plane;
     Real          plane_constant;
-    Point         *neigh_points, *plane_points, *temp_plane_points;
-    Point         centroid, *points, plane_origin;
+    Point         *neigh_points, *plane_points, *temp_plane_points, *new_points;
+    Point         centroid, *points, plane_origin, test_point;
     Vector        normal, to_point, plane_normal, clip_normal;
-    Vector        hor, vert;
+    Vector        hor, vert, *plane_normals, test_vector;
 
     n_points = polygons->n_points;
     points = polygons->points;
@@ -59,8 +59,10 @@ private  void  expand_polygons(
     create_polygon_point_neighbours( polygons, TRUE, &n_neighbours,
                                      &neighbours, NULL, NULL );
 
+    ALLOC( new_points, n_points );
     ALLOC( neigh_points, n_points );
     ALLOC( plane_points, n_points );
+    ALLOC( plane_normals, n_points );
     ALLOC( temp_plane_points, n_points );
 
     for_less( point, 0, polygons->n_points )
@@ -98,23 +100,33 @@ private  void  expand_polygons(
             temp_plane_points[1] = points[neighbours[point][n]];
             temp_plane_points[2] = points[neighbours[point]
                                            [(n+1)%n_neighbours[point]]];
-            find_polygon_normal( 3, temp_plane_points, &clip_normal );
-            plane_constant = -DOT_POINT_VECTOR( points[point], clip_normal );
-
-            new_n_in_plane = clip_polygon_against_plane(
-                                  n_in_plane, plane_points,
-                                  plane_constant, &clip_normal,
-                                  temp_plane_points );
-
-            for_less( i, 0, new_n_in_plane )
-                plane_points[i] = temp_plane_points[i];
-            n_in_plane = new_n_in_plane;
-
-            if( n_in_plane < 3 )
-                handle_internal_error( "dang" );
+            find_polygon_normal( 3, temp_plane_points, &plane_normals[n] );
         }
+
+        do
+        {
+            fill_Point( test_point,
+            RPoint_x(points[point]) + distance*(2.0*get_random_0_to_1()-1.0),
+            RPoint_y(points[point]) + distance*(2.0*get_random_0_to_1()-1.0),
+            RPoint_z(points[point]) + distance*(2.0*get_random_0_to_1()-1.0) );
+
+            SUB_POINTS( test_vector, test_point, points[point] );
+
+            for_less( n, 0, n_neighbours[point] )
+            {
+                if( DOT_VECTORS( plane_normals[n], test_vector ) < 0.0 )
+                    break;
+            }
+        } while( n < n_neighbours[point] && !EQUAL_POINTS(points[point],test_point) );
+
+        new_points[point] = test_point;
+        print( "%d / %d\n", point+1, n_points );
     }
 
+    for_less( point, 0, n_points )
+        points[point] = new_points[point];
+
+    FREE( new_points );
     FREE( neigh_points );
     FREE( plane_points );
     FREE( temp_plane_points );

@@ -29,7 +29,7 @@ int  main(
     int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed;
     progress_struct      progress;
     Volume               volume, mask_volume;
-    BOOLEAN              value_specified;
+    BOOLEAN              value_specified, same_grid;
     minc_input_options   options;
 
     initialize_argument_processing( argc, argv );
@@ -55,12 +55,37 @@ int  main(
                       TRUE, &volume, &options ) != OK )
         return( 1 );
 
-    mask_volume = create_label_volume( volume, NC_UNSPECIFIED );
+    if( equal_strings( volume_filename, mask_volume_filename ) )
+    {
+        mask_volume = volume;
+    }
+    else
+    {
+        if( input_volume_header_only( mask_volume_filename, 3,
+                           XYZ_dimension_names, &mask_volume, &options) != OK )
+            return( 1 );
 
-    set_all_volume_label_data( mask_volume, 0 );
+        same_grid = volumes_are_same_grid( volume, mask_volume );
 
-    if( load_label_volume( mask_volume_filename, mask_volume ) != OK )
-        return( 1 );
+        delete_volume( mask_volume );
+
+        if( same_grid )
+        {
+            if( input_volume( mask_volume_filename, 3, XYZ_dimension_names,
+                              NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                              TRUE, &mask_volume, &options ) != OK )
+                return( 1 );
+        }
+        else
+        {
+            mask_volume = create_label_volume( volume, NC_UNSPECIFIED );
+
+            set_all_volume_label_data( mask_volume, 0 );
+
+            if( load_label_volume( mask_volume_filename, mask_volume ) != OK )
+                return( 1 );
+        }
+    }
 
     get_volume_sizes( volume, sizes );
 

@@ -22,10 +22,10 @@ int  main(
 {
     STRING               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
-    int                  *n_neighbours, **neighbours;
+    int                  *n_neighbours, **neighbours, n_points;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
-    polygons_struct      *polygons, *init_polygons;
+    polygons_struct      *polygons, *init_polygons, p;
     Point                *init_points, *points;
     Real                 sphere_weight, centroid_weight;
 
@@ -71,15 +71,16 @@ int  main(
                                      &neighbours, NULL, NULL );
 
     points = polygons->points;
+    n_points = polygons->n_points;
     ALLOC( polygons->points, 1 );
     delete_object_list( 1, object_list );
 
-    flatten_polygons( polygons->n_points, points, n_neighbours, neighbours,
+    flatten_polygons( n_points, points, n_neighbours, neighbours,
                       init_points, centroid_weight,
                       sphere_weight, n_iters );
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
-                                     NULL, NULL );
+    p.n_points = n_points;
+    delete_polygon_point_neighbours( &p, n_neighbours, neighbours, NULL, NULL );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
                          &object_list ) != OK || n_objects != 1 ||
@@ -161,7 +162,7 @@ private  Real  evaluate_fit(
 
             diff = dx * dx + dy * dy + dz * dz;
 
-            fit += centroid_weight * diff * diff;
+            fit += centroid_weight * diff;
             ind += n_neighbours[p];
         }
     }
@@ -248,14 +249,11 @@ private  void  evaluate_fit_derivative(
             y2 = (Real) parameters[n_index+1];
             z2 = (Real) parameters[n_index+2];
 
-            x2 = (Real) parameters[IJ(neigh,0,3)];
-            y2 = (Real) parameters[IJ(neigh,1,3)];
-            z2 = (Real) parameters[IJ(neigh,2,3)];
             dx = x1 - x2;
             dy = y1 - y2;
             dz = z1 - z2;
             act_dist = dx * dx + dy * dy + dz * dz;
-            factor = 2.0 * (act_dist - dist);
+            factor = 4.0 * (act_dist - dist);
             dx *= factor;
             dy *= factor;
             dz *= factor;
@@ -274,7 +272,7 @@ private  void  evaluate_fit_derivative(
 
     if( centroid_weight > 0.0 )
     {
-        cw4 = 4.0 * centroid_weight;
+        cw4 = 2.0 * centroid_weight;
         ind = 0;
         for_less( p, 0, n_points )
         {
@@ -309,11 +307,8 @@ private  void  evaluate_fit_derivative(
 #endif
 
             x_diff = xc - x1;
-            x_diff = x_diff * x_diff * x_diff;
             y_diff = yc - y1;
-            y_diff = y_diff * y_diff * y_diff;
             z_diff = zc - z1;
-            z_diff = z_diff * z_diff * z_diff;
             x_factor = cw4 * x_diff;
             y_factor = cw4 * y_diff;
             z_factor = cw4 * z_diff;
@@ -365,7 +360,6 @@ private  void  evaluate_fit_along_line(
     Real   dx, dy, dz, dr, dist, radius, radius2;
     Real   dx1, dy1, dz1, x1, y1, z1;
     Real   x, y, z;
-    Real   a1, b1, c1, a2, b2, c2, a3, b3, c3;
     Real   ax, ay, az, bx, by, bz, weight;
     Real   l0, l1, l2;
     Real   d00, d01, d02, d11, d12, d22;
@@ -512,33 +506,16 @@ private  void  evaluate_fit_along_line(
             az += (Real)      -delta[p_index+2];
             bz += (Real) -parameters[p_index+2];
 
-            a1 = ax * ax;
-            b1 = ax * bx;
-            c1 = bx * bx;
-
-            a2 = ay * ay;
-            b2 = ay * by;
-            c2 = by * by;
-
-            a3 = az * az;
-            b3 = az * bz;
-            c3 = bz * bz;
-
-            s00 += c1 * c1 + c2 * c2 + c3 * c3;
-            s01 += b1 * c1 + b2 * c2 + b3 * c3;
-            s02 += a1 * c1 + a2 * c2 + a3 * c3;
-            s11 += b1 * b1 + b2 * b2 + b3 * b3;
-            s12 += a1 * b1 + a2 * b2 + a3 * b3;
-            s22 += a1 * a1 + a2 * a2 + a3 * a3;
+            s00 += bx * bx + by * by + bz * bz;
+            s01 += bx * ax + by * ay + bz * az;
+            s11 += ax * ax + ay * ay + az * az;
 
             ind += n_neighbours[p];
         }
 
         coefs[0] += s00 * centroid_weight;
-        coefs[1] += 4.0 * s01 * centroid_weight;
-        coefs[2] += (2.0 * s02 + 4.0 * s11) * centroid_weight;
-        coefs[3] += 4.0 * s12 * centroid_weight;
-        coefs[4] += s22 * centroid_weight;
+        coefs[1] += 2.0 * s01 * centroid_weight;
+        coefs[2] += s11 * centroid_weight;
     }
 }
 

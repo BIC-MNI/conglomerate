@@ -64,9 +64,9 @@ int  main(
         ALLOC2D( tags[surface], n_points[surface], 3 );
         for_less( i, 0, n_points[surface] )
         {
-            tags[surface][i][X] = Point_x(points[surface][i]);
-            tags[surface][i][Y] = Point_y(points[surface][i]);
-            tags[surface][i][Z] = Point_z(points[surface][i]);
+            tags[surface][i][X] = (Real) Point_x(points[surface][i]);
+            tags[surface][i][Y] = (Real) Point_y(points[surface][i]);
+            tags[surface][i][Z] = (Real) Point_z(points[surface][i]);
         }
     }
 

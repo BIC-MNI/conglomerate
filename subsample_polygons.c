@@ -1,6 +1,8 @@
 #include <internal_volume_io.h>
 #include <bicpl.h>
 
+#define DEBUG
+
 private  void  subsample_polygons(
     polygons_struct    *polygons,
     int                new_n_points );
@@ -61,8 +63,13 @@ int  main(
 
     delete_object_list( n_objects, object_list );
 
+    output_alloc_to_file( ".alloc_stats" );
+
     return( 0 );
 }
+
+#define  MUST_RECOMPUTE   -1.0
+#define  CANNOT_DELETE    -2.0
 
 private  BOOLEAN  is_convex(
     int    n_points,
@@ -98,51 +105,110 @@ private  BOOLEAN  is_convex(
     return( TRUE );
 }
 
-private  BOOLEAN   can_delete(
+private  int   get_surrounding_polygon(
+    int           n_points,
     Point         points[],
     int           point_index,
     int           n_neighbours[],
-    int           *neighbours[] )
+    int           *neighbours[],
+    Point         *neigh_points_ptr[] )
 {
-    int     n_neighs, n;
-    Point   *neigh_points, *flat_points;
-    Real    constant;
-    Vector  hor, vert, normal;
-    BOOLEAN can_delete;
+    int     n_neighs, current_index, first_index, current_point, next_point;
+    Point   *neigh_points;
 
-    ALLOC( neigh_points, n_neighbours[point_index] );
-    n_neighs = 0;
-    for_less( n, 0, n_neighbours[point_index] )
+    for_less( current_index, 0, n_neighbours[point_index] )
     {
-        if( neighbours[point_index][n] >= 0 )
-        {
-            neigh_points[n_neighs] = points[neighbours[point_index][n]];
-            ++n_neighs;
-        }
+        if( neighbours[point_index][current_index] >= 0 )
+            break;
     }
+
+    if( current_index >= n_neighbours[point_index] )
+        handle_internal_error( "current_index >= n_neighbours[point_index]" );
+
+    first_index = neighbours[point_index][current_index];
+
+    current_point = first_index;
+    for_less( current_index, 0, n_neighbours[current_point] )
+    {
+        if( neighbours[current_point][current_index] == point_index )
+            break;
+    }
+
+    if( current_index >= n_neighbours[current_point] )
+        handle_internal_error( "current_index >= n_neighbours[current_point]" );
+
+    n_neighs = 0;
+    neigh_points = NULL;
+
+    do
+    {
+        ADD_ELEMENT_TO_ARRAY( neigh_points, n_neighs, points[current_point],
+                              DEFAULT_CHUNK_SIZE );
+
+        do
+        {
+            current_index = (current_index - 1 + n_neighbours[current_point]) %
+                            n_neighbours[current_point];
+        }
+        while( neighbours[current_point][current_index] < 0 ||
+               neighbours[current_point][current_index] == point_index );
+
+        next_point = neighbours[current_point][current_index];
+
+        for_less( current_index, 0, n_neighbours[next_point] )
+        {
+            if( neighbours[next_point][current_index] == current_point )
+                break;
+        }
+
+        if( current_index >= n_neighbours[next_point] )
+            handle_internal_error( "can_delete n_neighbours" );
+
+        current_point = next_point;
+
+        if( n_neighs > n_points )
+            handle_internal_error( "n_neighs > n_points" );
+    }
+    while( current_point != first_index );
+
     if( n_neighs < 3 )
         handle_internal_error( "n_neighs" );
 
-    get_plane_through_points( n_neighs, neigh_points, &normal,
-                              &constant );
+    *neigh_points_ptr = neigh_points;
 
-    ALLOC( flat_points, n_neighs );
+    return( n_neighs );
+}
 
-    create_two_orthogonal_vectors( &normal, &hor, &vert );
+private  void   get_flat_points(
+    int           n_points,
+    Point         points[],
+    Vector        *normal,
+    Point         flat_points[] )
+{
+    int     n;
+    Vector  hor, vert;
 
-    for_less( n, 0, n_neighs )
+    create_two_orthogonal_vectors( normal, &hor, &vert );
+    NORMALIZE_VECTOR( hor, hor );
+    NORMALIZE_VECTOR( vert, vert );
+
+    for_less( n, 0, n_points )
     {
         fill_Point( flat_points[n],
-                    DOT_POINT_VECTOR( hor, neigh_points[n] ) -
-                    DOT_POINT_VECTOR( hor, neigh_points[0] ),
-                    DOT_POINT_VECTOR( vert, neigh_points[n] ) -
-                    DOT_POINT_VECTOR( vert, neigh_points[0] ), 0.0 );
+                    DOT_POINT_VECTOR( hor, points[n] ) -
+                    DOT_POINT_VECTOR( hor, points[0] ),
+                    DOT_POINT_VECTOR( vert, points[n] ) -
+                    DOT_POINT_VECTOR( vert, points[0] ), 0.0 );
     }
+}
 
-    can_delete = is_convex( n_neighs, flat_points );
+private  BOOLEAN   can_delete(
+    int           n_points,
+    Point         flat_points[] )
+{
+    BOOLEAN can_delete;
 
-    FREE( neigh_points );
-    FREE( flat_points );
+    can_delete = is_convex( n_points, flat_points );
 
     return( can_delete );
 }
@@ -154,14 +220,35 @@ private  int  delete_point(
     Smallest_int  interior_flags[],
     Real          flatness[] )
 {
-    int    n, *save_neighbours, neigh, n_neighs, nn;
-    int    n_deleted, save_n_neighs;
+    int    n, *save_neighbours, neigh, nn, n_valid_neighbours;
+    int    n_deleted, save_n_neighs, two_neighs[2];
 
     ALLOC( save_neighbours, n_neighbours[point_index] );
     save_n_neighs = n_neighbours[point_index];
 
+    n_valid_neighbours = 0;
     for_less( n, 0, save_n_neighs )
+    {
         save_neighbours[n] = neighbours[point_index][n];
+        if( save_neighbours[n] >= 0 )
+        {
+            if( n_valid_neighbours < 2 )
+                two_neighs[n_valid_neighbours] = save_neighbours[n];
+            ++n_valid_neighbours;
+        }
+    }
+
+    if( n_valid_neighbours == 2 )
+    {
+        for_less( n, 0, n_neighbours[two_neighs[0]] )
+        {
+            if( neighbours[two_neighs[0]][n] == two_neighs[1] )
+                break;
+        }
+
+        if( n < n_neighbours[two_neighs[0]] )
+            n_valid_neighbours = 3;
+    }
 
     for_less( n, 0, save_n_neighs )
     {
@@ -173,11 +260,24 @@ private  int  delete_point(
         {
             if( neighbours[neigh][nn] == point_index )
             {
-                neighbours[neigh][nn] = -1;
+                if( n_valid_neighbours == 2 )
+                {
+                    if( two_neighs[0] == neigh )
+                        neighbours[neigh][nn] = two_neighs[1];
+                    else if( two_neighs[1] == neigh )
+                        neighbours[neigh][nn] = two_neighs[0];
+                    else
+                        handle_internal_error( "( two_neighs[1] == neigh )" );
+                }
+                else
+                {
+                    neighbours[neigh][nn] = -1;
+                }
                 break;
             }
         }
         neighbours[point_index][n] = -1;
+        flatness[neigh] = MUST_RECOMPUTE;
     }
 
     n_neighbours[point_index] = 0;
@@ -189,22 +289,18 @@ private  int  delete_point(
         if( neigh < 0 || n_neighbours[neigh] == 0 || !interior_flags[neigh] )
             continue;
 
-        n_neighs = 0;
+        n_valid_neighbours = 0;
         for_less( nn, 0, n_neighbours[neigh] )
         {
             if( neighbours[neigh][nn] >= 0 )
-                ++n_neighs;
+                ++n_valid_neighbours;
         }
 
-        if( n_neighs < 3 )
+        if( n_valid_neighbours < 3 )
         {
-            if( n_neighs != 2 )
-                handle_internal_error( "delete_point" );
             n_deleted += delete_point( neigh, n_neighbours, neighbours,
                                        interior_flags, flatness );
         }
-        else
-            flatness[neigh] = -1.0;
     }
 
     FREE( save_neighbours );
@@ -226,15 +322,18 @@ private  int  get_indices(
     if( neighbours[point_index][neigh_index] < 0 )
         return( 0 );
 
-    i = neigh_index + 1;
-    while( i < n_neighbours[point_index] &&
-           neighbours[point_index][i] < 0 )
+    if( !interior_flags[point_index] )
     {
-        ++i;
-    }
+        i = neigh_index + 1;
+        while( i < n_neighbours[point_index] &&
+               neighbours[point_index][i] < 0 )
+        {
+            ++i;
+        }
 
-    if( !interior_flags[point_index] && i >= n_neighbours[point_index] )
-        return( 0 );
+        if( i >= n_neighbours[point_index] )
+            return( 0 );
+    }
 
     size = 0;
     current_point = point_index;
@@ -276,27 +375,117 @@ private  int  get_indices(
     return( size );
 }
 
+private  Real  get_flatness(
+    int     n_points,
+    Point   polygon_points[],
+    int     point_index,
+    int     n_neighbours[],
+    int     *neighbours[] )
+{
+    int      n, n_neighs;
+    Real     flatness, constant, dist;
+    Point    *neigh_points, *flat_points;
+    Vector   normal;
+
+    n_neighs = get_surrounding_polygon( n_points, polygon_points, point_index,
+                                        n_neighbours,
+                                        neighbours, &neigh_points );
+
+    get_plane_through_points( n_neighs, neigh_points, &normal,
+                              &constant );
+
+    ALLOC( flat_points, n_neighs );
+
+    get_flat_points( n_neighs, neigh_points, &normal, flat_points );
+
+    if( !can_delete( n_neighs, flat_points ) )
+    {
+        FREE( neigh_points );
+        FREE( flat_points );
+        return( CANNOT_DELETE );
+    }
+
+#define USE_SURFACE_AREA
+#ifdef  USE_SURFACE_AREA
+    flatness = get_polygon_2d_area( n_neighs, flat_points );
+#else
+    dist = DOT_POINT_VECTOR( polygon_points[point_index], normal ) + constant;
+
+    flatness = dist * dist;
+
+    for_less( n, 0, n_neighs )
+    {
+        dist = DOT_POINT_VECTOR( neigh_points[n], normal ) + constant;
+        flatness += dist * dist;
+    }
+
+    flatness /= (Real) (1 + n_neighs);
+#endif
+
+    FREE( neigh_points );
+    FREE( flat_points );
+
+    return( flatness );
+}
+
+#ifdef DEBUG
+private  void  test_integrity(
+    int           n_points,
+    int           n_neighbours[],
+    int           *neighbours[],
+    Smallest_int  interior_flags[] )
+{
+    int   p, n, n_valid_neighs, nn, neigh;
+
+    for_less( p, 0, n_points )
+    {
+        if( n_neighbours[p] == 0 )
+            continue;
+
+        n_valid_neighs = 0;
+        for_less( n, 0, n_neighbours[p] )
+        {
+            neigh = neighbours[p][n];
+            if( neigh < 0 )
+                continue;
+
+            for_less( nn, n+1, n_neighbours[p] )
+                if( neighbours[p][nn] == neigh )
+                    handle_internal_error( "test_integrity nn" );
+
+            for_less( nn, 0, n_neighbours[neigh] )
+                if( neighbours[neigh][nn] == p )
+                    break;
+
+            if( nn >= n_neighbours[neigh] )
+                handle_internal_error( "test_integrity no neighbours" );
+
+            ++n_valid_neighs;
+        }
+
+        if( n_valid_neighs < 3 &&
+            (n_valid_neighs != 2 || interior_flags[p]) )
+            handle_internal_error( "test_integrity number of neighbours" );
+    }
+}
+#endif
+
 private  void  subsample_polygons(
     polygons_struct    *polygons,
     int                desired_n_points )
 {
-    int            p, max_neighbours, point_index, n, n_points_left;
-    int            n_neighs, *n_neighbours, **neighbours;
-    int            new_n_polys, *new_end_indices, *new_indices;
-    int            *indices, *new_point_index, ind, size, i, min_index;
-    Smallest_int   *interior_flags;  
-    Point          *neigh_points, *new_points;
-    Vector         normal;
-    Real           *flatness, constant, dist;
+    int              p, point_index, n, n_points_left;
+    int              *n_neighbours, **neighbours;
+    int              new_n_polys, *new_end_indices, *new_indices;
+    int              *indices, *new_point_index, ind, size, i, min_index;
+    Smallest_int     *interior_flags;  
+    Point            *new_points;
+    Real             *flatness;
+    progress_struct  progress;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, &interior_flags, NULL );
 
-    max_neighbours = 0;
-    for_less( p, 0, polygons->n_points )
-        max_neighbours = MAX( max_neighbours, n_neighbours[p] );
-
-    ALLOC( neigh_points, max_neighbours );
     ALLOC( flatness, polygons->n_points );
 
     for_less( p, 0, polygons->n_points )
@@ -304,15 +493,15 @@ private  void  subsample_polygons(
         if( !interior_flags[p] )
             continue;
 
-        for_less( n, 0, n_neighbours[p] )
-            neigh_points[n] = polygons->points[neighbours[p][n]];
-        get_plane_through_points( n_neighbours[p], neigh_points, &normal,
-                                  &constant );
-        dist = DOT_POINT_VECTOR( polygons->points[p], normal ) + constant;
-        flatness[p] = FABS( dist );
+        flatness[p] = get_flatness( polygons->n_points, polygons->points,
+                                    p, n_neighbours, neighbours );
     }
 
     n_points_left = polygons->n_points;
+
+    initialize_progress_report( &progress, FALSE,
+                                n_points_left - desired_n_points,
+                                "Deleting Nodes" );
 
     while( n_points_left > desired_n_points )
     {
@@ -322,29 +511,15 @@ private  void  subsample_polygons(
             if( n_neighbours[p] == 0 || !interior_flags[p] )
                 continue;
 
-            if( flatness[p] < 0.0 )
+            if( flatness[p] == MUST_RECOMPUTE )
             {
-                n_neighs = 0;
-                for_less( n, 0, n_neighbours[p] )
-                {
-                    if( neighbours[p][n] >= 0 )
-                    {
-                        neigh_points[n_neighs] =
-                                 polygons->points[neighbours[p][n]];
-                        ++n_neighs;
-                    }
-                }
-                if( n_neighs < 3 )
-                    handle_internal_error( "n_neighs" );
-
-                get_plane_through_points( n_neighs, neigh_points, &normal,
-                                          &constant );
-                dist = DOT_POINT_VECTOR( polygons->points[p], normal )+constant;
-                flatness[p] = FABS( dist );
+                flatness[p] = get_flatness( polygons->n_points,
+                                            polygons->points, p,
+                                            n_neighbours, neighbours );
             }
 
-            if( point_index < 0 || flatness[p] < flatness[point_index] &&
-                can_delete( polygons->points, p, n_neighbours, neighbours ) )
+            if( point_index < 0 || flatness[p] >= 0.0 &&
+                flatness[p] < flatness[point_index] )
                 point_index = p;
         }
 
@@ -353,7 +528,16 @@ private  void  subsample_polygons(
 
         n_points_left -= delete_point( point_index, n_neighbours, neighbours,
                                        interior_flags, flatness );
+
+#ifdef DEBUG
+        test_integrity( polygons->n_points, n_neighbours, neighbours,
+                        interior_flags );
+#endif
+
+        update_progress_report( &progress, polygons->n_points - n_points_left );
     }
+
+    terminate_progress_report( &progress );
 
     ALLOC( new_point_index, polygons->n_points );
     ALLOC( new_points, n_points_left );
@@ -416,7 +600,6 @@ private  void  subsample_polygons(
     delete_polygon_point_neighbours( polygons, n_neighbours,
                                      neighbours, interior_flags, NULL );
 
-    FREE( neigh_points );
     FREE( flatness );
 
     polygons->n_points = n_points_left;

@@ -4,15 +4,18 @@
 private  void  contour_volume_slice(
     Volume        volume,
     int           axis_index,
-    int           slice_index,
+    Real          slice_pos,
+    BOOLEAN       world_flag,
     Real          contour_value,
     lines_struct  *lines );
 
 private  int  get_axis_index(
     STRING   name,
-    int      *axis_index )
+    int      *axis_index,
+    BOOLEAN  *world_flag )
 {
     *axis_index = -1;
+    *world_flag = FALSE;
 
     switch( name[0] )
     {
@@ -24,6 +27,9 @@ private  int  get_axis_index(
     case 'Z': *axis_index = Z; break;
     }
 
+    if( name[1] == 'w' || name[1] == 'W' )
+        *world_flag = TRUE;
+
     return( *axis_index >= 0 );
 }
 
@@ -31,7 +37,7 @@ private  void  usage(
     STRING  executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  volume_file  output_file  x|y|z slice_pos\n\
+Usage: %s  volume_file  output_file  x|y|z|xw|yw|zw slice_pos\n\
        [contour_value1] [contour_value2] ... \n\
 \n\
      Creates contour lines for the given slice at the given contour values.\n\n";
@@ -46,17 +52,18 @@ int  main(
     STRING               input_volume_filename, output_filename;
     STRING               axis_name;
     Volume               volume;
-    int                  n_objects, slice_index, axis_index;
+    int                  n_objects, axis_index;
     object_struct        **objects, *object;
-    Real                 contour_value;
+    Real                 contour_value, slice_pos;
+    BOOLEAN              world_flag;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &input_volume_filename ) ||
         !get_string_argument( NULL, &output_filename ) ||
         !get_string_argument( NULL, &axis_name ) ||
-        !get_axis_index( axis_name, &axis_index ) ||
-        !get_int_argument( 0, &slice_index ) )
+        !get_axis_index( axis_name, &axis_index, &world_flag ) ||
+        !get_real_argument( 0.0, &slice_pos ) )
     {
         usage( argv[0] );
         return( 1 );
@@ -75,8 +82,8 @@ int  main(
 
         initialize_lines( get_lines_ptr(object), WHITE );
 
-        contour_volume_slice( volume, axis_index, slice_index, contour_value,
-                              get_lines_ptr(object) );
+        contour_volume_slice( volume, axis_index, slice_pos, world_flag,
+                              contour_value, get_lines_ptr(object) );
 
         add_object_to_list( &n_objects, &objects, object );
     }
@@ -102,24 +109,25 @@ private  void  record_values(
     int           a1,
     int           a2,
     int           axis_index,
-    int           slice_index,
+    Real          slice_pos,
     int           x_size,
     int           y_size,
     Real          contour_value,
     Real          **values )
 {
-    int  x, y, voxel[N_DIMENSIONS];
+    int  x, y;
+    Real voxel[N_DIMENSIONS], value;
 
-    voxel[axis_index] = slice_index;
+    voxel[axis_index] = slice_pos;
     for_less( x, 0, x_size )
     {
-        voxel[a1] = x;
+        voxel[a1] = (Real) x;
         for_less( y, 0, y_size )
         {
-            voxel[a2] = y;
-            values[x][y] = get_volume_real_value( volume,
-                                 voxel[X], voxel[Y], voxel[Z], 0, 0 )
-                           - contour_value;
+            voxel[a2] = (Real) y;
+            evaluate_volume( volume, voxel, FALSE, 0, FALSE, 0.0,
+                             &value, NULL, NULL );
+            values[x][y] = value - contour_value;
         }
     }
 }
@@ -127,14 +135,14 @@ private  void  record_values(
 private  void  get_point(
     Volume   volume,
     int      axis_index,
-    int      slice_index,
+    Real     slice_pos,
     Real     x,
     Real     y,
     Point    *point )
 {
     Real   voxel[N_DIMENSIONS], xw, yw, zw;
 
-    voxel[axis_index] = (Real) slice_index;
+    voxel[axis_index] = slice_pos;
     voxel[(axis_index+1) % N_DIMENSIONS] = x;
     voxel[(axis_index+2) % N_DIMENSIONS] = y;
 
@@ -146,7 +154,7 @@ private  void  get_point(
 private  void  create_node_points(
     Volume       volume,
     int          axis_index,
-    int          slice_index,
+    Real         slice_pos,
     int          x_size,
     int          y_size,
     Real         **values,
@@ -179,7 +187,7 @@ private  void  create_node_points(
             {
                 if( node_info[x][y].ids[2] < 0 )
                 {
-                    get_point( volume, axis_index, slice_index,
+                    get_point( volume, axis_index, slice_pos,
                                (Real) x, (Real) y, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
@@ -191,7 +199,7 @@ private  void  create_node_points(
             {
                 if( node_info[x+1][y].ids[2] < 0 )
                 {
-                    get_point( volume, axis_index, slice_index,
+                    get_point( volume, axis_index, slice_pos,
                                (Real) x+1.0, (Real) y, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
@@ -202,7 +210,7 @@ private  void  create_node_points(
             else if( this_value * neigh_value < 0.0 )
             {
                 fraction = this_value / (this_value - neigh_value);
-                get_point( volume, axis_index, slice_index,
+                get_point( volume, axis_index, slice_pos,
                            (Real) x + fraction, (Real) y, &point );
                 ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                       DEFAULT_CHUNK_SIZE );
@@ -216,7 +224,7 @@ private  void  create_node_points(
             {
                 if( node_info[x][y].ids[2] < 0 )
                 {
-                    get_point( volume, axis_index, slice_index,
+                    get_point( volume, axis_index, slice_pos,
                                (Real) x, (Real) y, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
@@ -228,7 +236,7 @@ private  void  create_node_points(
             {
                 if( node_info[x][y+1].ids[2] < 0 )
                 {
-                    get_point( volume, axis_index, slice_index,
+                    get_point( volume, axis_index, slice_pos,
                                (Real) x, (Real) y+1.0, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
@@ -239,7 +247,7 @@ private  void  create_node_points(
             else if( this_value * neigh_value < 0.0 )
             {
                 fraction = this_value / (this_value - neigh_value);
-                get_point( volume, axis_index, slice_index,
+                get_point( volume, axis_index, slice_pos,
                            (Real) x, (Real) y + fraction, &point );
                 ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                       DEFAULT_CHUNK_SIZE );
@@ -346,27 +354,40 @@ private  void  contour_rectangle(
 private  void  contour_volume_slice(
     Volume        volume,
     int           axis_index,
-    int           slice_index,
+    Real          slice_pos,
+    BOOLEAN       world_flag,
     Real          contour_value,
     lines_struct  *lines )
 {
     int           x, y, a1, a2, sizes[N_DIMENSIONS];
     node_struct   **node_info;
     Real          **values;
+    Real          world[N_DIMENSIONS], voxel[N_DIMENSIONS];
 
     a1 = (axis_index + 1) % N_DIMENSIONS;
     a2 = (axis_index + 2) % N_DIMENSIONS;
+
+    if( world_flag )
+    {
+        world[X] = 0.0;
+        world[Y] = 0.0;
+        world[Z] = 0.0;
+        world[axis_index] = slice_pos;
+        convert_world_to_voxel( volume, world[X], world[Y], world[Z],
+                                voxel );
+        slice_pos = voxel[axis_index];
+    }
 
     get_volume_sizes( volume, sizes );
 
     ALLOC2D( values, sizes[a1], sizes[a2] );
 
-    record_values( volume, a1, a2, axis_index, slice_index,
+    record_values( volume, a1, a2, axis_index, slice_pos,
                    sizes[a1], sizes[a2], contour_value, values );
 
     ALLOC2D( node_info, sizes[a1], sizes[a2] );
 
-    create_node_points( volume, axis_index, slice_index,
+    create_node_points( volume, axis_index, slice_pos,
                         sizes[a1], sizes[a2], values, node_info,
                         &lines->n_points, &lines->points );
 

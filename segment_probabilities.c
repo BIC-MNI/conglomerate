@@ -12,20 +12,23 @@ int  main(
     char   *argv[] )
 {
     STRING               surface_filename, output_filename, filename;
+    STRING               output_lines_filename;
     int                  point, n_objects;
     int                  n, *n_neighbours, **neighbours, n_values;
     File_formats         format;
-    object_struct        **object_list;
+    object_struct        **object_list, *object;
     polygons_struct      *polygons;
+    lines_struct         *lines;
     Real                 *values, **components;
     int                  *which_class, comp, max_index, n_components;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &surface_filename ) ||
-        !get_string_argument( NULL, &output_filename ) )
+        !get_string_argument( NULL, &output_filename ) ||
+        !get_string_argument( NULL, &output_lines_filename ) )
     {
-        print_error( "Usage: %s  surface.obj output_values.mnc [value1] ...\n",
+        print_error( "Usage: %s  surface.obj output_values.mnc lines.obj [value1] ...\n",
                      argv[0] );
         return( 1 );
     }
@@ -96,9 +99,35 @@ int  main(
             values[point] = 1.0;
     }
 
+    FREE( which_class );
+
     if( output_texture_values( output_filename, BINARY_FORMAT,
                                polygons->n_points, values ) != OK )
         return( 1 );
+
+    object = create_object( LINES );
+    lines = get_lines_ptr( object );
+    initialize_lines( lines, WHITE );
+
+    for_less( point, 0, polygons->n_points )
+    {
+        if( values[point] == 0.0 )
+            continue;
+
+        for_less( n, 0, n_neighbours[point] )
+        {
+            if( values[neighbours[point][n]] == 0.0 )
+                continue;
+
+            start_new_line( lines );
+            add_point_to_line( lines, &polygons->points[point] );
+            add_point_to_line( lines, &polygons->points[neighbours[point][n]] );
+        }
+    }
+
+    (void) output_graphics_file( output_lines_filename, BINARY_FORMAT,
+                                 1, &object );
+
 
     return( 0 );
 }

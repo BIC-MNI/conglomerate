@@ -17,6 +17,8 @@ struct  conjugate_min_struct
     void             *function_data;
     Real             line_min_range_tolerance;
     Real             line_min_domain_tolerance;
+    Real             termination_range_tolerance;
+    Real             termination_domain_tolerance;
     int              n_iterations;
     int              max_iterations;
     int              n_restarts;
@@ -32,6 +34,8 @@ public   conjugate_min  conjugate_min_initialize(
     Real                   (*function) ( Real [], void * ),
     void                   (*deriv_function) ( Real [], void *, Real [] ),
     void                   *function_data,
+    Real                   termination_range_tolerance,
+    Real                   termination_domain_tolerance,
     Real                   line_min_range_tolerance,
     Real                   line_min_domain_tolerance,
     int                    max_iterations,
@@ -57,10 +61,13 @@ public   conjugate_min  conjugate_min_initialize(
     conj->function = function;
     conj->deriv_function = deriv_function;
     conj->function_data = function_data;
+    conj->termination_range_tolerance = termination_range_tolerance;
+    conj->termination_domain_tolerance = termination_domain_tolerance;
     conj->line_min_range_tolerance = line_min_range_tolerance;
     conj->line_min_domain_tolerance = line_min_domain_tolerance;
     conj->n_iterations = 0;
     conj->max_iterations = max_iterations;
+    conj->n_restarts = 0;
     if( max_restarts < 0 )
         conj->max_restarts = DEFAULT_N_RESTARTS;
     else
@@ -80,8 +87,9 @@ public  BOOLEAN  conjugate_min_do_one_iteration(
     Real              *resulting_value )
 {
     BOOLEAN  success;
+    Real     new_value, max_movement;
 
-    if( conj->max_iterations >= 0 && conj->n_iterations >= conj->max_iterations )
+    if( conj->max_iterations >= 0 && conj->n_iterations >= conj->max_iterations)
         return( FALSE );
 
     ++conj->n_iterations;
@@ -95,7 +103,7 @@ public  BOOLEAN  conjugate_min_do_one_iteration(
 
     if( success )
     {
-        success = minimize_along_line( conj->n_parameters,
+        new_value = minimize_along_line( conj->n_parameters,
                                        conj->parameters,
                                        conj->derivative,
                                        conj->test_parameters,
@@ -104,7 +112,16 @@ public  BOOLEAN  conjugate_min_do_one_iteration(
                                        conj->line_min_range_tolerance,
                                        conj->line_min_domain_tolerance,
                                        conj->current_value,
-                                       &conj->current_value );
+                                       &max_movement );
+
+        if( conj->current_value - new_value <=
+                        conj->termination_range_tolerance &&
+            max_movement <= conj->termination_domain_tolerance )
+        {
+            success = FALSE;
+        }
+
+        conj->current_value = new_value;
     }
 
     if( !success && conj->n_restarts < conj->max_restarts )
@@ -154,4 +171,45 @@ public  void  conjugate_min_terminate(
     }
 
     delete_conjugate_gradient( conj->conjugate_dir_info );
+}
+
+public  Real  conjugate_minimize_function(
+    int                    n_parameters,
+    Real                   initial[],
+    Real                   (*function) ( Real [], void * ),
+    void                   (*deriv_function) ( Real [], void *, Real [] ),
+    void                   *function_data,
+    Real                   termination_range_tolerance,
+    Real                   termination_domain_tolerance,
+    Real                   line_min_range_tolerance,
+    Real                   line_min_domain_tolerance,
+    int                    max_iterations,
+    int                    max_restarts,
+    Real                   solution[] )
+{
+    Real            value;
+    conjugate_min   conj;
+
+    conj = conjugate_min_initialize( n_parameters, initial,
+                                     function, deriv_function,
+                                     function_data,
+                                     termination_range_tolerance,
+                                     termination_domain_tolerance,
+                                     line_min_range_tolerance,
+                                     line_min_domain_tolerance,
+                                     max_iterations,
+                                     max_restarts, &value );
+
+    conjugate_min_print_iteration_info( conj );
+
+    while( conjugate_min_do_one_iteration( conj, &value ) )
+    {
+        conjugate_min_print_iteration_info( conj );
+    }
+
+    conjugate_min_get_current_position( conj, solution );
+
+    conjugate_min_terminate( conj );
+
+    return( value );
 }

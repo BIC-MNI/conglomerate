@@ -151,14 +151,14 @@ private  void   manifold_polygons(
     BOOLEAN            manifold_required,
     polygons_struct    *out )
 {
-    int                point, poly, size, neigh, neigh_size, v, edge, p;
+    int                point, poly, size, neigh, v, p;
     int                current, n_points_included, n_polys_included;
     int                ind, *new_point_ids, n;
     int                n_done;
     int                *poly_dist;
     Real               dist;
     BOOLEAN            add;
-    Smallest_int       *point_included, *poly_included;
+    Smallest_int       *point_included, *poly_included, *in_queue;
     PRIORITY_QUEUE_STRUCT(int)  queue;
 
     for_less( poly, 0, polygons->n_items )
@@ -177,97 +177,111 @@ private  void   manifold_polygons(
     for_less( poly, 0, polygons->n_items )
         poly_included[poly] = FALSE;
 
-    ALLOC( point_included, polygons->n_items );
+    ALLOC( point_included, polygons->n_points );
     for_less( point, 0, polygons->n_points )
         point_included[point] = FALSE;
+
+    ALLOC( in_queue, polygons->n_items );
+    for_less( poly, 0, polygons->n_items )
+        in_queue[poly] = FALSE;
     
     INITIALIZE_PRIORITY_QUEUE( queue );
 
     poly_included[start_poly] = TRUE;
+    n_done = 1;
+
     size = GET_OBJECT_SIZE( *polygons, start_poly );
     for_less( p, 0, size )
     {
         point_included[polygons->indices[POINT_INDEX(polygons->end_indices,
                                    start_poly,p)]] = TRUE;
-    }
 
-    INSERT_IN_PRIORITY_QUEUE( queue, start_poly, 0.0 );
-    n_done = 1;
+        neigh = polygons->neighbours[POINT_INDEX(polygons->end_indices,
+                                                 start_poly,p)];
+
+        if( neigh >= 0 )
+        {
+            INSERT_IN_PRIORITY_QUEUE( queue, neigh, (Real) -poly_dist[neigh] );
+            in_queue[neigh] = TRUE;
+        }
+    }
 
     while( !IS_PRIORITY_QUEUE_EMPTY(queue) &&
            (max_polygons <= 0 || n_done < max_polygons) )
     {
         REMOVE_FROM_PRIORITY_QUEUE( queue, current, dist );
 
+        in_queue[current] = FALSE;
+
         size = GET_OBJECT_SIZE( *polygons, current );
-        for_less( edge, 0, size )
+
+        if( !manifold_required )
+            add = TRUE;
+        else
         {
-            neigh = polygons->neighbours[POINT_INDEX(polygons->end_indices,
-                                                     current,edge)];
+            n_points_included = 0;
+            for_less( v, 0, size )
+            {
+                p = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                                  current,v)];
 
-            if( neigh < 0 || poly_included[neigh] )
+                if( point_included[p] )
+                    ++n_points_included;
+            }
+
+            if( n_points_included != 2 && n_points_included != 3 )
+            {
+                print( "N included: %d\n", n_points_included );
                 continue;
+            }
 
-            neigh_size = GET_OBJECT_SIZE( *polygons, neigh );
-
-            if( !manifold_required )
+            if( n_points_included == 2 )
                 add = TRUE;
             else
             {
-                n_points_included = 0;
-                for_less( v, 0, neigh_size )
+                n_polys_included = 0;
+                for_less( v, 0, size )
                 {
-                    p = polygons->indices[POINT_INDEX(polygons->end_indices,
-                                                  neigh,v)];
-
-                    if( point_included[p] )
-                        ++n_points_included;
+                    n = polygons->neighbours[POINT_INDEX(polygons->end_indices,
+                                                         current,v)];
+                    if( n < 0 || poly_included[n] )
+                        ++n_polys_included;
                 }
 
-                if( n_points_included != 2 && n_points_included != 3 )
+                if( n_polys_included == 0 )
                 {
-                    print( "N included: %d\n", n_points_included );
+                    print( "N poly included: %d\n", n_polys_included );
                     continue;
                 }
 
-                if( n_points_included == 2 )
-                    add = TRUE;
+                if( n_polys_included == 1 )
+                    add = FALSE;
                 else
-                {
-                    n_polys_included = 0;
-                    for_less( v, 0, neigh_size )
-                    {
-                        n = polygons->neighbours[POINT_INDEX(polygons->end_indices,
-                                                             neigh,v)];
-                        if( n < 0 || poly_included[n] )
-                            ++n_polys_included;
-                    }
-
-                    if( n_polys_included == 0 )
-                    {
-                        print( "N poly included: %d\n", n_polys_included );
-                        continue;
-                    }
-
-                    if( n_polys_included == 1 )
-                        add = FALSE;
-                    else
-                        add = TRUE;
-                }
+                    add = TRUE;
             }
+        }
 
-            if( add && (max_polygons <= 0 || n_done < max_polygons) )
+        if( add && (max_polygons <= 0 || n_done < max_polygons) )
+        {
+            if( current == 65577 )
+                print( "N done: %d  (%d)\n", n_done, current );
+
+            poly_included[current] = TRUE;
+            ++n_done;
+            for_less( p, 0, size )
             {
-                poly_included[neigh] = TRUE;
-                for_less( p, 0, neigh_size )
-                {
-                    point_included[polygons->indices[POINT_INDEX(
-                                     polygons->end_indices,neigh,p)]] = TRUE;
-                }
+                point_included[polygons->indices[POINT_INDEX(
+                                 polygons->end_indices,current,p)]] = TRUE;
 
-                INSERT_IN_PRIORITY_QUEUE( queue, neigh,
-                                          (Real) -poly_dist[neigh] );
-                ++n_done;
+                neigh = polygons->neighbours[POINT_INDEX(polygons->end_indices,
+                                                       current,p)];
+
+                if( neigh >= 0 && !in_queue[neigh] && !poly_included[neigh] )
+                {
+                    INSERT_IN_PRIORITY_QUEUE( queue, neigh,
+                                              (Real) -poly_dist[neigh] );
+                    in_queue[neigh] = TRUE;
+                }
             }
         }
     }
@@ -293,7 +307,7 @@ private  void   manifold_polygons(
             int  n;
             size = GET_OBJECT_SIZE( *polygons, poly );
             n = 0;
-            for_less( v, 0, neigh_size )
+            for_less( v, 0, size )
             {
                 n = polygons->neighbours[POINT_INDEX(polygons->end_indices,
                                                      poly,v)];

@@ -107,6 +107,73 @@ private  int   get_neighbours_neighbours(
     return( n_nn );
 }
 
+private  void  create_mesh(
+    int            node,
+    int            n_neighbours[],
+    int            *neighbours[],
+    int            total_neighbours,
+    int            neigh_indices[],
+    Real           x_sphere[],
+    Real           y_sphere[],
+    Real           z_sphere[] )
+{
+    object_struct  *object;
+    lines_struct   *lines;
+    int            t, n, nn, neigh, current;
+    Point          point1, point2;
+    char           name[EXTREMELY_LARGE_STRING_SIZE];
+
+    object = create_object( LINES );
+    lines = get_lines_ptr( object );
+
+    initialize_lines( lines, WHITE );
+
+    for_less( n, -1, n_neighbours[node] )
+    {
+        if( n == -1 )
+        {
+            current = node;
+            fill_Point( point1, 0.0, 0.0, 0.0 );
+        }
+        else
+        {
+            current = neighbours[node][n];
+            fill_Point( point1, x_sphere[n], y_sphere[n], z_sphere[n] );
+        }
+
+        for_less( nn, 0, n_neighbours[current] )
+        {
+            neigh = neighbours[current][nn];
+            if( neigh == node )
+            {
+                fill_Point( point2, 0.0, 0.0, 0.0 );
+            }
+            else
+            {
+                for_less( t, 0, total_neighbours )
+                    if( neigh == neigh_indices[t] )
+                        break;
+
+                if( t >= total_neighbours )
+                    handle_internal_error( "t >= neighbours" );
+
+                fill_Point( point2, x_sphere[t], y_sphere[t], z_sphere[t] );
+            }
+
+            start_new_line( lines );
+            add_point_to_line( lines, &point1 );
+            add_point_to_line( lines, &point2 );
+        }
+    }
+
+    (void) sprintf( name, "lines_%d.obj", node );
+    (void) output_graphics_file( name, BINARY_FORMAT, 1, &object );
+
+    delete_object( object );
+}
+
+#define  MAX_NN 1000
+
 private  int   flatten_patches_to_sphere(
     Real             radius,
     polygons_struct  *polygons,
@@ -119,12 +186,13 @@ private  int   flatten_patches_to_sphere(
     Real             z_sphere[] )
 {
     int              n_nn, neigh, neigh_neigh, i, p, n, which;
-    int              counts[MAX_POINTS_PER_POLYGON];
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Point            neigh_neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             x_sphere1[MAX_POINTS_PER_POLYGON], x, y, z;
-    Real             y_sphere1[MAX_POINTS_PER_POLYGON];
-    Real             z_sphere1[MAX_POINTS_PER_POLYGON], len, factor;
+    int              desired_node;
+    int              counts[MAX_NN];
+    Point            neigh_points[MAX_NN];
+    Point            neigh_neigh_points[MAX_NN];
+    Real             x_sphere1[MAX_NN], x, y, z;
+    Real             y_sphere1[MAX_NN];
+    Real             z_sphere1[MAX_NN], len, factor;
     Vector           x_axis, y_axis, z_axis;
     Point            origin;
     Transform        transform, from, to;
@@ -141,6 +209,9 @@ private  int   flatten_patches_to_sphere(
 
     n_nn = get_neighbours_neighbours( node, n_neighbours, neighbours,
                                       &neigh_indices[n_neighbours[node]] );
+
+    if( n_neighbours[node] + n_nn > MAX_NN )
+        handle_internal_error( "Must rewrite code to handle large NN" );
 
     for_less( i, 0, n_nn )
     {
@@ -212,6 +283,11 @@ private  int   flatten_patches_to_sphere(
             y_sphere[n_neighbours[node]+which] += y;
             z_sphere[n_neighbours[node]+which] += z;
             ++counts[which];
+
+            z += radius;
+            len = x * x + y * y + z * z;
+            if( !numerically_close( len, radius * radius, 1.0e-4 ) )
+                print( "Not close: %g %g %g\n", x, y, z );
         }
     }
 
@@ -234,6 +310,15 @@ private  int   flatten_patches_to_sphere(
         y_sphere[n_neighbours[node]+i] *= factor;
         z_sphere[n_neighbours[node]+i] = (z_sphere[n_neighbours[node]+i] +
                                           radius) * factor - radius;
+    }
+
+    if( getenv("NODE") != NULL &&
+        sscanf( getenv("NODE"), "%d", &desired_node ) == 1 &&
+        desired_node == node )
+    {
+        print( "Creating mesh for node %d\n", node );
+        create_mesh( node, n_neighbours, neighbours, n_neighbours[node] + n_nn,
+                     neigh_indices, x_sphere, y_sphere, z_sphere );
     }
 
     return( n_neighbours[node] + n_nn );
@@ -596,6 +681,7 @@ private  void  flatten_polygons(
         }
     }
 
+#ifdef DEBUG
     {
     int   p, n;
     print( "Constant: %g\n", constant );
@@ -607,6 +693,7 @@ private  void  flatten_polygons(
         print( "\n" );
     }
     }
+#endif
 
     (void) minimize_lsq_float( n_parameters, constant, linear_terms,
                                square_terms, n_cross_terms, cross_parms,

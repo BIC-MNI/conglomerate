@@ -7,6 +7,8 @@ public   conjugate_min  conjugate_min_initialize(
     Real                   (*function) ( Real [], void * ),
     void                   (*deriv_function) ( Real [], void *, Real [] ),
     void                   *function_data,
+    Real                   termination_range_tolerance,
+    Real                   termination_domain_tolerance,
     Real                   line_min_range_tolerance,
     Real                   line_min_domain_tolerance,
     int                    max_iterations,
@@ -29,4 +31,18 @@ public  void  conjugate_min_print_iteration_info(
 
 public  void  conjugate_min_terminate(  
     conjugate_min     conj );
+
+public  Real  conjugate_minimize_function(
+    int                    n_parameters,
+    Real                   initial[],
+    Real                   (*function) ( Real [], void * ),
+    void                   (*deriv_function) ( Real [], void *, Real [] ),
+    void                   *function_data,
+    Real                   termination_range_tolerance,
+    Real                   termination_domain_tolerance,
+    Real                   line_min_range_tolerance,
+    Real                   line_min_domain_tolerance,
+    int                    max_iterations,
+    int                    max_restarts,
+    Real                   solution[] );
 #endif

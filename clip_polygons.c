@@ -11,8 +11,8 @@ int  main(
     polygons_struct  clipped;
     File_formats     format;
     object_struct    **object_list;
-    static  Vector   plane_normal = { 0.0, 0.0, 1.0 };
-    static  Real     plane_constant = 0.0;
+    static  Vector   plane_normal = { 0.34118703, -0.06975647, 0.93740362 };
+    static  Real     plane_constant = 23.435121182316;
 
     status = OK;
 

@@ -67,25 +67,30 @@ int  main(
 
     if( labels_present )
     {
-        label_volume = create_label_volume( volume, NC_UNSPECIFIED );
-
-        set_all_volume_label_data( label_volume, 0 );
-
-        if( filename_extension_matches( label_filename,
-                                        get_default_tag_file_suffix() ) )
-        {
-            if( open_file( label_filename, READ_FILE, ASCII_FORMAT, &file )!=OK)
-                return( 1 );
-
-            if( input_tags_as_labels( file, volume, label_volume ) != OK )
-                return( 1 );
-
-            (void) close_file( file );
-        }
+        if( equal_strings( label_filename, volume_filename ) )
+            label_volume = volume;
         else
         {
-            if( load_label_volume( label_filename, label_volume ) != OK )
-                return( 1 );
+            label_volume = create_label_volume( volume, NC_UNSPECIFIED );
+
+            set_all_volume_label_data( label_volume, 0 );
+
+            if( filename_extension_matches( label_filename,
+                                            get_default_tag_file_suffix() ) )
+            {
+                if( open_file( label_filename, READ_FILE, ASCII_FORMAT, &file )!=OK)
+                    return( 1 );
+
+                if( input_tags_as_labels( file, volume, label_volume ) != OK )
+                    return( 1 );
+
+                (void) close_file( file );
+            }
+            else
+            {
+                if( load_label_volume( label_filename, label_volume ) != OK )
+                    return( 1 );
+            }
         }
     }
 

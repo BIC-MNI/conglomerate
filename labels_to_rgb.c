@@ -2,22 +2,25 @@
 #include  <bicpl.h>
 #include  <images.h>
 
+private  Status  load_colour_map(
+    STRING           filename,
+    int              *n_colours,
+    Colour           *colours[] );
+
 int  main(
     int   argc,
     char  *argv[] )
 {
-    FILE               *file;
     Volume             volume, rgb_volume;
     STRING             input_filename, colour_map_filename, output_filename;
-    int                v[MAX_DIMENSIONS], i, n_labels, int_value, index;
-    int                int_min_value, int_max_value;
+    int                v[MAX_DIMENSIONS], i, int_value;
     int                n_dims, sizes[MAX_DIMENSIONS], dim;
     STRING             *dim_names, *dim_names_rgb;
-    Real               value, min_value, max_value, red, green, blue, alpha;
+    Real               value;
     Real               separations[MAX_DIMENSIONS];
     Colour             colour, *label_map;
     General_transform  transform;
-    int                n_colour_comps;
+    int                n_colour_comps, n_colours;
 
     initialize_argument_processing( argc, argv );
 
@@ -34,46 +37,15 @@ int  main(
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
 
-    min_value = get_volume_real_min( volume );
-    max_value = get_volume_real_max( volume );
-
-    int_min_value = FLOOR( min_value );
-    int_max_value = CEILING( max_value );
-
-    n_labels = int_max_value - int_min_value + 1;
-
-    ALLOC( label_map, n_labels );
-
-    for_less( i, 0, n_labels )
-        label_map[i] = make_rgba_Colour( 0, 0, 0, 255 );
-
-    if( open_file( colour_map_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+    if( load_colour_map( colour_map_filename, &n_colours, &label_map ) != OK )
         return( 1 );
 
     n_colour_comps = 3;
-
-    while( input_int( file, &index ) == OK )
+    for_less( i, 0, n_colours )
     {
-        if( input_real( file, &red ) != OK ||
-            input_real( file, &green ) != OK ||
-            input_real( file, &blue ) != OK ||
-            input_real( file, &alpha ) != OK )
-        {
-            print_error( "Error loading labels colour map.\n" );
-            return( 1 );
-        }
-
-        if( index >= int_min_value && index <= int_max_value )
-        {
-            label_map[index-int_min_value] = make_rgba_Colour_0_1(
-                                               red, green, blue, alpha);
-
-            if( alpha != 1.0 )
-                n_colour_comps = 4;
-        }
+        if( get_Colour_a_0_1(label_map[i]) != 1.0 )
+            n_colour_comps = 4;
     }
-
-    (void) close_file( file );
 
     n_dims = get_volume_n_dimensions( volume );
     get_volume_separations( volume, separations );
@@ -109,10 +81,10 @@ int  main(
 
         int_value = ROUND( value );
 
-        if( int_min_value <= int_value && int_value <= int_max_value )
-            colour = label_map[int_value-int_min_value];
+        if( 0 <= int_value && int_value < n_colours )
+            colour = label_map[int_value];
         else
-            colour = BLACK;
+            colour = label_map[0];
 
         v[n_dims] = 0;
         set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
@@ -141,4 +113,53 @@ int  main(
                           (minc_output_options *) NULL );
 
     return( 0 );
+}
+
+private  Status  load_colour_map(
+    STRING           filename,
+    int              *n_colours,
+    Colour           *colours[] )
+{
+    Status   status;
+    FILE     *file;
+    Colour   col;
+    STRING   line;
+    int      index, i;
+
+    if( open_file_with_default_suffix( filename, "map",
+                                       READ_FILE, ASCII_FORMAT, &file ) != OK )
+        return( ERROR );
+
+    *n_colours = 0;
+    *colours = NULL;
+
+    status = OK;
+
+    while( input_int( file, &index ) == OK )
+    {
+        if( input_line( file, &line ) != OK )
+        {
+            print_error( "Error loading labels colour map.\n" );
+            status = ERROR;
+            break;
+        }
+
+        col = convert_string_to_colour( line );
+
+        delete_string( line );
+
+        if( index >= *n_colours )
+        {
+            SET_ARRAY_SIZE( *colours, *n_colours, index+1, DEFAULT_CHUNK_SIZE );
+            for_less( i, *n_colours, index )
+                (*colours)[i] = 0;
+            *n_colours = index+1;
+        }
+
+        (*colours)[index] = col;
+    }
+
+    (void) close_file( file );
+
+    return( status );
 }

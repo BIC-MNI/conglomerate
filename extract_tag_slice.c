@@ -54,18 +54,8 @@ int  main(
         return( 1 );
     }
 
-    if( input_volume_header_only( volume_filename, 3, XYZ_dimension_names,
-                                  &volume, NULL ) !=OK )
-        return( 1 );
-
-    world[X] = 0.0;
-    world[Y] = 0.0;
-    world[Z] = 0.0;
-    world[axis] = slice_pos;
-
-    convert_world_to_voxel( volume, world[X], world[Y], world[Z], voxel );
-
-    delete_volume( volume );
+    /*--- initialize volume for 1 slice caching for speed, since we
+          only need 1 slice for this program */
 
     set_n_bytes_cache_threshold( 1 );
     set_default_max_bytes_in_cache( 1 );
@@ -93,10 +83,18 @@ int  main(
         return( 1 );
     }
 
+    world[X] = 0.0;
+    world[Y] = 0.0;
+    world[Z] = 0.0;
+    world[axis] = slice_pos;
+
+    convert_world_to_voxel( volume, world[X], world[Y], world[Z], voxel );
+
     get_volume_sizes( volume, sizes );
     a1 = (axis + 1) % N_DIMENSIONS;
     a2 = (axis + 2) % N_DIMENSIONS;
     int_voxel[axis] = ROUND( voxel[axis] );
+
     if( int_voxel[axis] < 0 || int_voxel[axis] >= sizes[axis] )
     {
         print_error( "Slice position out of bounds of volume.\n" );

@@ -42,10 +42,12 @@ int  main(
     for_less( y, 0, sizes[1] )
     for_less( z, 0, sizes[2] )
     {
-        GET_VOXEL_3D( voxel_left, volume, x, y, z );
-        GET_VOXEL_3D( voxel_right, volume, sizes[0] - 1 - x, y, z );
-        SET_VOXEL_3D( volume, x, y, z, voxel_right );
-        SET_VOXEL_3D( volume, sizes[0] - 1 - x, y, z, voxel_left );
+        voxel_left = get_volume_voxel_value( volume, x, y, z, 0, 0 );
+        voxel_right = get_volume_voxel_value( volume, sizes[0] - 1 - x, y, z,
+                                              0, 0 );
+        set_volume_voxel_value( volume, x, y, z, 0, 0, voxel_right );
+        set_volume_voxel_value( volume, sizes[0] - 1 - x, y, z, 0, 0,
+                                voxel_left );
     }
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED,

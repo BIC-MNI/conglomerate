@@ -337,7 +337,8 @@ private  void  deform_line(
 
         (void) minimize_lsq( 2 * n_points, n_equations,
                              n_parms_involved, parm_list, constants,
-                             node_weights, n_iters_recompute, parameters );
+                             node_weights, -1.0, n_iters_recompute,
+                             parameters );
 
         iter += n_iters_recompute;
         print( "########### %d:\n", iter );

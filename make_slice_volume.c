@@ -1,4 +1,4 @@
-#include  <mni.h>
+#include  <internal_volume_io.h>
 
 private  Volume   create_two_slice_volume(
     Volume   volume,

@@ -142,6 +142,10 @@ private  int  get_polygon_containing_vertices(
     return( poly );
 }
 
+
+
+
+
 private  float  get_horizontal_coord(
     int              point,
     polygons_struct  *polygons,
@@ -153,13 +157,9 @@ private  float  get_horizontal_coord(
     float            vertical[] )
 {
     int     ind, path_index, p, p0, p1, poly, current_poly, size, v0, v1;
-    int     current_ind, start_index, v;
-    float   height, ratio, sum_dist, to_point_dist;
-    Point   start_point, prev_point, next_point;
-BOOLEAN  debug = (point == 101);
-
-if( debug )
-    print( " %g\n", vertical[point] );
+    int     current_ind, start_index;
+    float   height, ratio, sum_dist, to_point_dist, dx, dy, dz;
+    Point   start_point, prev_point, next_point, *point0, *point1;
 
     height = vertical[point];
     if( height <= 0.0f || height >= 1.0f )
@@ -208,37 +208,45 @@ if( debug )
     do
     {
         ind = current_ind;
-        while( vertical[polygons->indices[start_index+(ind+1)%size]] <= height )
+        p0 = polygons->indices[start_index+ind];
+        if( p0 == point )
+        {
+            to_point_dist = sum_dist + (float)
+                            distance_between_points( &prev_point,
+                                                     &polygons->points[point] );
+        }
+        ind = (ind + 1) % size;
+        p1 = polygons->indices[start_index+ind];
+        while( vertical[p1] <= height )
         {
             ind = (ind + 1) % size;
-        }
+            p0 = p1;
+            p1 = polygons->indices[start_index+ind];
 
-        v = current_ind - 1;
-        do
-        {
-            v = (v + 1) % size;
-            if( polygons->indices[start_index+v] == point )
+            if( p0 == point )
+            {
                 to_point_dist = sum_dist + (float)
                           distance_between_points( &prev_point,
                                                    &polygons->points[point] );
+            }
         }
-        while( v != ind );
 
-        p0 = polygons->indices[start_index + ind];
-        p1 = polygons->indices[start_index + (ind+1) % size];
+        ind = (ind - 1 + size) % size;
 
-if( debug )
-{
-int i;
-    for_less( i, 0, size )
-        print( " %d", polygons->indices[start_index+i] );
-    print( " %g %g\n", vertical[p0], vertical[p1] );
-}
         ratio = (height - vertical[p0]) / (vertical[p1] - vertical[p0]);
-        INTERPOLATE_POINTS( next_point, polygons->points[p0],
-                            polygons->points[p1], ratio );
-        sum_dist += (float)
-                          distance_between_points( &prev_point, &next_point);
+
+        point0 = &polygons->points[p0];
+        point1 = &polygons->points[p1];
+
+        fill_Point( next_point,
+                    Point_x(*point0)+ratio*(Point_x(*point1)-Point_x(*point0)),
+                    Point_y(*point0)+ratio*(Point_y(*point1)-Point_y(*point0)),
+                    Point_z(*point0)+ratio*(Point_z(*point1)-Point_z(*point0)));
+
+        dx = Point_x(next_point) - Point_x(prev_point);
+        dy = Point_y(next_point) - Point_y(prev_point);
+        dz = Point_z(next_point) - Point_z(prev_point);
+        sum_dist += sqrtf( dx * dx + dy * dy + dz * dz );
 
         prev_point = next_point;
 
@@ -255,11 +263,12 @@ int i;
 
     if( to_point_dist < 0.0f )
     {
-        print_error( " to_point_dist < 0.0 \n" );
-        to_point_dist = 0.0f;
+        to_point_dist = -1.0f;
     }
+    else
+        to_point_dist /= sum_dist;
 
-    return( to_point_dist / sum_dist );
+    return( to_point_dist );
 }
 
 private  void  create_2d_coordinates(
@@ -267,10 +276,13 @@ private  void  create_2d_coordinates(
     int              north_pole )
 {
     int               point, *n_neighbours, **neighbours, south_pole, path_size;
-    int               *path, *polygons_in_path, p;
+    int               *path, *polygons_in_path, p, n_not_done;
     float             *vertical, *horizontal;
+    float             *distances, neigh_dist, best_dist, best_hor;
+    int               n, neigh, current;
     progress_struct   progress;
-    Real              x, y, z;
+    Real              x, y, z, dummy;
+    PRIORITY_QUEUE_STRUCT( int )   queue;
 
     ALLOC( vertical, polygons->n_points );
     ALLOC( horizontal, polygons->n_points );
@@ -319,14 +331,90 @@ private  void  create_2d_coordinates(
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Computing Horizontal Coord" );
 
+    n_not_done = 0;
     for_less( point, 0, polygons->n_points )
     {
         horizontal[point] = get_horizontal_coord( point, polygons, n_neighbours,
                    neighbours, path_size, path, polygons_in_path, vertical );
         update_progress_report( &progress, point+1 );
+
+        if( horizontal[point] < 0.0f )
+            ++n_not_done;
     }
 
     terminate_progress_report( &progress );
+
+    if( n_not_done > 0 )
+    {
+        print( "Found %d that could not be assigned horizontal coord.\n",
+               n_not_done );
+        ALLOC( distances, polygons->n_points );
+
+        initialize_progress_report( &progress, FALSE, polygons->n_points,
+                                    "Correcting Horizontal Coord" );
+
+        for_less( point, 0, polygons->n_points )
+        {
+            if( horizontal[point] < 0.0f )
+            {
+                for_less( p, 0, polygons->n_points )
+                    distances[p] = -1.0f;
+
+                INITIALIZE_PRIORITY_QUEUE( queue );
+                INSERT_IN_PRIORITY_QUEUE( queue, point, 0.0 );
+                best_dist = -1.0f;
+                distances[point] = 0.0f;
+
+                while( !IS_PRIORITY_QUEUE_EMPTY(queue) )
+                {
+                    REMOVE_FROM_PRIORITY_QUEUE( queue, current, dummy );
+                    if( best_dist >= 0.0f &&
+                        distances[current] > (float) best_dist )
+                        break;
+
+                    for_less( n, 0, n_neighbours[current] )
+                    {
+                        neigh = neighbours[current][n];
+                        neigh_dist = distances[neigh];
+                        if( neigh_dist >= 0.0f &&
+                            distances[current] >= neigh_dist ) 
+                            continue;
+
+                        neigh_dist = (float) ((Real) distances[current] + 
+                                              distance_between_points(
+                                        &polygons->points[current],
+                                        &polygons->points[neigh] ));
+
+                        if( distances[neigh] < 0.0f ||
+                            neigh_dist < distances[neigh] )
+                        {
+                            INSERT_IN_PRIORITY_QUEUE( queue, neigh,
+                                                      (Real) -neigh_dist );
+                            distances[neigh] = neigh_dist;
+                            if( horizontal[neigh] >= 0.0f &&
+                                (best_dist < 0.0f || neigh_dist < best_dist) )
+                            {
+                                best_dist = neigh_dist;
+                                best_hor = horizontal[neigh];
+                            }
+                        }
+                    }
+                }
+
+                if( best_dist < 0.0f )
+                    handle_internal_error( "Dang" );
+
+                horizontal[point] = best_hor;
+
+                DELETE_PRIORITY_QUEUE( queue );
+            }
+
+            update_progress_report( &progress, point+1 );
+        }
+
+        FREE( distances );
+        terminate_progress_report( &progress );
+    }
 
     delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
                                      NULL, NULL );
