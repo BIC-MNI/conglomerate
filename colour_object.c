@@ -20,12 +20,13 @@ int  main(
     Point                *points;
     File_formats         format;
     object_struct        **object_list;
-    Colour               *colours, under_colour, over_colour;
+    Colour               *colours, under_colour, over_colour, prev_colour, col;
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
     Colour_flags         *colour_flag_ptr;
     STRING               coding_type_string;
-    Real                 low, high;
+    Real                 low, high, r, g, b, a, opacity;
+    BOOLEAN              per_vertex;
 
     initialize_argument_processing( argc, argv );
 
@@ -39,6 +40,7 @@ int  main(
         print_error( "Usage: %s  src.obj values_file dest.obj\n",
                      argv[0] );
         print_error( "           gray|hot|spectral low high\n" );
+        print_error( "           [under] [over] [opacity]\n" );
         return( 1 );
     }
 
@@ -62,6 +64,7 @@ int  main(
 
     (void) get_string_argument( "BLACK", &under_colour_name );
     (void) get_string_argument( "WHITE", &over_colour_name );
+    (void) get_real_argument( 1.0, &opacity );
 
     if( !lookup_colour( under_colour_name, &under_colour ) ||
         !lookup_colour( over_colour_name, &over_colour ) )
@@ -91,8 +94,16 @@ int  main(
         n_points = get_object_points( object_list[i], &points );
 
         colour_flag_ptr = get_object_colours( object_list[i], &colours );
-        REALLOC( colours, n_points );
-        set_object_colours( object_list[i], colours );
+
+        if( *colour_flag_ptr == PER_VERTEX_COLOURS )
+            per_vertex = TRUE;
+        else
+        {
+            per_vertex = FALSE;
+            prev_colour = colours[0];
+            REALLOC( colours, n_points );
+            set_object_colours( object_list[i], colours );
+        }
 
         *colour_flag_ptr = PER_VERTEX_COLOURS;
 
@@ -107,7 +118,26 @@ int  main(
                 return( 1 );
             }
 
-            colours[p] = get_colour_code( &colour_coding, value );
+            col = get_colour_code( &colour_coding, value );
+
+            if( opacity * get_Colour_a_0_1(col) < 1.0 )
+            {
+                if( per_vertex )
+                    prev_colour = colours[p];
+
+                r = get_Colour_r_0_1( col );
+                g = get_Colour_g_0_1( col );
+                b = get_Colour_b_0_1( col );
+                a = get_Colour_a_0_1( col );
+                col = make_rgba_Colour_0_1( r * opacity,
+                                            g * opacity,
+                                            b * opacity,
+                                            a * opacity );
+
+                COMPOSITE_COLOURS( col, col, prev_colour );
+            }
+
+            colours[p] = col;
 
             if( p == 0 || value < min_range )
                 min_range = value;
