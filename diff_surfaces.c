@@ -48,7 +48,8 @@ int  main(
     polygons2 = get_polygons_ptr( object_list[0] );
 
     create_polygons_bintree( polygons2,
-                             polygons2->n_items * BINTREE_FACTOR );
+                             ROUND( (Real) polygons2->n_items *
+                                    BINTREE_FACTOR ) );
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
