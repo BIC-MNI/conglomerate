@@ -364,6 +364,13 @@ private  void  get_convex_hull(
     {
         if( i == 0 || Point_x(points[i]) < Point_x(points[min_ind]) )
             min_ind = i;
+        else if( Point_x(points[i]) == Point_x(points[min_ind]) &&
+                 Point_y(points[i]) <  Point_y(points[min_ind]) )
+            min_ind = i;
+        else if( Point_x(points[i]) == Point_x(points[min_ind]) &&
+                 Point_y(points[i]) == Point_y(points[min_ind]) &&
+                 Point_z(points[i]) <  Point_z(points[min_ind]) )
+            min_ind = i;
     }
 
     fill_Vector( hinge, 0.0, 0.0, 1.0 );
@@ -457,7 +464,10 @@ private  void  get_convex_hull(
     while( get_next_hash_entry( &edge_table, &hash_ptr, (void **) &edge_ptr ) )
     {
         if( edge_ptr->ref_count != 2 )
+        {
+            print( "Ref count: %d\n", edge_ptr->ref_count );
             handle_internal_error( "edge ref count" );
+        }
         FREE( edge_ptr );
     }
 
