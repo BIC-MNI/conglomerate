@@ -1,3 +1,6 @@
+2005-03-01  Bert Vincent   <bert@bic.mni.mcgill.ca>
+	* Added normalize_pet
+	
 2004-04-22  Bert Vincent   <bert@bic.mni.mcgill.ca>
 	* Added find_peaks
 	* Update version to 1.4

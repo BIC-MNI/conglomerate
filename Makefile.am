@@ -117,6 +117,7 @@ bin_PROGRAMS = \
 	merge_polygons \
 	minctotag \
 	minc_to_rgb \
+	normalize_pet \
 	perturb_surface \
 	place_images \
 	plane_polygon_intersect \
@@ -411,6 +412,7 @@ merge_polygons_SOURCES =  merge_polygons.c
 minc_to_rgb_SOURCES =  minc_to_rgb.c
 minctotag_SOURCES =  minctotag.c
 #normalize_intensity_SOURCES =  normalize_intensity.c
+normalize_pet_SOURCES = normalize_pet.c
 #obj_to_rgb_SOURCES =  obj_to_rgb.c
 #offset_volume2_SOURCES =  offset_volume2.c
 #offset_volume_SOURCES =  offset_volume.c
