@@ -4,6 +4,8 @@ private  BOOLEAN  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
+    Real            y_min_range,
+    Real            y_max_range,
     Real            *x_min,
     Real            *x_max,
     Real            *x_mean,
@@ -78,6 +80,7 @@ int  main(
     Real                 x_min, x_max, y_min, y_max, z_min, z_max;
     Real                 x_mean, y_mean, z_mean;
     Real                 min_value, max_value, mean, std_dev, median;
+    Real                 y_min_range, y_max_range;
     char                 *format;
     STRING               *filenames;
     Volume               volume;
@@ -89,9 +92,11 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_int_argument( 0, &structure_id ) )
+    if( !get_int_argument( 0, &structure_id ) ||
+        !get_real_argument( 0.0, &y_min_range ) ||
+        !get_real_argument( 0.0, &y_max_range ) )
     {
-        print( "Usage:  %s  structure_id  landmark [landmark] ...\n", argv[0] );
+        print( "Usage:  %s  structure_id  y_min y_max landmark [landmark] ...\n", argv[0] );
         return( 1 );
     }
 
@@ -138,6 +143,7 @@ int  main(
             return( 1 );
 
         if( get_stats_for_one_file( n_objects, object_list, structure_id,
+                                    y_min_range, y_max_range,
                                     &x_min, &x_max, &x_mean,
                                     &y_min, &y_max, &y_mean,
                                     &z_min, &z_max, &z_mean ) )
@@ -164,6 +170,8 @@ int  main(
 
             ++n_samples;
         }
+
+        delete_object_list( n_objects, object_list );
     }
 
     if( volume != (Volume) NULL )
@@ -179,6 +187,9 @@ int  main(
         print( "           Statistics for ALL structure ids together (%d samples)\n", n_samples );
     else
         print( "           Statistics for structure id: %d (%d samples)\n", structure_id, n_samples );
+
+    if( y_min_range < y_max_range )
+        print( "           for only those tags between %g mm and %g mm in the Y direction.\n", y_min_range, y_max_range );
 
     print( "----------------------------------------------------------------------------\n" );
     print( "\n" );
@@ -240,6 +251,8 @@ private  BOOLEAN  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
+    Real            y_min_range,
+    Real            y_max_range,
     Real            *x_min,
     Real            *x_max,
     Real            *x_mean,
@@ -263,9 +276,12 @@ private  BOOLEAN  get_stats_for_one_file(
         {
             marker = get_marker_ptr( object_list[i] );
 
-            if( structure_id < 0 ||
-                (marker->structure_id == structure_id ||
-                 marker->structure_id == structure_id + 1000) )
+            if( (structure_id < 0 ||
+                 marker->structure_id == structure_id ||
+                 marker->structure_id == structure_id + 1000) &&
+                (y_min_range >= y_max_range ||
+                 Point_y(marker->position) >= y_min_range &&
+                 Point_y(marker->position) <= y_max_range ) )
             {
                 SET_ARRAY_SIZE( x_positions, n_samples, n_samples+1,
                                 DEFAULT_CHUNK_SIZE );
@@ -291,6 +307,10 @@ private  BOOLEAN  get_stats_for_one_file(
                             y_mean, &std_dev, &median );
         compute_statistics( n_samples, z_positions, z_min, z_max,
                             z_mean, &std_dev, &median );
+
+        FREE( x_positions );
+        FREE( y_positions );
+        FREE( z_positions );
     }
 
     return( n_samples > 0 );

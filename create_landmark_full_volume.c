@@ -1,16 +1,15 @@
-#include  <def_mni.h>
-#include  <minc.h>
+#include  <mni.h>
 
-#define  SCALE_FACTOR   255.0
+#define  SCALE_FACTOR   1.0
 
-private  Boolean  get_next_filename(
+private  BOOLEAN  get_next_filename(
     char      *filename[] )
 {
     static    FILE     *file = 0;
-    static    Boolean  in_list = FALSE;
-    static    String   filename_string;
+    static    BOOLEAN  in_list = FALSE;
+    static    STRING   filename_string;
     char               *argument;
-    Boolean            found;
+    BOOLEAN            found;
 
     found = FALSE;
 
@@ -81,29 +80,29 @@ int  main(
 {
     Status               status;
     char                 *input_filename, *landmark_filename, *output_filename;
-    Real                 separations[N_DIMENSIONS];
-    Real                 voxel[N_DIMENSIONS];
+    Real                 separations[MAX_DIMENSIONS];
+    Real                 voxel[MAX_DIMENSIONS];
     Real                 max_value;
     Real                 radius, radius_squared;
     Real                 delta, dx2, dy2, dz2;
     char                 history[10000];
-    String               *filenames;
+    STRING               *filenames;
     bitlist_3d_struct    bitlist;
     Volume               volume, new_volume;
     volume_input_struct  volume_input;
-    int                  n_objects, n_files, n_patients;
+    int                  n_objects, n_files, n_patients, structure_id;
     object_struct        **object_list;
     int                  i, p, x, y, z;
     int                  sizes[N_DIMENSIONS];
     int                  c, min_voxel[N_DIMENSIONS], max_voxel[N_DIMENSIONS];
     Real                 min_limit, max_limit;
     marker_struct        *marker;
-    static String        in_dim_names[] = { MIxspace, MIyspace, MIzspace };
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( "", &input_filename ) ||
         !get_string_argument( "", &output_filename ) ||
+        !get_int_argument( 0, &structure_id ) ||
         !get_real_argument( 0.0, &radius ) )
     {
         print( "Need arguments.\n" );
@@ -112,23 +111,17 @@ int  main(
 
     radius_squared = radius * radius;
 
-    status = start_volume_input( input_filename, in_dim_names,
-                                 FALSE, &volume, &volume_input );
+    status = start_volume_input( input_filename, 3, XYZ_dimension_names,
+                                 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                                 TRUE, &volume, (minc_input_options *) NULL,
+                                 &volume_input );
 
     get_volume_sizes( volume, sizes );
     get_volume_separations( volume, separations );
 
     /* --- create the output volume */
 
-    new_volume = create_volume( 3, in_dim_names, NC_SHORT, FALSE );
-
-    set_volume_size( new_volume, NC_UNSPECIFIED, FALSE, sizes );
-
-    set_volume_separations( new_volume, separations );
-    copy_general_transform( get_voxel_to_world_transform(volume),
-                            get_voxel_to_world_transform(new_volume) );
-
-    alloc_volume_data( new_volume );
+    new_volume = copy_volume_definition( volume, NC_SHORT, FALSE, 0.0, 0.0 );
 
     create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &bitlist );
 
@@ -152,6 +145,7 @@ int  main(
     for_less( p, 0, n_files )
     {
         print( "[%d/%d] Reading %s\n", p+1, n_files, filenames[p] );
+        (void) flush_file( stdout );
 
         status = input_objects_any_format( volume, filenames[p],
                                            GREEN, 1.0, BOX_MARKER,
@@ -165,19 +159,30 @@ int  main(
             if( object_list[i]->object_type == MARKER )
             {
                 marker = get_marker_ptr( object_list[i] );
+                if( structure_id >= 0 &&
+                    structure_id != marker->structure_id &&
+                    structure_id != marker->structure_id + 1000 )
+                    continue;
+
                 convert_world_to_voxel( volume,
                                         Point_x(marker->position),
                                         Point_y(marker->position),
                                         Point_z(marker->position),
-                                        &voxel[X], &voxel[Y], &voxel[Z] );
+                                        voxel );
 
                 if( voxel_is_within_volume( new_volume, voxel ) )
                 {
                     if( radius == 0.0 )
                     {
-                        increment_voxel_count( new_volume, ROUND(voxel[X]),
-                                               ROUND(voxel[Y]), ROUND(voxel[Z]),
-                                               &max_value );
+                        x = ROUND( voxel[X] );
+                        y = ROUND( voxel[Y] );
+                        z = ROUND( voxel[Z] );
+                        if( !get_bitlist_bit_3d( &bitlist, x, y, z))
+                        {
+                            increment_voxel_count( new_volume, x, y, z,
+                                                   &max_value );
+                            set_bitlist_bit_3d( &bitlist, x, y, z, TRUE );
+                        }
                     }
                     else
                     {
@@ -248,7 +253,9 @@ int  main(
         (void) strcat( history, argv[i] );
     }
 
-    status = output_volume( output_filename, TRUE, new_volume, history );
+    status = output_volume( output_filename, NC_BYTE, FALSE,
+                            0.0, 255.0, new_volume, history,
+                            (minc_output_options *) NULL );
 
     return( status != OK );
 }
