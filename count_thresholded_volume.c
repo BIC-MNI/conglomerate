@@ -6,8 +6,11 @@ int  main(
 {
     char                 *volume_filename, *mask_volume_filename;
     Real                 mask_value, value;
-    Real                 threshold, separations[MAX_DIMENSIONS];
-    int                  i, x, y, z, sizes[MAX_DIMENSIONS], n_found;
+    Real                 mask_voxel[MAX_DIMENSIONS];
+    Real                 xw, yw, zw;
+    Real                 min_threshold, max_threshold;
+    Real                 separations[MAX_DIMENSIONS];
+    int                  x, y, z, n_found;
     int                  mask_sizes[MAX_DIMENSIONS];
     progress_struct      progress;
     Volume               volume, mask_volume;
@@ -16,10 +19,13 @@ int  main(
 
     if( !get_string_argument( "", &mask_volume_filename ) ||
         !get_string_argument( "", &volume_filename ) ||
-        !get_real_argument( 0.0, &threshold ) )
+        !get_real_argument( 0.0, &min_threshold ) ||
+        !get_real_argument( 0.0, &max_threshold ) )
     {
-        print( "Usage: %s  mask_volume.mnc  volume.mnc  threshold\n",
+        print( "Usage: %s  mask_volume.mnc  volume.mnc  min_threshold  max_threshold\n",
                argv[0] );
+        print( "Counts the number of non-zero voxels in mask_volume.mnc \n" );
+        print( "that correspond to voxels in the volume.mnc within threshold.\n" );
         return( 1 );
     }
 
@@ -33,40 +39,40 @@ int  main(
                       TRUE, &mask_volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
 
-    get_volume_sizes( volume, sizes );
     get_volume_sizes( mask_volume, mask_sizes );
-    get_volume_separations( volume, separations );
+    get_volume_separations( mask_volume, separations );
 
-    for_less( i, 0, N_DIMENSIONS )
-    {
-        if( sizes[i] != mask_sizes[i] )
-        {
-            print( "Mask volume and volume sizes do not match.\n" );
-            return( 1 );
-        }
-    }
-
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+    initialize_progress_report( &progress, FALSE, mask_sizes[X] * mask_sizes[Y],
                                 "Masking Volume" );
 
     n_found = 0;
 
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, mask_sizes[X] )
     {
-        for_less( y, 0, sizes[Y] )
+        mask_voxel[X] = (Real) x;
+        for_less( y, 0, mask_sizes[Y] )
         {
-            for_less( z, 0, sizes[Z] )
+            mask_voxel[Y] = (Real) y;
+            for_less( z, 0, mask_sizes[Z] )
             {
+                mask_voxel[Z] = (Real) z;
                 GET_VALUE_3D( mask_value, mask_volume, x, y, z );
                 if( mask_value != 0.0 )
                 {
-                    GET_VALUE_3D( value, volume, x, y, z );
-                    if( value >= threshold )
+                    convert_voxel_to_world( mask_volume, mask_voxel,
+                                            &xw, &yw, &zw );
+                    evaluate_volume_in_world( volume, xw, yw, zw,
+                                              0, get_volume_real_min(volume),
+                                              &value, NULL, NULL, NULL,
+                                              NULL, NULL, NULL,
+                                              NULL, NULL, NULL );
+
+                    if( min_threshold <= value && value <= max_threshold )
                         ++n_found;
                 }
             }
 
-            update_progress_report( &progress, x * sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * mask_sizes[Y] + y + 1 );
         }
     }
 
