@@ -10,11 +10,19 @@ private  void  transform_object(
 {
     int    i, n_points;
     Point  *points;
+    Real   x, y, z;
 
     n_points = get_object_points( object, &points );
 
     for_less( i, 0, n_points )
-        transform_point( transform, &points[i], &points[i] );
+    {
+        transform_point( transform,
+                         Point_x(points[i]),
+                         Point_y(points[i]),
+                         Point_z(points[i]), &x, &y, &z );
+
+        fill_Point( points[i], x, y, z );
+    }
 }
 
 int  main(
