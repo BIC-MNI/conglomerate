@@ -162,7 +162,10 @@ int  main(
                         &min_sample_value, &max_sample_value, &std_dev );
 
         if( median_required && !median_is_exact )
+{
             restart_statistics_with_narrower_median_range( &stats );
+print( "Repeating.\n" );
+}
         else
             done = TRUE;
     }
