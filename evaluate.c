@@ -5,21 +5,20 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    FILE                 *file;
     Volume               volume;
     STRING               input_filename, output_filename;
     STRING               volume_filename;
-    int                  i, n_objects, p, n_points, degree;
-    Real                 value;
+    int                  i, n_objects, p, n_points, degree, n_values;
+    Real                 value, *values;
     Point                *points;
-    File_formats         format;
+    File_formats         format, output_format;
     object_struct        **object_list;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &volume_filename ) ||
-        !get_string_argument( "", &input_filename ) ||
-        !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( NULL, &volume_filename ) ||
+        !get_string_argument( NULL, &input_filename ) ||
+        !get_string_argument( NULL, &output_filename ) )
     {
         print_error( "Usage: %s  volume.mnc  input.obj  output.txt\n", argv[0]);
         return( 1 );
@@ -36,9 +35,14 @@ int  main(
                              &object_list ) != OK )
         return( 1 );
 
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
-        return( 1 );
+    if( filename_extension_matches( output_filename, MNC_ENDING ) )
+        output_format = BINARY_FORMAT;
+    else
+        output_format = ASCII_FORMAT;
 
+    n_values = 0;
+    values = NULL;
+    
     for_less( i, 0, n_objects )
     {
         n_points = get_object_points( object_list[i], &points );
@@ -53,12 +57,12 @@ int  main(
                                       NULL, NULL, NULL,
                                       NULL, NULL, NULL, NULL, NULL, NULL );
 
-            (void) output_real( file, value );
-            (void) output_newline( file );
+            ADD_ELEMENT_TO_ARRAY( values, n_values, value, DEFAULT_CHUNK_SIZE );
         }
     }
 
-    (void) close_file( file );
+    (void) output_texture_values( output_filename, output_format, n_values,
+                                  values );
 
     delete_object_list( n_objects, object_list );
 
