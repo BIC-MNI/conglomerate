@@ -466,6 +466,7 @@ private  void  assign_used_flags(
             handle_internal_error( "normal is null" );
     }
 
+#ifndef FLAT
     NORMALIZE_VECTOR( perp, perp );
 
     CROSS_VECTORS( vert, perp, v1 );
@@ -478,14 +479,16 @@ private  void  assign_used_flags(
     angle = 2.0 * PI - compute_clockwise_rotation( x, y );
     if( angle < 0.0 || angle > PI )
         handle_internal_error( "angle < 0.0 || 180.0" );
+#endif
 
     current_length = 0.0;
     for_less( p, 1, path_size-1 )
     {
-Real len;
+        Real len;
 
         current_length += distance_between_points( &points[path[p-1]],
                                                    &points[path[p]] );
+#ifndef FLAT
         make_rotation_about_axis( &perp, current_length / total_length * angle,
                                   &transform );
 
@@ -501,6 +504,10 @@ Real len;
             print_error( "Length: %g\n", len );
 
         fill_Point( sphere_points[path[p]], x, y, z );
+#else
+        INTERPOLATE_POINTS( sphere_points[path[p]], v1, v2,
+                            current_length / total_length );
+#endif
     }
 }
 
@@ -928,6 +935,7 @@ private  void  embed_in_sphere(
 
     assign_used_flags( size1, equator1_path, used_flags, NULL,
                        points, sphere_points);
+
     assign_used_flags( size2, equator2_path, used_flags, NULL,
                        points, sphere_points);
 
@@ -959,6 +967,7 @@ private  void  embed_in_sphere(
     fill_Vector( normal, 0.0, 0.0, -1.0 );
     assign_used_flags( left_size, left_path, used_flags, &normal,
                        points, sphere_points);
+
     fill_Vector( normal, 0.0, 0.0, 1.0 );
     assign_used_flags( right_size, right_path, used_flags, &normal,
                        points, sphere_points );
@@ -1084,6 +1093,7 @@ private  void  embed_in_sphere(
     FREE( left_path );
     FREE( right_path );
 
+#ifdef FLAT
     for_less( poly, 0, polygons->n_items )
     {
         size = GET_OBJECT_SIZE( *polygons, poly );
@@ -1105,10 +1115,19 @@ private  void  embed_in_sphere(
         NORMALIZE_VECTOR( pos, pos );
         NORMALIZE_VECTOR( normal, normal );
 
+        fill_Vector( pos, 0.0, 1.0, 0.0 );
+
         d = DOT_VECTORS( pos, normal );
-        if( d < 0.8 )
+        if( d > -0.99 )
+        {
             print( "Error in dot_product: %g\n", d );
+            for_less( p, 0, size )
+                print( " %d", polygons->indices[
+                        POINT_INDEX(polygons->end_indices,poly,p)] );
+            print( "\n" );
+        }
     }
+#endif
 
     delete_polygon_point_neighbours( polygons, n_neighbours,
                                      neighbours, NULL, NULL );
