@@ -18,8 +18,7 @@ typedef struct
 
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
-    tri_mesh_struct  *mesh,
-    Point            points[] );
+    tri_mesh_struct  *mesh );
 
 private   void   convert_mesh_to_polygons(
     tri_mesh_struct   *mesh,
@@ -33,15 +32,19 @@ private  Status  output_triangular_mesh(
 private  Status  input_triangular_mesh(
     STRING           filename,
     File_formats     format,
-    tri_mesh_struct  *mesh,
-    Point            points[] );
+    tri_mesh_struct  *mesh );
 
 private   void   resample_mesh(
     tri_mesh_struct   *mesh,
     Real              min_size,
     Real              max_size );
 
-private  void  set_mesh_points(
+private  BOOLEAN  set_mesh_points(
+    tri_mesh_struct   *mesh,
+    int               n_points,
+    Point             points[] );
+
+private  BOOLEAN  set_mesh_model_points(
     tri_mesh_struct   *mesh,
     int               n_points,
     Point             points[] );
@@ -61,15 +64,13 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename, first_arg;
+    STRING           input_mesh_filename, input_filename, output_filename;
     STRING           output_mesh_filename, model_filename;
     int              n_objects, new_n_polys;
     File_formats     format;
     object_struct    **object_list, *object;
     polygons_struct  *polygons;
     Real             min_size, max_size;
-    Point            *points;
-    BOOLEAN          input_mesh_specified;
     tri_mesh_struct  mesh;
 
     initialize_argument_processing( argc, argv );
@@ -86,7 +87,7 @@ int  main(
         return( 1 );
     }
 
-    if( filename_extension_matches( input_mesh_filename, "msh" );
+    if( filename_extension_matches( input_mesh_filename, "msh" ) )
     {
         if( input_triangular_mesh( input_mesh_filename, BINARY_FORMAT,
                                    &mesh ) != OK )
@@ -277,10 +278,6 @@ private  Status  output_triangular_mesh(
     if( io_int( file, WRITE_FILE, format, &mesh->n_points ) != OK )
         return( ERROR );
 
-    if( io_points( file, WRITE_FILE, format, mesh->n_points, &mesh->points )
-                                              != OK )
-        return( ERROR );
-
     if( io_int( file, WRITE_FILE, format, &mesh->n_triangles ) != OK )
         return( ERROR );
 
@@ -336,14 +333,53 @@ private  Status  input_tri_node(
     return( OK );
 }
 
+private  BOOLEAN  set_mesh_points(
+    tri_mesh_struct  *mesh,
+    int              n_points,
+    Point            points[] )
+{
+    int   point;
+
+    if( n_points != mesh->n_points )
+    {
+        print_error( "Mismatched number of points.\n" );
+        return( FALSE );
+    }
+
+    SET_ARRAY_SIZE( mesh->points, 0, n_points, DEFAULT_CHUNK_SIZE );
+    for_less( point, 0, n_points )
+        mesh->points[point] = points[point];
+
+    return( TRUE );
+}
+
+private  BOOLEAN  set_mesh_model_points(
+    tri_mesh_struct  *mesh,
+    int              n_points,
+    Point            points[] )
+{
+    int   point;
+
+    if( n_points != mesh->n_points )
+    {
+        print_error( "Mismatched number of points.\n" );
+        return( FALSE );
+    }
+
+    SET_ARRAY_SIZE( mesh->model_points, 0, n_points, DEFAULT_CHUNK_SIZE );
+    for_less( point, 0, n_points )
+        mesh->model_points[point] = points[point];
+
+    return( TRUE );
+}
+
 private  Status  input_triangular_mesh(
     STRING           filename,
     File_formats     format,
-    tri_mesh_struct  *mesh,
-    Point            points[] )
+    tri_mesh_struct  *mesh )
 {
     FILE   *file;
-    int    tri, point;
+    int    tri;
 
     initialize_tri_mesh( mesh );
 
@@ -353,19 +389,8 @@ private  Status  input_triangular_mesh(
     if( io_int( file, READ_FILE, format, &mesh->n_points ) != OK )
         return( ERROR );
 
-    SET_ARRAY_SIZE( mesh->model_points, 0, mesh->n_points, DEFAULT_CHUNK_SIZE );
-    SET_ARRAY_SIZE( mesh->points, 0, mesh->n_points, DEFAULT_CHUNK_SIZE );
-
-    for_less( point, 0, mesh->n_points )
-    {
-        if( io_point( file, READ_FILE, format, &mesh->model_points[point] )!=OK)
-            return( ERROR );
-
-        if( points == NULL )
-            mesh->points[point] = mesh->model_points[point];
-        else
-            mesh->points[point] = points[point];
-    }
+    mesh->model_points = NULL;
+    mesh->points = NULL;
 
     if( io_int( file, READ_FILE, format, &mesh->n_triangles ) != OK )
         return( ERROR );
@@ -470,23 +495,13 @@ private  void   delete_unused_nodes(
 
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
-    tri_mesh_struct  *mesh,
-    Point            points[] )
+    tri_mesh_struct  *mesh )
 {
-    int    poly, size, point;
-    Point  *p;
+    int    poly, size;
 
     initialize_tri_mesh( mesh );
 
-    for_less( point, 0, polygons->n_points )
-    {
-        if( points == NULL )
-            p = &polygons->points[point];
-        else
-            p = &points[point];
-         
-        (void) tri_mesh_insert_point( mesh, &polygons->points[point], p );
-    }
+    mesh->n_points = polygons->n_points;
 
     for_less( poly, 0, polygons->n_items )
     {
