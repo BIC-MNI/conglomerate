@@ -197,9 +197,12 @@ private  void  evaluate_fit_derivative(
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
     Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
-    Real   x1, y1, z1, x2, y2, z2, weight;
-    Real   xc, yc, zc;
+    Real   x1, y1, z1, x2, y2, z2, weight, cw4;
+    Real   xc, yc, zc, x_deriv, y_deriv, z_deriv;
     Real   x_factor, y_factor, z_factor, x_diff, y_diff, z_diff;
+#ifdef USE_CENTROID
+    dtype  fx_factor, fy_factor, fz_factor;
+#endif
 
     for_less( p, 0, n_parameters )
         deriv[p] = (dtype) 0.0;
@@ -216,14 +219,18 @@ private  void  evaluate_fit_derivative(
         y1 = (Real) parameters[p_index+1];
         z1 = (Real) parameters[p_index+2];
 
+        x_deriv = 0.0;
+        y_deriv = 0.0;
+        z_deriv = 0.0;
+
         if( sphere_weight > 0.0 )
         {
             act_dist = x1 * x1 + y1 * y1 + z1 * z1;
             diff = act_dist - radius * radius;
             weight = 4.0 * sphere_weight * diff;
-            deriv[p_index+0] += (dtype) (weight * x1);
-            deriv[p_index+1] += (dtype) (weight * y1);
-            deriv[p_index+2] += (dtype) (weight * z1);
+            x_deriv += weight * x1;
+            y_deriv += weight * y1;
+            z_deriv += weight * z1;
             deriv[n_parameters-1] += (dtype) (-weight * radius);
         }
 
@@ -249,17 +256,25 @@ private  void  evaluate_fit_derivative(
             dz = z1 - z2;
             act_dist = dx * dx + dy * dy + dz * dz;
             factor = 2.0 * (act_dist - dist);
-            deriv[p_index+0] += (dtype) (dx * factor);
-            deriv[p_index+1] += (dtype) (dy * factor);
-            deriv[p_index+2] += (dtype) (dz * factor);
-            deriv[n_index+0] += (dtype) (-dx * factor);
-            deriv[n_index+1] += (dtype) (-dy * factor);
-            deriv[n_index+2] += (dtype) (-dz * factor);
+            dx *= factor;
+            dy *= factor;
+            dz *= factor;
+            x_deriv += dx;
+            y_deriv += dy;
+            z_deriv += dz;
+            deriv[n_index+0] += (dtype) -dx;
+            deriv[n_index+1] += (dtype) -dy;
+            deriv[n_index+2] += (dtype) -dz;
         }
+
+        deriv[p_index+0] += (dtype) x_deriv;
+        deriv[p_index+1] += (dtype) y_deriv;
+        deriv[p_index+2] += (dtype) z_deriv;
     }
 
     if( centroid_weight > 0.0 )
     {
+        cw4 = 4.0 * centroid_weight;
         ind = 0;
         for_less( p, 0, n_points )
         {
@@ -274,11 +289,24 @@ private  void  evaluate_fit_derivative(
             {
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
+#ifdef USE_CENTROID
+                xc += (Real) parameters[n_index+0];
+                yc += (Real) parameters[n_index+1];
+                zc += (Real) parameters[n_index+2];
+#else
                 weight = (Real) centroid_weights[ind+n];
                 xc += (Real) parameters[n_index+0] * weight;
                 yc += (Real) parameters[n_index+1] * weight;
                 zc += (Real) parameters[n_index+2] * weight;
+#endif
             }
+
+#ifdef USE_CENTROID
+            weight = 1.0 / (Real) n_neighbours[p];
+            xc *= weight;
+            yc *= weight;
+            zc *= weight;
+#endif
 
             x_diff = xc - x1;
             x_diff = x_diff * x_diff * x_diff;
@@ -286,22 +314,34 @@ private  void  evaluate_fit_derivative(
             y_diff = y_diff * y_diff * y_diff;
             z_diff = zc - z1;
             z_diff = z_diff * z_diff * z_diff;
-            x_factor = centroid_weight * 4.0 * x_diff;
-            y_factor = centroid_weight * 4.0 * y_diff;
-            z_factor = centroid_weight * 4.0 * z_diff;
+            x_factor = cw4 * x_diff;
+            y_factor = cw4 * y_diff;
+            z_factor = cw4 * z_diff;
 
             deriv[p_index+0] += (dtype) (-x_factor);
             deriv[p_index+1] += (dtype) (-y_factor);
             deriv[p_index+2] += (dtype) (-z_factor);
 
+#ifdef USE_CENTROID
+            fx_factor = (dtype) (x_factor * weight);
+            fy_factor = (dtype) (y_factor * weight);
+            fz_factor = (dtype) (z_factor * weight);
+#endif
+
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
+#ifdef USE_CENTROID
+                deriv[n_index+0] += fx_factor;
+                deriv[n_index+1] += fy_factor;
+                deriv[n_index+2] += fz_factor;
+#else
                 weight = (Real) centroid_weights[ind+n];
                 deriv[n_index+0] += (dtype) (x_factor * weight);
                 deriv[n_index+1] += (dtype) (y_factor * weight);
                 deriv[n_index+2] += (dtype) (z_factor * weight);
+#endif
             }
 
             ind += n_neighbours[p];
