@@ -1,4 +1,4 @@
-#include  <mni.h>
+#include  <bicpl.h>
 
 #define  X_FACTOR  5.0
 #define  Y_FACTOR  20.0
