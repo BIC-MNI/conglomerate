@@ -22,15 +22,18 @@ int  main(
 {
     STRING               volume_filename, label_filename;
     STRING               dump_filename;
-    Real                 x_min, x_max, mean, median, std_dev, *samples, value;
+    Real                 mean, median, std_dev, value;
+    Real                 min_sample_value, max_sample_value;
     Volume               volume, label_volume;
     Real                 separations[MAX_DIMENSIONS];
     Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
     Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
     Real                 real_v[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
+    Real                 min_value, max_value;
     FILE                 *file;
-    BOOLEAN              dumping, labels_present, first;
+    BOOLEAN              dumping, labels_present, first, median_is_exact, done;
     int                  c, n_samples, v[MAX_DIMENSIONS];
+    statistics_struct    stats;
 
     initialize_argument_processing( argc, argv );
 
@@ -49,6 +52,7 @@ int  main(
         return( 1 );
 
     get_volume_separations( volume, separations );
+    get_volume_real_range( volume, &min_value, &max_value );
 
     labels_present = !equal_strings( label_filename, "none" );
 
@@ -82,8 +86,6 @@ int  main(
             return( 1 );
     }
 
-    n_samples = 0;
-
     first = TRUE;
 
     BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
@@ -91,8 +93,6 @@ int  main(
         if( !labels_present || get_volume_label_data( label_volume, v ) != 0 )
         {
             value = get_volume_real_value( volume, v[0], v[1], v[2], v[3],v[4]);
-
-            ADD_ELEMENT_TO_ARRAY( samples, n_samples, value, 100000 );
 
             if( dumping )
             {
@@ -140,6 +140,35 @@ int  main(
     if( dumping )
         (void) close_file( file );
 
+    done = FALSE;
+
+    initialize_statistics( &stats, min_value, max_value );
+
+    while( !done )
+    {
+        BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
+
+            if( !labels_present || get_volume_label_data( label_volume, v ) != 0 )
+            {
+                value = get_volume_real_value( volume, v[0], v[1], v[2], v[3],
+                                               v[4]);
+
+                add_sample_to_statistics( &stats, value );
+            }
+
+        END_ALL_VOXELS
+
+        get_statistics( &stats, &n_samples, &mean, &median, &median_is_exact,
+                        &min_sample_value, &max_sample_value, &std_dev );
+
+        if( !median_is_exact )
+            restart_statistics_with_narrower_median_range( &stats );
+        else
+            done = TRUE;
+    }
+
+    terminate_statistics( &stats );
+
     delete_volume( volume );
 
     if( labels_present )
@@ -147,14 +176,11 @@ int  main(
 
     if( n_samples > 0 )
     {
-        compute_statistics( n_samples, samples, &x_min, &x_max,
-                            &mean, &std_dev, &median );
-
         print( "N Voxels : %d\n", n_samples );
         print( "Volume   : %g\n",
                n_samples * separations[X] * separations[Y] * separations[Z] );
-        print( "Min      : %g\n", x_min );
-        print( "Max      : %g\n", x_max );
+        print( "Min      : %g\n", min_sample_value );
+        print( "Max      : %g\n", max_sample_value );
         print( "Mean     : %g\n", mean );
         print( "Median   : %g\n", median );
         print( "Std Dev  : %g\n", std_dev );
