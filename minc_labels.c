@@ -9,6 +9,35 @@
 #define  MIlabel_strings  "label_strings"
 
 /* ----------------------------- MNI Header -----------------------------------
+@NAME       : get_label_lookup_var
+@INPUT      : minc_id
+@OUTPUT     : label_var
+@RETURNS    : TRUE if found
+@DESCRIPTION: Looks up the label_lookup variable, returning TRUE if it exists.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+public  BOOLEAN  get_label_lookup_var(
+    int   minc_id,
+    int   *label_var )
+{
+    int   save_opts;
+
+    save_opts = ncopts;
+    ncopts = 0;
+
+    *label_var = ncvarid( minc_id, MIlabel_lookup );
+
+    ncopts = save_opts;
+
+    return( *label_var != MI_ERROR );
+}
+
+/* ----------------------------- MNI Header -----------------------------------
 @NAME       : read_label_lookup
 @INPUT      : minc_id
 @OUTPUT     : n_labels   - number of labels read
@@ -21,7 +50,7 @@
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
-@CREATED    : 1993            David MacDonald
+@CREATED    : Nov. 29, 1994            David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
@@ -53,10 +82,11 @@ public  BOOLEAN  read_label_lookup(
 
     /* --- find the label variable */
 
-    label_var = ncvarid( minc_id, MIlabel_lookup );
-
-    if( label_var == MI_ERROR )
-        okay = FALSE;
+    if( !get_label_lookup_var( minc_id, &label_var ) )
+    {
+        ncopts = save_opts;        /* --- this is okay, return 0 labels */
+        return( TRUE );
+    }
 
     /* --- find the label_values attribute of the label variable */
 
@@ -180,4 +210,155 @@ public  BOOLEAN  read_label_lookup(
     ncopts = save_opts;
 
     return( okay );
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : write_label_lookup
+@INPUT      : minc_id
+            : n_labels   - number of labels to write
+              values     - volume value of each label
+              labels     - string value of each label
+@OUTPUT     : 
+@RETURNS    : TRUE if successful
+@DESCRIPTION: Writes the label lookup to the open MINC file.  The label
+              lookup is simply a list of volume values, and corresponding
+              unique string labels.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994            David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+public  BOOLEAN  write_label_lookup(
+    int    minc_id,
+    int    n_labels,
+    int    values[],
+    char   *labels[] )
+{
+    BOOLEAN   okay;
+    int       i, c, start_index, len;
+    char      *label_strings;
+    int       label_var, save_opts, length_label_strings;
+
+    /* --- initialize the labels to null */
+
+    okay = TRUE;
+
+    /* --- find the total length of all label strings */
+
+    length_label_strings = 0;
+
+    for_less( i, 0, n_labels )
+        length_label_strings += 1 + strlen( labels[i] );
+
+    ALLOC( label_strings, length_label_strings );
+
+    /* --- merge the label strings into a single newline-delimited array */
+
+    start_index = 0;
+    for_less( i, 0, n_labels )
+    {
+        /* --- copy the label into place, changing newlines to spaces */
+
+        len = strlen( labels[i] );
+        for_less( c, 0, len )
+        {
+            if( labels[i][c] == '\n' )
+                label_strings[start_index] = ' ';
+            else
+                label_strings[start_index] = labels[i][c];
+            ++start_index;
+        }
+
+        /* --- put a newline at the end of each string */
+
+        label_strings[start_index] = '\n';
+        ++start_index;
+    }
+
+    /* --- set netcdf to verbose mode, to print an errors in variables, etc. */
+
+    save_opts = ncopts;
+    ncopts = NC_VERBOSE;
+
+    /* --- check if label variable exists */
+
+    if( !get_label_lookup_var( minc_id, &label_var ) )
+    {
+        /* --- define the label variable */
+
+        label_var = ncvardef( minc_id, MIlabel_lookup, NC_DOUBLE, 0, NULL );
+
+        if( label_var == MI_ERROR )
+            okay = FALSE;
+    }
+
+    /* --- put the label_values attribute of the label variable */
+
+    if( okay &&
+        ncattput( minc_id, label_var, MIlabel_values, NC_LONG, n_labels,
+                  (void *) values ) == MI_ERROR )
+        okay = FALSE;
+
+    /* --- put the list of label strings */
+
+    if( okay && ncattput( minc_id, label_var, MIlabel_strings, NC_CHAR,
+                          length_label_strings, (void *) label_strings )
+            == MI_ERROR )
+        okay = FALSE;
+
+    /* --- free the label strings read from the file */
+
+    if( length_label_strings > 0 )
+        FREE( label_strings );
+
+    /* --- restore the netcdf options */
+
+    ncopts = save_opts;
+
+    return( okay );
+}
+
+private  int   lookup_label_value(
+    int    n_labels,
+    int    values[],
+    int    value )
+{
+    int   i;
+
+    for_less( i, 0, n_labels )
+        if( values[i] == value )
+            return( i );
+
+    return( -1 );
+}
+
+public  void  add_label_to_list(
+    int    *n_labels,
+    int    *values[],
+    char   **labels[],
+    int    value_to_add,
+    char   label_to_add[] )
+{
+    int    ind;
+
+    /* --- see if the value is already in the list */
+
+    ind = lookup_label_value( *n_labels, *values, value_to_add );
+
+    if( ind < 0 )
+    {
+        SET_ARRAY_SIZE( (*values), *n_labels, *n_labels+1, 1 );
+        SET_ARRAY_SIZE( (*labels), *n_labels, *n_labels+1, 1 );
+        ind = *n_labels;
+        ++(*n_labels);
+    }
+    else
+        FREE( (*labels)[ind] );
+ 
+    (*values)[ind] = value_to_add;
+
+    ALLOC( (*labels)[ind], strlen( label_to_add ) + 1 );
+    (void) strcpy( (*labels)[ind], label_to_add );
 }
