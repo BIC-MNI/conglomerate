@@ -24,6 +24,7 @@ private  void   fit_polygons(
     Real               tangent_weight,
     Real               max_outward,
     Real               max_inward,
+    BOOLEAN            floating_flag,
     int                n_iters,
     int                n_iters_recompute );
 
@@ -32,7 +33,7 @@ private  void  usage(
 {
     STRING  usage_format = "\
 Usage:     %s  input.obj output.obj model.obj model_weight volume.mnc \n\
-                  threshold +|-|0  tangent_weight out_dist in_dist\n\
+                  threshold +|-|0  tangent_weight out_dist in_dist float/nofloat\n\
                   [n_iters] [n_between]\n\n";
 
     print_error( usage_format, executable_name );
@@ -43,7 +44,7 @@ int  main(
     char   *argv[] )
 {
     STRING               input_filename, output_filename, model_filename;
-    STRING               surface_direction, volume_filename;
+    STRING               surface_direction, volume_filename, floating_string;
     int                  n_objects, n_m_objects;
     int                  n_iters, n_iters_recompute, n_points;
     int                  *n_neighbours, **neighbours;
@@ -54,6 +55,7 @@ int  main(
     Point                *surface_points, *model_points;
     Real                 threshold, model_weight;
     Real                 max_outward, max_inward, tangent_weight;
+    BOOLEAN              floating_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -66,7 +68,8 @@ int  main(
         !get_string_argument( NULL, &surface_direction ) ||
         !get_real_argument( 0.0, &tangent_weight ) ||
         !get_real_argument( 0.0, &max_outward ) ||
-        !get_real_argument( 0.0, &max_inward ) )
+        !get_real_argument( 0.0, &max_inward ) ||
+        !get_string_argument( NULL, &floating_string ) )
     {
         usage( argv[0] );
         return( 1 );
@@ -74,6 +77,8 @@ int  main(
 
     (void) get_int_argument( 100, &n_iters );
     (void) get_int_argument( 1, &n_iters_recompute );
+
+    floating_flag = equal_strings( floating_string, "float" );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 ||
@@ -106,7 +111,7 @@ int  main(
     fit_polygons( n_points, n_neighbours, neighbours, surface_points,
                   model_points, model_weight, volume, threshold,
                   surface_direction[0], tangent_weight, max_outward, max_inward,
-                  n_iters, n_iters_recompute );
+                  floating_flag, n_iters, n_iters_recompute );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 ||
@@ -376,6 +381,7 @@ private  void  create_image_coefficients(
     Real                        tangent_weight,
     Real                        max_outward,
     Real                        max_inward,
+    BOOLEAN                     floating_flag,
     int                         n_nodes,
     int                         n_neighbours[],
     int                         *neighbours[],
@@ -414,25 +420,32 @@ private  void  create_image_coefficients(
                                          max_outward, max_inward, 0,
                                          boundary, &dist ) )
         {
-            dist = MAX( max_outward, max_inward );
-            if( tangent_weight == 0.0 )
-                n_to_do = 1;
-            else
-                n_to_do = 3;
-
-            for_less( n, 0, n_to_do )
+            if( floating_flag )
             {
-                node_weights[eq][0] = (ftype) 0.0;
-                node_weights[eq][1] = (ftype) 0.0;
-                node_weights[eq][2] = (ftype) 0.0;
-                constants[eq] = (ftype) (dist * dist);
-                ++eq;
+                dist = MAX( max_outward, max_inward );
+                if( tangent_weight == 0.0 )
+                    n_to_do = 1;
+                else
+                    n_to_do = 3;
+
+                for_less( n, 0, n_to_do )
+                {
+                    node_weights[eq][0] = (ftype) 0.0;
+                    node_weights[eq][1] = (ftype) 0.0;
+                    node_weights[eq][2] = (ftype) 0.0;
+                    constants[eq] = (ftype) (dist * dist);
+                    ++eq;
+                }
+
+                continue;
             }
-
-            continue;
+            else
+                p = origin;
         }
-
-        GET_POINT_ON_RAY( p, origin, normal, dist );
+        else
+        {
+            GET_POINT_ON_RAY( p, origin, normal, dist );
+        }
 
         evaluate_volume_in_world( volume, RPoint_x(p), RPoint_y(p), RPoint_z(p),
                                   0, FALSE, 0.0, &value,
@@ -440,6 +453,9 @@ private  void  create_image_coefficients(
                                   NULL, NULL, NULL, NULL, NULL, NULL );
 
         fill_Vector( normal, dx, dy, dz );
+        if( null_Vector( &normal ) )
+            fill_Vector( normal, 0.0, 0.0, 1.0 );
+
         NORMALIZE_VECTOR( normal, normal );
         
         node_weights[eq][0] = (ftype) RVector_x(normal);
@@ -484,6 +500,7 @@ private  void   fit_polygons(
     Real               tangent_weight,
     Real               max_outward,
     Real               max_inward,
+    BOOLEAN            floating_flag,
     int                n_iters,
     int                n_iters_recompute )
 {
@@ -556,7 +573,7 @@ private  void   fit_polygons(
     while( iter < n_iters )
     {
         create_image_coefficients( volume, &boundary, tangent_weight,
-                                   max_outward, max_inward,
+                                   max_outward, max_inward, floating_flag,
                                    n_points, n_neighbours, neighbours,
                                    parameters,
                                    &parm_list[n_model_equations],
