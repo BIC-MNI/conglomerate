@@ -5,6 +5,10 @@
 private  void  extract_isosurface(
     Minc_file         minc_file,
     Volume            volume,
+    Minc_file         label_file,
+    Volume            label_volume,
+    Real              min_label,
+    Real              max_label,
     int               spatial_axes[],
     General_transform *voxel_to_world_transform,
     BOOLEAN           binary_flag,
@@ -22,6 +26,9 @@ private  void  extract_surface(
     int               x_size,
     int               y_size,
     float             ***slices,
+    Real              min_label,
+    Real              max_label,
+    float             ***label_slices,
     int               slice_index,
     BOOLEAN           right_handed,
     int               spatial_axes[],
@@ -29,19 +36,20 @@ private  void  extract_surface(
     int               ***point_ids[],
     polygons_struct   *polygons );
 
-static  char    *dimension_names[] = { ANY_SPATIAL_DIMENSION,
-                                       ANY_SPATIAL_DIMENSION,
-                                       ANY_SPATIAL_DIMENSION };
+static  char    *dimension_names_3D[] = { MIzspace, MIyspace, MIxspace };
+static  char    *dimension_names[] = { MIyspace, MIxspace };
 
 int  main(
     int   argc,
     char  *argv[] )
 {
     char                 *input_volume_filename, *output_filename;
-    Volume               volume;
+    char                 *label_filename;
+    Volume               volume, label_volume;
     Real                 min_threshold, max_threshold;
+    Real                 min_label, max_label;
     Real                 valid_low, valid_high;
-    Minc_file            minc_file;
+    Minc_file            minc_file, label_file;
     BOOLEAN              binary_flag;
     int                  c, spatial_axes[N_DIMENSIONS];
     object_struct        *object;
@@ -56,6 +64,7 @@ int  main(
         print( "Usage: %s  volume_file  object_file  min_thresh max_thresh\n",
                argv[0] );
         print( "       [valid_low  valid_high]\n" );
+        print( "       [label_volume  valid_low  valid_high]\n" );
         return( 1 );
     }
 
@@ -73,7 +82,22 @@ int  main(
     (void) get_real_argument( 0.0, &valid_low );
     (void) get_real_argument( -1.0, &valid_high );
 
-    if( start_volume_input( input_volume_filename, 3, dimension_names,
+    if( get_string_argument( "", &label_filename ) )
+    {
+        if( !get_real_argument( 0.0, &min_label ) ||
+            !get_real_argument( 0.0, &max_label ) )
+        {
+            print( "Missing label range.\n" );
+            return( 1 );
+        }
+    }
+    else
+    {
+        min_label = 0.0;
+        max_label = -1.0;
+    }
+
+    if( start_volume_input( input_volume_filename, 3, dimension_names_3D,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             TRUE, &volume, (minc_input_options *) NULL,
                             &volume_input ) != OK )
@@ -97,15 +121,41 @@ int  main(
     if( minc_file == (Minc_file) NULL )
         return( 1 );
 
+    if( min_label <= max_label )
+    {
+        label_volume = create_volume( 2, volume->dimension_names,
+                                      NC_UNSPECIFIED, FALSE, 0.0, 0.0 );
+
+        label_file = initialize_minc_input( label_filename, label_volume,
+                                            (minc_input_options *) NULL );
+
+        if( label_file == (Minc_file) NULL )
+            return( 1 );
+    }
+    else
+    {
+        label_volume = NULL;
+        label_file = NULL;
+    }
+
+
     object = create_object( POLYGONS );
 
-    extract_isosurface( minc_file, volume, spatial_axes,
+    extract_isosurface( minc_file, volume,
+                        label_file, label_volume, min_label, max_label,
+                        spatial_axes,
                         &voxel_to_world_transform,
                         binary_flag,
                         min_threshold, max_threshold,
                         valid_low, valid_high, get_polygons_ptr(object) );
 
     (void) close_minc_input( minc_file );
+
+    if( min_label <= max_label )
+    {
+        (void) close_minc_input( label_file );
+        delete_volume( label_volume );
+    }
 
     if( output_graphics_file( output_filename, BINARY_FORMAT, 1, &object ) !=OK)
         return( 1 );
@@ -200,6 +250,10 @@ private  void   get_world_point(
 private  void  extract_isosurface(
     Minc_file         minc_file,
     Volume            volume,
+    Minc_file         label_file,
+    Volume            label_volume,
+    Real              min_label,
+    Real              max_label,
     int               spatial_axes[],
     General_transform *voxel_to_world_transform,
     BOOLEAN           binary_flag,
@@ -212,6 +266,7 @@ private  void  extract_isosurface(
     int             n_slices, sizes[MAX_DIMENSIONS], x_size, y_size, slice;
     int             ***point_ids[2], ***tmp_point_ids;
     float           **slices[2], **tmp_slices;
+    float           **label_slices[2];
     progress_struct progress;
     Surfprop        spr;
     Point           point000, point100, point010, point001;
@@ -242,10 +297,20 @@ private  void  extract_isosurface(
 
     ALLOC2D( slices[0], x_size, y_size );
     ALLOC2D( slices[1], x_size, y_size );
+
+    if( label_volume != NULL )
+    {
+        ALLOC2D( label_slices[0], x_size, y_size );
+        ALLOC2D( label_slices[1], x_size, y_size );
+    }
+
     ALLOC3D( point_ids[0], x_size, y_size, N_DIMENSIONS );
     ALLOC3D( point_ids[1], x_size, y_size, N_DIMENSIONS );
 
     input_slice( minc_file, volume, slices[1] );
+
+    if( label_volume != NULL )
+        input_slice( label_file, label_volume, label_slices[1] );
 
     clear_points( x_size, y_size, point_ids[0] );
     clear_points( x_size, y_size, point_ids[1] );
@@ -267,6 +332,14 @@ private  void  extract_isosurface(
         slices[1] = tmp_slices;
         input_slice( minc_file, volume, slices[1] );
 
+        if( label_volume != NULL )
+        {
+            tmp_slices = label_slices[0];
+            label_slices[0] = label_slices[1];
+            label_slices[1] = tmp_slices;
+            input_slice( label_file, label_volume, label_slices[1] );
+        }
+
         tmp_point_ids = point_ids[0];
         point_ids[0] = point_ids[1];
         point_ids[1] = tmp_point_ids;
@@ -274,7 +347,8 @@ private  void  extract_isosurface(
 
         extract_surface( binary_flag, min_threshold, max_threshold,
                          valid_low, valid_high,
-                         x_size, y_size, slices, slice,
+                         x_size, y_size, slices,
+                         min_label, max_label, label_slices, slice,
                          right_handed, spatial_axes, voxel_to_world_transform,
                          point_ids, polygons );
 
@@ -291,6 +365,13 @@ private  void  extract_isosurface(
 
     FREE2D( slices[0] );
     FREE2D( slices[1] );
+
+    if( label_volume != NULL )
+    {
+        FREE2D( label_slices[0] );
+        FREE2D( label_slices[1] );
+    }
+
     FREE3D( point_ids[0] );
     FREE3D( point_ids[1] );
 }
@@ -357,6 +438,9 @@ private  void  extract_surface(
     int               x_size,
     int               y_size,
     float             ***slices,
+    Real              min_label,
+    Real              max_label,
+    float             ***label_slices,
     int               slice_index,
     BOOLEAN           right_handed,
     int               spatial_axes[],
@@ -380,11 +464,17 @@ private  void  extract_surface(
             for_less( tz, 0, 2 )
             {
                 corners[tx][ty][tz] = slices[tz][x+tx][y+ty];
+
                 if( (corners[tx][ty][tz] < min_threshold ||
                     corners[tx][ty][tz] > max_threshold) &&
                     valid_low <= valid_high &&
                     (corners[tx][ty][tz] < valid_low ||
                      corners[tx][ty][tz] > valid_high) )
+                    valid = FALSE;
+
+                if( min_label <= max_label &&
+                    (label_slices[tx][ty][tz] < min_label ||
+                     label_slices[tx][ty][tz] > max_label) )
                     valid = FALSE;
             }
 
