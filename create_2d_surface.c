@@ -216,30 +216,12 @@ private  int  create_path_between_poles(
     return( n_path );
 }
 
-private  float  get_horizontal_coord(
-    int              point,
+private  int  get_polygon_containing_vertices(
     polygons_struct  *polygons,
-    int              n_neighbours[],
-    int              *neighbours[],
-    int              n_path,
-    int              path[],
-    float            vertical[] )
+    int              p0,
+    int              p1 )
 {
-    int     ind, path_index, p, p0, p1, poly, current_poly, size, v0, v1;
-    int     current_ind;
-    float   height, ratio, sum_dist, to_point_dist;
-    Point   start_point, prev_point, next_point;
-
-    height = vertical[point];
-    if( height <= 0.0f || height >= 1.0f )
-        return( 0.0f );
-
-    path_index = 0;
-    while( vertical[path[path_index+1]] <= height )
-        ++path_index;
-
-    p0 = path[path_index];
-    p1 = path[path_index+1];
+    int     p, poly, size, v0, v1;
 
     for_less( poly, 0, polygons->n_items )
     {
@@ -267,6 +249,57 @@ private  float  get_horizontal_coord(
 
     if( poly >= polygons->n_items )
         handle_internal_error( "poly >= polygons->n_items" );
+
+    return( poly );
+}
+
+private  float  get_horizontal_coord(
+    int              point,
+    polygons_struct  *polygons,
+    int              n_neighbours[],
+    int              *neighbours[],
+    int              n_path,
+    int              path[],
+    int              polygons_in_path[],
+    float            vertical[] )
+{
+    int     ind, path_index, p, p0, p1, poly, current_poly, size, v0, v1;
+    int     current_ind;
+    float   height, ratio, sum_dist, to_point_dist;
+    Point   start_point, prev_point, next_point;
+
+    height = vertical[point];
+    if( height <= 0.0f || height >= 1.0f )
+        return( 0.0f );
+
+    path_index = 0;
+    while( vertical[path[path_index+1]] <= height )
+        ++path_index;
+
+    p0 = path[path_index];
+    p1 = path[path_index+1];
+    poly = polygons_in_path[path_index];
+
+    size = GET_OBJECT_SIZE( *polygons, poly );
+    for_less( v0, 0, size )
+    {
+        p = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                              poly,v0)];
+        if( p == p0 )
+            break;
+    }
+    if( v0 == size )
+        handle_internal_error( "v0 == size" );
+
+    for_less( v1, 0, size )
+    {
+        p = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                              poly,v1)];
+        if( p == p1 )
+            break;
+    }
+    if( v1 == size )
+        handle_internal_error( "v1 == size" );
 
     ratio = (height - vertical[p0]) / (vertical[p1] - vertical[p0]);
     INTERPOLATE_POINTS( start_point, polygons->points[p0], polygons->points[p1],
@@ -320,7 +353,7 @@ private  void  create_2d_coordinates(
     int              north_pole )
 {
     int               point, *n_neighbours, **neighbours, south_pole, path_size;
-    int               *path;
+    int               *path, *polygons_in_path, p;
     float             *vertical, *horizontal;
     progress_struct   progress;
     Real              x, y, z;
@@ -348,6 +381,13 @@ private  void  create_2d_coordinates(
                                n_neighbours, neighbours, north_pole,
                                south_pole, vertical, &path );
 
+    ALLOC( polygons_in_path, path_size-1 );
+    for_less( p, 0, path_size-1 )
+    {
+        polygons_in_path[p] = get_polygon_containing_vertices( polygons,
+                                                      path[p], path[p+1] );
+    }
+
     create_distances( polygons->n_points, polygons->points,
                       n_neighbours, neighbours, south_pole, horizontal );
 
@@ -363,7 +403,7 @@ private  void  create_2d_coordinates(
     for_less( point, 0, polygons->n_points )
     {
         horizontal[point] = get_horizontal_coord( point, polygons, n_neighbours,
-                   neighbours, path_size, path, vertical );
+                   neighbours, path_size, path, polygons_in_path, vertical );
         update_progress_report( &progress, point+1 );
     }
 
@@ -386,6 +426,8 @@ private  void  create_2d_coordinates(
         fill_Point( polygons->points[point], x, y, z );
     }
 
+    FREE( polygons_in_path );
+    FREE( path );
     FREE( vertical );
     FREE( horizontal );
 }
