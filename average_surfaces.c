@@ -1,10 +1,17 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define DISPLAY_RMS
-
 #undef SIMPLE_TRANSFORMATION
 #define SIMPLE_TRANSFORMATION
+
+
+#define  GRAY_STRING       "gray"
+#define  HOT_STRING        "hot"
+#define  SPECTRAL_STRING   "spectral"
+#define  RED_STRING        "red"
+#define  GREEN_STRING      "green"
+#define  BLUE_STRING       "blue"
+
 
 private  void  compute_transforms(
     int        n_surfaces,
@@ -13,11 +20,12 @@ private  void  compute_transforms(
     Transform  transforms[] );
 
 private  void  create_average_polygons(
-    int               n_surfaces,
-    int               n_points,
-    Point             **points,
-    Transform         transforms[],
-    polygons_struct   *polygons );
+    int                   n_surfaces,
+    int                   n_points,
+    Point                 **points,
+    Transform             transforms[],
+    colour_coding_struct  *colour_coding,
+    polygons_struct       *polygons );
 
 private  void  print_transform(
     Transform   *trans );
@@ -36,18 +44,48 @@ int  main(
     polygons_struct  *polygons, *average_polygons;
     Point            **points_list;
     Transform        *transforms;
+    Colour_coding_types  coding_type;
+    colour_coding_struct colour_coding;
+    STRING               coding_type_string;
+    Real                 min_std_dev, max_std_dev;
 
     status = OK;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( NULL, &output_filename ) ||
+        !get_string_argument( NULL, &coding_type_string ) ||
+        !get_real_argument( 0.0, &min_std_dev ) ||
+        !get_real_argument( 0.0, &max_std_dev ) )
     {
         print_error(
-          "Usage: %s output.obj [input1.obj] [input2.obj] ...\n",
+          "Usage: %s output.obj hot|gray|spectral min max [input1.obj] [input2.obj] ...\n",
           argv[0] );
         return( 1 );
     }
+
+    if( equal_strings( coding_type_string, GRAY_STRING ) )
+        coding_type = GRAY_SCALE;
+    else if( equal_strings( coding_type_string, HOT_STRING ) )
+        coding_type = HOT_METAL;
+    else if( equal_strings( coding_type_string, SPECTRAL_STRING ) )
+        coding_type = SPECTRAL;
+    else if( equal_strings( coding_type_string, RED_STRING ) )
+        coding_type = RED_COLOUR_MAP;
+    else if( equal_strings( coding_type_string, GREEN_STRING ) )
+        coding_type = GREEN_COLOUR_MAP;
+    else if( equal_strings( coding_type_string, BLUE_STRING ) )
+        coding_type = BLUE_COLOUR_MAP;
+    else
+    {
+        print( "Invalid coding type: %s\n", coding_type_string );
+        return( 1 );
+    }
+
+    initialize_colour_coding( &colour_coding, coding_type,
+                              BLACK, WHITE, min_std_dev, max_std_dev );
+
+
 
     n_surfaces = 0;
 
@@ -110,7 +148,8 @@ int  main(
 #endif
 
     create_average_polygons( n_surfaces, average_polygons->n_points,
-                             points_list, transforms, average_polygons );
+                             points_list, transforms,
+                             &colour_coding, average_polygons );
 
     compute_polygon_normals( average_polygons );
 
@@ -259,20 +298,17 @@ private  void  compute_transforms(
 #endif
 
 private  void  create_average_polygons(
-    int               n_surfaces,
-    int               n_points,
-    Point             **points,
-    Transform         transforms[],
-    polygons_struct   *polygons )
+    int                   n_surfaces,
+    int                   n_points,
+    Point                 **points,
+    Transform             transforms[],
+    colour_coding_struct  *colour_coding,
+    polygons_struct       *polygons )
 {
     Point  avg;
     Real   x, y, z;
     int    p, s;
-#ifdef DISPLAY_RMS
-    Real   rms, dx, dy, dz;
-
-    rms = 0.0;
-#endif
+    Real   variance, dx, dy, dz, std_dev;
 
     for_less( p, 0, n_points )
     {
@@ -292,7 +328,8 @@ private  void  create_average_polygons(
 
         SCALE_POINT( polygons->points[p], avg, 1.0/(Real) n_surfaces );
 
-#ifdef DISPLAY_RMS
+        variance = 0.0;
+
         for_less( s, 0, n_surfaces )
         {
             transform_point( &transforms[s],
@@ -302,20 +339,15 @@ private  void  create_average_polygons(
             dx = (x - Point_x(polygons->points[p]));
             dy = (y - Point_y(polygons->points[p]));
             dz = (z - Point_z(polygons->points[p]));
-            rms += dx * dx + dy * dy + dz * dz;
+            variance += dx * dx + dy * dy + dz * dz;
         }
-#endif	
 
-        polygons->colours[p] = WHITE;
+        variance /= (Real) (n_surfaces-1);
+
+        std_dev = sqrt( variance );
+
+        polygons->colours[p] = get_colour_code( colour_coding, std_dev );
     }
-
-#ifdef DISPLAY_RMS
-    rms /= (Real) n_points * (Real) n_surfaces;
-
-    rms = sqrt( rms );
-
-    print( "Rms: %g\n", rms );
-#endif
 }
 
 private  void  print_transform(
