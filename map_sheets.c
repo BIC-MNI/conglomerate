@@ -22,12 +22,14 @@ int  main(
     int                  p, n_objects, best_index;
     int                  sphere_vertex, patch_vertex;
     int                  n_fixed, *fixed_indices;
-    Real                 distance, dist, best_dist;
+    Smallest_int         *init_points_done;
+    Real                 distance, best_dist;
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *sphere, *sphere_flat, *patch;
     Point                *init_points;
     FILE                 *file;
+    progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -63,47 +65,52 @@ int  main(
 
     patch = get_polygons_ptr( object_list[0] );
 
-/*
     create_polygons_bintree( patch, ROUND( (Real) patch->n_items * 0.2 ) );
-*/
 
     ALLOC( init_points, patch->n_points );
+    ALLOC( init_points_done, patch->n_points );
     for_less( patch_vertex, 0, patch->n_points )
+    {
         fill_Point( init_points[patch_vertex], 0.0, 0.0, 0.0 );
+        init_points_done[patch_vertex] = FALSE;
+    }
 
     n_fixed = 0;
     fixed_indices = NULL;
+
+    initialize_progress_report( &progress, FALSE, sphere->n_points,
+                                "Projecting" );
+
     for_less( sphere_vertex, 0, sphere->n_points )
     { 
         best_dist = 0.0;
         best_index = -1;
 
-        for_less( patch_vertex, 0, patch->n_points )
-        {
-            dist = sq_distance_between_points( &sphere->points[sphere_vertex],
-                                               &patch->points[patch_vertex] );
+        best_dist = find_closest_vertex_on_object(
+                      &sphere->points[sphere_vertex], object_list[0],
+                      &best_index );
 
-            if( best_index < 0 || dist < best_dist )
-            {
-                best_dist = dist;
-                best_index = patch_vertex;
-            }
-        }
-
-        if( best_dist < distance * distance )
+        if( best_dist < distance * distance && !init_points_done[best_index] )
         {
             ADD_ELEMENT_TO_ARRAY( fixed_indices, n_fixed, best_index,
                                   DEFAULT_CHUNK_SIZE );
             init_points[best_index] = sphere_flat->points[sphere_vertex];
+            init_points_done[best_index] = TRUE;
         }
+
+        update_progress_report( &progress, sphere_vertex+1 );
     }
+
+    terminate_progress_report( &progress );
 
     if( n_fixed < 3 )
     {
-        print_error( "Number of fixed vertices is only: %d\n" );
+        print_error( "Number of fixed vertices is only: %d\n", n_fixed );
         print_error( "Cannot continue.\n" );
         return( 1 );
     }
+
+    print( "Number of fixed vertices is %d\n", n_fixed );
 
     if( open_file( output_fixed_filename, WRITE_FILE, ASCII_FORMAT, &file )
                            != OK )
