@@ -8,12 +8,23 @@
 #ifdef USING_FLOAT
 
 typedef  float  ftype;
-#define  MINIMIZE_LSQ  minimize_lsq_float
+#define  MINIMIZE_LSQ    minimize_lsq_float
+#define  INITIALIZE_LSQ  initialize_lsq_terms_float
+#define  ADD_TO_LSQ      add_to_lsq_terms_float
+#define  RESET_LSQ       reset_lsq_terms_float
+#define  REALLOC_LSQ     realloc_lsq_terms_float
+#define  DELETE_LSQ      delete_lsq_terms_float
 
 #else
 
 typedef  Real   ftype;
-#define  MINIMIZE_LSQ  minimize_lsq
+#define  MINIMIZE_LSQ    minimize_lsq
+#define  MINIMIZE_LSQ    minimize_lsq
+#define  INITIALIZE_LSQ  initialize_lsq_terms
+#define  ADD_TO_LSQ      add_to_lsq_terms
+#define  RESET_LSQ       reset_lsq_terms
+#define  REALLOC_LSQ     realloc_lsq_terms
+#define  DELETE_LSQ      delete_lsq_terms
 
 #endif
 
@@ -410,7 +421,10 @@ private  void  create_stretch_coefficients(
     int              node, neigh_node, eq, dim, n, n_involved;
     int              parm_index, neigh_parm_index;
     Real             con;
+    progress_struct  progress;
 
+    initialize_progress_report( &progress, FALSE, n_nodes,
+                                "Creating Stretch Coefficients" );
     eq = 0;
     for_less( node, 0, n_nodes )
     {
@@ -460,10 +474,15 @@ private  void  create_stretch_coefficients(
                 }
             }
         }
+
+        update_progress_report( &progress, node+1 );
     }
+
+    terminate_progress_report( &progress );
 }
 
 private  void  create_image_coefficients(
+    Real                        weight,
     Volume                      volume,
     voxel_coef_struct           *voxel_lookup,
     bitlist_3d_struct           *done_bits,
@@ -480,24 +499,36 @@ private  void  create_image_coefficients(
     int                         to_parameter[],
     Real                        parameters[],
     Point                       surface_points[],
-    int                         *parm_list[],
-    ftype                       constants[],
-    ftype                       *node_weights[] )
+    int                         n_parameters,
+    Real                        *constant,
+    ftype                       linear_terms[],
+    ftype                       square_terms[],
+    int                         n_cross_terms[],
+    int                         *cross_parms[],
+    ftype                       *cross_terms[],
+    int                         alloc_increment )
 {
-    int        eq, node, n, n_to_do, neigh, n2, neigh2, w, parm_index;
-    int        i, n_involved, inv_index, neigh_parm_index, d;
-    Real       dist, dx, dy, dz, value, x, y, z, alpha;
+    int        node, n, n_to_do, neigh, n2, neigh2, w, parm_index;
+    int        n_involved, inv_index, neigh_parm_index, n_vectors, v;
+    int        *indices, dim;
+    Real       dist, dx, dy, dz, value, x, y, z, alpha, cons;
     Point      origin, p, search_point, p1, p2;
     Point      neigh_points[1000];
     Vector     normal, vert, hor, point_normal, search_normal, neigh_normal;
-    Vector     perp;
-    Real       angle;
+    Vector     perp, vectors[3];
+    Real       angle, vector_weights[3], *node_weights;
     Transform  transform;
+    progress_struct  progress;
 
-    eq = 0;
+    ALLOC( indices, n_parameters );
+    ALLOC( node_weights, n_parameters );
+
+    initialize_progress_report( &progress, FALSE, n_nodes,
+                                "Creating Image Coefficients" );
 
     for_less( node, 0, n_nodes )
     {
+        parm_index = to_parameter[node];
         if( to_parameter[node] < 0 )
             continue;
 
@@ -518,16 +549,10 @@ private  void  create_image_coefficients(
 
         find_polygon_normal( n_neighbours[node], neigh_points, &normal );
 
-        parm_index = to_parameter[node];
-        if( parm_index >= 0 )
-        {
-            fill_Point( origin,
-                        parameters[IJ(parm_index,X,3)],
-                        parameters[IJ(parm_index,Y,3)],
-                        parameters[IJ(parm_index,Z,3)] );
-        }
-        else
-            origin = surface_points[node];
+        fill_Point( origin,
+                    parameters[IJ(parm_index,X,3)],
+                    parameters[IJ(parm_index,Y,3)],
+                    parameters[IJ(parm_index,Z,3)] );
 
         if( !find_boundary_in_direction( volume, NULL, voxel_lookup,
                                          done_bits, surface_bits,
@@ -543,22 +568,10 @@ private  void  create_image_coefficients(
                 else
                     n_to_do = 3;
 
-                for_less( n, 0, n_to_do )
-                {
-                    if( tangent_weight == 1.0 )
-                    {
-                        node_weights[eq][0] = (ftype) 0.0;
-                    }
-                    else
-                    {
-                        node_weights[eq][0] = (ftype) 0.0;
-                        node_weights[eq][1] = (ftype) 0.0;
-                        node_weights[eq][2] = (ftype) 0.0;
-                    }
-
-                    constants[eq] = (ftype) dist;
-                    ++eq;
-                }
+                ADD_TO_LSQ( n_parameters, constant, linear_terms, square_terms,
+                            n_cross_terms, cross_parms, cross_terms,
+                            0, NULL, NULL, weight * (Real) n_to_do * dist,
+                            alloc_increment );
 
                 continue;
             }
@@ -572,15 +585,15 @@ private  void  create_image_coefficients(
 
         if( tangent_weight == 1.0 )
         {
-            node_weights[eq][0] = (ftype) 1.0;
-            constants[eq] = (ftype) -RPoint_x(p);
-            ++eq;
-            node_weights[eq][0] = (ftype) 1.0;
-            constants[eq] = (ftype) -RPoint_y(p);
-            ++eq;
-            node_weights[eq][0] = (ftype) 1.0;
-            constants[eq] = (ftype) -RPoint_z(p);
-            ++eq;
+            for_less( dim, 0, N_DIMENSIONS )
+            {
+                indices[0] = IJ(parm_index,dim,3);
+                node_weights[0] = weight;
+                cons = -weight * RPoint_coord( p, dim );
+                ADD_TO_LSQ( n_parameters, constant, linear_terms, square_terms,
+                            n_cross_terms, cross_parms, cross_terms,
+                            1, indices, node_weights, cons, alloc_increment );
+            }
         }
         else
         {
@@ -596,11 +609,9 @@ private  void  create_image_coefficients(
 
             NORMALIZE_VECTOR( normal, normal );
         
-            node_weights[eq][0] = (ftype) RVector_x(normal);
-            node_weights[eq][1] = (ftype) RVector_y(normal);
-            node_weights[eq][2] = (ftype) RVector_z(normal);
-            constants[eq] = (ftype) -DOT_POINT_VECTOR( p, normal );
-            ++eq;
+            vectors[0] = normal;
+            vector_weights[0] = weight;
+            n_vectors = 1;
 
             if( tangent_weight > 0.0 )
             {
@@ -608,47 +619,45 @@ private  void  create_image_coefficients(
                 NORMALIZE_VECTOR( hor, hor );
                 NORMALIZE_VECTOR( vert, vert );
 
-                node_weights[eq][0] = (ftype) (tangent_weight * RVector_x(hor));
-                node_weights[eq][1] = (ftype) (tangent_weight * RVector_y(hor));
-                node_weights[eq][2] = (ftype) (tangent_weight * RVector_z(hor));
-                constants[eq] = (ftype) (-tangent_weight *
-                                         DOT_POINT_VECTOR( p, hor ));
-                ++eq;
+                vectors[1] = hor;
+                vector_weights[1] = tangent_weight * weight;
+                vectors[2] = vert;
+                vector_weights[2] = tangent_weight * weight;
+                n_vectors = 3;
+            }
 
-                node_weights[eq][0] = (ftype) (tangent_weight *RVector_x(vert));
-                node_weights[eq][1] = (ftype) (tangent_weight *RVector_y(vert));
-                node_weights[eq][2] = (ftype) (tangent_weight *RVector_z(vert));
-                constants[eq] = (ftype) (-tangent_weight *
-                                         DOT_POINT_VECTOR( p, vert ));
-                ++eq;
+            for_less( v, 0, n_vectors )
+            {
+                cons = -vector_weights[v] * DOT_POINT_VECTOR( p, vectors[v] );
+
+                node_weights[0] = vector_weights[v] * RVector_x(vectors[v]);
+                node_weights[1] = vector_weights[v] * RVector_y(vectors[v]);
+                node_weights[2] = vector_weights[v] * RVector_z(vectors[v]);
+                indices[0] = IJ( parm_index, 0, 3 );
+                indices[1] = IJ( parm_index, 1, 3 );
+                indices[2] = IJ( parm_index, 2, 3 );
+
+                ADD_TO_LSQ( n_parameters, constant, linear_terms,
+                            square_terms, n_cross_terms, cross_parms,
+                            cross_terms, 3, indices, node_weights, cons,
+                            alloc_increment );
             }
         }
+
+        update_progress_report( &progress, node+1 );
     }
 
-#ifdef DEBUG
-#define DEBUG
-#undef DEBUG
-{
-    int  e, n_parms_involved;
-    if( tangent_weight == 1.0 )
-        n_parms_involved = 1;
-    else
-        n_parms_involved = 3;
-    for_less( e, 0, eq )
-    {
-        int  p;
-        print( "%3d: %g : ", e, constants[e] );
-        for_less( p, 0, n_parms_involved )
-        {
-            print( " %d:%g ", parm_list[e][p], node_weights[e][p] );
-        }
-        print( "\n" );
-    }
-}
-#endif
+    terminate_progress_report( &progress );
 
     if( oversample <= 0 )
+    {
+        FREE( indices );
+        FREE( node_weights );
         return;
+    }
+
+    initialize_progress_report( &progress, FALSE, n_nodes,
+                                "Creating Oversample Coefficients" );
 
     for_less( node, 0, n_nodes )
     {
@@ -780,22 +789,12 @@ private  void  create_image_coefficients(
                         else
                             n_to_do = 3;
 
-                        for_less( d, 0, n_to_do )
-                        {
-                            if( tangent_weight == 1.0 )
-                            {
-                                for_less( i, 0, n_involved )
-                                    node_weights[eq][i] = (ftype) 0.0;
-                            }
-                            else
-                            {
-                                for_less( i, 0, 3 * n_involved )
-                                    node_weights[eq][i] = (ftype) 0.0;
-                            }
-
-                            constants[eq] = (ftype) dist;
-                            ++eq;
-                        }
+                        ADD_TO_LSQ( n_parameters, constant, linear_terms,
+                                    square_terms, n_cross_terms,
+                                    cross_parms, cross_terms,
+                                    0, NULL, NULL,
+                                    weight * (Real) n_to_do * dist,
+                                    alloc_increment );
 
                         continue;
                     }
@@ -809,39 +808,36 @@ private  void  create_image_coefficients(
 
                 if( tangent_weight == 1.0 )
                 {
-                    constants[eq+0]       = (ftype) -RPoint_x(p);
-                    constants[eq+1]       = (ftype) -RPoint_y(p);
-                    constants[eq+2]       = (ftype) -RPoint_z(p);
+                    for_less( dim, 0, N_DIMENSIONS )
+                    {
+                        inv_index = 0;
+                        cons = -weight * RPoint_coord( p, dim );
 
-                    inv_index = 0;
-                    if( parm_index >= 0 )
-                    {
-                        node_weights[eq+0][0] = (ftype) (1.0 - alpha);
-                        node_weights[eq+1][0] = (ftype) (1.0 - alpha);
-                        node_weights[eq+2][0] = (ftype) (1.0 - alpha);
-                        ++inv_index;
-                    }
-                    else
-                    {
-                        constants[eq+0] += (ftype) ((1.0-alpha) * RPoint_x(p1));
-                        constants[eq+1] += (ftype) ((1.0-alpha) * RPoint_y(p1));
-                        constants[eq+2] += (ftype) ((1.0-alpha) * RPoint_z(p1));
-                    }
+                        if( parm_index >= 0 )
+                        {
+                            node_weights[inv_index] = weight * (1.0 - alpha);
+                            indices[inv_index] = IJ(parm_index,dim,3);
+                            ++inv_index;
+                        }
+                        else
+                            cons += weight * (1.0 - alpha) *
+                                    RPoint_coord(p1,dim);
 
-                    if( neigh_parm_index >= 0 )
-                    {
-                        node_weights[eq+0][inv_index] = (ftype) alpha;
-                        node_weights[eq+1][inv_index] = (ftype) alpha;
-                        node_weights[eq+2][inv_index] = (ftype) alpha;
-                    }
-                    else
-                    {
-                        constants[eq+0] += (ftype) (alpha * RPoint_x(p2));
-                        constants[eq+1] += (ftype) (alpha * RPoint_y(p2));
-                        constants[eq+2] += (ftype) (alpha * RPoint_z(p2));
-                    }
+                        if( neigh_parm_index >= 0 )
+                        {
+                            node_weights[inv_index] = weight * alpha;
+                            indices[inv_index] = IJ(neigh_parm_index,dim,3);
+                            ++inv_index;
+                        }
+                        else
+                            cons += weight * alpha * RPoint_coord(p2,dim);
 
-                    eq += 3;
+                        ADD_TO_LSQ( n_parameters, constant, linear_terms,
+                                    square_terms,
+                                    n_cross_terms, cross_parms, cross_terms,
+                                    inv_index, indices, node_weights, cons,
+                                    alloc_increment );
+                    }
                 }
                 else
                 {
@@ -856,163 +852,81 @@ private  void  create_image_coefficients(
                         fill_Vector( normal, 0.0, 0.0, 1.0 );
 
                     NORMALIZE_VECTOR( normal, normal );
-        
-                    inv_index = 0;
-                    constants[eq] = (ftype) -DOT_POINT_VECTOR( p, normal );
 
-                    if( parm_index >= 0 )
+                    vectors[0] = normal;
+                    vector_weights[0] = weight;
+                    n_vectors = 1;
+
+                    if( tangent_weight > 0.0 )
                     {
-                        node_weights[eq][0] = (ftype)((1.0 - alpha) *
-                                              RVector_x(normal));
-                        node_weights[eq][1] = (ftype)((1.0 - alpha) *
-                                              RVector_y(normal));
-                        node_weights[eq][2] = (ftype)((1.0 - alpha) *
-                                              RVector_z(normal));
-                        ++inv_index;
-                    }
-                    else
-                    {
-                        constants[eq] += (ftype) ((1.0 - alpha) *
-                                           DOT_POINT_VECTOR( p1, normal ));
+                        create_two_orthogonal_vectors( &normal, &hor, &vert );
+                        NORMALIZE_VECTOR( hor, hor );
+                        NORMALIZE_VECTOR( vert, vert );
+
+                        vectors[1] = hor;
+                        vector_weights[1] = weight * tangent_weight;
+                        vectors[2] = vert;
+                        vector_weights[2] = weight * tangent_weight;
+                        n_vectors = 3;
                     }
 
-                    if( neigh_parm_index >= 0 )
+                    for_less( v, 0, n_vectors )
                     {
-                        node_weights[eq][3*inv_index+0] = (ftype)( alpha  *
-                                                          RVector_x(normal));
-                        node_weights[eq][3*inv_index+1] = (ftype)( alpha  *
-                                                          RVector_y(normal));
-                        node_weights[eq][3*inv_index+2] = (ftype)( alpha  *
-                                                          RVector_z(normal));
+                        inv_index = 0;
+                        cons = -vector_weights[v] *
+                                DOT_POINT_VECTOR( p, vectors[v] );
+
+                        if( parm_index >= 0 )
+                        {
+                            node_weights[0] = vector_weights[v] * (1.0 - alpha)
+                                              * RVector_x(vectors[v]);
+                            node_weights[1] = vector_weights[v] * (1.0 - alpha)
+                                              * RVector_y(vectors[v]);
+                            node_weights[2] = vector_weights[v] * (1.0 - alpha)
+                                              * RVector_z(vectors[v]);
+                            indices[0] = IJ( parm_index, 0, 3 );
+                            indices[1] = IJ( parm_index, 1, 3 );
+                            indices[2] = IJ( parm_index, 2, 3 );
+                            inv_index += 3;
+                        }
+                        else
+                            cons += vector_weights[v] * (1.0 - alpha) *
+                                          DOT_POINT_VECTOR( p1, vectors[v] );
+
+                        if( neigh_parm_index >= 0 )
+                        {
+                            node_weights[inv_index+0] = vector_weights[v] *
+                                               alpha * RVector_x(vectors[v]);
+                            node_weights[inv_index+1] = vector_weights[v] *
+                                               alpha * RVector_y(vectors[v]);
+                            node_weights[inv_index+2] = vector_weights[v] *
+                                               alpha * RVector_z(vectors[v]);
+                            indices[inv_index+0] = IJ( neigh_parm_index, 0, 3 );
+                            indices[inv_index+1] = IJ( neigh_parm_index, 1, 3 );
+                            indices[inv_index+2] = IJ( neigh_parm_index, 2, 3 );
+                            inv_index += 3;
+                        }
+                        else
+                            cons += vector_weights[v] * alpha *
+                                          DOT_POINT_VECTOR( p2, vectors[v] );
+
+                        ADD_TO_LSQ( n_parameters, constant, linear_terms,
+                                    square_terms, n_cross_terms, cross_parms,
+                                    cross_terms, inv_index, indices,
+                                    node_weights, cons,
+                                    alloc_increment );
                     }
-                    else
-                    {
-                        constants[eq] += (ftype) (alpha *
-                                               DOT_POINT_VECTOR( p2, normal ));
-                    }
-
-                    ++eq;
-
-                    if( tangent_weight <= 0.0 )
-                        continue;
-
-                    create_two_orthogonal_vectors( &normal, &hor, &vert );
-                    NORMALIZE_VECTOR( hor, hor );
-                    NORMALIZE_VECTOR( vert, vert );
-
-                    inv_index = 0;
-                    constants[eq] = (ftype) (-tangent_weight *
-                                             DOT_POINT_VECTOR( p, hor ));
-                    constants[eq+1] = (ftype) (-tangent_weight *
-                                             DOT_POINT_VECTOR( p, vert ));
-
-                    if( parm_index >= 0 )
-                    {
-                        node_weights[eq+0][0] =
-                                     (ftype) ((1.0 - alpha) * tangent_weight *
-                                              RVector_x(hor));
-                        node_weights[eq+0][1] =
-                                     (ftype) ((1.0 - alpha) * tangent_weight *
-                                              RVector_y(hor));
-                        node_weights[eq+0][2] =
-                                     (ftype) ((1.0 - alpha) * tangent_weight *
-                                              RVector_z(hor));
-
-                        node_weights[eq+1][0] = (ftype) ((1.0 - alpha) *
-                                              tangent_weight * RVector_x(vert));
-                        node_weights[eq+1][1] = (ftype) ((1.0 - alpha) *
-                                              tangent_weight * RVector_y(vert));
-                        node_weights[eq+1][2] = (ftype) ((1.0 - alpha) *
-                                              tangent_weight * RVector_z(vert));
-                        ++inv_index;
-                    }
-                    else
-                    {
-                        constants[eq] += (ftype) ((1.0 - alpha) *
-                                 tangent_weight * DOT_POINT_VECTOR( p1, hor ));
-                        constants[eq+1] += (ftype) ((1.0 - alpha) *
-                                 tangent_weight * DOT_POINT_VECTOR( p1, vert ));
-                    }
-
-                    if( neigh_parm_index >= 0 )
-                    {
-                        node_weights[eq][3*inv_index+0] = (ftype) (alpha *
-                                              tangent_weight * RVector_x(hor));
-                        node_weights[eq][3*inv_index+1] = (ftype) (alpha *
-                                              tangent_weight * RVector_y(hor));
-                        node_weights[eq][3*inv_index+2] = (ftype) (alpha *
-                                              tangent_weight * RVector_z(hor));
-
-                        node_weights[eq+1][3*inv_index+0] = (ftype) ( alpha *
-                                              tangent_weight * RVector_x(vert));
-                        node_weights[eq+1][3*inv_index+1] = (ftype) ( alpha *
-                                              tangent_weight * RVector_y(vert));
-                        node_weights[eq+1][3*inv_index+2] = (ftype) ( alpha *
-                                              tangent_weight * RVector_z(vert));
-                    }
-                    else
-                    {
-                        constants[eq] += (ftype) (alpha * tangent_weight *
-                                                 DOT_POINT_VECTOR( p2, hor ));
-                        constants[eq+1] += (ftype) (alpha * tangent_weight *
-                                                 DOT_POINT_VECTOR( p2, vert ));
-                    }
-
-                    eq += 2;
                 }
             }
         }
-    }
-}
 
-private  int  compute_coef_size(
-    int        n_equations,
-    int        n_parms_involved[] )
-{
-    int    eq, size;
-
-    size = n_equations * (int) sizeof(int);
-
-    for_less( eq, 0, n_equations )
-        size += n_parms_involved[eq] *
-                       ((int) sizeof(ftype) + (int) sizeof(int));
-
-    return( size );
-}
-
-private  int  compute_full_size(
-    int        n_parameters,
-    int        n_equations,
-    int        n_parms_involved[],
-    int        *parms_involved[] )
-{
-    int              eq, size, p, parm;
-    int              list_size, *list;
-
-    ALLOC( list, n_parameters );
-
-    for_less( p, 0, n_parameters )
-        list[p] = 0;
-
-    for_less( eq, 0, n_equations )
-    {
-        for_less( p, 0, n_parms_involved[eq] )
-        {
-            parm = parms_involved[eq][p];
-            if( list[parm] < n_parms_involved[eq] )
-                list[parm] = n_parms_involved[eq];
-        }
+        update_progress_report( &progress, node+1 );
     }
 
-    size = 2 * n_parameters * (int) sizeof(ftype);
-    for_less( parm, 0, n_parameters )
-    {
-        list_size = list[parm] - 1;
+    terminate_progress_report( &progress );
 
-        size += (list_size-1) * (int) (sizeof(ftype) + sizeof(int));
-    }
-
-    return( size );
+    FREE( indices );
+    FREE( node_weights );
 }
 
 private  void   fit_polygons(
@@ -1036,24 +950,26 @@ private  void   fit_polygons(
     int                n_iters,
     int                n_iters_recompute )
 {
-    int                         eq, point, n, iter, which, o;
+    int                         eq, point, n, iter, n_parameters;
     int                         n_model_equations, n_image_equations;
     int                         n_equations, *n_parms_involved, **parm_list;
-    int                         n_image_per_point, n_involved;
-    int                         n_oversample_equations, n_bound_nodes;
-    int                         n_moving_points;
+    int                         n_image_per_point;
+    int                         n_oversample_equations;
+    int                         n_moving_points, alloc_increment;
     int                         sizes[N_DIMENSIONS];
     int                         *to_parameter;
-    int                         parm_index, neigh_parm_index;
+    int                         parm_index, p;
     int                         n_stretch_equations;
-    ftype                       *constants, **node_weights, weight;
-    Real                        *parameters;
+    ftype                       *constants, **node_weights;
+    Real                        *parameters, *weights, weight;
     polygons_struct             save_p;
     boundary_definition_struct  boundary;
     voxel_coef_struct           voxel_lookup;
     bitlist_3d_struct           done_bits, surface_bits;
     bitlist_3d_struct           *done_bits_ptr, *surface_bits_ptr;
-
+    Real                        constant;
+    int                         *n_cross_terms, **cross_parms;
+    ftype                       *linear_terms, *square_terms, **cross_terms;
 
     set_boundary_definition( &boundary, threshold, threshold, -1.0, 90.0,
                              normal_direction, 1.0e-4 );
@@ -1062,11 +978,6 @@ private  void   fit_polygons(
         n_image_per_point = 3;
     else
         n_image_per_point = 1;
-
-    if( tangent_weight == 1.0 )
-        n_bound_nodes = 1;
-    else
-        n_bound_nodes = 3;
 
     ALLOC( to_parameter, n_points );
 
@@ -1081,6 +992,8 @@ private  void   fit_polygons(
         else
             to_parameter[point] = -1;
     }
+
+    n_parameters = 3 * n_moving_points;
 
     n_model_equations = 3 * n_moving_points;
     n_image_equations = n_image_per_point * n_moving_points;
@@ -1108,8 +1021,7 @@ private  void   fit_polygons(
     else
         n_stretch_equations = 0;
 
-    n_equations = n_model_equations + n_stretch_equations +
-                  n_image_equations + n_oversample_equations;
+    n_equations = n_model_equations + n_stretch_equations;
 
     ALLOC( n_parms_involved, n_equations );
     ALLOC( constants, n_equations );
@@ -1121,18 +1033,6 @@ private  void   fit_polygons(
                                n_parms_involved,
                                parm_list, constants, node_weights );
 
-    if( stretch_weight > 0.0 )
-    {
-        create_stretch_coefficients( n_points, to_parameter, surface_points,
-                                     model_points, n_neighbours, neighbours,
-                                     &n_parms_involved[n_model_equations],
-                                     &parm_list[n_model_equations],
-                                     &constants[n_model_equations],
-                                     &node_weights[n_model_equations] );
-    }
-
-    FREE( model_points );
-
     model_weight = sqrt( model_weight / (Real) n_model_equations );
 
     for_less( eq, 0, n_model_equations )
@@ -1142,104 +1042,27 @@ private  void   fit_polygons(
             node_weights[eq][n] *= (ftype) model_weight;
     }
 
-    if( n_stretch_equations > 0 )
+    if( stretch_weight > 0.0 )
+    {
+        create_stretch_coefficients( n_points, to_parameter, surface_points,
+                                     model_points, n_neighbours, neighbours,
+                                     &n_parms_involved[n_model_equations],
+                                     &parm_list[n_model_equations],
+                                     &constants[n_model_equations],
+                                     &node_weights[n_model_equations] );
+
         stretch_weight = sqrt( stretch_weight / (Real) n_stretch_equations );
 
-    for_less( eq, n_model_equations, n_model_equations + n_stretch_equations )
-    {
-        constants[eq] *= (ftype) stretch_weight;
-        for_less( n, 0, n_parms_involved[eq] )
-            node_weights[eq][n] *= (ftype) stretch_weight;
-    }
-
-    eq = n_model_equations + n_stretch_equations;
-    for_less( point, 0, n_points )
-    {
-        if( to_parameter[point] < 0 )
-            continue;
-
-        for_less( which, 0, n_image_per_point )
+        for_less( eq, n_model_equations,
+                      n_model_equations + n_stretch_equations )
         {
-            n_parms_involved[eq] = n_bound_nodes;
-            ALLOC( node_weights[eq], n_parms_involved[eq] );
-            ALLOC( parm_list[eq], n_parms_involved[eq] );
-            parm_index = to_parameter[point];
-            if( n_bound_nodes == 1 )
-                parm_list[eq][0] = IJ(parm_index,which,3);
-            else
-            {
-                parm_list[eq][0] = IJ(parm_index,X,3);
-                parm_list[eq][1] = IJ(parm_index,Y,3);
-                parm_list[eq][2] = IJ(parm_index,Z,3);
-            }
-            ++eq;
+            constants[eq] *= (ftype) stretch_weight;
+            for_less( n, 0, n_parms_involved[eq] )
+                node_weights[eq][n] *= (ftype) stretch_weight;
         }
     }
 
-    eq = n_model_equations + n_stretch_equations + n_image_equations;
-    for_less( point, 0, n_points )
-    {
-        for_less( n, 0, n_neighbours[point] )
-        {
-            if( oversample > 0 &&
-                this_is_unique_edge( point, neighbours[point][n],
-                                     n_neighbours, neighbours ) &&
-                (to_parameter[point] >= 0 ||
-                 to_parameter[neighbours[point][n]] >= 0) )
-            {
-                for_less( o, 0, oversample )
-                for_less( which, 0, n_image_per_point )
-                {
-                    n_involved = 0;
-                    parm_index = to_parameter[point];
-                    neigh_parm_index = to_parameter[neighbours[point][n]];
-                    if( parm_index >= 0 )
-                        ++n_involved;
-                    if( neigh_parm_index >= 0 )
-                        ++n_involved;
-
-                    n_parms_involved[eq] = n_involved * n_bound_nodes;
-                    ALLOC( node_weights[eq], n_parms_involved[eq] );
-                    ALLOC( parm_list[eq], n_parms_involved[eq] );
-
-                    n_involved = 0;
-                    if( n_bound_nodes == 1 )
-                    {
-                        if( parm_index >= 0 )
-                            parm_list[eq][n_involved++] =IJ(parm_index,which,3);
-                        if( neigh_parm_index >= 0 )
-                        {
-                            parm_list[eq][n_involved] = 
-                                          IJ(neigh_parm_index,which,3);
-                        }
-                    }
-                    else
-                    {
-                        if( parm_index >= 0 )
-                        {
-                            parm_list[eq][n_involved++] = IJ(parm_index,X,3);
-                            parm_list[eq][n_involved++] = IJ(parm_index,Y,3);
-                            parm_list[eq][n_involved++] = IJ(parm_index,Z,3);
-                        }
-
-                        if( neigh_parm_index >= 0 )
-                        {
-                            parm_list[eq][n_involved++] =
-                                                    IJ(neigh_parm_index,X,3);
-                            parm_list[eq][n_involved++] =
-                                                    IJ(neigh_parm_index,Y,3);
-                            parm_list[eq][n_involved++] =
-                                                    IJ(neigh_parm_index,Z,3);
-                        }
-                    }
-
-                    ++eq;
-                }
-            }
-        }
-    }
-
-    ALLOC( parameters, 3 * n_moving_points );
+    ALLOC( parameters, n_parameters );
 
     for_less( point, 0, n_points )
     {
@@ -1264,64 +1087,63 @@ private  void   fit_polygons(
         create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &surface_bits );
     }
 
-#define DEBUG
-#ifdef DEBUG
-#undef DEBUG
-    {
-        int  size;
+    ALLOC( weights, n_parameters );
 
-        size = compute_coef_size( n_equations, n_parms_involved );
-
-        print( "Size: %d\n", size );
-
-        size = compute_full_size( 3 * n_moving_points, n_equations,
-                                  n_parms_involved, parm_list );
-
-        print( "Full size: %d\n", size );
-    }
-#endif
+    INITIALIZE_LSQ( n_parameters, &constant, &linear_terms,
+                    &square_terms, &n_cross_terms, &cross_parms, &cross_terms );
+    alloc_increment = 5;
 
     iter = 0;
     while( iter < n_iters )
     {
-        create_image_coefficients( volume, &voxel_lookup,
+        RESET_LSQ( n_parameters, &constant, linear_terms,
+                   square_terms, n_cross_terms, cross_parms, cross_terms );
+
+        for_less( eq, 0, n_model_equations + n_stretch_equations )
+        {
+            for_less( p, 0, n_parms_involved[eq] )
+                weights[p] = (Real) node_weights[eq][p];
+
+            ADD_TO_LSQ( n_parameters, &constant, linear_terms,
+                        square_terms, n_cross_terms, cross_parms, cross_terms,
+                        n_parms_involved[eq], parm_list[eq], weights,
+                        (Real) constants[eq], alloc_increment );
+        }
+
+        weight = sqrt( 1.0 / (Real) (n_image_equations+n_oversample_equations));
+
+        create_image_coefficients( weight, volume, &voxel_lookup,
                        done_bits_ptr, surface_bits_ptr,
                        &boundary, tangent_weight,
                        max_outward, max_inward,
                        floating_flag, oversample,
                        n_points, n_neighbours, neighbours,
                        to_parameter, parameters, surface_points,
-                       &parm_list[n_model_equations+n_stretch_equations],
-                       &constants[n_model_equations+n_stretch_equations],
-                       &node_weights[n_model_equations+n_stretch_equations] );
+                       n_parameters, &constant, linear_terms,
+                       square_terms, n_cross_terms, cross_parms, cross_terms,
+                       alloc_increment );
 
-    weight = (ftype)
-              sqrt( 1.0 / (Real) (n_image_equations + n_oversample_equations) );
+        if( iter == 0 )
+        {
+            REALLOC_LSQ( n_parameters, n_cross_terms, cross_parms,
+                         cross_terms );
+            alloc_increment = 1;
+        }
 
-    for_less( eq, n_model_equations + n_stretch_equations, n_equations )
-    {
-        constants[eq] *= (ftype) weight;
-        for_less( n, 0, n_parms_involved[eq] )
-            node_weights[eq][n] *= weight;
-    }
-
-
-#ifdef DEBUG
-#define DEBUG
-#undef DEBUG
-    display_parms( n_equations, n_parms_involved, parm_list, constants,
-                   node_weights, parameters );
-#endif
-
-        (void) MINIMIZE_LSQ( 3 * n_moving_points, n_equations,
-                             n_parms_involved, parm_list, constants,
-                             node_weights, max_step, n_iters_recompute,
+        (void) MINIMIZE_LSQ( n_parameters, constant, linear_terms,
+                             square_terms, n_cross_terms, cross_parms,
+                             cross_terms, max_step, n_iters_recompute,
                              parameters );
 
         iter += n_iters_recompute;
         print( "########### %d:\n", iter );
         (void) flush_file( stdout );
     }
+
+    FREE( weights );
+
+    DELETE_LSQ( n_parameters, linear_terms,
+                square_terms, n_cross_terms, cross_parms, cross_terms );
 
     for_less( point, 0, n_points )
     {
@@ -1347,8 +1169,10 @@ private  void   fit_polygons(
         FREE( parm_list[eq] );
         FREE( node_weights[eq] );
     }
+
     FREE( n_parms_involved );
     FREE( constants );
     FREE( node_weights );
     FREE( parm_list );
+    FREE( model_points );
 }
