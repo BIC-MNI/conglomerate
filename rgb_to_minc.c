@@ -3,6 +3,7 @@
 #include  <images.h>
 
 private  Volume  convert_pixels_to_volume(
+    int            n_components,
     int            n_slices,
     pixels_struct  pixels[] );
 
@@ -12,18 +13,21 @@ int  main(
 {
     Volume         volume;
     STRING         input_filename, output_filename;
-    int            n_slices;
+    int            n_slices, n_components;
     pixels_struct  *pixels;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( NULL, &output_filename ) ||
+        !get_int_argument( 0, &n_components ) ||
+        n_components < 3 || n_components > 4 )
     {
-        print( "Usage: %s output.mnc  input1.rgb input2.rgb ...\n", argv[0] );
+        print( "Usage: %s output.mnc  3|4 input1.rgb input2.rgb ...\n", argv[0] );
         return( 1 );
     }
 
     n_slices = 0;
+    pixels = NULL;
 
     while( get_string_argument( "", &input_filename ) )
     {
@@ -35,7 +39,7 @@ int  main(
         ++n_slices;
     }
 
-    volume = convert_pixels_to_volume( n_slices, pixels );
+    volume = convert_pixels_to_volume( n_components, n_slices, pixels );
 
     if( volume != NULL )
     {
@@ -51,11 +55,12 @@ int  main(
 }
 
 private  Volume  convert_pixels_to_volume(
+    int            n_components,
     int            n_slices,
     pixels_struct  pixels[] )
 {
     int      i, x, y, z, sizes[4];
-    int      r, g, b;
+    int      r, g, b, a;
     static   char  *dim_names[] = { MIxspace, MIyspace, MIzspace,
                                     MIvector_dimension };
     Volume   volume;
@@ -79,7 +84,7 @@ private  Volume  convert_pixels_to_volume(
     sizes[X] = pixels[0].x_size;
     sizes[Y] = pixels[0].y_size;
     sizes[Z] = n_slices;
-    sizes[3] = 3;
+    sizes[3] = n_components;
 
     set_volume_sizes( volume, sizes );
 
@@ -94,10 +99,14 @@ private  Volume  convert_pixels_to_volume(
         r = get_Colour_r(colour);
         g = get_Colour_g(colour);
         b = get_Colour_b(colour);
+        a = get_Colour_a(colour);
 
         set_volume_voxel_value( volume, x, y, z, 0, 0, (Real) r );
         set_volume_voxel_value( volume, x, y, z, 1, 0, (Real) g );
         set_volume_voxel_value( volume, x, y, z, 2, 0, (Real) b );
+
+        if( n_components == 4 )
+            set_volume_voxel_value( volume, x, y, z, 3, 0, (Real) a );
     }
 
     return( volume );
