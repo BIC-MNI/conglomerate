@@ -1,3 +1,9 @@
+2003-01-25  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* configure.ac: Set version to 1.1.
+
+	* Makefile.am (m4_files): Add m4/smr_CGAL_MAKEFILE.m4.
+
 2002-04-06  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* marching_cubes: Get the voxel_to_world_transform from

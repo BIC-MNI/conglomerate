@@ -1,0 +1,22 @@
+================================================================
+= Release procedure
+================================================================
+
+* Update NEWS.
+
+* Configure, build, and install.
+
+* Run "make distcheck".
+
+* Test build from tarball on another system.
+
+* CVS commit.
+
+* Run "cvs tag conglomerate-x_y_z".
+
+* Update version number in configure.ac.
+
+* Commit.
+
+* Copy tar file to distribution site.
+
