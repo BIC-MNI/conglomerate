@@ -7,7 +7,8 @@ private  void  label_surface_voxels(
     Volume    geodesic,
     Real      threshold,
     Real      surface_value,
-    Real      nonsurface_value );
+    Real      nonsurface_value,
+    Real      tolerance );
 
 private  void  find_nearest_voxel(
     Volume   volume,
@@ -24,7 +25,8 @@ private  BOOLEAN  volume_range_contains_threshold(
 private  void  compute_geodesic_volume(
     Volume   volume,
     int      origin[],
-    Real     surface_value );
+    Real     surface_value,
+    Real     nonsurface_value );
 
 private  void  usage(
     char   executable[] )
@@ -47,7 +49,7 @@ int  main(
     int                 dim, origin[N_DIMENSIONS];
     int                 sizes[N_DIMENSIONS], geo_sizes[N_DIMENSIONS];
     Real                threshold, x_world, y_world, z_world;
-    Real                voxel[N_DIMENSIONS], max_voxel;
+    Real                voxel[N_DIMENSIONS], max_voxel, tolerance;
     Transform           new_to_old;
     General_transform   *volume_transform, mod_transform, new_transform;
 
@@ -67,6 +69,7 @@ int  main(
     (void) get_int_argument( -1, &geo_sizes[X] );
     (void) get_int_argument( -1, &geo_sizes[Y] );
     (void) get_int_argument( -1, &geo_sizes[Z] );
+    (void) get_real_argument( 0.0, &tolerance );
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -97,10 +100,10 @@ int  main(
 
     for_less( dim, 0, N_DIMENSIONS )
     {
-        Transform_elem( new_to_old, dim, dim ) = (Real) (geo_sizes[dim]+1) /
-                                                 (Real) sizes[dim];
-        Transform_elem( new_to_old, dim, 3 ) = 0.5 * (Real) (geo_sizes[dim]+1) /
-                                               (Real) sizes[dim] - 1.0;
+        Transform_elem( new_to_old, dim, dim ) = (Real) (sizes[dim]+1) /
+                                                 (Real) geo_sizes[dim];
+        Transform_elem( new_to_old, dim, 3 ) = 0.5 * (Real) (sizes[dim]+1) /
+                                               (Real) geo_sizes[dim] - 1.0;
     }
 
     create_linear_transform( &mod_transform, &new_to_old );
@@ -112,13 +115,13 @@ int  main(
     max_voxel = get_volume_voxel_max( geodesic );
 
     label_surface_voxels( volume, geodesic, threshold,
-                          max_voxel-1.0, max_voxel );
+                          max_voxel-1.0, max_voxel, tolerance );
 
     convert_world_to_voxel( geodesic, x_world, y_world, z_world, voxel );
 
     find_nearest_voxel( geodesic, voxel, max_voxel-1.0, origin );
 
-    compute_geodesic_volume( geodesic, origin, max_voxel-1.0 );
+    compute_geodesic_volume( geodesic, origin, max_voxel-1.0, max_voxel );
 
     (void) output_volume( output_filename, NC_UNSPECIFIED, FALSE,
                           0.0, 0.0, geodesic, "Geodesic volume\n", NULL );
@@ -131,15 +134,20 @@ private  void  label_surface_voxels(
     Volume    geodesic,
     Real      threshold,
     Real      surface_value,
-    Real      nonsurface_value )
+    Real      nonsurface_value,
+    Real      tolerance )
 {
     int       x, y, z, v3, v4, dim, dx, dy, dz;
     Real      voxel[N_DIMENSIONS], x_world, y_world, z_world, label;
     Real      min_voxel[N_DIMENSIONS], max_voxel[N_DIMENSIONS];
     int       sizes[N_DIMENSIONS], geo_sizes[N_DIMENSIONS];
+    progress_struct   progress;
 
     get_volume_sizes( geodesic, geo_sizes );
     get_volume_sizes( volume, sizes );
+
+    initialize_progress_report( &progress, FALSE,
+        geo_sizes[X] * geo_sizes[Y] * geo_sizes[Z], "Finding surface voxels" );
 
     BEGIN_ALL_VOXELS( geodesic, x, y, z, v3, v4 )
 
@@ -170,6 +178,12 @@ private  void  label_surface_voxels(
             }
         }
 
+        for_less( dim, 0, N_DIMENSIONS )
+        {
+            min_voxel[dim] -= tolerance;
+            max_voxel[dim] += tolerance;
+        }
+
         if( volume_range_contains_threshold( volume, min_voxel, max_voxel,
                                              threshold ) )
         {
@@ -180,7 +194,12 @@ private  void  label_surface_voxels(
 
         set_volume_voxel_value( geodesic, x, y, z, 0, 0, (Real) label );
 
+        update_progress_report( &progress,
+                                z + 1 + geo_sizes[Z] * (y + x * geo_sizes[Y]) );
+
     END_ALL_VOXELS
+
+    terminate_progress_report( &progress );
 }
 
 private  void  find_nearest_voxel(
@@ -273,25 +292,25 @@ private  BOOLEAN  volume_range_contains_threshold(
 
     for_less( dim, 0, N_DIMENSIONS )
     {
-        if( min_voxel[dim] < -0.5 )
-            min_voxel[dim] = -0.5;
-        if( max_voxel[dim] > (Real) sizes[dim] - 0.5 )
-            max_voxel[dim] = (Real) sizes[dim] - 0.5;
+        if( min_voxel[dim] < -1.0 )
+            min_voxel[dim] = -1.0;
+        if( max_voxel[dim] > (Real) sizes[dim] )
+            max_voxel[dim] = (Real) sizes[dim];
     }
 
     above = FALSE;
     below = FALSE;
 
     x = min_voxel[X];
-    x_is_int = IS_INT(x);
+    x_is_int = IS_INT(x) && x >= 0.0 && (int) x < sizes[0];
     while( TRUE )
     {
         y = min_voxel[Y];
-        y_is_int = IS_INT(y);
+        y_is_int = IS_INT(y) && y >= 0.0 && (int) y < sizes[1];
         while( TRUE )
         {
             z = min_voxel[Z];
-            z_is_int = IS_INT(z);
+            z_is_int = IS_INT(z) && z >= 0.0 && (int) z < sizes[2];
             while( TRUE )
             {
                 if( x_is_int && y_is_int && z_is_int )
@@ -324,7 +343,7 @@ private  BOOLEAN  volume_range_contains_threshold(
                     above = TRUE;
                 }
 
-                if( z == max_voxel[Z] )
+                if( z >= max_voxel[Z] )
                     break;
 
                 z += 1.0;
@@ -333,13 +352,13 @@ private  BOOLEAN  volume_range_contains_threshold(
                 if( z > max_voxel[Z] )
                 {
                     z = max_voxel[Z];
-                    z_is_int = IS_INT(z);
+                    z_is_int = IS_INT(z) && z >= 0.0 && (int) z < sizes[2];
                 }
                 else
                     z_is_int = FALSE;
             }
 
-            if( y == max_voxel[Y] )
+            if( y >= max_voxel[Y] )
                 break;
 
             y += 1.0;
@@ -349,12 +368,13 @@ private  BOOLEAN  volume_range_contains_threshold(
             {
                 y = max_voxel[Y];
                 y_is_int = IS_INT(y);
+                y_is_int = IS_INT(y) && y >= 0.0 && (int) y < sizes[1];
             }
             else
                 y_is_int = FALSE;
         }
 
-        if( x == max_voxel[X] )
+        if( x >= max_voxel[X] )
             break;
 
         x += 1.0;
@@ -363,7 +383,7 @@ private  BOOLEAN  volume_range_contains_threshold(
         if( x > max_voxel[X] )
         {
             x = max_voxel[X];
-            x_is_int = IS_INT(x);
+            x_is_int = IS_INT(x) && x >= 0.0 && (int) x < sizes[0];
         }
         else
             x_is_int = FALSE;
@@ -380,7 +400,8 @@ typedef struct
 private  void  compute_geodesic_volume(
     Volume   volume,
     int      origin[],
-    Real     surface_value )
+    Real     surface_value,
+    Real     nonsurface_value )
 {
     int                           dim, dist;
     int                           start[N_DIMENSIONS], end[N_DIMENSIONS];
@@ -388,6 +409,7 @@ private  void  compute_geodesic_volume(
     int                           x, y, z;
     QUEUE_STRUCT( xyz_struct )    queue;
     xyz_struct                    entry;
+    Real                          current;
 
     get_volume_sizes( volume, sizes );
 
@@ -425,7 +447,9 @@ private  void  compute_geodesic_volume(
         for_inclusive( y, start[Y], end[Y] )
         for_inclusive( z, start[Z], end[Z] )
         {
-            if( dist < (int) get_volume_real_value( volume, x, y, z, 0, 0 ))
+            current = get_volume_real_value( volume, x, y, z, 0, 0 );
+
+            if( current != nonsurface_value && dist < (int) current )
             {
                 set_volume_real_value( volume, x, y, z, 0, 0, (Real) dist );
                 entry.voxel[0] = x;
