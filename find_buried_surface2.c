@@ -352,7 +352,6 @@ private  void  find_boundary_blocks(
             update_progress_report( &progress,
                                     MAX3(x_size,y_size,z_size) -
                                     n_to_do + 1 );
-            print( "N in queue: %d\n", queue.n_queue_alloced );
         }
 
         for_less( dir, 0, n_dirs )
