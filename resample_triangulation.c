@@ -16,9 +16,6 @@ typedef struct
     tri_node_struct    *triangles;
 } tri_mesh_struct;
 
-private   int   get_tri_mesh_n_triangles(
-    tri_mesh_struct   *mesh );
-
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
     tri_mesh_struct  *mesh,
@@ -63,7 +60,7 @@ int  main(
 {
     STRING           input_filename, output_filename, first_arg;
     STRING           output_mesh_filename, model_filename;
-    int              n_objects, prev_n_polys, new_n_polys;
+    int              n_objects, new_n_polys;
     File_formats     format;
     object_struct    **object_list, *object;
     polygons_struct  *polygons;
@@ -173,8 +170,6 @@ int  main(
         }
     }
 
-    prev_n_polys = get_tri_mesh_n_triangles( &mesh );
-    
     resample_mesh( &mesh, min_size, max_size );
 
     object = create_object( POLYGONS );
@@ -183,8 +178,7 @@ int  main(
 
     new_n_polys = polygons->n_items;
 
-    print( "Resampled %d polygons into %d polygons.\n", prev_n_polys,
-           new_n_polys );
+    print( "Resampled into %d polygons.\n", new_n_polys );
 
     (void) output_graphics_file( output_filename, format, 1, &object );
 
@@ -676,37 +670,6 @@ private  void  subdivide_tri_node(
                                          node->nodes[2]);
 }
 
-private  int  count_triangles(
-    tri_node_struct  *node )
-{
-    int   n_triangles;
-
-    if( node->children[0] == NULL )
-        n_triangles = 1;
-    else
-    {
-        n_triangles = count_triangles( node->children[0] );
-        n_triangles += count_triangles( node->children[1] );
-        n_triangles += count_triangles( node->children[2] );
-        n_triangles += count_triangles( node->children[3] );
-    }
-
-    return( n_triangles );
-}
-
-private   int   get_tri_mesh_n_triangles(
-    tri_mesh_struct   *mesh )
-{
-    int    tri, n_triangles;
-
-    n_triangles = 0;
-
-    for_less( tri, 0, mesh->n_triangles )
-        n_triangles += count_triangles( &mesh->triangles[tri] );
-
-    return( n_triangles );
-}
-
 private  void  add_subdivided_edge(
     hash_table_struct      *edge_lookup,
     int                    *indices[],
@@ -729,40 +692,87 @@ private  void  add_subdivided_edge(
 
 private  void   add_to_polygons(
     hash_table_struct       *edge_lookup,
-    int                     end_indices[],
-    int                     *current_poly,
+    int                     *end_indices[],
+    int                     *poly,
     int                     *indices[],
     int                     *n_indices,
-    tri_node_struct         *node )
+    int                     p0,
+    int                     p1,
+    int                     p2 )
 {
-    int  size;
+    int      mid0, mid1, mid2;
+    BOOLEAN  mid0_exists, mid1_exists, mid2_exists;
 
-    if( node->children[0] == NULL )
+    mid0_exists = lookup_edge_midpoint( edge_lookup, p0, p1, &mid0 );
+    mid1_exists = lookup_edge_midpoint( edge_lookup, p1, p2, &mid1 );
+    mid2_exists = lookup_edge_midpoint( edge_lookup, p2, p0, &mid2 );
+
+    if( !mid0_exists && !mid1_exists && !mid2_exists )
     {
-        add_subdivided_edge( edge_lookup, indices, n_indices,
-                             node->nodes[0], node->nodes[1] );
-        add_subdivided_edge( edge_lookup, indices, n_indices,
-                             node->nodes[1], node->nodes[2] );
-        add_subdivided_edge( edge_lookup, indices, n_indices,
-                             node->nodes[2], node->nodes[0] );
-        end_indices[*current_poly] = *n_indices;
-        size = end_indices[*current_poly];
-        if( *current_poly > 0 )
-            size -= end_indices[(*current_poly)-1];
-        if( size < 3 )
-            handle_internal_error( "add_to_polygons" );
-        ++(*current_poly);
+        ADD_ELEMENT_TO_ARRAY( *indices, *n_indices, p0, DEFAULT_CHUNK_SIZE );
+        ADD_ELEMENT_TO_ARRAY( *indices, *n_indices, p1, DEFAULT_CHUNK_SIZE );
+        ADD_ELEMENT_TO_ARRAY( *indices, *n_indices, p2, DEFAULT_CHUNK_SIZE );
+        ADD_ELEMENT_TO_ARRAY( *end_indices, *poly, *n_indices,
+                              DEFAULT_CHUNK_SIZE );
+    }
+    else if( mid0_exists && !mid1_exists && !mid2_exists )
+    {
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, mid0, p2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid0, p1, p2 );
+    }
+    else if( !mid0_exists && mid1_exists && !mid2_exists )
+    {
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, p1, mid1 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid1, p2, p0 );
+    }
+    else if( !mid0_exists && !mid1_exists && mid2_exists )
+    {
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, p1, mid2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p1, p2, mid2 );
+    }
+    else if( mid0_exists && mid1_exists && !mid2_exists )
+    {
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, mid0, p2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid0, mid1, p2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid0, p1, mid1 );
+    }
+    else if( !mid0_exists && mid1_exists && mid2_exists )
+    {
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, p1, mid1 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, mid1, mid2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid1, p2, mid2 );
+    }
+    else if( mid0_exists && !mid1_exists && mid2_exists )
+    {
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, mid0, mid2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid0, p1, p2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid0, p2, mid2 );
     }
     else
     {
-        add_to_polygons( edge_lookup, end_indices, current_poly,
-                         indices, n_indices, node->children[0] );
-        add_to_polygons( edge_lookup, end_indices, current_poly,
-                         indices, n_indices, node->children[1] );
-        add_to_polygons( edge_lookup, end_indices, current_poly,
-                         indices, n_indices, node->children[2] );
-        add_to_polygons( edge_lookup, end_indices, current_poly,
-                         indices, n_indices, node->children[3] );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         p0, mid0, mid2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid0, p1, mid1 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid0, mid1, mid2 );
+        add_to_polygons( edge_lookup, end_indices, poly, indices, n_indices,
+                         mid1, p2, mid2 );
     }
 }
 
@@ -770,7 +780,7 @@ private   void   convert_mesh_to_polygons(
     tri_mesh_struct   *mesh,
     polygons_struct   *polygons )
 {
-    int                point, poly, tri, n_indices;
+    int                point, tri, n_indices;
     hash_table_struct  edge_lookup;
 
     initialize_polygons( polygons, WHITE, NULL );
@@ -782,22 +792,22 @@ private   void   convert_mesh_to_polygons(
     for_less( point, 0, mesh->n_points )
         polygons->points[point] = mesh->points[point];
 
-    polygons->n_items = get_tri_mesh_n_triangles( mesh );
-
-    ALLOC( polygons->end_indices, polygons->n_items );
+    polygons->end_indices = NULL;
+    polygons->n_items = 0;
 
     polygons->indices = NULL;
     n_indices = 0;
-
-    poly = 0;
 
     create_edge_lookup( mesh, &edge_lookup );
 
     for_less( tri, 0, mesh->n_triangles )
     {
-        add_to_polygons( &edge_lookup, polygons->end_indices, &poly,
+        add_to_polygons( &edge_lookup, &polygons->end_indices,
+                         &polygons->n_items,
                          &polygons->indices, &n_indices,
-                         &mesh->triangles[tri] );
+                         mesh->triangles[tri].nodes[0],
+                         mesh->triangles[tri].nodes[1],
+                         mesh->triangles[tri].nodes[2] );
     }
 
     delete_edge_lookup( &edge_lookup );
