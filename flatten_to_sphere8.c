@@ -124,11 +124,11 @@ private  Real  evaluate_fit(
     int     n_neighbours[],
     int     *neighbours[] )
 {
-    int     p, n_points, n, p_index, prev_index, ind;
+    int     p, n_points, n, p_index, ind, n_neighs;
     int     n_index, next_index;
     Real    fit, diff;
-    dtype   x1, y1, z1, x2, y2, z2, vol;
-    dtype   x3, y3, z3, cx, cy, cz, x4, y4, z4;
+    dtype   x1, y1, z1, vol;
+    dtype   cx, cy, cz;
     dtype   dx2, dy2, dz2, dx3, dy3, dz3, dx4, dy4, dz4;
 
     fit = 0.0;
@@ -143,39 +143,36 @@ private  Real  evaluate_fit(
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
 
-        for_less( n, 0, n_neighbours[p] )
+        n_neighs = n_neighbours[p];
+
+        n_index = IJ(neighbours[p][n_neighs-1],0,3);
+        dx3 = parameters[n_index+0] - x1;
+        dy3 = parameters[n_index+1] - y1;
+        dz3 = parameters[n_index+2] - z1;
+
+        next_index = IJ(neighbours[p][0],0,3);
+        dx4 = parameters[next_index+0] - x1;
+        dy4 = parameters[next_index+1] - y1;
+        dz4 = parameters[next_index+2] - z1;
+
+        for_less( n, 0, n_neighs )
         {
-            prev_index = IJ(neighbours[p][(n-1+n_neighbours[p])%
-                                        n_neighbours[p]],0,3);
-            x2 = parameters[prev_index+0];
-            y2 = parameters[prev_index+1];
-            z2 = parameters[prev_index+2];
+            dx2 = dx3;
+            dy2 = dy3;
+            dz2 = dz3;
 
-            n_index = IJ(neighbours[p][n],0,3);
-            x3 = parameters[n_index+0];
-            y3 = parameters[n_index+1];
-            z3 = parameters[n_index+2];
+            dx3 = dx4;
+            dy3 = dy4;
+            dz3 = dz4;
 
-            next_index = IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
-            x4 = parameters[next_index+0];
-            y4 = parameters[next_index+1];
-            z4 = parameters[next_index+2];
+            next_index = IJ(neighbours[p][(n+1)%n_neighs],0,3);
+            dx4 = parameters[next_index+0] - x1;
+            dy4 = parameters[next_index+1] - y1;
+            dz4 = parameters[next_index+2] - z1;
 
-            dx2 = x2 - x1;
-            dy2 = y2 - y1;
-            dz2 = z2 - z1;
-
-            dx3 = x3 - x1;
-            dy3 = y3 - y1;
-            dz3 = z3 - z1;
-
-            dx4 = x4 - x1;
-            dy4 = y4 - y1;
-            dz4 = z4 - z1;
-
-            cx = dy2 * dz3 - dz2 * dy3;
-            cy = dz2 * dx3 - dx2 * dz3;
-            cz = dx2 * dy3 - dy2 * dx3;
+            cx = dy3 * dz2 - dz3 * dy2;
+            cy = dz3 * dx2 - dx3 * dz2;
+            cz = dx3 * dy2 - dy3 * dx2;
 
             vol = cx * dx4 + cy * dy4 + cz * dz4;
             diff = (Real) (vol - volumes[ind]);
@@ -245,9 +242,9 @@ private  void  evaluate_fit_derivative(
             dy4 = y4 - y1;
             dz4 = z4 - z1;
 
-            cx = dy2 * dz3 - dz2 * dy3;
-            cy = dz2 * dx3 - dx2 * dz3;
-            cz = dx2 * dy3 - dy2 * dx3;
+            cx = dy3 * dz2 - dz3 * dy2;
+            cy = dz3 * dx2 - dx3 * dz2;
+            cz = dx3 * dy2 - dy3 * dx2;
 
             vol = cx * dx4 + cy * dy4 + cz * dz4;
             diff = vol - volumes[ind];
@@ -550,14 +547,14 @@ private  void  flatten_polygons(
             compute_sphere_points( radius, &p1, &p2, &p3, &p4,
                                    &v2, &v3, &v4 );
 
-            CROSS_VECTORS( cross, v2, v3 );
+            CROSS_VECTORS( cross, v3, v2 );
             d_sphere = DOT_VECTORS( cross, v4 );
 
             SUB_POINTS( v2, p2, p1 );
             SUB_POINTS( v3, p3, p1 );
             SUB_POINTS( v4, p4, p1 );
 
-            CROSS_VECTORS( cross, v2, v3 );
+            CROSS_VECTORS( cross, v3, v2 );
             d_orig = DOT_VECTORS( cross, v4 );
 
             volumes[ind] = (float) (d_orig + (d_sphere - d_orig) * ratio);
