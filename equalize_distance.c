@@ -218,14 +218,20 @@ private  void  cross_vectors(
 private  Real  find_distance_to_edge(
     Real    origin[],
     Real    direction[],
+    Real    plane_normal[],
     Real    p1[],
     Real    p2[] )
 {
     Real   dist;
     Real   edge[N_DIMENSIONS];
     Real   ortho_dir[N_DIMENSIONS];
+    Real   test_normal[N_DIMENSIONS];
 
-    sub_vectors( p1, p2, edge );
+    sub_vectors( p2, p1, edge );
+
+    cross_vectors( direction, edge, test_normal );
+    if( dot_vectors( plane_normal, test_normal ) <= 0.0 )
+        return( -1.0 );
 
     ortho_dir[X] = direction[X];
     ortho_dir[Y] = direction[Y];
@@ -280,7 +286,7 @@ private  Real  optimize_vertex(
     
     for_less( v, 0, size )
     {
-        dist_to_edge = find_distance_to_edge( point, deriv,
+        dist_to_edge = find_distance_to_edge( point, deriv, normal,
                                         original_points[vertex[v]],
                                         original_points[vertex[(v+1)%size]] );
 
@@ -296,13 +302,13 @@ private  Real  optimize_vertex(
 
     best_fit = evaluate_fit( point, n_neighbours, neighbours, lengths );
 
-    step = dist_to_edge * .1;
+    step = max_dist * .1;
     position = 0.0;
-    while( step > dist_to_edge * 1e-20 && position < dist_to_edge )
+    while( step > max_dist * 1e-20 && position < max_dist )
     {
         new_position = position + step;
-        if( new_position > dist_to_edge )
-            new_position = dist_to_edge;
+        if( new_position > max_dist )
+            new_position = max_dist;
 
         for_less( dim, 0, N_DIMENSIONS )
             new_point[dim] = point[dim] + new_position * deriv[dim];
@@ -333,7 +339,7 @@ private  Real  optimize_vertex(
     for_less( dim, 0, N_DIMENSIONS )
         point[dim] = new_point[dim];
 
-    if( position == dist_to_edge )
+    if( position == max_dist )
         *which_triangle = original->neighbours[
            POINT_INDEX(original->end_indices,*which_triangle,exit_neighbour)];
 
@@ -459,7 +465,7 @@ private  void  reparameterize(
 
     iter = 0;
     movement = -1.0;
-    while( iter < n_iters && (movement < 0.0 || movement > movement_threshold) )
+    while( iter < n_iters && (movement < 0.0 || movement >= movement_threshold))
     {
         movement = perturb_vertices( original, original_points, model_lengths,
                                      n_neighbours, neighbours,
