@@ -11,6 +11,7 @@ private  void   create_surface_interpolation(
     Real             smoothness,
     int              max_neighbours,
     int              n_iters,
+    BOOLEAN          node_values_initialized,
     Real             node_values[] );
 
 private  void  usage(
@@ -28,7 +29,7 @@ int  main(
     char  *argv[] )
 {
     STRING               surface_filename, xyz_filename;
-    STRING               output_filename;
+    STRING               output_filename, initial_values;
     File_formats         format;
     FILE                 *file;
     int                  n_objects, n_points, point, n_iters, max_neighbours;
@@ -50,6 +51,7 @@ int  main(
     (void) get_real_argument( DEFAULT_SMOOTHNESS, &smoothness );
     (void) get_int_argument( 10, &n_iters );
     (void) get_int_argument( 1, &max_neighbours );
+    (void) get_string_argument( NULL, &initial_values );
 
     if( input_graphics_file( surface_filename,
                              &format, &n_objects, &objects ) != OK ||
@@ -90,9 +92,23 @@ int  main(
     polygons = get_polygons_ptr( objects[0] );
     ALLOC( node_values, polygons->n_points );
 
+    if( initial_values != NULL )
+    {
+        if( open_file( initial_values, READ_FILE, ASCII_FORMAT, &file ) != OK )
+            return( 1 );
+
+        for_less( point, 0, polygons->n_points )
+        {
+            if( input_real( file, &node_values[point] ) != OK )
+                return( 1 );
+        }
+
+        (void) close_file( file );
+    }
+
     create_surface_interpolation( objects[0], n_points, points, values,
                                   smoothness, max_neighbours, n_iters,
-                                  node_values );
+                                  initial_values != NULL, node_values );
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
@@ -460,6 +476,7 @@ private  void   create_surface_interpolation(
     Real             smoothness,
     int              max_neighbours,
     int              n_iters,
+    BOOLEAN          node_values_initialized,
     Real             node_values[] )
 {
     polygons_struct   *polygons;
@@ -546,9 +563,10 @@ private  void   create_surface_interpolation(
     else
         std_dev = sqrt( std_dev );
 
-    for_less( point, 0, polygons->n_points )
+    if( !node_values_initialized )
     {
-        node_values[point] = sum_x / (Real) n_points;
+        for_less( point, 0, polygons->n_points )
+            node_values[point] = sum_x / (Real) n_points;
     }
 
     interp_weight = 1.0 / (Real) n_points / std_dev;
