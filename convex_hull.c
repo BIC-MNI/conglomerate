@@ -13,6 +13,12 @@ private  void  get_convex_hull(
     Point            points[],
     polygons_struct  *polygons );
 
+private  int  get_convex_hull_2d(
+    int              n_points,
+    Real             x[],
+    Real             y[],
+    int              hull_indices[] );
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -187,65 +193,151 @@ private  int  get_polygon_point_index(
 
 private  int  add_polygon(
     polygons_struct  *polygons,
-    int              v0,
-    int              v1,
-    int              v2 )
+    int              n_vertices,
+    int              vertices[] )
 {
-    int   n_indices;
+    int   i, n_indices;
 
     n_indices = NUMBER_INDICES( *polygons );
 
     ADD_ELEMENT_TO_ARRAY( polygons->end_indices, polygons->n_items,
-                          n_indices + 3, DEFAULT_CHUNK_SIZE );
+                          n_indices + n_vertices, DEFAULT_CHUNK_SIZE );
 
-    SET_ARRAY_SIZE( polygons->indices, n_indices, n_indices + 3,
+    SET_ARRAY_SIZE( polygons->indices, n_indices, n_indices + n_vertices,
                     DEFAULT_CHUNK_SIZE );
 
-    polygons->indices[n_indices] = v0;
-    ++n_indices;
-    polygons->indices[n_indices] = v1;
-    ++n_indices;
-    polygons->indices[n_indices] = v2;
-    ++n_indices;
+    for_less( i, 0, n_vertices )
+        polygons->indices[n_indices+i] = vertices[i];
 
     return( polygons->n_items - 1 );
 }
 
 typedef  struct
 {
-    int  triangle;
+    int  poly;
     int  edge;
 } queue_entry;
+
+typedef struct
+{
+    Smallest_int  ref_count;
+} edge_struct;
 
 typedef  QUEUE_STRUCT( queue_entry )  queue_struct;
 
 #define  ENLARGE_THRESHOLD         0.25
 #define  NEW_DENSITY               0.125
 
+private  void  get_edge_keys(
+    polygons_struct              *polygons,
+    int                          poly,
+    int                          edge,
+    int                          keys[] )
+{
+    int          p0, p1, size;
+
+    size = GET_OBJECT_SIZE( *polygons, poly );
+
+    p0 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,edge)];
+    p1 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,
+                           (edge+1)%size)];
+
+    keys[0] = MIN( p0, p1 );
+    keys[1] = MAX( p0, p1 );
+}
+
 private  void  add_edge_to_list(
     queue_struct                 *queue,
     hash_table_struct            *edge_table,
     polygons_struct              *polygons,
-    int                          triangle,
+    int                          poly,
     int                          edge )
 {
-    int          p0, p1, keys[2];
+    int          keys[2];
+    edge_struct  *edge_ptr;
     queue_entry  entry;
 
-    p0 = polygons->indices[POINT_INDEX(polygons->end_indices,triangle,edge)];
-    p1 = polygons->indices[POINT_INDEX(polygons->end_indices,triangle,
-                           (edge+1)%3)];
+    get_edge_keys( polygons, poly, edge, keys );
 
-    keys[0] = MIN( p0, p1 );
-    keys[1] = MAX( p0, p1 );
-
-    if( !lookup_in_hash_table( edge_table, keys, NULL ) )
+    if( lookup_in_hash_table( edge_table, keys, (void **) &edge_ptr ) )
     {
-        insert_in_hash_table( edge_table, keys, NULL );
-        entry.triangle = triangle;
+        ++edge_ptr->ref_count;
+    }
+    else
+    {
+        ALLOC( edge_ptr, 1 );
+        edge_ptr->ref_count = 1;
+        insert_in_hash_table( edge_table, keys, edge_ptr );
+
+        entry.poly = poly;
         entry.edge = edge;
         INSERT_IN_QUEUE( *queue, entry );
     }
+}
+
+private  int   get_plane_polygon_vertices(
+    int              n_points,
+    Point            points[],
+    int              new_indices[],
+    polygons_struct  *polygons,
+    int              p0,
+    int              p1,
+    int              p2,
+    int              vertices[] )
+{
+    int      i, n_in_hull, n_in_plane, *plane_points, *hull_points;
+    Real     plane_constant, *x, *y;
+    Vector   v01, v02, normal, offset, horizontal, vertical;
+
+    SUB_POINTS( v01, polygons->points[p1], polygons->points[p0] );
+    SUB_POINTS( v02, polygons->points[p2], polygons->points[p0] );
+    CROSS_VECTORS( normal, v01, v02 );
+
+    plane_constant = -distance_from_plane( &polygons->points[p0], &normal,
+                                           0.0 );
+
+    n_in_plane = 0;
+
+    for_less( i, 0, n_points )
+    {
+        if( distance_from_plane( &points[i], &normal, plane_constant ) >= 0.0 )
+        {
+            ADD_ELEMENT_TO_ARRAY( plane_points, n_in_plane, i, 10 );
+        }
+    }
+
+    if( n_points < 3 )
+        handle_internal_error( "get_plane_polygon_vertices" );
+
+    NORMALIZE_VECTOR( horizontal, v01 );
+    CROSS_VECTORS( vertical, normal, horizontal );
+    NORMALIZE_VECTOR( vertical, vertical );
+
+    ALLOC( x, n_in_plane );
+    ALLOC( y, n_in_plane );
+    ALLOC( hull_points, n_in_plane );
+
+    for_less( i, 0, n_in_plane )
+    {
+        SUB_POINTS( offset, points[plane_points[i]], points[p0] );
+        x[i] = DOT_VECTORS( offset, horizontal );
+        y[i] = DOT_VECTORS( offset, vertical );
+    }
+
+    n_in_hull = get_convex_hull_2d( n_in_plane, x, y, hull_points );
+
+    for_less( i, 0, n_in_hull )
+    {
+        vertices[i] = get_polygon_point_index( polygons, points, new_indices,
+                                               plane_points[hull_points[i]] );
+    }
+
+    FREE( hull_points );
+    FREE( x );
+    FREE( y );
+    FREE( plane_points );
+
+    return( n_in_hull );
 }
 
 private  void  get_convex_hull(
@@ -253,14 +345,17 @@ private  void  get_convex_hull(
     Point            points[],
     polygons_struct  *polygons )
 {
-    int                          i, min_ind, ind, second_ind;
+    int                          i, min_ind, ind, second_ind, size;
     Vector                       hinge, new_hinge, normal, new_normal, other;
-    int                          *new_indices, other_index;
-    int                          triangle, edge, new_triangle;
-    int                          vertex[3];
+    int                          *new_indices, other_index, keys[2];
+    int                          poly, edge, new_poly;
+    int                          n_vertices, *vertices;
+    int                          *poly_vertices;
     queue_entry                  entry;
     queue_struct                 queue;
+    edge_struct                  *edge_ptr;
     hash_table_struct            edge_table;
+    hash_table_pointer           hash_ptr;
 
     initialize_polygons( polygons, WHITE, NULL );
 
@@ -287,65 +382,169 @@ private  void  get_convex_hull(
         handle_internal_error( "get_convex_hull" );
 
     ALLOC( new_indices, n_points );
+    ALLOC( vertices, n_points );
+    ALLOC( poly_vertices, n_points );
 
     for_less( i, 0, n_points )
         new_indices[i] = -1;
 
-    triangle = add_polygon( polygons,
+    n_vertices = get_plane_polygon_vertices( n_points, points, new_indices,
+                 polygons,
                  get_polygon_point_index(polygons,points,new_indices,min_ind),
                  get_polygon_point_index(polygons,points,new_indices,ind),
                  get_polygon_point_index(polygons,points,new_indices,
-                                         second_ind) );
+                                         second_ind), vertices );
+   
+    poly = add_polygon( polygons, n_vertices, vertices );
 
     INITIALIZE_QUEUE( queue );
 
     initialize_hash_table( &edge_table, 2, 1000,
                            ENLARGE_THRESHOLD, NEW_DENSITY );
 
-
-    for_less( i, 0, 3 )
-        add_edge_to_list( &queue, &edge_table, polygons, triangle, i );
+    for_less( i, 0, n_vertices )
+        add_edge_to_list( &queue, &edge_table, polygons, poly, i );
 
     while( !IS_QUEUE_EMPTY( queue ) )
     {
         REMOVE_FROM_QUEUE( queue, entry );
 
-        triangle = entry.triangle;
+        poly = entry.poly;
         edge = entry.edge;
 
-        for_less( i, 0, 3 )
+        get_edge_keys( polygons, poly, edge, keys );
+
+        if( !lookup_in_hash_table( &edge_table, keys, (void **) &edge_ptr ) )
+            handle_internal_error( "Convex hull" );
+
+        if( edge_ptr->ref_count >= 2 )
+            continue;
+
+        size = GET_OBJECT_SIZE( *polygons, poly );
+
+        for_less( i, 0, size )
         {
-            vertex[i] = polygons->indices[
-                            POINT_INDEX(polygons->end_indices,triangle,i)];
+            poly_vertices[i] = polygons->indices[
+                            POINT_INDEX(polygons->end_indices,poly,i)];
         }
 
-        SUB_POINTS( hinge, polygons->points[vertex[edge]],
-                           polygons->points[vertex[(edge+1)%3]] );
-        SUB_POINTS( other, polygons->points[vertex[(edge+2)%3]],
-                           polygons->points[vertex[edge]] );
+        SUB_POINTS( hinge, polygons->points[poly_vertices[edge]],
+                           polygons->points[poly_vertices[(edge+1)%size]] );
+        SUB_POINTS( other, polygons->points[poly_vertices[(edge-1+size)%size]],
+                           polygons->points[poly_vertices[edge]] );
         CROSS_VECTORS( normal, other, hinge );
 
         ind = find_limit_plane( n_points, points,
-                                &polygons->points[vertex[edge]],
+                                &polygons->points[poly_vertices[edge]],
                                 &hinge, &normal );
 
         other_index = get_polygon_point_index(polygons,points,new_indices,ind);
-        new_triangle = add_polygon( polygons,
-                               vertex[edge], other_index, vertex[(edge+1)%3] );
 
-        for_less( i, 0, 3 )
-            add_edge_to_list( &queue, &edge_table, polygons, new_triangle, i );
+        n_vertices = get_plane_polygon_vertices( n_points, points, new_indices,
+                 polygons, poly_vertices[edge], other_index,
+                 poly_vertices[(edge+1)%size], vertices );
+
+        new_poly = add_polygon( polygons, n_vertices, vertices );
+
+        for_less( i, 0, n_vertices )
+            add_edge_to_list( &queue, &edge_table, polygons, new_poly, i );
     }
 
     DELETE_QUEUE( queue );
 
+    initialize_hash_pointer( &hash_ptr );
+
+    while( get_next_hash_entry( &edge_table, &hash_ptr, (void **) &edge_ptr ) )
+    {
+        if( edge_ptr->ref_count != 2 )
+            handle_internal_error( "edge ref count" );
+        FREE( edge_ptr );
+    }
+
     delete_hash_table( &edge_table );
 
     FREE( new_indices );
+    FREE( vertices );
+    FREE( poly_vertices );
 
     if( polygons->n_points > 0 )
     {
         ALLOC( polygons->normals, polygons->n_points );
         compute_polygon_normals( polygons );
     }
+}
+
+private  int  get_convex_hull_2d(
+    int              n_points,
+    Real             x[],
+    Real             y[],
+    int              hull_indices[] )
+{
+    int      i, min_ind, n_in_hull, current_ind, best_ind;
+    Real     dx, dy, best_dx, best_dy, current_angle, angle, best_angle;
+    BOOLEAN  first;
+
+    min_ind = -1;
+    for_less( i, 0, n_points )
+    {
+        if( i == 0 || x[i] < x[min_ind] )
+            min_ind = i;
+        else if( x[i] == x[min_ind] && y[i] < y[min_ind] )
+            min_ind = i;
+    }
+
+    current_angle = 90.0;
+    current_ind = min_ind;
+
+    n_in_hull = 0;
+
+    do
+    {
+        if( n_in_hull >= n_points )
+            handle_internal_error( "get_convex_hull_2d" );
+        hull_indices[n_in_hull] = current_ind;
+        ++n_in_hull;
+
+        best_angle = 0.0;
+        first = TRUE;
+
+        for_less( i, 0, n_points )
+        {
+            dx = x[i] - x[current_ind];
+            dy = y[i] - y[current_ind];
+
+            if( dx == 0.0 && dy == 0.0 )
+                continue;
+
+            angle = RAD_TO_DEG * compute_clockwise_rotation( dx, dy ) -
+                    current_angle;
+            if( angle <= 0.0 )
+                angle += 360.0;
+
+            if( first || angle > best_angle )
+            {
+                best_dx = dx;
+                best_dy = dy;
+                best_ind = i;
+                best_angle = angle;
+                first = FALSE;
+            }
+            else if( angle == best_angle )
+            {
+                if( dx * dx + dy * dy > best_dx * best_dx + best_dy * best_dy )
+                {
+                    best_dx = dx;
+                    best_dy = dy;
+                    best_ind = i;
+                }
+            }
+        }
+
+        current_ind = best_ind;
+        current_angle = RAD_TO_DEG *
+                        compute_clockwise_rotation( best_dx, best_dy );
+    }
+    while( current_ind != min_ind );
+
+    return( n_in_hull );
 }
