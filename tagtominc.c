@@ -19,6 +19,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
+    FILE                 *file;
     Status               status;
     STRING               volume_filename, tag_filename;
     STRING               output_filename;
@@ -26,8 +27,9 @@ int  main(
     STRING               history;
     Volume               volume, new_volume;
     volume_input_struct  volume_input;
-    int                  structure_id, n_tag_points, n_volumes, *structure_ids;
-    Real                 **tags1, **tags2;
+    int                  structure_id, n_tag_points, n_volumes, tag_id;
+    int                  n_used_tag_points;
+    Real                 tags1[N_DIMENSIONS];
     int                  i, x, y, z;
     int                  sizes[N_DIMENSIONS];
 
@@ -64,36 +66,53 @@ int  main(
         {
             for_less( z, 0, sizes[Z] )
             {
-                SET_VOXEL_3D( new_volume, x, y, z, 0.0 );
+                set_volume_voxel_value( new_volume, x, y, z, 0, 0, 0.0 );
             }
         }
     }
 
-    if( input_tag_file( tag_filename, &n_volumes, &n_tag_points,
-                        &tags1, &tags2, NULL, &structure_ids, NULL, NULL )
-                        != OK )
-        return( 1 );
-
-    for_less( i, 0, n_tag_points )
+    if( open_file_with_default_suffix( tag_filename,
+                                       get_default_tag_file_suffix(),
+                                       READ_FILE, ASCII_FORMAT, &file ) != OK ||
+        initialize_tag_file_input( file, &n_volumes ) != OK )
     {
-        if( structure_id < 0 || structure_id == structure_ids[i] )
+        return( 1 );
+    }
+
+    n_tag_points = 0;
+    n_used_tag_points = 0;
+
+    while( input_one_tag( file, n_volumes, tags1, NULL, NULL, &tag_id,
+                          NULL, NULL, NULL ) )
+    {
+        if( structure_id < 0 || structure_id == tag_id )
         {
             convert_world_to_voxel( new_volume,
-                                    tags1[i][X], tags1[i][Y], tags1[i][Z],
-                                    voxel );
+                                    tags1[X], tags1[Y], tags1[Z], voxel );
 
             if( voxel_is_within_volume( new_volume, voxel ) )
             {
                 x = ROUND( voxel[X] );
                 y = ROUND( voxel[Y] );
                 z = ROUND( voxel[Z] );
-                SET_VOXEL_3D( new_volume, x, y, z, structure_ids[i] );
+                set_volume_voxel_value( new_volume, x, y, z, 0, 0,
+                                        (Real) tag_id );
             }
+
+            ++n_used_tag_points;
         }
+        ++n_tag_points;
     }
 
-    free_tag_points( n_volumes, n_tag_points, tags1, tags2, NULL,
-                     structure_ids, NULL, NULL );
+    if( n_tag_points == 0 )
+        print( "File %s contains no tag points.\n", tag_filename );
+    else if( n_used_tag_points == n_tag_points )
+        print( "Converted all %d tags to volume.\n", n_tag_points );
+    else
+    {
+        print( "Converted %d out of %d tags to volume.\n", n_used_tag_points,
+               n_tag_points );
+    }
 
     history = create_string( "Created by:  " );
 
@@ -102,6 +121,7 @@ int  main(
         concat_to_string( &history, " " );
         concat_to_string( &history, argv[i] );
     }
+    concat_to_string( &history, "\n" );
 
     status = output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
                             0.0, 0.0, new_volume, volume_filename, history,
