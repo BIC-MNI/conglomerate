@@ -1,7 +1,7 @@
 #include  <def_mni.h>
 #include  <minc.h>
 
-#define  SCALE_FACTOR   10.0
+#define  SCALE_FACTOR   255.0
 
 private  Boolean  get_next_filename(
     char      *filename[] )
@@ -32,8 +32,11 @@ private  Boolean  get_next_filename(
         }
         else if( get_string_argument( "", &argument ) )
         {
-            if( string_ends_in( argument, get_default_landmark_file_suffix() )||
-                string_ends_in( argument, get_default_tag_file_suffix() ) )
+            if( filename_extension_matches( argument,
+                                get_default_landmark_file_suffix() )||
+                filename_extension_matches( argument,
+                                get_default_tag_file_suffix() ) ||
+                filename_extension_matches( argument, "obj" ) )
             {
                 *filename = argument;
                 found = TRUE;
@@ -64,7 +67,7 @@ private  void  increment_voxel_count(
 
     GET_VOXEL_3D( value, volume, x, y, z );
 
-    value += 1.0;
+    value += SCALE_FACTOR;
 
     if( value > *max_value )
         *max_value = value;
@@ -80,9 +83,10 @@ int  main(
     char                 *input_filename, *landmark_filename, *output_filename;
     Real                 separations[N_DIMENSIONS];
     Real                 voxel[N_DIMENSIONS];
-    Real                 max_value, max_map;
+    Real                 max_value;
     Real                 radius, radius_squared;
     Real                 delta, dx2, dy2, dz2;
+    char                 history[10000];
     String               *filenames;
     bitlist_3d_struct    bitlist;
     Volume               volume, new_volume;
@@ -116,15 +120,14 @@ int  main(
 
     /* --- create the output volume */
 
-    new_volume = create_volume( 3, in_dim_names, NC_SHORT, FALSE, 0.0, 0.0 );
+    new_volume = create_volume( 3, in_dim_names, NC_SHORT, FALSE );
+
     set_volume_size( new_volume, NC_UNSPECIFIED, FALSE, sizes );
-    new_volume->separation[X] = separations[X];
-    new_volume->separation[Y] = separations[Y];
-    new_volume->separation[Z] = separations[Z];
-    new_volume->voxel_to_world_transform = volume->voxel_to_world_transform;
-    new_volume->min_voxel = 0.0;
-    new_volume->value_scale = 1.0;
-    new_volume->value_translation = 0.0;
+
+    set_volume_separations( new_volume, separations );
+    copy_general_transform( get_voxel_to_world_transform(volume),
+                            get_voxel_to_world_transform(new_volume) );
+
     alloc_volume_data( new_volume );
 
     create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &bitlist );
@@ -180,9 +183,9 @@ int  main(
                     {
                         for_less( c, 0, N_DIMENSIONS )
                         {
-                            min_limit = voxel[c] - radius / 2.0 /separations[c];
-                            max_limit = voxel[c] + radius / 2.0 /separations[c];
-                            min_voxel[c] = ROUND( min_limit );
+                            min_limit = voxel[c] - radius / separations[c];
+                            max_limit = voxel[c] + radius / separations[c];
+                            min_voxel[c] = CEILING( min_limit );
                             if( min_voxel[c] < 0 )
                                 min_voxel[c] = 0;
                             max_voxel[c] = (int) max_limit;
@@ -192,17 +195,18 @@ int  main(
 
                         for_inclusive( x, min_voxel[X], max_voxel[X] )
                         {
-                            delta = (Real) x - voxel[X];
+                            delta = ((Real) x - voxel[X]) * separations[X];
                             dx2 = delta * delta;
                             for_inclusive( y, min_voxel[Y], max_voxel[Y] )
                             {
-                                delta = (Real) y - voxel[Y];
+                                delta = ((Real) y - voxel[Y]) * separations[Y];
                                 dy2 = delta * delta;
                                 for_inclusive( z, min_voxel[Z], max_voxel[Z] )
                                 {
-                                    delta = (Real) z - voxel[Z];
+                                    delta = ((Real) z - voxel[Z]) *
+                                            separations[Z];
                                     dz2 = delta * delta;
-                                    if( dx2 + dy2 + dz2 < radius_squared &&
+                                    if( dx2 + dy2 + dz2 <= radius_squared &&
                                         !get_bitlist_bit_3d( &bitlist, x, y, z))
                                     {
                                         increment_voxel_count( new_volume,
@@ -227,23 +231,24 @@ int  main(
 
     n_patients = n_files / 3;
 
-    SET_VOXEL_3D( new_volume, 0, 0, 0, n_patients );
+    SET_VOXEL_3D( new_volume, 0, 0, 0, n_patients * SCALE_FACTOR );
 
-    new_volume->max_voxel = n_patients;
-
-    new_volume->value_translation = 0.0;
-    new_volume->value_scale = 100.0 / new_volume->max_voxel;
+    set_volume_voxel_range( new_volume, 0.0, (Real) n_patients * SCALE_FACTOR );
+    set_volume_real_range( new_volume, 0.0, 100.0 );
 
     cancel_volume_input( volume, &volume_input );
 
     print( "Writing %s\n", output_filename );
 
-    status = output_volume( output_filename, 3, in_dim_names,
-                            sizes, NC_BYTE, FALSE, new_volume );
+    (void) strcpy( history, "Created by:  " );
 
-    status = output_minc_volume( minc_file, new_volume );
+    for_less( i, 0, argc )
+    {
+        (void) strcat( history, " " );
+        (void) strcat( history, argv[i] );
+    }
 
-    status = close_minc_output( minc_file );
+    status = output_volume( output_filename, TRUE, new_volume, history );
 
     return( status != OK );
 }
