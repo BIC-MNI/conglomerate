@@ -391,8 +391,8 @@ private  int  convert_manifold_to_sheet(
     int               *n_neighbours, **neighbours, ind;
     int               p, n_points, poly, new_n_points, *new_ids, neigh_index;
     float             **distances;
-    Real              y, total_length, current_length, north_length;
-    Real              south_length;
+    Real              x, y, total_length, current_length, north_length;
+    Real              south_length, limit, width;
     int               total_neighbours;
     int               *path, path_size;
     int               size, vertex, p1;
@@ -494,6 +494,9 @@ private  int  convert_manifold_to_sheet(
     if( ind != *n_fixed )
         handle_internal_error( "n_fixed" );
 
+    if( getenv( "NO_POLES" ) != NULL )
+        *n_fixed -= n_neighbours[north_pole] - 1 + n_neighbours[south_pole] - 1;
+
     for_less( p, 0, new_n_points )
         fill_Point( (*new_flat_points)[p], 0.5, 0.5, 0.0 );
     fill_Point( (*new_flat_points)[south_pole], 0.5, 0.0, 0.0 );
@@ -504,14 +507,27 @@ private  int  convert_manifold_to_sheet(
         total_length += distance_between_points( &polygons->points[path[p]],
                                                  &polygons->points[path[p+1]] );
 
+    if( getenv("WIDTH") != NULL &&
+        sscanf( getenv("WIDTH"), "%lf", &width) == 1 )
+    {
+        limit = 0.5 - width / 2.0;
+    }
+    else
+        limit = -0.5;
+
     current_length = 0.0;
     for_less( p, 1, path_size-1 )
     {
         current_length += distance_between_points( &polygons->points[path[p-1]],
                                                    &polygons->points[path[p]] );
         y = 1.0 - current_length / total_length;
-        fill_Point( (*new_flat_points)[path[p]], 0.0, y, 0.0 );
-        fill_Point( (*new_flat_points)[new_ids[path[p]]], 1.0, y, 0.0 );
+        if( y >= 0.5 )
+            x = INTERPOLATE( (y - 0.5) / 0.5, limit, 0.5 );
+        else
+            x = INTERPOLATE( y / 0.5, 0.5, limit );
+
+        fill_Point( (*new_flat_points)[path[p]], x, y, 0.0 );
+        fill_Point( (*new_flat_points)[new_ids[path[p]]], 1.0 - x, y, 0.0 );
     }
 
     /*--- around north pole */
