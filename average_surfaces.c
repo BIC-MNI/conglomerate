@@ -1,6 +1,11 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#define DISPLAY_RMS
+
+#undef SIMPLE_TRANSFORMATION
+#define SIMPLE_TRANSFORMATION
+
 private  void  compute_transforms(
     int        n_surfaces,
     int        n_points,
@@ -99,8 +104,10 @@ int  main(
     compute_transforms( n_surfaces, average_polygons->n_points,
                         points_list, transforms );
 
-for_less( i, 0, n_surfaces )
-    print_transform( &transforms[i] );
+#ifdef  PRINT_TRANSFORMS
+    for_less( i, 0, n_surfaces )
+        print_transform( &transforms[i] );
+#endif
 
     create_average_polygons( n_surfaces, average_polygons->n_points,
                              points_list, transforms, average_polygons );
@@ -261,6 +268,11 @@ private  void  create_average_polygons(
     Point  avg;
     Real   x, y, z;
     int    p, s;
+#ifdef DISPLAY_RMS
+    Real   rms, dx, dy, dz;
+
+    rms = 0.0;
+#endif
 
     for_less( p, 0, n_points )
     {
@@ -280,8 +292,30 @@ private  void  create_average_polygons(
 
         SCALE_POINT( polygons->points[p], avg, 1.0/(Real) n_surfaces );
 
+#ifdef DISPLAY_RMS
+        for_less( s, 0, n_surfaces )
+        {
+            transform_point( &transforms[s],
+                             Point_x(points[s][p]),
+                             Point_y(points[s][p]),
+                             Point_z(points[s][p]), &x, &y, &z );
+            dx = (x - Point_x(polygons->points[p]));
+            dy = (y - Point_y(polygons->points[p]));
+            dz = (z - Point_z(polygons->points[p]));
+            rms += dx * dx + dy * dy + dz * dz;
+        }
+#endif	
+
         polygons->colours[p] = WHITE;
     }
+
+#ifdef DISPLAY_RMS
+    rms /= (Real) n_points * (Real) n_surfaces;
+
+    rms = sqrt( rms );
+
+    print( "Rms: %g\n", rms );
+#endif
 }
 
 private  void  print_transform(
