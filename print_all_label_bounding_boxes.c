@@ -77,7 +77,7 @@ int  main(
 
         if( counts[index].count == 0 || yw < counts[index].y_min )
             counts[index].y_min = yw;
-        if( counts[index].count == 0 || xw > counts[index].y_max )
+        if( counts[index].count == 0 || yw > counts[index].y_max )
             counts[index].y_max = yw;
 
         if( counts[index].count == 0 || zw < counts[index].z_min )
