@@ -1,8 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#undef   DEBUG
 #define  DEBUG
+#undef   DEBUG
 
 private  Real  compute_resels(
     polygons_struct   *average_polygons,
@@ -73,6 +73,13 @@ int  main(
     }
 
     print( "N samples: %d %d\n", n_surfaces[0], n_surfaces[1] );
+
+    if( n_surfaces[0] + n_surfaces[1] == 0 )
+    {
+        print_error( "Usage: %s [surfA1.obj] [surfA2.obj] ... + [surfB1.obj] [surfB2.obj]... \n",
+                     argv[0] );
+        return( 1 );
+    }
 
     for_less( i, 0, n_points )
         fill_Point( polygons.points[i], 0.0, 0.0, 0.0 );
@@ -145,7 +152,7 @@ private  void  check_Cholesky(
     for_less( i, 0, N_DIMENSIONS )
     for_less( j, 0, N_DIMENSIONS )
     {
-        prod = 0;
+        prod = 0.0;
         for_less( k, 0, N_DIMENSIONS )
         {
             prod += sqrt_s[k][i] * sqrt_s[k][j];
@@ -211,13 +218,13 @@ private  void  compute_UV(
     for_less( s, 0, n_surfaces[0] )
     {
         for_less( c, 0, 3 )
-            mean1[c] += Point_coord(samples[0][s][point_index],c);
+            mean1[c] += (Real) Point_coord(samples[0][s][point_index],c);
     }
 
     for_less( s, 0, n_surfaces[1] )
     {
         for_less( c, 0, 3 )
-            mean2[c] += Point_coord(samples[1][s][point_index],c);
+            mean2[c] += (Real) Point_coord(samples[1][s][point_index],c);
     }
 
     for_less( c, 0, 3 )
@@ -234,9 +241,9 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = Point_x(samples[0][s][point_index]) - mean1[X];
-        dy = Point_y(samples[0][s][point_index]) - mean1[Y];
-        dz = Point_z(samples[0][s][point_index]) - mean1[Z];
+        dx = (Real) Point_x(samples[0][s][point_index]) - mean1[X];
+        dy = (Real) Point_y(samples[0][s][point_index]) - mean1[Y];
+        dz = (Real) Point_z(samples[0][s][point_index]) - mean1[Z];
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -248,9 +255,9 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = Point_x(samples[1][s][point_index]) - mean2[X];
-        dy = Point_y(samples[1][s][point_index]) - mean2[Y];
-        dz = Point_z(samples[1][s][point_index]) - mean2[Z];
+        dx = (Real) Point_x(samples[1][s][point_index]) - mean2[X];
+        dy = (Real) Point_y(samples[1][s][point_index]) - mean2[Y];
+        dz = (Real) Point_z(samples[1][s][point_index]) - mean2[Z];
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -284,9 +291,9 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = Point_x(samples[0][s][point_index]) - mean1[X];
-        dy = Point_y(samples[0][s][point_index]) - mean1[Y];
-        dz = Point_z(samples[0][s][point_index]) - mean1[Z];
+        dx = (Real) Point_x(samples[0][s][point_index]) - mean1[X];
+        dy = (Real) Point_y(samples[0][s][point_index]) - mean1[Y];
+        dz = (Real) Point_z(samples[0][s][point_index]) - mean1[Z];
 
         for_less( dim, 0, N_DIMENSIONS )
         {
@@ -298,9 +305,9 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = Point_x(samples[1][s][point_index]) - mean2[X];
-        dy = Point_y(samples[1][s][point_index]) - mean2[Y];
-        dz = Point_z(samples[1][s][point_index]) - mean2[Z];
+        dx = (Real) Point_x(samples[1][s][point_index]) - mean2[X];
+        dy = (Real) Point_y(samples[1][s][point_index]) - mean2[Y];
+        dz = (Real) Point_z(samples[1][s][point_index]) - mean2[Z];
 
         for_less( dim, 0, N_DIMENSIONS )
         {
