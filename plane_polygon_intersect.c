@@ -17,7 +17,7 @@ int  main(
     int                  i, axis;
     Point                plane_origin;
     Vector               plane_normal;
-    Real                 position;
+    Real                 position, nx, ny, nz, x, y, z;
     int                  n_objects, n_dest_objects;
     object_struct        **objects, **dest_objects, *object;
 
@@ -26,7 +26,7 @@ int  main(
     if( !get_string_argument( "", &src_polygons_filename ) ||
         !get_string_argument( "", &dest_lines_filename ) )
     {
-        print( "Usage: %s  src_polygons  dest_lines x|y|z position\n", argv[0] );
+        print( "Usage: %s  src_polygons  dest_lines x|y|z|[nx ny nz x y z] [position]\n", argv[0] );
         return( 1 );
     }
 
@@ -38,17 +38,31 @@ int  main(
         axis = (int) (axis_name[0] - 'X');
     else
     {
-        print( "Invalid axis specified.\n" );
-        return( 1 );
+        axis = -1;
     }
 
-    (void) get_real_argument( 0.0, &position );
+    if( axis < 0 )
+    {
+        (void) sscanf( axis_name, "%lf", &nx );
+        (void) get_real_argument( 0.0, &ny );
+        (void) get_real_argument( 0.0, &nz );
+        (void) get_real_argument( 0.0, &x );
+        (void) get_real_argument( 0.0, &y );
+        (void) get_real_argument( 0.0, &z );
 
-    fill_Point( plane_origin, 0.0, 0.0, 0.0 );
-    fill_Vector( plane_normal, 0.0, 0.0, 0.0 );
+        fill_Point( plane_origin, x, y, z );
+        fill_Vector( plane_normal, nx, ny, nz );
+    }
+    else
+    {
+        (void) get_real_argument( 0.0, &position );
 
-    Point_coord( plane_origin, axis ) = position;
-    Vector_coord( plane_normal, axis ) = 1.0;
+        fill_Point( plane_origin, 0.0, 0.0, 0.0 );
+        fill_Vector( plane_normal, 0.0, 0.0, 0.0 );
+
+        Point_coord( plane_origin, axis ) = position;
+        Vector_coord( plane_normal, axis ) = 1.0;
+    }
 
     if( input_graphics_file( src_polygons_filename,
                              &format, &n_objects, &objects ) != OK )

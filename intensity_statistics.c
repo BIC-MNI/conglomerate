@@ -31,11 +31,12 @@ int  main(
     Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
     Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
     Real                 min_xyz_voxel[MAX_DIMENSIONS];
-    Real                 max_xyz_voxel[MAX_DIMENSIONS];
+    Real                 max_xyz_voxel[MAX_DIMENSIONS], voxel1, voxel2;
     Real                 real_v[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
     Real                 min_value, max_value;
+    Real                 median_min, median_max, median_error;
     FILE                 *file;
-    BOOLEAN              dumping, labels_present, first, median_is_exact, done;
+    BOOLEAN              dumping, labels_present, first, done;
     int                  c, n_samples, v[MAX_DIMENSIONS];
     statistics_struct    stats;
 
@@ -51,6 +52,8 @@ int  main(
     dumping = get_string_argument( NULL, &dump_filename ) &&
               !equal_strings( dump_filename, "none" );
     median_required = get_string_argument( NULL, &dummy );
+
+    set_cache_block_sizes_hint( SLICE_ACCESS );
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -158,16 +161,36 @@ int  main(
 
         first_pass = FALSE;
 
-        get_statistics( &stats, &n_samples, &mean, &median, &median_is_exact,
+        get_statistics( &stats, &n_samples, &mean, &median, &median_error,
                         &min_sample_value, &max_sample_value, &std_dev );
 
-        if( median_required && !median_is_exact )
-{
+        done = TRUE;
+
+        if( median_required && median_error > 0.0 )
+        {
+            done = FALSE;
+            if( get_volume_data_type(volume) != FLOAT &&
+                get_volume_data_type(volume) != DOUBLE )
+            {
+                median_min = convert_value_to_voxel( volume,
+                                                     median - median_error );
+                median_max = convert_value_to_voxel( volume,
+                                                     median + median_error );
+
+                median_min = ROUND( median_min );
+                median_max = ROUND( median_max );
+
+                if( median_min == median_max )
+                {
+                    median = convert_voxel_to_value( volume, median_min );
+                    median_error = 0.0;
+                    done = TRUE;
+                }
+            }
+        }
+
+        if( !done )
             restart_statistics_with_narrower_median_range( &stats );
-print( "Repeating.\n" );
-}
-        else
-            done = TRUE;
     }
 
     if( dumping )
@@ -191,7 +214,7 @@ print( "Repeating.\n" );
         print( "Min      : %g\n", min_sample_value );
         print( "Max      : %g\n", max_sample_value );
         print( "Mean     : %g\n", mean );
-        if( median_is_exact )
+        if( median_error == 0.0 )
             print( "Median   : %g\n", median );
         print( "Std Dev  : %g\n", std_dev );
         print( "Voxel Rng:" );
