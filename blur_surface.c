@@ -99,6 +99,7 @@ private  void  generate_neighbours(
     progress_struct  progress;
 
     total_n_neighs = 0;
+    all_neighs = NULL;
 
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Computing Neighbours" );
@@ -233,13 +234,11 @@ private  void  gaussian_blur_points(
         weight = evaluate_gaussian( point_dist, e_const );
 
         for_less( c, 0, N_DIMENSIONS )
-        {
-            sum[c] += weight * Point_coord(polygon_points[neigh],c);
-        }
+            sum[c] += weight * (Real) Point_coord(polygon_points[neigh],c);
 
         sum_weight += weight;
     }
 
     for_less( c, 0, N_DIMENSIONS )
-        Point_coord(*smooth_point,c) = sum[c] / sum_weight;
+        Point_coord(*smooth_point,c) = (Point_coord_type) (sum[c] / sum_weight);
 }
