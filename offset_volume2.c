@@ -39,7 +39,7 @@ int  main(
     int                  i, n_dilations, n_neighs, n_changed, iter;
     int                  range_changed[2][N_DIMENSIONS];
     int                  x, y, z, sizes[N_DIMENSIONS];
-    int                  n_sets, *n_in_set;
+    int                  n_sets, *n_in_set, dx, dy, dz;
     unsigned long        **sets;
     Neighbour_types      connectivity;
 
@@ -77,7 +77,42 @@ int  main(
     n_sets = make_lists_of_required_voxels( volume, ROUND(distance),
                                             &n_in_set, &sets );
 
-    for_inclusive( iter, 1, ROUND(distance) )
+    for_less( x, 1, sizes[X]-1 )
+    {
+        for_less( y, 1, sizes[Y]-1 )
+        {
+            for_less( z, 1, sizes[Z]-1 )
+            {
+                for_inclusive( dx, -1, 1 )
+                {
+                    for_inclusive( dy, -1, 1 )
+                    {
+                        for_inclusive( dz, -1, 1 )
+                        {
+                            if( get_volume_real_value( volume, x+dx, y+dy,
+                                                       z+dz, 0, 0 ) != 0.0 )
+                            break;
+                        }
+                        if( dz <= 1 )
+                            break;
+                    }
+                    if( dy <= 1 )
+                        break;
+                }
+
+                if( dx > 1 )
+                    break;
+            }
+            if( z < sizes[Z]-1 )
+                break;
+        }
+        if( y < sizes[Y]-1 )
+            break;
+    }
+
+    set_volume_real_value( volume, x, y, z, 0, 0, 250.0 );
+
+    for_inclusive( iter, 0, ROUND(distance) )
     {
         expand_layer( volume, iter, n_sets, n_in_set, sets );
     }
@@ -143,6 +178,40 @@ private  void  chamfer_volume(
     }
 }
 
+private  void  get_27_neighbours(
+    Volume          volume,
+    int             x,
+    int             y,
+    int             z,
+    int             neighbours[3][3][3] )
+{
+    int      dx, dy, dz, tx, ty, tz, sizes[N_DIMENSIONS];
+    Real     value;
+
+    get_volume_sizes( volume, sizes );
+
+    for_inclusive( dx, -1, 1 )
+    for_inclusive( dy, -1, 1 )
+    for_inclusive( dz, -1, 1 )
+    {
+        tx = x + dx;
+        ty = y + dy;
+        tz = z + dz;
+
+        if( tx >= 0 && tx < sizes[X] &&
+            ty >= 0 && ty < sizes[Y] &&
+            tz >= 0 && tz < sizes[Z] )
+        {
+            value = get_volume_real_value( volume, tx, ty, tz, 0, 0 );
+            neighbours[dx+1][dy+1][dz+1] = ROUND( value );
+        }
+        else
+        {
+            neighbours[dx+1][dy+1][dz+1] = 255;
+        }
+    }
+}
+
 private  void  count_connected(
     int       cube[3][3][3],
     int       *n_full,
@@ -200,8 +269,8 @@ private  void  count_connected(
         
         cube[x][y][z] = new_id;
         queue[0][0] = x;
-        queue[0][1] = x;
-        queue[0][2] = x;
+        queue[0][1] = y;
+        queue[0][2] = z;
         queue_head = 0;
         queue_tail = 1;
 
@@ -243,38 +312,55 @@ private  void  count_connected(
     }
 }
 
-private  void  get_27_neighbours(
-    Volume          volume,
-    int             x,
-    int             y,
-    int             z,
-    int             neighbours[3][3][3] )
+private BOOLEAN  has_shared_edges(
+    int      cube[3][3][3] )
 {
-    int      dx, dy, dz, tx, ty, tz, sizes[N_DIMENSIONS];
-    Real     value;
+    int   i, da, db;
 
-    get_volume_sizes( volume, sizes );
-
-    for_inclusive( dx, -1, 1 )
-    for_inclusive( dy, -1, 1 )
-    for_inclusive( dz, -1, 1 )
+    for_less( i, 0, 4 )
     {
-        tx = x + dx;
-        ty = y + dy;
-        tz = z + dz;
+        da = -1 + 2 * (i % 2);
+        db = -1 + 2 * (i / 2);
 
-        if( tx >= 0 && tx < sizes[X] &&
-            ty >= 0 && ty < sizes[Y] &&
-            tz >= 0 && tz < sizes[Z] )
-        {
-            value = get_volume_real_value( volume, tx, ty, tz, 0, 0 );
-            neighbours[dx+1][dy+1][dz+1] = ROUND( value );
-        }
-        else
-        {
-            neighbours[dx+1][dy+1][dz+1] = 255;
-        }
+        if( cube[1+da][1+db][1] &&
+            !cube[1+da][1][1] &&
+            !cube[1][1+db][1] )
+            return( TRUE );
+
+        if( cube[1][1+da][1+db] &&
+            !cube[1][1+da][1] &&
+            !cube[1][1][1+db] )
+            return( TRUE );
+
+        if( cube[1+db][1][1+da] &&
+            !cube[1][1][1+da] &&
+            !cube[1+db][1][1] )
+            return( TRUE );
     }
+
+    return( FALSE );
+}
+
+private BOOLEAN  has_shared_corner(
+    int      cube[3][3][3] )
+{
+    int   dx, dy, dz;
+
+    for( dx = -1;  dx <= 1;  dx += 2 )
+    for( dy = -1;  dy <= 1;  dy += 2 )
+    for( dz = -1;  dz <= 1;  dz += 2 )
+    {
+        if( cube[1+dx][1+dy][1+dz] &&
+            !cube[1+dx][1+dy][1] &&
+            !cube[1+dx][1][1+dz] &&
+            !cube[1][1+dy][1+dz] &&
+            !cube[1+dx][1][1] &&
+            !cube[1][1][1+dz] &&
+            !cube[1][1+dy][1] )
+            return( TRUE );
+    }
+
+    return( FALSE );
 }
 
 private  BOOLEAN  check_connectivity(
@@ -294,7 +380,7 @@ private  BOOLEAN  check_connectivity(
     for_less( dy, 0, 3 )
     for_less( dz, 0, 3 )
     {
-        if( cube[dx][dy][dz] != 0 )
+        if( cube[dx][dy][dz] != 250 )
             cube[dx][dy][dz] = 0;
         else
             cube[dx][dy][dz] = 1;
@@ -306,7 +392,10 @@ private  BOOLEAN  check_connectivity(
 
     count_connected( cube, &n_full_after, &n_empty_after );
 
-    return( n_full_before == n_full_after );
+    return( n_full_before == n_full_after &&
+            n_empty_before == n_empty_after &&
+            !has_shared_edges( cube ) &&
+            !has_shared_corner( cube ) );
 }
 
 private  int  get_set_of_possibles(
@@ -442,7 +531,7 @@ private  int  get_set_of_possibles(
             }
         }
 
-#ifndef NOT
+#ifdef NOT
        { int i;
         print( "\n" );
         print( "Voxel: %d %d %d\n", x, y, z );
@@ -601,10 +690,10 @@ private  void  expand_layer(
         for_less( y, 0, sizes[Y] )
         for_less( z, 0, sizes[Z] )
         {
-            get_27_neighbours( volume, x, y, z, neighbours );
-
-            if( neighbours[1][1][1] != iter )
+            if( get_volume_real_value( volume, x, y, z, 0, 0 ) != (Real) iter )
                 continue;
+
+            get_27_neighbours( volume, x, y, z, neighbours );
 
             for_less( dx, 0, 3 )
             {
@@ -612,7 +701,7 @@ private  void  expand_layer(
                 {
                     for_less( dz, 0, 3 )
                     {
-                        if( neighbours[dx][dy][dz] == 0 )
+                        if( neighbours[dx][dy][dz] == 250 )
                             break;
                     }
                     if( dz < 3 )
@@ -627,13 +716,14 @@ private  void  expand_layer(
 
             can_remove = check_connectivity( volume, sizes, x, y, z );
 
-            if( can_remove &&
-                !alone_in_list( n_sets, n_in_set, sets,
-                                IJK( x, y, z, sizes[Y], sizes[Z] ) ) )
+            if( can_remove && (iter == 0 ||
+                  !alone_in_list( n_sets, n_in_set, sets,
+                                IJK( x, y, z, sizes[Y], sizes[Z] ) )) )
             {
-                set_volume_real_value( volume, x, y, z, 0, 0, 0.0 );
-                remove_from_lists( n_sets, n_in_set, sets,
-                                   IJK( x, y, z, sizes[Y], sizes[Z] ) );
+                set_volume_real_value( volume, x, y, z, 0, 0, 250.0 );
+                if( iter > 0 )
+                    remove_from_lists( n_sets, n_in_set, sets,
+                                       IJK( x, y, z, sizes[Y], sizes[Z] ) );
                 ++n_changed;
             }
         }
