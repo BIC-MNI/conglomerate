@@ -52,9 +52,9 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &input_volume_filename ) ||
-        !get_string_argument( "", &output_filename ) ||
-        !get_string_argument( "", &axis_name ) ||
+    if( !get_string_argument( NULL, &input_volume_filename ) ||
+        !get_string_argument( NULL, &output_filename ) ||
+        !get_string_argument( NULL, &axis_name ) ||
         !get_axis_index( axis_name, &axis_index ) ||
         !get_int_argument( 0, &slice_index ) )
     {
