@@ -2,6 +2,15 @@
 #include  <bicpl.h>
 #include  <deform.h>
 
+#undef   USING_FLOAT
+#define  USING_FLOAT
+
+#ifdef USING_FLOAT
+typedef  float  ftype;
+#else
+typedef  Real   ftype;
+#endif
+
 private  void  fit_polygons(
     polygons_struct    *surface,
     polygons_struct    *model_surface,
@@ -134,8 +143,8 @@ private  void  create_model_coefficients(
     int              *neighbours[],
     int              n_parms_involved[],
     int              *parm_list[],
-    Real             constants[],
-    Real             *node_weights[] )
+    ftype            constants[],
+    ftype            *node_weights[] )
 {
     int              node, eq, dim, dim1, n_nodes, n, ind;
     FILE             *file;
@@ -157,7 +166,11 @@ private  void  create_model_coefficients(
         {
             int  p;
 
+#ifdef USING_FLOAT
+            (void) io_float( file, READ_FILE, BINARY_FORMAT, &constants[eq] );
+#else
             (void) io_real( file, READ_FILE, BINARY_FORMAT, &constants[eq] );
+#endif
             (void) io_int( file, READ_FILE, BINARY_FORMAT,
                            &n_parms_involved[eq] );
             ALLOC( parm_list[eq], n_parms_involved[eq] );
@@ -166,8 +179,13 @@ private  void  create_model_coefficients(
             {
                 (void) io_int( file, READ_FILE, BINARY_FORMAT,
                                 &parm_list[eq][p] );
+#ifdef USING_FLOAT
+                (void) io_float( file, READ_FILE, BINARY_FORMAT,
+                                &node_weights[eq][p] );
+#else
                 (void) io_real( file, READ_FILE, BINARY_FORMAT,
                                 &node_weights[eq][p] );
+#endif
             }
         }
         close_file( file );
@@ -222,13 +240,13 @@ private  void  create_model_coefficients(
         if( ignoring )
         {
             n_parms_involved[eq] = 0;
-            constants[eq] = 0.0;
+            constants[eq] = (ftype) 0.0;
             ++eq;
             n_parms_involved[eq] = 0;
-            constants[eq] = 0.0;
+            constants[eq] = (ftype) 0.0;
             ++eq;
             n_parms_involved[eq] = 0;
-            constants[eq] = 0.0;
+            constants[eq] = (ftype) 0.0;
             ++eq;
             continue;
         }
@@ -243,7 +261,7 @@ private  void  create_model_coefficients(
                     ++ind;
             }
 
-            constants[eq] = 0.0;
+            constants[eq] = (ftype) 0.0;
             n_parms_involved[eq] = ind;
 
             ALLOC( parm_list[eq], n_parms_involved[eq] );
@@ -251,7 +269,7 @@ private  void  create_model_coefficients(
 
             ind = 0;
             parm_list[eq][ind] = IJ(node,dim,3);
-            node_weights[eq][ind] = 1.0;
+            node_weights[eq][ind] = (ftype) 1.0;
             ++ind;
 
             for_less( n, 0, n_nn )
@@ -260,7 +278,7 @@ private  void  create_model_coefficients(
                 if( weights[dim][dim1][n] != 0.0 )
                 {
                     parm_list[eq][ind] = IJ(neigh_indices[n],dim1,3);
-                    node_weights[eq][ind] = -weights[dim][dim1][n];
+                    node_weights[eq][ind] = (ftype) -weights[dim][dim1][n];
                     ++ind;
                 }
             }
@@ -281,15 +299,24 @@ private  void  create_model_coefficients(
         {
             int  p;
 
+#ifdef USING_FLOAT
+            (void) io_float( file, WRITE_FILE, BINARY_FORMAT, &constants[eq] );
+#else
             (void) io_real( file, WRITE_FILE, BINARY_FORMAT, &constants[eq] );
+#endif
             (void) io_int( file, WRITE_FILE, BINARY_FORMAT,
                            &n_parms_involved[eq] );
             for_less( p, 0, n_parms_involved[eq] )
             {
                 (void) io_int( file, WRITE_FILE, BINARY_FORMAT,
                                 &parm_list[eq][p] );
+#ifdef USING_FLOAT
+                (void) io_float( file, WRITE_FILE, BINARY_FORMAT,
+                                 &node_weights[eq][p] );
+#else
                 (void) io_real( file, WRITE_FILE, BINARY_FORMAT,
                                 &node_weights[eq][p] );
+#endif
             }
         }
         close_file( file );
@@ -331,8 +358,8 @@ private  void  create_image_coefficients(
     int                         *neighbours[],
     Real                        parameters[],
     int                         *parm_list[],
-    Real                        constants[],
-    Real                        *node_weights[] )
+    ftype                       constants[],
+    ftype                       *node_weights[] )
 {
     int     eq, node, n, n_to_do;
     Real    dist, dx, dy, dz, value;
@@ -372,10 +399,10 @@ private  void  create_image_coefficients(
 
             for_less( n, 0, n_to_do )
             {
-                node_weights[eq][0] = 0.0;
-                node_weights[eq][1] = 0.0;
-                node_weights[eq][2] = 0.0;
-                constants[eq] = dist * dist;
+                node_weights[eq][0] = (ftype) 0.0;
+                node_weights[eq][1] = (ftype) 0.0;
+                node_weights[eq][2] = (ftype) 0.0;
+                constants[eq] = (ftype) (dist * dist);
                 ++eq;
             }
 
@@ -392,10 +419,10 @@ private  void  create_image_coefficients(
         fill_Vector( normal, dx, dy, dz );
         NORMALIZE_VECTOR( normal, normal );
         
-        node_weights[eq][0] = RVector_x(normal);
-        node_weights[eq][1] = RVector_y(normal);
-        node_weights[eq][2] = RVector_z(normal);
-        constants[eq] = -DOT_POINT_VECTOR( p, normal );
+        node_weights[eq][0] = (ftype) RVector_x(normal);
+        node_weights[eq][1] = (ftype) RVector_y(normal);
+        node_weights[eq][2] = (ftype) RVector_z(normal);
+        constants[eq] = (ftype) -DOT_POINT_VECTOR( p, normal );
         ++eq;
 
         if( tangent_weight > 0.0 )
@@ -404,16 +431,18 @@ private  void  create_image_coefficients(
             NORMALIZE_VECTOR( hor, hor );
             NORMALIZE_VECTOR( vert, vert );
 
-            node_weights[eq][0] = tangent_weight * RVector_x(hor);
-            node_weights[eq][1] = tangent_weight * RVector_y(hor);
-            node_weights[eq][2] = tangent_weight * RVector_z(hor);
-            constants[eq] = -tangent_weight * DOT_POINT_VECTOR( p, hor );
+            node_weights[eq][0] = (ftype) (tangent_weight * RVector_x(hor));
+            node_weights[eq][1] = (ftype) (tangent_weight * RVector_y(hor));
+            node_weights[eq][2] = (ftype) (tangent_weight * RVector_z(hor));
+            constants[eq] = (ftype) (-tangent_weight *
+                                     DOT_POINT_VECTOR( p, hor ));
             ++eq;
 
-            node_weights[eq][0] = tangent_weight * RVector_x(vert);
-            node_weights[eq][1] = tangent_weight * RVector_y(vert);
-            node_weights[eq][2] = tangent_weight * RVector_z(vert);
-            constants[eq] = -tangent_weight * DOT_POINT_VECTOR( p, vert );
+            node_weights[eq][0] = (ftype) (tangent_weight * RVector_x(vert));
+            node_weights[eq][1] = (ftype) (tangent_weight * RVector_y(vert));
+            node_weights[eq][2] = (ftype) (tangent_weight * RVector_z(vert));
+            constants[eq] = (ftype) (-tangent_weight *
+                                     DOT_POINT_VECTOR( p, vert ));
             ++eq;
         }
     }
@@ -436,7 +465,7 @@ private  void  fit_polygons(
     int              n_model_equations, n_image_equations;
     int              n_equations, *n_parms_involved, **parm_list;
     int              *n_neighbours, **neighbours, n_image_per_point;
-    Real             *constants, **node_weights;
+    ftype            *constants, **node_weights;
     Real             *parameters;
     boundary_definition_struct  boundary;
 
@@ -471,9 +500,9 @@ private  void  fit_polygons(
     model_weight = sqrt( model_weight );
     for_less( eq, 0, n_model_equations )
     {
-        constants[eq] *= model_weight;
+        constants[eq] *= (ftype) model_weight;
         for_less( n, 0, n_parms_involved[eq] )
-            node_weights[eq][n] *= model_weight;
+            node_weights[eq][n] *= (ftype) model_weight;
     }
 
     for_less( point, 0, n_points )
@@ -529,13 +558,19 @@ private  void  fit_polygons(
     }
 #endif
 
+#ifdef USING_FLOAT
+#define  MINIMIZE_LSQ  minimize_lsq_float
+#else
+#define  MINIMIZE_LSQ  minimize_lsq
+#endif
 
-        (void) minimize_lsq( 3 * n_points, n_equations,
+        (void) MINIMIZE_LSQ( 3 * n_points, n_equations,
                              n_parms_involved, parm_list, constants,
                              node_weights, n_iters_recompute, parameters );
 
         iter += n_iters_recompute;
         print( "########### %d:\n", iter );
+        (void) flush_file( stdout );
     }
 
     for_less( point, 0, n_points )
