@@ -1,8 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  USING_FLOAT
 #undef   USING_FLOAT
+#define  USING_FLOAT
 
 #ifdef USING_FLOAT
 
@@ -26,6 +26,7 @@ typedef  Real   ftype;
 #endif
 
 private  void  flatten_polygons(
+    BOOLEAN          use_prediction_method,
     int              n_points,
     Point            points[],
     int              n_neighbours[],
@@ -41,7 +42,7 @@ int  main(
     char   *argv[] )
 {
     STRING               src_filename, dest_filename, initial_filename;
-    STRING               fixed_filename;
+    STRING               fixed_filename, method_name;
     int                  n_objects, n_i_objects, n_iters;
     int                  n_fixed, *fixed_indices, ind, p, n_points;
     File_formats         format;
@@ -51,18 +52,31 @@ int  main(
     int                  *n_neighbours, **neighbours;
     Smallest_int         *interior_flags;
     FILE                 *file;
+    BOOLEAN              use_prediction_method;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &src_filename ) ||
-        !get_string_argument( NULL, &dest_filename ) )
+        !get_string_argument( NULL, &dest_filename ) ||
+        !get_string_argument( NULL, &method_name ) )
     {
-        print_error( "Usage: %s  input.obj output.obj [n_iters]\n", argv[0] );
+        print_error( "Usage: %s  input.obj output.obj t|p [n_iters]\n", argv[0] );
         print_error( "          [initfile] [fixedfile]\n" );
         return( 1 );
     }
 
     (void) get_int_argument( 100, &n_iters );
+
+    if( method_name[0] == 'p' )
+        use_prediction_method = TRUE;
+    else if( method_name[0] == 't' )
+        use_prediction_method = FALSE;
+    else
+    {
+        print_error( "Usage: %s  input.obj output.obj t|p [n_iters]\n", argv[0] );
+        print_error( "          [initfile] [fixedfile]\n" );
+        return( 1 );
+    }
 
     if( get_string_argument( NULL, &initial_filename ) )
     {
@@ -123,7 +137,7 @@ int  main(
     ALLOC( polygons->points, 1 );
     delete_object_list( n_objects, object_list );
 
-    flatten_polygons( n_points, points,
+    flatten_polygons( use_prediction_method, n_points, points,
                       n_neighbours, neighbours, interior_flags,
                       init_points, n_fixed, fixed_indices, n_iters );
 
@@ -170,6 +184,143 @@ private  void  flatten_around_point(
     FREE( y_flat );
 }
 
+private  void  create_coefficients_prediction_method(
+    int              n_points,
+    Point            points[],
+    int              n_neighbours[],
+    int              **neighbours,
+    Smallest_int     interior_flags[],
+    int              n_fixed,
+    int              fixed_indices[],
+    Real             *fixed_pos[2],
+    int              to_parameters[],
+    int              to_fixed_index[],
+    Real             *constant,
+    ftype            *linear_terms[],
+    ftype            *square_terms[],
+    int              *n_cross_terms[],
+    int              **cross_parms[],
+    ftype            **cross_terms[] )
+{
+    int              node, p, dim, n_nodes_in, n_parameters;
+    int              neigh, *indices, parm;
+    Point            neigh_points[MAX_POINTS_PER_POLYGON];
+    Real             flat[2][MAX_POINTS_PER_POLYGON];
+    Real             *weights[2][2], cons[2], con;
+    Real             *node_weights;
+    BOOLEAN          found, ignoring;
+    progress_struct  progress;
+
+    n_parameters = 2 * (n_points - n_fixed);
+
+    INITIALIZE_LSQ( n_parameters, constant, linear_terms, square_terms,
+                    n_cross_terms, cross_parms, cross_terms );
+
+    ALLOC( weights[0][0], MAX_POINTS_PER_POLYGON );
+    ALLOC( weights[0][1], MAX_POINTS_PER_POLYGON );
+    ALLOC( weights[1][0], MAX_POINTS_PER_POLYGON );
+    ALLOC( weights[1][1], MAX_POINTS_PER_POLYGON );
+
+    initialize_progress_report( &progress, FALSE, n_points,
+                                "Creating coefficients" );
+
+    ALLOC( node_weights, n_parameters );
+    ALLOC( indices, n_parameters );
+
+    for_less( node, 0, n_points )
+    {
+        parm = to_parameters[node];
+        found = (parm >= 0);
+
+        for_less( p, 0, n_neighbours[node] )
+        {
+            if( to_parameters[neighbours[node][p]] >= 0 )
+            {
+                found = TRUE;
+                break;
+            }
+        }
+
+        if( !found || n_neighbours[node] < 2 )
+            continue;
+
+        for_less( p, 0, n_neighbours[node] )
+            neigh_points[p] = points[neighbours[node][p]];
+
+        flatten_around_vertex( &points[node],
+                               n_neighbours[node], neigh_points,
+                               (BOOLEAN) interior_flags[node],
+                               flat[0], flat[1] );
+
+        ignoring = FALSE;
+        if( !get_prediction_weights_2d( 0.0, 0.0, n_neighbours[node],
+                                         flat[0], flat[1],
+                                         weights[0], &cons[0],
+                                         weights[1], &cons[1] ) )
+        {
+            print_error( "Error in interpolation weights, ignoring..\n" );
+            ignoring = TRUE;
+        }
+
+        if( ignoring )
+            continue;
+
+        for_less( dim, 0, 2 )
+        {
+            con = -cons[dim];
+            n_nodes_in = 0;
+            if( to_parameters[node] >= 0 )
+            {
+                indices[n_nodes_in] = IJ(to_parameters[node],dim,2);
+                node_weights[n_nodes_in] = 1.0;
+                ++n_nodes_in;
+            }
+            else
+                con += fixed_pos[dim][to_fixed_index[node]];
+
+            for_less( p, 0, n_neighbours[node] )
+            {
+                neigh = neighbours[node][p];
+                if( to_parameters[neigh] >= 0 )
+                {
+                    indices[n_nodes_in] = IJ(to_parameters[neigh],0,2);
+                    node_weights[n_nodes_in] = -weights[dim][0][p];
+                    ++n_nodes_in;
+
+                    indices[n_nodes_in] = IJ(to_parameters[neigh],1,2);
+                    node_weights[n_nodes_in] = -weights[dim][1][p];
+                    ++n_nodes_in;
+                }
+                else
+                {
+                    con += -weights[dim][0][p] *
+                            fixed_pos[0][to_fixed_index[neigh]]
+                            -weights[dim][1][p] *
+                            fixed_pos[1][to_fixed_index[neigh]];
+                }
+            }
+
+            ADD_TO_LSQ( n_parameters, constant, *linear_terms, *square_terms,
+                        *n_cross_terms, *cross_parms, *cross_terms,
+                        n_nodes_in, indices, node_weights, con, 5 );
+        }
+
+        update_progress_report( &progress, node + 1 );
+    }
+
+    terminate_progress_report( &progress );
+
+    REALLOC_LSQ( n_parameters, *n_cross_terms, *cross_parms, *cross_terms );
+
+    FREE( node_weights );
+    FREE( indices );
+
+    FREE( weights[0][0] );
+    FREE( weights[0][1] );
+    FREE( weights[1][0] );
+    FREE( weights[1][1] );
+}
+
 private  void  create_coefficients(
     int              n_points,
     Point            points[],
@@ -194,7 +345,7 @@ private  void  create_coefficients(
     Real             con, node_weights[6], x, y;
     Real             weights[2][3][2], len;
     Point            *flat;
-    Vector           v12, v13, offset;
+    Vector           v12, v13, v12_rotated;
     BOOLEAN          found;
     progress_struct  progress;
 
@@ -248,9 +399,9 @@ private  void  create_coefficients(
 
             len = DOT_VECTORS( v12, v12 );
             x = DOT_VECTORS( v12, v13 ) / len;
-            SCALE_VECTOR( offset, v12, x );
-            SUB_VECTORS( v13, v13, offset );
-            y = MAGNITUDE( v13 ) / sqrt( len );
+
+            fill_Vector( v12_rotated, -Vector_y(v12), Vector_x(v12), 0.0 );
+            y = DOT_VECTORS( v13, v12_rotated ) / len;
 
             weights[0][0][0] = -1.0 + x;
             weights[0][0][1] = -y;
@@ -268,8 +419,8 @@ private  void  create_coefficients(
 
 #ifdef DEBUG
 {
-
     Real  sum;
+
     for_less( dim, 0, 2 )
     {
         sum = 0.0;
@@ -277,16 +428,10 @@ private  void  create_coefficients(
         for_less( n, 0, 3 )
         for_less( dim2, 0, 2 )
         {
-            if( to_parameters[nodes[n]] >= 0 )
-            {
-                sum += RPoint_coord( points[nodes[n]], dim2 ) *
-                       weights[dim][n][dim2];
-            }
-            else
-            {
-                sum += weights[dim][n][dim2] *
-                       fixed_pos[dim2][to_fixed_index[nodes[n]]];
-            }
+            if( n == 1 )
+                sum += RPoint_coord( flat[nn], dim2 ) * weights[dim][n][dim2];
+            else if( n == 2 )
+                sum += RPoint_coord(flat[next_n],dim2) * weights[dim][n][dim2];
         }
 
         if( sum > 1.0e-3 || sum < -1.0e-3 )
@@ -391,6 +536,10 @@ private  int  choose_static_polygon(
         for_less( which, 0, n_points )
             if( !used_flags[which] )
                 break;
+
+        if( which >= n_points )
+            which = n_points;
+
         print( "Using point %d for start\n", which );
     }
 
@@ -400,6 +549,7 @@ private  int  choose_static_polygon(
 }
 
 private  void  flatten_polygons(
+    BOOLEAN          use_prediction_method,
     int              n_points,
     Point            points[],
     int              n_neighbours[],
@@ -470,10 +620,7 @@ private  void  flatten_polygons(
         alloced_fixed = FALSE;
         ALLOC( fixed_pos[0], n_fixed );
         ALLOC( fixed_pos[1], n_fixed );
-    }
 
-    if( init_points != NULL )
-    {
         for_less( i, 0, n_fixed )
         {
             fixed_pos[0][i] = RPoint_x(init_points[fixed_indices[i]]);
@@ -504,11 +651,23 @@ private  void  flatten_polygons(
         }
     }
 
-    create_coefficients( n_points, points, n_neighbours, neighbours,
-                         interior_flags, n_fixed, fixed_indices, fixed_pos,
-                         to_parameters, to_fixed_index,
-                         &constant, &linear_terms, &square_terms,
-                         &n_cross_terms, &cross_parms, &cross_terms );
+    if( use_prediction_method )
+    {
+        create_coefficients_prediction_method( n_points, points,
+                             n_neighbours, neighbours,
+                             interior_flags, n_fixed, fixed_indices, fixed_pos,
+                             to_parameters, to_fixed_index,
+                             &constant, &linear_terms, &square_terms,
+                             &n_cross_terms, &cross_parms, &cross_terms );
+    }
+    else
+    {
+        create_coefficients( n_points, points, n_neighbours, neighbours,
+                             interior_flags, n_fixed, fixed_indices, fixed_pos,
+                             to_parameters, to_fixed_index,
+                             &constant, &linear_terms, &square_terms,
+                             &n_cross_terms, &cross_parms, &cross_terms );
+    }
 
     ALLOC( parameters, 2 * (n_points - n_fixed) );
 
