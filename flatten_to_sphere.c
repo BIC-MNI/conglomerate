@@ -637,7 +637,7 @@ private  void  flatten_polygons(
 
     (void) minimize_lsq( 3 * (polygons->n_points - n_fixed), n_equations,
                          n_nodes_per_equation, node_list, constants,
-                         node_weights, n_iters, parameters );
+                         node_weights, -1.0, n_iters, parameters );
 
     for_less( point, 0, polygons->n_points )
     {
