@@ -6,7 +6,7 @@ private  void  usage(
 {
     STRING  usage_str = "\n\
 Usage: %s  input.mnc  mask_volume.mnc  output.mnc\n\
-         [min] [max] [correct_label_range]\n\
+         [min] [max] [value_to_set]\n\
 \n\
 \n\
      Changes all voxels in the input volume to the min value, if they\n\
@@ -23,10 +23,11 @@ int  main(
     STRING               volume_filename, mask_volume_filename;
     STRING               output_filename, dummy;
     Real                 mask_value, set_voxel, min_mask, max_mask;
+    Real                 value_to_set;
     int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed;
     progress_struct      progress;
     Volume               volume, mask_volume;
-    BOOLEAN              correct_label_range;
+    BOOLEAN              value_specified;
 
     initialize_argument_processing( argc, argv );
 
@@ -40,16 +41,12 @@ int  main(
 
     (void) get_real_argument( 0.0, &min_mask );
     (void) get_real_argument( 0.0, &max_mask );
-
-    correct_label_range = get_string_argument( "", &dummy );
+    value_specified = get_real_argument( 0.0, &value_to_set );
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
-
-    if( correct_label_range )
-        set_label_volume_real_range( volume );
 
     mask_volume = create_label_volume( volume, NC_UNSPECIFIED );
 
@@ -59,7 +56,11 @@ int  main(
         return( 1 );
 
     get_volume_sizes( volume, sizes );
-    set_voxel = get_volume_voxel_min( volume );
+
+    if( value_specified )
+        set_voxel = convert_value_to_voxel( volume, value_to_set );
+    else
+        set_voxel = get_volume_voxel_min( volume );
 
     n_changed = 0;
 

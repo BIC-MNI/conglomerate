@@ -54,7 +54,7 @@ private  Volume  convert_pixels_to_volume(
     int            n_slices,
     pixels_struct  pixels[] )
 {
-    int      i, x, y, z, c, sizes[4];
+    int      i, x, y, z, sizes[4];
     int      r, g, b;
     static   char  *dim_names[] = { MIxspace, MIyspace, MIzspace,
                                     MIvector_dimension };
