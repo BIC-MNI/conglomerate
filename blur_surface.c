@@ -7,6 +7,7 @@ private  void  generate_neighbours(
     int               *neighbours[] );
 
 private  void  gaussian_blur_offset(
+    int               n_polygon_points,
     Point             points[],
     int               n_neighbours[],
     int               *neighbours[],
@@ -84,7 +85,8 @@ int  main(
 
     for_less( i, 0, polygons->n_points )
     {
-        gaussian_blur_offset( polygons->points, n_neighbours, neighbours,
+        gaussian_blur_offset( polygons->n_points, polygons->points,
+                              n_neighbours, neighbours,
                               avg->points, i, fwhm, distance,
                               &smooth_points[i] );
 
@@ -164,6 +166,7 @@ private  Real  evaluate_gaussian(
 #define  MAX_NEIGHBOURS   10000
 
 int  get_points_within_dist(
+    int               n_polygon_points,
     Point             polygon_points[],
     int               n_neighbours[],
     int               *neighbours[],
@@ -171,13 +174,20 @@ int  get_points_within_dist(
     Real              dist,
     int               *points[] )
 {
-    int      current_index, n_points, p, neigh;
-    int      i, j;
+    int           current_index, n_points, p, neigh;
+    int           i, j;
+    Smallest_int  *done_flags;
 
     n_points = 0;
     current_index = 0;
 
+    ALLOC( done_flags, n_polygon_points );
+
+    for_less( i, 0, n_polygon_points )
+        done_flags[i] = FALSE;
+
     ADD_ELEMENT_TO_ARRAY( *points, n_points, point_index, DEFAULT_CHUNK_SIZE );
+    done_flags[point_index] = TRUE;
 
     while( current_index < n_points )
     {
@@ -188,29 +198,28 @@ int  get_points_within_dist(
         {
             neigh = neighbours[p][i];
 
+            if( done_flags[neigh] )
+                continue;
+
+            done_flags[neigh] = TRUE;
+
             if( distance_between_points( &polygon_points[point_index],
                                          &polygon_points[neigh] ) <=
                 dist )
             {
-                for_less( j, 0, n_points )
-                {
-                    if( (*points)[j] == neigh )
-                        break;
-                }
-
-                if( j == n_points )
-                {
-                    ADD_ELEMENT_TO_ARRAY( *points, n_points, neigh,
-                                          DEFAULT_CHUNK_SIZE );
-                }
+                ADD_ELEMENT_TO_ARRAY( *points, n_points, neigh,
+                                      DEFAULT_CHUNK_SIZE );
             }
         }
     }
+
+    FREE( done_flags );
 
     return( n_points );
 }
 
 private  void  gaussian_blur_offset(
+    int               n_polygon_points,
     Point             polygon_points[],
     int               n_neighbours[],
     int               *neighbours[],
@@ -223,7 +232,8 @@ private  void  gaussian_blur_offset(
     Real   sum[3], weight, sum_weight, offset, point_dist, e_const;
     int    i, c, n_points, *points, neigh;
 
-    n_points = get_points_within_dist( polygon_points, n_neighbours, neighbours,
+    n_points = get_points_within_dist( n_polygon_points, polygon_points,
+                                       n_neighbours, neighbours,
                                        point_index, dist * fwhm, &points );
 
     sum[0] = 0.0;
