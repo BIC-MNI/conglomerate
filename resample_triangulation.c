@@ -41,13 +41,16 @@ private   void   resample_mesh(
     Real              min_size,
     Real              max_size );
 
+private  void  set_mesh_points(
+    tri_mesh_struct   *mesh,
+    int               n_points,
+    Point             points[] );
+
 private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  input.obj|input.msh  output.obj  output.msh min_size max_size\n\
-\n\
-    or %s  -copy model.obj|model.msh  input.obj  output.obj min_size max_size\n\
+Usage: %s  input.obj|input.msh  model.obj input.obj output.msh output.obj min_size max_size\n\
 \n\
      Subdivides the triangular mesh.\n\h";
 
@@ -71,26 +74,26 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( NULL, &first_arg ) )
+    if( !get_string_argument( NULL, &input_mesh_filename ) ||
+        !get_string_argument( NULL, &model_filename ) ||
+        !get_string_argument( NULL, &input_filename ) ||
+        !get_string_argument( NULL, &output_mesh_filename ) ||
+        !get_string_argument( NULL, &output_filename ) ||
+        !get_real_argument( 0.0, &min_size ) ||
+        !get_real_argument( 0.0, &max_size ) )
     {
         usage( argv[0] );
         return( 1 );
     }
 
-    if( equal_strings( first_arg, "-copy" ) )
+    if( filename_extension_matches( input_mesh_filename, "msh" );
     {
-        if( !get_string_argument( NULL, &model_filename ) ||
-            !get_string_argument( NULL, &input_filename ) ||
-            !get_string_argument( NULL, &output_filename ) ||
-            !get_real_argument( 0.0, &min_size ) ||
-            !get_real_argument( 0.0, &max_size ) )
-        {
-            usage( argv[0] );
+        if( input_triangular_mesh( input_mesh_filename, BINARY_FORMAT,
+                                   &mesh ) != OK )
             return( 1 );
-        }
-
-        output_mesh_filename = NULL;
-
+    }
+    else
+    {
         if( input_graphics_file( input_filename, &format, &n_objects,
                                  &object_list ) != OK ||
             n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
@@ -101,74 +104,40 @@ int  main(
 
         polygons = get_polygons_ptr( object_list[0] );
 
-        points = polygons->points;
-        ALLOC( polygons->points, 1 );
+        convert_polygons_to_mesh( polygons, &mesh );
 
         delete_object_list( n_objects, object_list );
-
-        input_mesh_specified = filename_extension_matches( model_filename,
-                                                           "msh" );
-
-        if( input_mesh_specified )
-        {
-            if( input_triangular_mesh( model_filename, BINARY_FORMAT,
-                                       &mesh, points ) != OK )
-                return( 1 );
-        }
-        else
-        {
-            if( input_graphics_file( model_filename, &format, &n_objects,
-                                     &object_list ) != OK ||
-                n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
-            {
-                print_error( "Error in model file.\n" );
-                return( 1 );
-            }
-
-            polygons = get_polygons_ptr( object_list[0] );
-
-            convert_polygons_to_mesh( polygons, &mesh, points );
-
-            delete_object_list( n_objects, object_list );
-        }
     }
-    else
+
+    if( input_graphics_file( model_filename, &format, &n_objects,
+                             &object_list ) != OK ||
+        n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
     {
-        input_filename = first_arg;
-        if( !get_string_argument( NULL, &output_filename ) ||
-            !get_string_argument( NULL, &output_mesh_filename ) ||
-            !get_real_argument( 0.0, &min_size ) ||
-            !get_real_argument( 0.0, &max_size ) )
-        {
-            usage( argv[0] );
-            return( 1 );
-        }
-
-        input_mesh_specified = filename_extension_matches( input_filename, "msh" );
-
-        if( input_mesh_specified )
-        {
-            if( input_triangular_mesh( input_filename, BINARY_FORMAT,
-                                       &mesh, NULL ) != OK )
-                return( 1 );
-        }
-        else
-        {
-            if( input_graphics_file( input_filename, &format, &n_objects,
-                                     &object_list ) != OK ||
-                n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
-            {
-                print_error( "Error in input file.\n" );
-                return( 1 );
-            }
-
-            polygons = get_polygons_ptr( object_list[0] );
-
-            convert_polygons_to_mesh( polygons, &mesh, NULL );
-
-            delete_object_list( n_objects, object_list );
-        }
+        print_error( "Error in input file.\n" );
+        return( 1 );
     }
+
+    if( !set_mesh_model_points( &mesh,
+                                get_polygons_ptr(object_list[0])->n_points,
+                                get_polygons_ptr(object_list[0])->points ) )
+        return( 1 );
+
+    delete_object_list( n_objects, object_list );
+
+    if( input_graphics_file( input_filename, &format, &n_objects,
+                             &object_list ) != OK ||
+        n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
+    {
+        print_error( "Error in input file.\n" );
+        return( 1 );
+    }
+
+    if( !set_mesh_points( &mesh,
+                          get_polygons_ptr(object_list[0])->n_points,
+                          get_polygons_ptr(object_list[0])->points ) )
+        return( 1 );
+
+    delete_object_list( n_objects, object_list );
 
     resample_mesh( &mesh, min_size, max_size );
 
@@ -182,9 +151,8 @@ int  main(
 
     (void) output_graphics_file( output_filename, format, 1, &object );
 
-    if( output_mesh_filename != NULL )
-        (void) output_triangular_mesh( output_mesh_filename, BINARY_FORMAT,
-                                       &mesh );
+    (void) output_triangular_mesh( output_mesh_filename, BINARY_FORMAT,
+                                   &mesh );
 
     return( 0 );
 }
