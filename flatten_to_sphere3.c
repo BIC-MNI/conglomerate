@@ -124,7 +124,9 @@ private  Real  evaluate_fit(
         dy = y - yc;
         dz = z - zc;
 
-        fit += sphere_weight * (dx * dx + dy * dy + dz * dz);
+        diff = dx * dx + dy * dy + dz * dz;
+
+        fit += sphere_weight * diff * diff;
     }
 
     return( fit );
@@ -193,11 +195,12 @@ private  void  evaluate_fit_derivative(
 
             xc /= (Real) n_neighbours[p];
             diff = xc - parameters[IJ(p,dim,3)];
-            deriv[IJ(p,dim,3)] += sphere_weight * -2.0 * diff * 1.0;
+            diff = diff * diff * diff;
+            deriv[IJ(p,dim,3)] += sphere_weight * -4.0 * diff * 1.0;
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
-                deriv[IJ(neigh,dim,3)] += sphere_weight * 2.0 * diff /
+                deriv[IJ(neigh,dim,3)] += sphere_weight * 4.0 * diff /
                                           (Real) n_neighbours[p];
             }
         }
@@ -271,9 +274,16 @@ private  void  evaluate_fit_along_line(
                 line_coefs[1] += delta[IJ(neigh,dim,3)] * weight;
             }
 
+            line_coefs[2] = line_coefs[1] * line_coefs[1];
+            line_coefs[1] = 2.0 * line_coefs[1] * line_coefs[0];
+            line_coefs[0] = line_coefs[0] * line_coefs[0];
+
             coefs[0] += sphere_weight * line_coefs[0] * line_coefs[0];
-            coefs[1] += sphere_weight * 2.0 * line_coefs[0] * line_coefs[1];
-            coefs[2] += sphere_weight * line_coefs[1] * line_coefs[1];
+            coefs[1] += sphere_weight * 2.0 * line_coefs[1] * line_coefs[0];
+            coefs[2] += sphere_weight * 2.0 * (line_coefs[2] * line_coefs[0] +
+                               line_coefs[1] * line_coefs[1]);
+            coefs[3] += sphere_weight * 2.0 * line_coefs[2] * line_coefs[1];
+            coefs[4] += sphere_weight * line_coefs[2] * line_coefs[2];
         }
     }
 }
