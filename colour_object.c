@@ -60,7 +60,7 @@ int  main(
         return( 1 );
     }
 
-    (void) get_string_argument( "GREY", &under_colour_name );
+    (void) get_string_argument( "BLACK", &under_colour_name );
     (void) get_string_argument( "WHITE", &over_colour_name );
 
     if( !lookup_colour( under_colour_name, &under_colour ) ||
