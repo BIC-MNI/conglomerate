@@ -181,6 +181,8 @@ int  main(
     set_volume_voxel_range( volume, min_t, max_t );
     set_volume_real_range( volume, min_t, max_t );
 
+    create_t_integral( min_t, max_t );
+
     for_less( i, 0, ni )
     for_less( j, 0, nj )
     {
