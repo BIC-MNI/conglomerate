@@ -170,6 +170,42 @@ bin_PROGRAMS = \
 	volume_object_evaluate
 
 
+AUTOMAKE_OPTIONS = check-news
+ACLOCAL_AMFLAGS = -I m4
+
+EXTRA_DIST = $(extra_headers) $(m4_files)
+
+# These headers are used in one or more of the source files.
+# Eventually the relevant _SOURCES lines should contain the header
+# files.  Until then, this explicit list allows us to build a distribution.
+extra_headers = \
+	conjugate_grad.h \
+	conjugate_grad_prototypes.h \
+	conjugate_min.h \
+	conjugate_min_prototypes.h \
+	deform.h \
+	deform_prototypes.h \
+	interval.h \
+	line_min_prototypes.h \
+	mi_label_prototypes.h \
+	minc_labels.h \
+	sp_geom_prototypes.h \
+	special_geometry.h \
+	tri_mesh.h
+
+
+m4_files = \
+	m4/mni_REQUIRE_LIB.m4 \
+	m4/mni_REQUIRE_MNILIBS.m4 \
+	m4/mni_REQUIRE_OPENINVENTOR.m4 \
+	m4/mni_cxx_have_koenig_lookup.m4 \
+	m4/smr_OPTIONAL_LIB.m4 \
+	m4/smr_REQUIRED_LIB.m4 \
+	m4/smr_WITH_BUILD_PATH.m4
+
+
+
+
 add_labels_SOURCES =  add_labels.c minc_labels.c
 add_surfaces_SOURCES =  add_surfaces.c
 #analyze_grid_SOURCES =  analyze_grid.c
@@ -476,37 +512,6 @@ two_surface_resample_SOURCES =  two_surface_resample.c
 #volume_colour_SOURCES =  volume_colour.c
 #voxelate_landmarks_SOURCES =  voxelate_landmarks.c
 #zoom_gradient_SOURCES =  zoom_gradient.c
-
-
-
-#EXTRA_INC = -I/usr/people/neelin/src/minc/progs/Proglib
-#EXTRA_L = -L /usr/people/neelin/src/minc/progs/Proglib
-
-#mincresample.c resample_volumes.c_SOURCES = 
-#	$(CC) -c $(CFLAGS) $(EXTRA_INC) $<
-
-#mincresample.u resample_volumes.u_SOURCES = 
-#	$(CC) -c -O3 $(CFLAGS) $(EXTRA_INC) $< -j
-
-#mincresample_SOURCES =  mincresample.c resample_volumes.c thin_plate_spline.c
-#	$(CC) $(LFLAGS) mincresample.c resample_volumes.c thin_plate_spline.c \
-#                           $(EXTRA_L) -lmincprog $(LIBS) -o $@
-
-#mincresample-O3_SOURCES =  mincresample.u resample_volumes.u thin_plate_spline.u
-#	$(CC) -O3 $(LFLAGS) mincresample.u resample_volumes.u thin_plate_spline.u \
-#                           $(EXTRA_L) -lmincprog $(LIBS-O3) -o $@
-
-#mincresample.pixie_SOURCES =  mincresample
-#	pixie -o $@ mincresample
-
-#mincresample-O3.pixie_SOURCES =  mincresample-O3
-#	pixie -o $@ mincresample-O3
-
-#prof.mincresample_SOURCES =  mincresample.pixie Makefile
-#	prof -quit 100 -pixie -h -p mincresample >&! $@
-
-#prof.mincresample-O3_SOURCES =  mincresample-O3.pixie Makefile
-#	prof -quit 100 -pixie -h -p mincresample-O3 >&! $@
 
 
 

@@ -1,5 +1,13 @@
 2001-10-28  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
+	* mincresample.c:
+	* mincresample.h: Removed.  Was a 1996 version of the files from
+	MINC.
+
+	* Makefile.am: Removed all traces of mincresample.  Add 
+	AUTOMAKE_OPTIONS, ACLOCAL_AMFLAGS and EXTRA_DIST so that
+	"make distcheck" works.
+
 	* tagtominc.c (main): Bugfix.  Pass tag_id as the structure
 	ID list, not the patient ID list.
 
