@@ -29,15 +29,14 @@ int  main( argc, argv )
     Real              min_isovalue, max_isovalue, gradient_threshold;
     Real              model_weight, min_curvature_offset, max_curvature_offset;
     Real              angle, tolerance, max_distance;
-    int               nx, ny, nz;
+    int               nx, ny, nz, sizes[N_DIMENSIONS];
     deform_struct     deform;
     FILE              *file;
     File_formats      file_format;
     int               n_objects;
     object_struct     **object_list;
-    Volume            volume, tmp;
+    Volume            volume, label_volume, tmp;
     polygons_struct   *polygons;
-    static char       *dim_names[] = { MIxspace, MIyspace, MIzspace };
 
     initialize_argument_processing( argc, argv );
 
@@ -87,7 +86,12 @@ int  main( argc, argv )
 
     deform.deform_data.type = VOLUME_DATA;
 
-    status = input_volume( volume_filename, dim_names, FALSE, &volume );
+    status = input_volume( volume_filename, 3, XYZ_dimension_names,
+                           NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE,
+                           &volume, (minc_input_options *) NULL );
+
+    get_volume_sizes( volume, sizes );
+    label_volume = create_label_volume( 3, sizes );
 
     if( strcmp( activity_filename, "none" ) != 0 )
     {
@@ -95,8 +99,7 @@ int  main( argc, argv )
                                         READ_FILE, BINARY_FORMAT, &file );
 
         if( status == OK )
-            status = io_volume_auxiliary_bit( file, READ_FILE,
-                                              volume, ACTIVE_BIT );
+            status = io_volume_activity_bit( file, READ_FILE, volume );
 
         status = close_file( file );
     }
@@ -111,6 +114,7 @@ int  main( argc, argv )
     }
 
     deform.deform_data.volume = volume;
+    deform.deform_data.label_volume = label_volume;
 
     if( status == OK )
     {
