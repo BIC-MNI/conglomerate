@@ -1,6 +1,8 @@
 #include  <def_mni.h>
 #include  <minc.h>
 
+#define  SCALE_FACTOR   10.0
+
 private  Boolean  get_next_filename(
     char      *filename[] )
 {
@@ -80,11 +82,11 @@ int  main(
     Real                 separations[N_DIMENSIONS];
     Real                 voxel[N_DIMENSIONS];
     Real                 max_value, radius, radius_squared;
-    Real                 delta, dx2, dy2, dz2;
+    Real                 delta, dx2, dy2, dz2, value;
     bitlist_3d_struct    bitlist;
     Volume               volume, output_volume;
     volume_input_struct  volume_input;
-    int                  n_objects;
+    int                  n_objects, n_patients;
     object_struct        **object_list;
     int                  i, x, y, z;
     int                  sizes[N_DIMENSIONS];
@@ -133,6 +135,7 @@ int  main(
                 SET_VOXEL_3D( output_volume, x, y, z, 0.0 );
 
     max_value = 0.0;
+    n_patients = 0;
 
     while( get_next_filename( &landmark_filename ) )
     {
@@ -144,6 +147,8 @@ int  main(
 
         if( status != OK )
             return( 1 );
+
+        ++n_patients;
 
         for_less( i, 0, n_objects )
         {
@@ -213,14 +218,31 @@ int  main(
 
     delete_bitlist_3d( &bitlist );
 
-    output_volume->max_value = max_value;
+    for_less( x, 0, sizes[X] )
+    {
+        for_less( y, 0, sizes[Y] )
+        {
+            for_less( z, 0, sizes[Z] )
+            {
+                GET_VOXEL_3D( value, output_volume, x, y, z );
+                value = ROUND( 100.0 * value / (Real) n_patients / 3.0 * SCALE_FACTOR );
+                SET_VOXEL_3D( output_volume, x, y, z, value );
+            }
+        }
+    }
+
+    value = ROUND( 100.0 * SCALE_FACTOR );
+    SET_VOXEL_3D( output_volume, 0, 0, 0, value );
+
+    output_volume->max_value = 100.0 * 255.0 / (Real) n_patients / 3.0 * SCALE_FACTOR;
 
     cancel_volume_input( volume, &volume_input );
 
     print( "Writing %s\n", output_filename );
 
     minc_file = initialize_minc_output( output_filename, 3, in_dim_names,
-                                    sizes, NC_BYTE, FALSE, 0.0, max_value,
+                                    sizes, NC_BYTE, FALSE, 0.0,
+                                    output_volume->max_value,
                                     &output_volume->voxel_to_world_transform );
 
     status = output_minc_volume( minc_file, output_volume );
