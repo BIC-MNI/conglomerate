@@ -118,7 +118,7 @@ private  void  box_filter_volume(
     Volume   volume,
     Real     filter_widths[] )
 {
-    int   dim, n_dims, voxel[MAX_DIMENSIONS], blurring_dim;
+    int   v, dim, n_dims, voxel[MAX_DIMENSIONS], blurring_dim, n;
     int   sizes[MAX_DIMENSIONS], max_size;
     int   start[MAX_DIMENSIONS];
     int   end[MAX_DIMENSIONS];
@@ -128,7 +128,7 @@ private  void  box_filter_volume(
     n_dims = get_volume_n_dimensions( volume );
     get_volume_sizes( volume, sizes );
 
-    get_volume_real_range( volume, &volume_min, &volume_max );
+    get_volume_voxel_range( volume, &volume_min, &volume_max );
 
     max_size = 0;
     for_less( dim, 0, n_dims )
@@ -158,6 +158,7 @@ private  void  box_filter_volume(
 
         end[blurring_dim] = 0;
         count[blurring_dim] = sizes[blurring_dim];
+        n = sizes[blurring_dim];
 
         for_inclusive( voxel[0], start[0], end[0] )
         for_inclusive( voxel[1], start[1], end[1] )
@@ -165,7 +166,7 @@ private  void  box_filter_volume(
         for_inclusive( voxel[3], start[3], end[3] )
         for_inclusive( voxel[4], start[4], end[4] )
         {
-            get_volume_value_hyperslab( volume, voxel[0], voxel[1], voxel[2],
+            get_volume_voxel_hyperslab( volume, voxel[0], voxel[1], voxel[2],
                                         voxel[3], voxel[4],
                                         count[0], count[1], count[2],
                                         count[3], count[4], values );
@@ -173,17 +174,18 @@ private  void  box_filter_volume(
             box_filter_1d( sizes[blurring_dim], values, output,
                            filter_widths[blurring_dim] );
 
-            for_less( voxel[blurring_dim], 0, sizes[blurring_dim] )
+            for_less( v, 0, n )
             {
-                value = output[voxel[blurring_dim]];
-                if( value < volume_min )
-                    value = volume_min;
-                else if( value > volume_max )
-                    value = volume_max;
-
-                set_volume_real_value( volume, voxel[0], voxel[1], voxel[2],
-                                       voxel[3], voxel[4], value );
+                if( output[v] < volume_min )
+                    output[v] = volume_min;
+                else if( output[v] > volume_max )
+                    output[v] = volume_max;
             }
+
+            set_volume_voxel_hyperslab( volume, voxel[0], voxel[1], voxel[2],
+                                        voxel[3], voxel[4],
+                                        count[0], count[1], count[2],
+                                        count[3], count[4], output );
 
             voxel[blurring_dim] = 0;
         }
