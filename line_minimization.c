@@ -3,7 +3,7 @@
 
 #define  SEARCH_RATIO           5.0
 #define  GOLDEN_RATIO   0.618034
-#define  DEFAULT_STEP           1.0e-30
+#define  DEFAULT_STEP           1.0e-10
 
 private  Real  evaluate_along_line(
     int      n_parameters,
@@ -50,10 +50,18 @@ public  BOOLEAN  minimize_along_line(
     else
         step = domain_tolerance;
 
-    t1 = step;
-    f1 = evaluate_along_line( n_parameters, parameters, line_direction,
-                              t1, test_parameters,
-                              function, function_data );
+    do
+    {
+        t1 = step;
+        f1 = evaluate_along_line( n_parameters, parameters, line_direction,
+                                  t1, test_parameters,
+                                  function, function_data );
+
+        step *= search_ratio;
+    }
+    while( f1 == f0 );
+
+    step /= 2.0;
 
     if( f1 > f0 )
     {
