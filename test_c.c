@@ -67,7 +67,7 @@ int  main(
     STRING     bit_pattern, out_filename;
     Real       prob_on;
     BOOLEAN    bit, expected;
-    int        seed;
+    int        seed, n_correct;
 
     initialize_argument_processing( argc, argv );
 
@@ -85,30 +85,36 @@ int  main(
     if( open_file( out_filename, WRITE_FILE, BINARY_FORMAT, &file ) != OK )
         return( 1 );
 
+    n_correct = 0;
+
     while( get_bit( &bit ) )
     {
         expected = get_random_0_to_1() < prob_on;
 
         if( bit == expected )
+            ++n_correct;
+
+        if( n_correct == 2 || bit != expected && n_correct > 0 )
         {
-            if( !get_bit( &bit ) )
-                break;
-
-            expected = get_random_int( 2 );
-
-            if( bit == expected )
-                output_bit( TRUE );
-            else
+            if( n_correct == 2 )
             {
-                output_bit( FALSE );
-                output_bit( TRUE );
+                output_bit( 1 );
+            }
+            else if( n_correct == 1 )
+            {
+                output_bit( 0 );
+                output_bit( 1 );
             }
         }
-        else
+
+        if( bit != expected && (n_correct == 0 || n_correct == 2) )
         {
-            output_bit( FALSE );
-            output_bit( FALSE );
+            output_bit( 0 );
+            output_bit( 0 );
         }
+
+        if( n_correct == 2 || bit != expected && n_correct > 0 )
+            n_correct = 0;
     }
 
     flush_bits();
