@@ -144,7 +144,7 @@ private  Real  evaluate_fit(
     Real   *fit2 )
 {
     int   node, p, i;
-    Real  val, dist, diff, f1, f2;
+    Real  val, diff, f1, f2, avg, avg_dist;
 
     f1 = 0.0;
 
@@ -162,18 +162,19 @@ private  Real  evaluate_fit(
 
     for_less( node, 0, n_nodes )
     {
+        avg = 0.0;
+        avg_dist = 0.0;
         for_less( p, 0, n_neighbours[node] )
         {
-            if( neighbours[node][p] < node )
-                continue;
-
-            dist = (Real) distances[node][p] / total_length;
-            diff = smooth_weight *
-                   (node_values[node] - node_values[neighbours[node][p]]) /
-                   dist;
-
-            f2 += diff * diff;
+            avg += node_values[neighbours[node][p]];
+            avg_dist += (Real) distances[node][p];
         }
+
+        avg_dist /= (Real) n_neighbours[node] * total_length;
+        diff = smooth_weight *
+               (node_values[node] - avg / (Real) n_neighbours[node]) /
+               avg_dist;
+        f2 += diff * diff;
     }
 
     if( fit1 != NULL ) *fit1 = f1;
@@ -199,8 +200,8 @@ private  void  fast_minimize_nodes(
     Point  nodes[],
     Real   node_values[] )
 {
-    int                    p, i, which, neigh_index;
-    Real                   linear, constant, dist, a, b;
+    int                    p, i, which, neigh_index, current_node;
+    Real                   linear, constant, a, b, avg_dist;
 
     a = 0.0;
     b = 0.0;
@@ -233,15 +234,37 @@ private  void  fast_minimize_nodes(
         b += 2.0 * linear * constant;
     }
 
-    for_less( neigh_index, 0, n_neighbours[node] )
+    for_less( which, 0, 1 + n_neighbours[node] )
     {
-        dist = (Real) distances[node][neigh_index] / total_length;
+        if( which == n_neighbours[node] )
+        {
+            current_node = node;
+            linear = 1.0;
+            constant = 0.0;
+        }
+        else
+        {
+            current_node = neighbours[node][which];
+            linear = 0.0;
+            constant = node_values[current_node];
+        }
 
-        linear = smooth_weight / dist;
+        avg_dist = 0.0;
+        for_less( neigh_index, 0, n_neighbours[current_node] )
+            avg_dist += (Real) distances[current_node][neigh_index];
+        avg_dist /= (Real) n_neighbours[node] * total_length;
 
-        constant = -smooth_weight *
-                       node_values[neighbours[node][neigh_index]] / dist;
+        for_less( neigh_index, 0, n_neighbours[current_node] )
+        {
+            if( neighbours[current_node][neigh_index] == node )
+                linear -= 1.0 / (Real) n_neighbours[current_node];
+            else
+                constant -= node_values[neighbours[current_node][neigh_index]] /
+                                (Real) n_neighbours[current_node];
+        }
 
+        linear *= smooth_weight / avg_dist;
+        constant *= smooth_weight / avg_dist;
         a += linear * linear;
         b += 2.0 * linear * constant;
     }
@@ -252,6 +275,7 @@ private  void  fast_minimize_nodes(
     node_values[node] = -b / (2.0*a);
 }
 
+#ifdef OLD
 private  void  minimize_nodes(
     int    n_node_indices,
     int    node_indices[],
@@ -332,19 +356,15 @@ private  void  minimize_nodes(
             neigh_position = p;
             neigh_also_in_list = (p < n_node_indices);
 
-
-            if( neighbours[node][neigh_index] < node && neigh_also_in_list )
-                continue;
-
-            dist = (Real) distances[node][neigh_index] / total_length;
-
             for_less( p, 0, n_node_indices )
                 coefs[p] = 0.0;
 
-            coefs[n] = smooth_weight / dist;
+dist = 0.0;
+
+            coefs[n] = smooth_weight;
             if( neigh_also_in_list )
             {
-                coefs[neigh_position] = -smooth_weight / dist;
+                coefs[neigh_position] = -smooth_weight;
                 constant = 0.0;
             }
             else
@@ -365,6 +385,7 @@ private  void  minimize_nodes(
 
     FREE( coefs );
 }
+#endif
 
 #define  INCREMENT  1.0e-4
 
@@ -385,7 +406,7 @@ private  void  minimize_cost(
     int    *neighbours[],
     int    max_neighbours )
 {
-    int     node, list[10000], n, n_to_do;
+    int     node;
 /*
     Real    fit0, fit1, fit2, fit3, save, fa, fb;
 */
@@ -400,6 +421,7 @@ private  void  minimize_cost(
                              node_values, NULL, NULL );
 */
 
+#ifdef OLD
         n_to_do = 1;
         list[0] = node;
 
@@ -418,12 +440,14 @@ private  void  minimize_cost(
         }
 
         if( n_to_do == 1 )
+#endif
         {
             fast_minimize_nodes( node, n_neighbours, neighbours,
                 interp_weight, smooth_weight,
                 n_interp_points, n_weights, weights, weighted_points,
                 values, distances, total_length, n_nodes, nodes, node_values );
         }
+#ifdef OLD
         else
         {
             minimize_nodes( n_to_do, list, n_neighbours, neighbours,
@@ -434,6 +458,7 @@ private  void  minimize_cost(
 
         if( n_to_do == n_nodes )
             break;
+#endif
 
 /*
         save = node_values[node];
@@ -570,7 +595,7 @@ private  void   create_surface_interpolation(
     }
 
     interp_weight = 1.0 / (Real) n_points / std_dev;
-    smooth_weight = smoothness;
+    smooth_weight = smoothness / (Real) polygons->n_points;
 
     interp_weight = sqrt( interp_weight );
     smooth_weight = sqrt( smooth_weight );
