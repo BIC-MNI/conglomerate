@@ -308,15 +308,18 @@ private  void  generate_screen_points(
     Point       screen_points[] )
 {
     int   i;
-    Real  u, v, distance;
+    Real  u, v, w;
 
     for_less( i, 0, n_points )
     {
         transform_point( transform, Point_x(world_points[i]),
                          Point_y(world_points[i]), Point_z(world_points[i]),
-                         &u, &v, &distance );
+                         &u, &v, &w );
 
-        fill_Point( screen_points[i], u, v, 0.0 );
+        if( w == 0.0 )
+            handle_internal_error( "generate_screen_points" );
+
+        fill_Point( screen_points[i], u / w, v / w, 0.0 );
     }
 }
 
@@ -379,7 +382,11 @@ private  void  normalize_transform(
         return;
     }
 
-    for_less( i, 0, 4 )
+/*
+    max_value = Transform_elem( *t, 3, 3 );
+*/
+
+    for_less( i, 0, 3 )
         for_less( j, 0, 4 )
             Transform_elem(*t,i,j) /= max_value;
 }
