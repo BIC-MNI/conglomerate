@@ -11,7 +11,7 @@ int  main(
     int                v[MAX_DIMENSIONS];
     int                n_dims, sizes[MAX_DIMENSIONS];
     Colour             colour;
-    int                x, y;
+    int                x, y, a1, a2;
     pixels_struct      pixels;
     minc_input_options options;
 
@@ -25,9 +25,21 @@ int  main(
     }
 
     set_default_minc_input_options( &options );
+    set_minc_input_vector_to_scalar_flag( &options, FALSE );
+    set_minc_input_vector_to_colour_flag( &options, FALSE );
+
+    if( input_volume_header_only( input_filename, -1,
+                                  File_order_dimension_names,
+                                  &volume, &options ) != OK )
+        return( 1 );
+
+    n_dims = get_volume_n_dimensions(volume) - 1;
+    delete_volume( volume );
+
+    set_default_minc_input_options( &options );
     set_minc_input_vector_to_colour_flag( &options, TRUE );
 
-    if( input_volume( input_filename, -1, File_order_dimension_names,
+    if( input_volume( input_filename, n_dims, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, &options ) != OK )
         return( 1 );
@@ -41,7 +53,10 @@ int  main(
     n_dims = get_volume_n_dimensions( volume );
     get_volume_sizes( volume, sizes );
 
-    initialize_pixels( &pixels, 0, 0, sizes[n_dims-2], sizes[n_dims-1],
+    a1 = 0;
+    a2 = 1;
+
+    initialize_pixels( &pixels, 0, 0, sizes[a1], sizes[a2],
                         1.0, 1.0, RGB_PIXEL );
 
     v[0] = 0;
@@ -50,12 +65,12 @@ int  main(
     v[3] = 0;
     v[4] = 0;
 
-    for_less( x, 0, sizes[n_dims-2] )
+    for_less( x, 0, sizes[a1] )
     {
-        v[n_dims-2] = x;
-        for_less( y, 0, sizes[n_dims-1] )
+        v[a1] = x;
+        for_less( y, 0, sizes[a2] )
         {
-            v[n_dims-1] = x;
+            v[a2] = y;
             colour = (Colour) get_volume_real_value( volume,
                             v[0], v[1], v[2], v[3], v[4] );
 
