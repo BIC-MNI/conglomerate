@@ -4,6 +4,12 @@
 
 #define  N_PARAMS   12
 
+private  void  transform_to_screen(
+    Transform   *t,
+    Point       *world_point,
+    Real        *u,
+    Real        *v );
+
 private  BOOLEAN  compute_perspective_transform(
     int        n_points,
     Point      screen_points[],
@@ -46,8 +52,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    int         n_iters, n_points, i, n_tries, n_correct;
-    Real        tolerance, error;
+    FILE        *file;
+    BOOLEAN     file_present;
+    char        *points_filename;
+    int         n_iters, n_points, i, n_tries, n_correct, u, v;
+    Real        tolerance, error, x, y, z, test_u, test_v;
     Transform   true_transform, test_transform;
     Point       *screen_points, *world_points;
 
@@ -61,17 +70,57 @@ int  main(
     (void) get_int_argument( 20, &n_points );
     (void) get_real_argument( 1.0e-3, &tolerance );
 
-    ALLOC( screen_points, n_points );
-    ALLOC( world_points, n_points );
+    if( get_string_argument( "", &points_filename ) )
+    {
+        file_present = TRUE;
+        if( open_file( points_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+            return( 1 );
+
+        (void) input_int( file, &n_points );
+
+        ALLOC( screen_points, n_points );
+        ALLOC( world_points, n_points );
+
+        for_less( i, 0, n_points )
+        {
+            (void) input_int( file, &u );
+            (void) input_int( file, &v );
+
+            fill_Point( screen_points[i], (Real) u, (Real) v, 0.0 );
+        }
+
+        for_less( i, 0, n_points )
+        {
+            (void) input_real( file, &x );
+            (void) input_real( file, &y );
+            (void) input_real( file, &z );
+
+            fill_Point( world_points[i], x, y, z );
+        }
+
+        close_file( file );
+
+        n_iters = 1;
+    }
+    else
+    {
+        file_present = FALSE;
+
+        ALLOC( screen_points, n_points );
+        ALLOC( world_points, n_points );
+    }
 
     n_correct = 0;
 
     for_less( i, 0, n_iters )
     {
-        generate_points( n_points, world_points );
-        generate_transform( &true_transform );
-        generate_screen_points( n_points, world_points, &true_transform,
-                                error, screen_points );
+        if( !file_present )
+        {
+            generate_points( n_points, world_points );
+            generate_transform( &true_transform );
+            generate_screen_points( n_points, world_points, &true_transform,
+                                    error, screen_points );
+        }
 
         if( !compute_perspective_transform( n_points, screen_points,
                                             world_points, n_tries,
@@ -81,24 +130,65 @@ int  main(
             return( 1 );
         }
 
-        normalize_transform( &true_transform );
-        normalize_transform( &test_transform );
-
-        if( !transforms_close( &test_transform, &true_transform, tolerance ) )
+        if( file_present )
         {
-            print( "\n------------------- error --------------------\n" );
-            print_transform( "True: ", &true_transform );
-            print_transform( "Test: ", &test_transform );
+            print_transform( "Solution: ", &test_transform );
         }
         else
-            ++n_correct;
+        {
+            normalize_transform( &test_transform );
+            normalize_transform( &true_transform );
+
+            if( !transforms_close( &test_transform, &true_transform, tolerance))
+            {
+                print( "\n------------------- error --------------------\n" );
+                print_transform( "True: ", &true_transform );
+                print_transform( "Test: ", &test_transform );
+            }
+            else
+                ++n_correct;
+
+#ifdef DEBUG
+            for_less( i, 0, n_points )
+            {
+                transform_to_screen( &test_transform, &world_points[i],
+                                     &test_u, &test_v );
+
+                print( "%2d: %g %g  === %g %g\n",
+                       i,
+                       Point_x(screen_points[i]),
+                       Point_y(screen_points[i]),
+                       test_u, test_v );
+            }
+#endif
+        }
     }
 
-    if( n_correct == n_iters )
-        print( "All %d transformations correctly solved.\n", n_iters );
+    if( !file_present )
+    {
+        if( n_correct == n_iters )
+            print( "All %d transformations correctly solved.\n", n_iters );
+        else
+            print( "Solved %d out of %d transformations correctly.\n",
+                   n_correct, n_iters );
+    }
     else
-        print( "Solved %d out of %d transformations correctly.\n",
-               n_correct, n_iters );
+    {
+        for_less( i, 0, n_points )
+        {
+            transform_to_screen( &test_transform, &world_points[i],
+                                 &test_u, &test_v );
+
+            print( "%2d: %g %g  === %g %g   world %g %g %g\n",
+                   i,
+                   Point_x(screen_points[i]),
+                   Point_y(screen_points[i]),
+                   test_u, test_v,
+                   Point_x(world_points[i]),
+                   Point_y(world_points[i]),
+                   Point_z(world_points[i]) );
+        }
+    }
 
     FREE( screen_points );
     FREE( world_points );
@@ -363,7 +453,7 @@ private  void  generate_transform(
 
     set_transform_origin( transform, &origin );
 
-    make_scale_transform( 1.0, 1.0, 1.0 + drand48() * 10.0,
+    make_scale_transform( 100000.0, 100000.0, 1.0 + drand48() * 10.0,
                           &scale_transform );
 
     concat_transforms( transform, transform, &scale_transform );
@@ -464,4 +554,20 @@ private  void  normalize_transform(
     for_less( i, 0, 3 )
         for_less( j, 0, 4 )
             Transform_elem(*t,i,j) /= max_value;
+}
+
+private  void  transform_to_screen(
+    Transform   *t,
+    Point       *world_point,
+    Real        *u,
+    Real        *v )
+{
+    Real  x, y, z;
+
+    transform_point( t, Point_x(*world_point),
+                     Point_y(*world_point),
+                     Point_z(*world_point), &x, &y, &z );
+
+    *u = x / z;
+    *v = y / z;
 }
