@@ -256,7 +256,7 @@ private  void  create_2d_coordinates(
     check_polygons_neighbours_computed( polygons );
 
     create_polygon_point_neighbours( polygons, TRUE, &n_neighbours,
-                                     &neighbours, NULL );
+                                     &neighbours, NULL, NULL );
 
     (void) compute_distances_from_point( polygons, n_neighbours, neighbours,
                                          &polygons->points[north_pole],
@@ -302,7 +302,8 @@ private  void  create_2d_coordinates(
 
     terminate_progress_report( &progress );
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours, NULL );
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     NULL, NULL );
 
 #ifdef DEBUG
     write_values_to_file( "vertical.txt", polygons->n_points, vertical );
