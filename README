@@ -1,0 +1,48 @@
+		make_slice
+		----------
+
+  make_slice in.mnc out.obj  x|y|z  v|w pos [xt] [yt]
+
+The file in.mnc sets the coordinate systems.  The output
+consists of a polygon or quadmesh in the plane "X=pos" 
+(Y=pos, Z=pos, respectively), in either the voxel or
+world coordinate system depending on the 4th parameter.
+The optional parameters "xt" and "yt" specify the number
+of rows and columns in the mesh; the values "2 2" are
+the most useful.
+
+
+
+		create_grid
+		-----------
+
+  create_grid out.obj x|y|z slice_position [x|y|z line_position] ...
+
+The file out.obj consists of a set of lines in the specified plane
+X=slice_position (or Y= or Z=).  The set of lines desired are
+specified in the following pairs of arguments.
+
+
+
+		set_line_width
+		--------------
+
+  set_line_width in.obj out.obj [thickness]
+
+Copies in.obj to out.obj, changing the thickness of any
+LINES objects found.  The default thickness is 1.0.
+
+
+
+		set_object_colour
+		-----------------
+
+  set_object_colour in.obj out.obj colour_name
+
+Copies in.obj to out.obj changing the colour of each object
+in the file.
+
+  set_object_colour in.obj
+
+Prints the colour of each object in the file.
+

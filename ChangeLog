@@ -1,3 +1,18 @@
+2001-10-28  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* tagtominc.c (main): Bugfix.  Pass tag_id as the structure
+	ID list, not the patient ID list.
+
+	* README: New.  Describes the usage of some of these
+	utilities.
+
+	* TODO:
+	* NEWS: New.
+
+	* configure.ac: Use AC_PROG_LIBTOOL instead of AM_.
+
+	* autogen.sh: Add explanatory text if directory m4 is not present.
+
 2001-10-22  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* *.c: Replace <internal_volume_io.h> by

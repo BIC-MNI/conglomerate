@@ -1,0 +1,11 @@
+	New in Release 1.0
+	------------------
+
+* A configure script to ease building the tools.
+
+* surface_mask2 changed to force inclusion of object boundaries
+  FIXME: need user-level description; is it a bug fix or feature change?
+
+* Bug fixes:
+  - tagtominc now correctly interprets the structure_id parameter
+

@@ -94,7 +94,7 @@ int  main(
 
     limits[0][0] = 0;
 
-    while( input_one_tag( file, n_volumes, tags1, NULL, NULL, NULL, &tag_id,
+    while( input_one_tag( file, n_volumes, tags1, NULL, NULL, &tag_id, NULL,
                           &label, NULL ) )
     {
         if( structure_id < 0 || structure_id == tag_id )
