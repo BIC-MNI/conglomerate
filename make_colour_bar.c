@@ -7,16 +7,21 @@
 #define  GREEN_STRING      "green"
 #define  BLUE_STRING       "blue"
 
+#define  SCALE 100.0
+
 int  main(
     int    argc,
     char   *argv[] )
 {
-    Real                 min_limit, max_limit, width, value, y;
+    Real                 min_limit, max_limit, width, tick_width, value, y;
+    Real                 scale;
     STRING               output_filename;
     STRING               under_colour_name, over_colour_name;
     int                  p, n_steps, point_index0, point_index1;
-    object_struct        *object;
+    object_struct        **object_list;
     quadmesh_struct      *quadmesh;
+    Point                point;
+    lines_struct         *lines;
     Colour               under_colour, over_colour;
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
@@ -35,6 +40,8 @@ int  main(
         print_error(
             "Usage: %s  output.obj gray|hot|spectral min low high max\n",
             argv[0]  );
+        print_error( "   [under_col]  [over_col]  [n_steps]  \n" );
+        print_error( "   [width] [tick_width] [scale]\n" );
         return( 1 );
     }
 
@@ -43,6 +50,8 @@ int  main(
 
     (void) get_int_argument( 1000, &n_steps );
     (void) get_real_argument( 0.03, &width );
+    (void) get_real_argument( 0.01, &tick_width );
+    (void) get_real_argument( SCALE, &scale );
 
     if( equal_strings( coding_type_string, GRAY_STRING ) )
         coding_type = GRAY_SCALE;
@@ -72,8 +81,12 @@ int  main(
     initialize_colour_coding( &colour_coding, coding_type,
                               under_colour, over_colour, low, high );
 
-    object = create_object( QUADMESH );
-    quadmesh = get_quadmesh_ptr( object );
+    ALLOC( object_list, 2 );
+
+    object_list[0] = create_object( QUADMESH );
+    quadmesh = get_quadmesh_ptr( object_list[0] );
+    object_list[1] = create_object( LINES );
+    lines = get_lines_ptr( object_list[1] );
 
     initialize_quadmesh( quadmesh, WHITE, NULL, 2, n_steps );
 
@@ -92,15 +105,51 @@ int  main(
         quadmesh->colours[point_index1] = get_colour_code(
                                                 &colour_coding, value );
 
-        fill_Point( quadmesh->points[point_index0], 0.0, y, 0.0 );
-        fill_Point( quadmesh->points[point_index1], width, y, 0.0 );
+        fill_Point( quadmesh->points[point_index0], 0.0, scale * y, 0.0 );
+        fill_Point( quadmesh->points[point_index1], scale * width,
+                    scale * y, 0.0 );
 
         fill_Vector( quadmesh->normals[point_index0], 0.0, 0.0, 1.0 );
         fill_Vector( quadmesh->normals[point_index1], 0.0, 0.0, 1.0 );
     }
 
+    initialize_lines( lines, WHITE );
+
+    REALLOC( lines->colours, 4 );
+    lines->colour_flag = PER_ITEM_COLOURS;
+    lines->colours[0] = WHITE;
+    lines->colours[1] = GREEN;
+    lines->colours[2] = GREEN;
+    lines->colours[3] = WHITE;
+
+    start_new_line( lines );
+    fill_Point( point, scale * width, 0.0, 0.0 );
+    add_point_to_line( lines, &point );
+    fill_Point( point, scale * (width + tick_width), 0.0, 0.0 );
+    add_point_to_line( lines, &point );
+
+    y = (low - min_limit) / (max_limit - min_limit);
+    start_new_line( lines );
+    fill_Point( point, scale * width, scale * y, 0.0 );
+    add_point_to_line( lines, &point );
+    fill_Point( point, scale * (width + tick_width), scale * y, 0.0 );
+    add_point_to_line( lines, &point );
+
+    y = (high - min_limit) / (max_limit - min_limit);
+    start_new_line( lines );
+    fill_Point( point, scale * width, scale * y, 0.0 );
+    add_point_to_line( lines, &point );
+    fill_Point( point, scale * (width + tick_width), scale * y, 0.0 );
+    add_point_to_line( lines, &point );
+
+    start_new_line( lines );
+    fill_Point( point, scale * width, scale * 1.0, 0.0 );
+    add_point_to_line( lines, &point );
+    fill_Point( point, scale * (width + tick_width), scale * 1.0, 0.0 );
+    add_point_to_line( lines, &point );
+
     (void) output_graphics_file( output_filename, BINARY_FORMAT,
-                                 1, &object );
+                                 2, object_list );
 
     return( 0 );
 }
