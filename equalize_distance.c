@@ -80,6 +80,11 @@ int  main(
                               src_objects ) != OK )
         return( 1 );
 
+    delete_object_list( n_src_objects, src_objects );
+    delete_object_list( n_model_objects, model_objects );
+
+    output_alloc_to_file( NULL );
+
     return( 0 );
 }
 
@@ -805,6 +810,12 @@ private  void  reparameterize(
         }
     }
 
+    get_errors( original->n_points, n_neighbours, neighbours,
+                new_points, model_lengths, &max_error, &avg_error );
+
+    print( "Initial Avg error: %g\t", avg_error );
+    print( "Initial Max error: %g\n\n", max_error );
+
     if( method == 0 )
     {
         reparameterize_by_minimization( original, model, n_neighbours,
@@ -841,4 +852,5 @@ private  void  reparameterize(
     FREE( model_lengths );
     FREE( new_points );
     FREE( original_points );
+    FREE( which_triangle );
 }
