@@ -3,6 +3,24 @@
 
 #include  "ParseArgv.h"
 
+/* argument defaults */
+int                  degrees_continuity = 0; /* default: linear */
+
+/* the argument table */
+ArgvInfo argTable[] = {
+  { "-linear", ARGV_CONSTANT, (char *) 0, 
+    (char *) &degrees_continuity,
+    "Use linear interpolation (Default)." },
+  { "-nearest_neighbour", ARGV_CONSTANT, (char *) -1, 
+    (char *) &degrees_continuity,
+    "Use nearest neighbour interpolation." },
+  { "-cubic", ARGV_CONSTANT, (char *) 2,
+    (char *) &degrees_continuity,
+        "Use cubic interpolation." },
+  
+  { NULL, ARGV_END, NULL, NULL, NULL }
+};
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -16,24 +34,6 @@ int  main(
     object_struct        **objects;
     Real                 value;
     FILE                 *file;
-
-    /* argument defaults */
-    int                  degrees_continuity = 0; /* default: linear */
-
-    /* the argument table */
-    ArgvInfo argTable[] = {
-      { "-linear", ARGV_CONSTANT, (char *) 0, 
-        (char *) &degrees_continuity,
-        "Use linear interpolation (Default)." },
-      { "-nearest_neighbour", ARGV_CONSTANT, (char *) -1, 
-        (char *) &degrees_continuity,
-        "Use nearest neighbour interpolation." },
-      { "-cubic", ARGV_CONSTANT, (char *) 2,
-        (char *) &degrees_continuity,
-        "Use cubic interpolation." },
-
-      { NULL, ARGV_END, NULL, NULL, NULL }
-    };
 
     /* Call ParseArgv */
     if ( ParseArgv( &argc, argv, argTable, 0 ) || ( argc != 4 ) ) {
