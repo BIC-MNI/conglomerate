@@ -9,16 +9,26 @@ int  main(
     int               x, y;
     pixels_struct     pixels;
     Colour            col;
-    Real              r, g, b, strength;
+    Real              r, g, b, a;
+    Real              r_scale, g_scale, b_scale, a_scale;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &input_filename ) ||
         !get_string_argument( NULL, &output_filename ) ||
-        !get_real_argument( 0.0, &strength ) )
+        !get_real_argument( 0.0, &r_scale ) )
     {
         print( "Usage: %s input.rgb output.rgb  strength\n", argv[0] );
         return( 1 );
+    }
+
+    if( !get_real_argument( 0.0, &g_scale ) ||
+        !get_real_argument( 0.0, &b_scale ) ||
+        !get_real_argument( 0.0, &a_scale ) )
+    {
+        g_scale = r_scale;
+        b_scale = r_scale;
+        a_scale = 1.0;
     }
 
     if( input_rgb_file( input_filename, &pixels ) != OK )
@@ -35,10 +45,11 @@ int  main(
         for_less( y, 0, pixels.y_size )
         {
             col = PIXEL_RGB_COLOUR(pixels,x,y);
-            r = get_Colour_r_0_1( col );
-            g = get_Colour_g_0_1( col );
-            b = get_Colour_b_0_1( col );
-            col = make_Colour_0_1( r * strength, g * strength, b * strength );
+            r = r_scale * get_Colour_r_0_1( col );
+            g = g_scale * get_Colour_g_0_1( col );
+            b = b_scale * get_Colour_b_0_1( col );
+            a = a_scale * get_Colour_a_0_1( col );
+            col = make_rgba_Colour_0_1( r, g, b, a );
             PIXEL_RGB_COLOUR(pixels,x,y) = col;
         }
     }
