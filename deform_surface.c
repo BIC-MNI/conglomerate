@@ -33,7 +33,6 @@ int  main( argc, argv )
     Real              model_weight, min_curvature_offset, max_curvature_offset;
     Real              angle, tolerance, max_distance;
     Real              separations[N_DIMENSIONS];
-    int               sizes[N_DIMENSIONS];
     Real              x_filter_width, y_filter_width, z_filter_width;
     int               i, n_models, up_to_n_points;
     deform_struct     deform;
@@ -120,9 +119,7 @@ int  main( argc, argv )
 
     if( strcmp( activity_filename, "none" ) != 0 )
     {
-        get_volume_sizes( volume, sizes );
-
-        label_volume = create_label_volume( 3, sizes );
+        label_volume = create_label_volume( volume );
 
         status = open_file_with_default_suffix( activity_filename, "act",
                                         READ_FILE, BINARY_FORMAT, &file );
@@ -137,11 +134,12 @@ int  main( argc, argv )
     {
         get_volume_separations( volume, separations );
 
-        x_filter_width /= separations[X];
-        y_filter_width /= separations[Y];
-        z_filter_width /= separations[Z];
+        x_filter_width /= ABS( separations[X] );
+        y_filter_width /= ABS( separations[Y] );
+        z_filter_width /= ABS( separations[Z] );
 
-        tmp = create_box_filtered_volume( volume, x_filter_width,
+        tmp = create_box_filtered_volume( volume, NC_BYTE, FALSE, 0.0, 0.0,
+                                          x_filter_width,
                                           y_filter_width, z_filter_width );
 
         if( label_volume != (Volume) NULL )
