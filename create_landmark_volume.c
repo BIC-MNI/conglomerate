@@ -1,15 +1,18 @@
 #include  <def_mni.h>
 #include  <minc.h>
 
+private  void  print_ellipse_parameters( Point *, Point * );
+
 int  main(
     int   argc,
     char  *argv[] )
 {
     Status               status;
     char                 *input_filename, *landmark_filename, *output_filename;
-    char                 *sphere_filename;
     Real                 separations[N_DIMENSIONS];
     Real                 voxel[N_DIMENSIONS];
+    Boolean              first;
+    Point                min_point, max_point;
     Volume               volume, output_volume;
     volume_input_struct  volume_input;
     int                  n_objects;
@@ -47,7 +50,7 @@ int  main(
     alloc_volume_data( output_volume );
 
     output_volume->min_value = 0.0;
-    output_volume->max_value = 1.0;
+    output_volume->max_value = 255.0;
     output_volume->value_scale = 1.0;
     output_volume->value_translation = 0.0;
     output_volume->separation[X] = separations[X];
@@ -65,6 +68,8 @@ int  main(
     if( status != OK )
         return( 1 );
 
+    first = TRUE;
+
     initialize_progress_report( &progress, FALSE, n_objects, "Voxelating" );
 
     for_less( i, 0, n_objects )
@@ -81,7 +86,18 @@ int  main(
             if( voxel_is_within_volume( output_volume, voxel ) )
             {
                 SET_VOXEL_3D( output_volume, ROUND(voxel[X]),
-                              ROUND(voxel[Y]), ROUND(voxel[Z]), 1.0 );
+                              ROUND(voxel[Y]), ROUND(voxel[Z]), 255.0 );
+                if( first )
+                {
+                    min_point = marker->position;
+                    max_point = marker->position;
+                    first = FALSE;
+                }
+                else
+                {
+                    apply_point_to_min_and_max( &marker->position,
+                                                &min_point, &max_point );
+                }
             }
             else
                 print( "Landmark[%d] outside volume: %g %g %g\n", i,
@@ -98,12 +114,34 @@ int  main(
     print( "Writing %s\n", output_filename );
 
     minc_file = initialize_minc_output( output_filename, 3, out_dim_names,
-                                    sizes, NC_BYTE, FALSE, 0.0, 1.0,
+                                    sizes, NC_BYTE, FALSE, 0.0, 255.0,
                                     &output_volume->voxel_to_world_transform );
 
     status = output_minc_volume( minc_file, output_volume );
 
     status = close_minc_output( minc_file );
 
+    print_ellipse_parameters( &min_point, &max_point );
+
     return( status != OK );
+}
+
+private  void  print_ellipse_parameters(
+    Point   *min_point,
+    Point   *max_point )
+{
+    int     c;
+    Real    radius[N_DIMENSIONS];
+    Point   centroid;
+
+    INTERPOLATE_POINTS( centroid, *min_point, *max_point, 0.5 );
+
+    for_less( c, 0, N_DIMENSIONS )
+    {
+        radius[c] = 2.0 * (Point_coord(*max_point,c) - Point_coord(centroid,c));
+    }
+
+    print( "%g %g %g %g %g %g\n",
+           Point_x(centroid), Point_y(centroid), Point_z(centroid),
+           radius[X], radius[Y], radius[Z] );
 }
