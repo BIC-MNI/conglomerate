@@ -8,13 +8,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    int    D, n, v;
+    int    D, m, n, v;
     Real   resels, t, p, t1, t2, t3;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_real_argument( 0.0, &resels ) ||
         !get_int_argument( 0, &D ) ||
+        !get_int_argument( 0, &m ) ||
         !get_int_argument( 0, &n ) ||
         !get_real_argument( 0.0, &t ) )
     {
@@ -22,8 +23,11 @@ int  main(
         return( 1 );
     }
 
+    t = t * (1.0 / (Real) m + 1.0 / (Real) n);
 
-    v = n - D - 1;
+    v = n + m - 2 - D - 1;
+
+    t = t * (Real) v / (Real)(m + n - 2) / (Real) D;
 
     t1 = resels * 4.0 * log(2.0) / 2.0 / PI;
     t2 = gamma_func( (Real) (v+D-2)/2.0 ) /
