@@ -7,6 +7,7 @@ private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
     int               method,
+    int               grid_size,
     Real              ratio,
     Real              movement_threshold,
     int               n_iters );
@@ -22,7 +23,7 @@ int  main(
     object_struct        **model_objects, **src_objects;
     polygons_struct      *original, *model;
     Real                 movement_threshold, ratio;
-    int                  n_iters, method;
+    int                  n_iters, method, grid_size;
 
     initialize_argument_processing( argc, argv );
 
@@ -37,6 +38,7 @@ int  main(
     (void) get_int_argument( 1, &n_iters );
     (void) get_real_argument( 1.0, &ratio );
     (void) get_int_argument( 0, &method );
+    (void) get_int_argument( 30, &grid_size );
     (void) get_real_argument( 0.0, &movement_threshold );
 
     if( input_graphics_file( input_filename, &src_format,
@@ -71,7 +73,7 @@ int  main(
         return( 1 );
     }
 
-    reparameterize( original, model, method, ratio,
+    reparameterize( original, model, method, grid_size, ratio,
                     movement_threshold, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
@@ -531,9 +533,10 @@ private  Real  perturb_vertices_2d(
     int               *neighbours[],
     Real              (*new_points)[N_DIMENSIONS],
     int               which_triangle[],
+    int               n_steps,
     Real              ratio )
 {
-    int    point_index, max_neighbours, n, ind, neigh, n_steps, step;
+    int    point_index, max_neighbours, n, ind, neigh, step;
     Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
     Real   (*steps)[2], angle;
 
@@ -544,7 +547,6 @@ private  Real  perturb_vertices_2d(
     ALLOC( points, max_neighbours );
     ALLOC( lengths, max_neighbours );
 
-    n_steps = 30;
     ALLOC( steps, n_steps );
     for_less( step, 0, n_steps )
     {
@@ -667,12 +669,13 @@ private  void  reparameterize_by_looking(
     Real              (*original_points)[N_DIMENSIONS],
     Real              (*new_points)[N_DIMENSIONS],
     int               which_triangle[],
+    int               grid_size,
     Real              ratio,
     Real              movement_threshold,
     int               n_iters )
 {
     int              iter, point;
-    Real             movement;
+    Real             movement, step_size;
     polygons_struct  unit_sphere;
     Point            centre, unit_sphere_point;
 
@@ -696,6 +699,8 @@ private  void  reparameterize_by_looking(
                           &new_points[point][Y] );
     }
 
+    step_size = ratio;
+
     iter = 0;
     movement = -1.0;
     while( iter < n_iters && (movement < 0.0 || movement >= movement_threshold))
@@ -703,10 +708,14 @@ private  void  reparameterize_by_looking(
         movement = perturb_vertices_2d( &unit_sphere, original, original_points,
                                      model_lengths,
                                      n_neighbours, neighbours,
-                                     new_points, which_triangle, ratio );
+                                     new_points, which_triangle,
+                                     grid_size, step_size );
 
         ++iter;
-        print( "%3d: %20g\n", iter, movement );
+        print( "%3d: %20.4g \t(%g)\n", iter, movement, step_size );
+
+        if( movement == 0.0 )
+            step_size *= 0.5;
     }
 
     for_less( point, 0, original->n_points )
@@ -725,6 +734,7 @@ private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
     int               method,
+    int               grid_size,
     Real              ratio,
     Real              movement_threshold,
     int               n_iters )
@@ -808,8 +818,8 @@ private  void  reparameterize(
         reparameterize_by_looking( original, model, n_neighbours,
                                    neighbours, model_lengths,
                                    original_points, new_points,
-                                   which_triangle,
-                                   ratio, movement_threshold, n_iters );
+                                   which_triangle, grid_size, ratio,
+                                   movement_threshold, n_iters );
     }
 
     for_less( point, 0, original->n_points )
