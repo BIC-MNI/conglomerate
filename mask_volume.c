@@ -9,9 +9,11 @@ Usage: %s  input.mnc  mask_volume.mnc  output.mnc\n\
          [min] [max] [value_to_set]\n\
 \n\
 \n\
-     Changes all voxels in the input volume to the min value, if they\n\
-     correspond to a value in the mask_volume between min and max, which\n\
-     default to 0.  The resulting volume is placed in output.mnc.\n\n";
+     Changes some voxels in the input volume to the value_to_set, which\n\
+     defaults to the volume minimum.  A voxel is changed if the corresponding\n\
+     voxel in the mask_volume has a value between min and max, which\n\
+     defaults to values greater than zero.  The resulting volume is placed\n\
+     in output.mnc.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -22,12 +24,13 @@ int  main(
 {
     STRING               volume_filename, mask_volume_filename;
     STRING               output_filename;
-    Real                 mask_value, set_voxel, min_mask, max_mask;
+    Real                 mask_value, min_mask, max_mask;
     Real                 value_to_set;
     int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed;
     progress_struct      progress;
     Volume               volume, mask_volume;
     BOOLEAN              value_specified;
+    minc_input_options   options;
 
     initialize_argument_processing( argc, argv );
 
@@ -39,13 +42,17 @@ int  main(
         return( 1 );
     }
 
-    (void) get_real_argument( 0.0, &min_mask );
-    (void) get_real_argument( 0.0, &max_mask );
+    (void) get_real_argument( 0.5, &min_mask );
+    (void) get_real_argument( 1.0e30, &max_mask );
     value_specified = get_real_argument( 0.0, &value_to_set );
+
+
+    set_default_minc_input_options( &options );
+    set_minc_input_vector_to_colour_flag( &options, TRUE );
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, &options ) != OK )
         return( 1 );
 
     mask_volume = create_label_volume( volume, NC_UNSPECIFIED );
@@ -57,10 +64,8 @@ int  main(
 
     get_volume_sizes( volume, sizes );
 
-    if( value_specified )
-        set_voxel = convert_value_to_voxel( volume, value_to_set );
-    else
-        set_voxel = get_volume_voxel_min( volume );
+    if( !value_specified )
+        value_to_set = get_volume_real_min( volume );
 
     n_changed = 0;
 
@@ -76,7 +81,7 @@ int  main(
                 mask_value = get_volume_real_value( mask_volume, x, y, z, 0, 0);
                 if( min_mask <= mask_value && mask_value <= max_mask )
                 {
-                    set_volume_real_value( volume, x, y, z, 0, 0, set_voxel );
+                    set_volume_real_value( volume, x, y, z, 0, 0, value_to_set);
                     ++n_changed;
                 }
             }
