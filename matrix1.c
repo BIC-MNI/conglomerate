@@ -1,0 +1,232 @@
+#include  <mni.h>
+
+private  void  print_stats(
+    char            name[],
+    int             n_objects,
+    object_struct   *object_list[],
+    int             structure_id,
+    Real            y_min_range,
+    Real            y_max_range );
+
+private  BOOLEAN  get_next_filename(
+    char      *filename[] )
+{
+    static    FILE     *file = 0;
+    static    BOOLEAN  in_list = FALSE;
+    static    STRING   filename_string;
+    char               *argument;
+    BOOLEAN            found;
+
+    found = FALSE;
+
+    do
+    {
+        if( in_list )
+        {
+            if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
+                 == OK )
+            {
+                *filename = filename_string;
+                found = TRUE;
+            }
+            else
+            {
+                (void) close_file( file );
+                in_list = FALSE;
+            }
+        }
+        else if( get_string_argument( "", &argument ) )
+        {
+            if( filename_extension_matches( argument,
+                                get_default_landmark_file_suffix() )||
+                filename_extension_matches( argument,
+                                get_default_tag_file_suffix() ) ||
+                filename_extension_matches( argument, "obj" ) )
+            {
+                *filename = argument;
+                found = TRUE;
+            }
+            else
+            {
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                    break;
+                in_list = TRUE;
+            }
+        }
+        else
+            break;
+    }
+    while( !found );
+
+    return( found );
+}
+
+int  main(
+    int   argc,
+    char  *argv[] )
+{
+    Status               status;
+    char                 *landmark_filename;
+    STRING               *filenames, name, prev_name;
+    BOOLEAN              left, left_found, right_found;
+    Volume               volume;
+    volume_input_struct  volume_input;
+    int                  n_files, n_objects;
+    object_struct        **object_list;
+    int                  s, p, prev_s;
+
+    initialize_argument_processing( argc, argv );
+
+    n_files = 0;
+    volume = (Volume) NULL;
+
+    while( get_next_filename( &landmark_filename ) )
+    {
+        if( filename_extension_matches( landmark_filename, "mnc" ) ||
+            filename_extension_matches( landmark_filename, "mni" ) ||
+            filename_extension_matches( landmark_filename, "fre" ) )
+        {
+            if( volume != (Volume) NULL )
+                cancel_volume_input( volume, &volume_input );
+ 
+            status = start_volume_input(
+                          landmark_filename, 3, XYZ_dimension_names,
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          TRUE, &volume, (minc_input_options *) NULL,
+                          &volume_input );
+        }
+        else
+        {
+            SET_ARRAY_SIZE( filenames, n_files, n_files + 1,
+                            DEFAULT_CHUNK_SIZE );
+            (void) strcpy( filenames[n_files], landmark_filename );
+            ++n_files;
+        }
+    }
+
+    prev_name[0] = (char) 0;
+
+    for_less( p, 0, n_files )
+    {
+        status = input_objects_any_format( volume, filenames[p],
+                                           GREEN, 1.0, BOX_MARKER,
+                                           &n_objects, &object_list );
+
+        if( status != OK )
+            return( 1 );
+
+        if( strstr( filenames[p], "cing_l" ) != (char *) NULL )
+            left = TRUE;
+        else if( strstr( filenames[p], "cing_r" ) != (char *) NULL )
+            left = FALSE;
+
+        (void) strcpy( name, filenames[p] );
+        s = strlen( name );
+        while( s > 0 && name[s] != '/' )
+            --s;
+        name[s] = (char) 0;
+
+        s -= 15;
+        if( s < 0 )
+            s = 0;
+
+        if( strcmp( prev_name, name ) != 0 )
+        {
+            if( strlen( prev_name ) != 0 )
+            {
+                if( !left_found )
+                {
+                    print_stats( &prev_name[prev_s], 0, 0, 10, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 11, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 12, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 13, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 30, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 30, 12.0, 30.0 );
+                }
+
+                if( !right_found )
+                {
+                    print_stats( &prev_name[prev_s], 0, 0, 20, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 21, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 22, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 23, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 40, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 40, 12.0, 30.0 );
+                }
+            }
+            (void) strcpy( prev_name, name );
+            prev_s = s;
+            left_found = FALSE;
+            right_found = FALSE;
+        }
+
+        if( left )
+        {
+            print_stats( &name[s], n_objects, object_list, 10, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 11, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 12, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 13, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 30, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 30, 12.0, 30.0 );
+            left_found = TRUE;
+        }
+        else
+        {
+            print_stats( &name[s], n_objects, object_list, 20, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 21, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 22, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 23, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 40, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 40, 12.0, 30.0 );
+            right_found = TRUE;
+        }
+
+        delete_object_list( n_objects, object_list );
+    }
+
+    if( volume != (Volume) NULL )
+        cancel_volume_input( volume, &volume_input );
+
+    return( status != OK );
+}
+
+private  void  print_stats(
+    char            name[],
+    int             n_objects,
+    object_struct   *object_list[],
+    int             structure_id,
+    Real            y_min_range,
+    Real            y_max_range )
+{
+    int             i, n_samples;
+    marker_struct   *marker;
+
+    n_samples = 0;
+
+    for_less( i, 0, n_objects )
+    {
+        if( object_list[i]->object_type == MARKER )
+        {
+            marker = get_marker_ptr( object_list[i] );
+
+            if( (marker->structure_id == structure_id ||
+                 marker->structure_id == structure_id + 1000) &&
+                (y_min_range >= y_max_range ||
+                 Point_y(marker->position) >= y_min_range &&
+                 Point_y(marker->position) <= y_max_range ) )
+            {
+                ++n_samples;
+            }
+        }
+    }
+
+    if( y_min_range < y_max_range )
+    {
+        if( structure_id == 30 )
+            structure_id = 32;
+        if( structure_id == 40 )
+            structure_id = 42;
+    }
+
+    print( "%15s %3d %10d\n", name, structure_id, n_samples );
+}
