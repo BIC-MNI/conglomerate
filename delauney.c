@@ -99,7 +99,7 @@ private  BOOLEAN  is_clockwise(
             (points[p2][1] - points[p1][1]) *
             (points[p3][0] - points[p1][0]);
 
-    return( cross >= 0.0 );
+    return( cross > 0.0 );
 }
 
 private  BOOLEAN  get_circle_through_points(
@@ -143,7 +143,6 @@ private  BOOLEAN  get_third_point(
     Real              (*points)[2],
     int               p1,
     int               p2,
-    int               which_dir,
     int               *p3 )
 {
     int       p;
@@ -159,8 +158,7 @@ private  BOOLEAN  get_third_point(
             continue;
 
         clockwise = is_clockwise( points, p1, p2, p );
-        if( which_dir == 0 && clockwise ||
-            which_dir == 1 && !clockwise )
+        if( !clockwise )
             continue;
 
         get_circle_through_points( points, p1, p2, p, &cx, &cy, &radius2 );
@@ -181,9 +179,9 @@ private  void  create_delauney(
     Real              (*points)[2],
     polygons_struct   *triangles )
 {
-    int                            p, p1, p2, p3, which_dir, n_indices, tri[3];
+    int                            p, p1, p2, p3, n_indices, tri[3];
     int                            next_p1, next_p2, edge, other;
-    Smallest_int                   ***done_flags;
+    Smallest_int                   **done_flags;
     unsigned long                  entry;
     QUEUE_STRUCT( unsigned long )  queue;
 
@@ -198,11 +196,10 @@ private  void  create_delauney(
     }
     n_indices = 0;
 
-    ALLOC3D( done_flags, 2, n_points, n_points );
-    for_less( which_dir, 0, 2 )
+    ALLOC2D( done_flags, n_points, n_points );
     for_less( p1, 0, n_points )
     for_less( p2, 0, n_points )
-        done_flags[which_dir][p1][p2] = FALSE;
+        done_flags[p1][p2] = FALSE;
 
     find_closest_pair( n_points, points, &p1, &p2 );
 
@@ -210,75 +207,55 @@ private  void  create_delauney(
 
     INITIALIZE_QUEUE( queue );
 
-    entry = IJK((unsigned long) MIN(p1,p2),
-                (unsigned long) MAX(p1,p2),0,(unsigned long) n_points,2);
+    entry = IJ( (unsigned long) p1, (unsigned long) p2,
+                (unsigned long) n_points );
     INSERT_IN_QUEUE( queue, entry );
-    entry = IJK((unsigned long) MIN(p1,p2),
-                (unsigned long) MAX(p1,p2),1,(unsigned long) n_points,2);
+    entry = IJ( (unsigned long) p2, (unsigned long) p1,
+                (unsigned long) n_points );
     INSERT_IN_QUEUE( queue, entry );
 
     while( !IS_QUEUE_EMPTY(queue) )
     {
-         REMOVE_FROM_QUEUE( queue, entry );
+        REMOVE_FROM_QUEUE( queue, entry );
 
-         which_dir = (int) (entry % 2);
-         entry /= 2;
-         p2 = (int) (entry % (unsigned long) n_points);
-         entry /= (unsigned long) n_points;
-         p1 = (int) entry;
+        p2 = (int) (entry % (unsigned long) n_points);
+        entry /= (unsigned long) n_points;
+        p1 = (int) entry;
 
-         done_flags[which_dir][p1][p2] = TRUE;
-         done_flags[which_dir][p2][p1] = TRUE;
+        if( done_flags[p1][p2] )
+            continue;
 
-         if( !get_third_point( n_points, points, p1, p2, which_dir, &p3 ) )
-             continue;
+        if( !get_third_point( n_points, points, p1, p2, &p3 ) )
+            continue;
 
-         print( "%d %d %d  %d\n", p1, p2, p3, which_dir );
+        print( "%d %d %d\n", p1, p2, p3 );
 
-         if( is_clockwise( points, p1, p2, p3 ) )
-         {
-             tri[0] = p1;
-             tri[1] = p2;
-             tri[2] = p3;
-         }
-         else
-         {
-             tri[0] = p1;
-             tri[1] = p3;
-             tri[2] = p2;
-         }
+        tri[0] = p1;
+        tri[1] = p2;
+        tri[2] = p3;
 
-         ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices, tri[0], 100 );
-         ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices, tri[1], 100 );
-         ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices, tri[2], 100 );
-         ADD_ELEMENT_TO_ARRAY( triangles->end_indices, triangles->n_items,
-                               n_indices, 100 );
+        done_flags[p1][p2] = TRUE;
+        done_flags[p2][p3] = TRUE;
+        done_flags[p3][p1] = TRUE;
 
-         for_less( edge, 0, 3 )
-         {
-             next_p1 = tri[edge];
-             next_p2 = tri[(edge+1)%3];
-             if( next_p1 == p1 && next_p2 == p2 ||
-                 next_p1 == p2 && next_p2 == p1 )
-                 continue;
+        ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices, tri[0], 100 );
+        ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices, tri[1], 100 );
+        ADD_ELEMENT_TO_ARRAY( triangles->indices, n_indices, tri[2], 100 );
+        ADD_ELEMENT_TO_ARRAY( triangles->end_indices, triangles->n_items,
+                              n_indices, 100 );
 
-             next_p1 = MIN(tri[edge],tri[(edge+1)%3]);
-             next_p2 = MAX(tri[edge],tri[(edge+1)%3]);
-             other = tri[(edge+2)%3];
+        for_less( edge, 1, 3 )
+        {
+            next_p2 = tri[edge];
+            next_p1 = tri[(edge+1)%3];
 
-             if( is_clockwise( points, next_p1, next_p2, other ) )
-                 which_dir = 0;
-             else
-                 which_dir = 1;
-
-             if( !done_flags[which_dir][next_p1][next_p2] )
-             {
-                 entry = IJK( (unsigned long) next_p1, (unsigned long) next_p2,
-                          (unsigned long) which_dir, (unsigned long) n_points,
-                           2 );
-                 INSERT_IN_QUEUE( queue, entry );
-             }
-         }
+            if( !done_flags[next_p1][next_p2] )
+            {
+                entry = IJ( (unsigned long) next_p1, (unsigned long) next_p2,
+                            (unsigned long) n_points );
+                INSERT_IN_QUEUE( queue, entry );
+            }
+        }
     }
 
     DELETE_QUEUE( queue );
