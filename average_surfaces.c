@@ -4,6 +4,8 @@
 #undef SIMPLE_TRANSFORMATION
 #define SIMPLE_TRANSFORMATION
 
+#define USE_IDENTITY_TRANSFORMS
+
 
 #define  GRAY_STRING       "gray"
 #define  HOT_STRING        "hot"
@@ -25,6 +27,7 @@ private  void  create_average_polygons(
     Point                 **points,
     Transform             transforms[],
     colour_coding_struct  *colour_coding,
+    FILE                  *dump_file,
     polygons_struct       *polygons );
 
 private  void  print_transform(
@@ -35,7 +38,8 @@ int  main(
     char   *argv[] )
 {
     Status           status;
-    STRING           filename, output_filename;
+    FILE             *file;
+    STRING           filename, output_filename, dump_filename;
     int              i, n_objects, n_surfaces;
     Colour           *colours;
     File_formats     format;
@@ -56,13 +60,17 @@ int  main(
     if( !get_string_argument( NULL, &output_filename ) ||
         !get_string_argument( NULL, &coding_type_string ) ||
         !get_real_argument( 0.0, &min_std_dev ) ||
-        !get_real_argument( 0.0, &max_std_dev ) )
+        !get_real_argument( 0.0, &max_std_dev ) ||
+        !get_string_argument( NULL, &dump_filename ) )
     {
         print_error(
           "Usage: %s output.obj hot|gray|spectral min max [input1.obj] [input2.obj] ...\n",
           argv[0] );
         return( 1 );
     }
+
+    if( equal_strings( dump_filename, "none" ) )
+        dump_filename = NULL;
 
     if( equal_strings( coding_type_string, GRAY_STRING ) )
         coding_type = GRAY_SCALE;
@@ -147,9 +155,20 @@ int  main(
         print_transform( &transforms[i] );
 #endif
 
+    if( dump_filename != NULL )
+    {
+        if( open_file( dump_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+            return( 1 );
+    }
+    else
+        file = NULL;
+
     create_average_polygons( n_surfaces, average_polygons->n_points,
                              points_list, transforms,
-                             &colour_coding, average_polygons );
+                             &colour_coding, file, average_polygons );
+
+    if( dump_filename != NULL )
+        (void) close_file( file );
 
     compute_polygon_normals( average_polygons );
 
@@ -213,11 +232,16 @@ private  void  compute_transforms(
 
     make_identity_transform( &transforms[0] );
 
+#ifdef  USE_IDENTITY_TRANSFORMS
+    for_less( s, 1, n_surfaces )
+        make_identity_transform( &transforms[s] );
+#else
     for_less( s, 1, n_surfaces )
     {
         compute_point_to_point_transform( n_points, points[s], points[0],
                                           &transforms[s] );
     }
+#endif
 }
 #else
 
@@ -303,6 +327,7 @@ private  void  create_average_polygons(
     Point                 **points,
     Transform             transforms[],
     colour_coding_struct  *colour_coding,
+    FILE                  *dump_file,
     polygons_struct       *polygons )
 {
     Point  avg;
@@ -345,6 +370,12 @@ private  void  create_average_polygons(
         variance /= (Real) (n_surfaces-1);
 
         std_dev = sqrt( variance );
+
+        if( dump_file != NULL )
+        {
+            (void) output_real( dump_file, std_dev );
+            (void) output_newline( dump_file );
+        }
 
         polygons->colours[p] = get_colour_code( colour_coding, std_dev );
     }
