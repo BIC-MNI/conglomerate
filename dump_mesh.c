@@ -1,6 +1,9 @@
 #include  <def_mni.h>
 #include  <def_module.h>
 
+private  void  output_colours(
+    FILE             *file,
+    polygons_struct  *polygons );
 private  void  output_points(
     FILE             *file,
     polygons_struct  *polygons );
@@ -14,7 +17,7 @@ int  main(
     FILE           *input_file;
     File_formats   format;
     object_struct  *object;
-    Boolean        eof;
+    BOOLEAN        eof;
 
     initialize_argument_processing( argc, argv );
 
@@ -31,7 +34,12 @@ int  main(
         status = input_object( "", input_file, &format, &object, &eof );
 
     if( status == OK && object->object_type == POLYGONS )
-        output_points( stdout, get_polygons_ptr(object) );
+    {
+        if( argc > 2 )
+            output_colours( stdout, get_polygons_ptr(object) );
+        else
+            output_points( stdout, get_polygons_ptr(object) );
+    }
 
     if( input_file != stdin )
         status = close_file( input_file );
@@ -76,7 +84,28 @@ private  void  output_points(
         (void) output_newline( file );
     }
 
-    io_point( file, WRITE_FILE, ASCII_FORMAT,
-              &points[get_sphere_point_index( n_up, 0, n_up, n_around )] );
+    (void) io_point( file, WRITE_FILE, ASCII_FORMAT,
+                  &points[get_sphere_point_index( n_up, 0, n_up, n_around )] );
     (void) output_newline( file );
+}
+
+private  void  output_colours(
+    FILE             *file,
+    polygons_struct  *polygons )
+{
+    int          i, n;
+
+    switch( polygons->colour_flag )
+    {
+    case  ONE_COLOUR:          n = 1;                  break;
+    case  PER_ITEM_COLOURS:    n = polygons->n_items;  break;
+    case  PER_VERTEX_COLOURS:  n = polygons->n_points;  break;
+    }
+
+    for_less( i, 0, n )
+    {
+        (void) io_colour( file, WRITE_FILE, ASCII_FORMAT,
+                          &polygons->colours[i] );
+        (void) output_newline( file );
+    }
 }
