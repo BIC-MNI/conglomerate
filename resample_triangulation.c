@@ -65,6 +65,11 @@ private   void   mesh_subdivide_large_triangles(
     Real              max_size,
     int               max_subdivisions );
 
+private   void   mesh_subdivide_dangerous_triangles(
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    int                max_subdivisions );
+
 private   void   mesh_subdivide_on_node_values(
     tri_mesh_struct   *mesh,
     hash2_table_struct *edge_lookup,
@@ -196,6 +201,12 @@ int  main(
     {
         if( equal_strings( option, "-max_sub" ) )
             max_subdivisions = ROUND( value );
+        else if( equal_strings( option, "-equalize" ) )
+        {
+            print( "%s %g\n", option, value );
+            mesh_subdivide_dangerous_triangles( &mesh, &edge_lookup,
+                                                max_subdivisions );
+        }
         else if( equal_strings( option, "-min_size" ) )
         {
             print( "%s %g\n", option, value );
@@ -263,6 +274,8 @@ int  main(
     print( "Resampled into %d polygons.\n", new_n_polys );
 
     print_mesh_levels( &mesh );
+
+    set_use_compressed_polygons_flag( FALSE );
 
     (void) output_graphics_file( output_filename, format, 1, &object );
 
@@ -730,12 +743,6 @@ private  void  create_edge_lookup(
 private  void  delete_edge_lookup(
     hash2_table_struct  *lookup )
 {
-    int   i, n_non_null;
-
-    n_non_null = 0;
-    for_less( i, 0, lookup->size )
-        if( lookup->table[i] != NULL ) ++n_non_null;
-    print( "hash: %d %d\n", lookup->n_entries, n_non_null );
     delete_hash2_table( lookup );
 }
 
@@ -1037,6 +1044,75 @@ private   void   mesh_subdivide_large_triangles(
                                               &mesh->triangles[tri],
                                               max_size * max_size,
                                               max_subdivisions );
+        }
+    }
+}
+
+private  BOOLEAN   subdivide_dangerous_triangles(
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    tri_node_struct    *node,
+    int                n_original_points,
+    int                max_subdivisions )
+{
+    BOOLEAN  changed;
+    int      mid0, mid1, mid2;
+
+    changed = FALSE;
+
+    if( max_subdivisions != 0 && node->children[0] == NULL )
+    {
+        if( lookup_edge_midpoint( edge_lookup, node->nodes[0], node->nodes[1],
+                                  &mid0 ) && mid0 < n_original_points ||
+            lookup_edge_midpoint( edge_lookup, node->nodes[1], node->nodes[2],
+                                  &mid1 ) && mid1 < n_original_points ||
+            lookup_edge_midpoint( edge_lookup, node->nodes[2], node->nodes[0],
+                                  &mid2 ) && mid2 < n_original_points )
+        {
+            subdivide_tri_node( mesh, edge_lookup, node );
+            changed = TRUE;
+        }
+    }
+
+    if( node->children[0] != NULL )
+    {
+        if( subdivide_dangerous_triangles( mesh, edge_lookup, node->children[0],
+                                           n_original_points, max_subdivisions))
+            changed = TRUE;
+        if( subdivide_dangerous_triangles( mesh, edge_lookup, node->children[1],
+                                           n_original_points, max_subdivisions))
+            changed = TRUE;
+        if( subdivide_dangerous_triangles( mesh, edge_lookup, node->children[2],
+                                           n_original_points, max_subdivisions))
+            changed = TRUE;
+        if( subdivide_dangerous_triangles( mesh, edge_lookup, node->children[3],
+                                           n_original_points, max_subdivisions))
+            changed = TRUE;
+    }
+
+    return( changed );
+}
+
+private   void   mesh_subdivide_dangerous_triangles(
+    tri_mesh_struct    *mesh,
+    hash2_table_struct *edge_lookup,
+    int                max_subdivisions )
+{
+    BOOLEAN            changed;
+    int                tri, n_points;
+
+    n_points = mesh->n_points;
+
+    changed = TRUE;
+    while( changed )
+    {
+        changed = FALSE;
+        for_less( tri, 0, mesh->n_triangles )
+        {
+            if( subdivide_dangerous_triangles( mesh, edge_lookup,
+                                               &mesh->triangles[tri],
+                                               n_points, max_subdivisions ) )
+                changed = TRUE;
         }
     }
 }
