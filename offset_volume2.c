@@ -526,6 +526,60 @@ private  int  make_lists_of_required_voxels(
     return( n_sets );
 }
 
+private  BOOLEAN  alone_in_list(
+    int                n_sets,
+    int                n_in_set[],
+    unsigned long      *sets[],
+    unsigned long      voxel )
+{
+/*
+    int   i, j;
+
+    for_less( i, 0, n_sets )
+    {
+        for_less( j, 0, n_in_set[i] )
+        {
+            if( sets[i][j] == voxel )
+                return( TRUE );
+        }
+    }
+    return( FALSE );
+*/
+    int   i;
+
+    for_less( i, 0, n_sets )
+    {
+        if( n_in_set[i] == 1 && sets[i][0] == voxel )
+            return( TRUE );
+    }
+    return( FALSE );
+}
+
+private  void  remove_from_lists(
+    int                n_sets,
+    int                n_in_set[],
+    unsigned long      *sets[],
+    unsigned long      voxel )
+{
+    int   i, j, k;
+
+    for_less( i, 0, n_sets )
+    {
+        for_less( j, 0, n_in_set[i] )
+        {
+            if( sets[i][j] == voxel )
+                break;
+        }
+
+        if( j < n_in_set[i] )
+        {
+            --n_in_set[i];
+            for_less( k, j, n_in_set[i] )
+                sets[i][k] = sets[i][k+1];
+        }
+    }
+}
+
 private  void  expand_layer(
     Volume             volume,
     int                iter,
@@ -573,9 +627,13 @@ private  void  expand_layer(
 
             can_remove = check_connectivity( volume, sizes, x, y, z );
 
-            if( can_remove )
+            if( can_remove &&
+                !alone_in_list( n_sets, n_in_set, sets,
+                                IJK( x, y, z, sizes[Y], sizes[Z] ) ) )
             {
                 set_volume_real_value( volume, x, y, z, 0, 0, 0.0 );
+                remove_from_lists( n_sets, n_in_set, sets,
+                                   IJK( x, y, z, sizes[Y], sizes[Z] ) );
                 ++n_changed;
             }
         }
