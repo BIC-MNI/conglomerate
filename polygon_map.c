@@ -50,8 +50,9 @@ int  main(
     while( get_string_argument( NULL, &input_filename ) &&
            get_string_argument( NULL, &output_filename ) )
     {
-        if( input_graphics_file( input_filename,
-                                 &format, &n_objects, &objects ) != OK )
+        if( input_objects_any_format( NULL, input_filename, WHITE, 1.0,
+                              SPHERE_MARKER, &n_objects, &objects ) != OK )
+
             return( 1 );
 
         for_less( i, 0, n_objects )
@@ -61,9 +62,11 @@ int  main(
             polygon_transform_points( get_polygons_ptr(src_objects[0]),
                                       get_polygons_ptr(dest_objects[0]),
                                       n_points, points, points );
+
+            compute_polygon_normals( get_polygons_ptr(objects[i]) );
         }
 
-        if( output_graphics_file( output_filename, format, n_objects,
+        if( output_graphics_file( output_filename, ASCII_FORMAT, n_objects,
                                   objects ) != OK )
             return( 1 );
 
