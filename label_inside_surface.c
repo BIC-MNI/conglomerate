@@ -1,7 +1,7 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  TOLERANCE  1.0e-3
+#define  TOLERANCE  1.0e-2
 
 #define  BINTREE_FACTOR  0.0
 
@@ -17,12 +17,12 @@ int  main(
     BOOLEAN              inside;
     File_formats         format;
     Volume               volume;
-    int                  i, j, c, x, y, z, n_objects, obj_index, n_set;
+    int                  i, j, c, x, y, z, n_objects, obj_index, n_set, best;
     int                  sizes[MAX_DIMENSIONS], n_intersects, save_n_int;
     int                  n_points, int_index, next_z;
     Real                 xw, yw, zw, dist, *distances, limits[2][3];
     Real                 voxel[MAX_DIMENSIONS];
-    Real                 boundary_voxel[MAX_DIMENSIONS];
+    Real                 boundary_voxel[MAX_DIMENSIONS], tmp;
     Point                ray_origin, ray_dest, *points;
     Point                point_range[2];
     Point                ray_point;
@@ -121,6 +121,20 @@ int  main(
                                       &ray_origin, &ray_direction,
                                       objects[0], &obj_index,
                                       &dist, &distances );
+
+            for_less( i, 0, n_intersects - 1 )
+            {
+                best = i;
+                for_less( j, i+1, n_intersects )
+                {
+                    if( distances[j] < distances[best] )
+                        best = j;
+                }
+
+                tmp = distances[i];
+                distances[i] = distances[best];
+                distances[best] = tmp;
+            }
 
             save_n_int = n_intersects;
             i = 0;
