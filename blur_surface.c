@@ -1,11 +1,6 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-private  void  generate_neighbours(
-    polygons_struct   *polygons,
-    int               n_neighbours[],
-    int               *neighbours[] );
-
 private  void  gaussian_blur_points(
     int               n_polygon_points,
     Point             points[],
@@ -85,10 +80,8 @@ int  main(
 
     check_polygons_neighbours_computed( polygons );
 
-    ALLOC( n_neighbours, polygons->n_points );
-    ALLOC( neighbours, polygons->n_points );
-
-    generate_neighbours( polygons, n_neighbours, neighbours );
+    create_polygon_point_neighbours( polygons, &n_neighbours,
+                                     &neighbours, NULL );
 
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Blurring" );
@@ -108,6 +101,8 @@ int  main(
     }
 
     terminate_progress_report( &progress );
+
+    delete_polygon_point_neighbours( n_neighbours, neighbours, NULL );
 
     if( values_present )
     {
@@ -134,58 +129,6 @@ int  main(
     }
 
     return( 0 );
-}
-
-#define  MAX_NEIGHBOURS  10000
-
-private  void  generate_neighbours(
-    polygons_struct   *polygons,
-    int               n_neighbours[],
-    int               *neighbours[] )
-{
-    int              i, point_index, poly, vertex_index, total_n_neighs;
-    int              neighs[MAX_NEIGHBOURS], *all_neighs;
-    BOOLEAN          dummy;
-    progress_struct  progress;
-
-    total_n_neighs = 0;
-    all_neighs = NULL;
-
-    initialize_progress_report( &progress, FALSE, polygons->n_points,
-                                "Computing Neighbours" );
-
-    for_less( point_index, 0, polygons->n_points )
-    {
-        if( !find_polygon_with_vertex( polygons, point_index,
-                                       &poly, &vertex_index ) )
-            handle_internal_error( "generate_neighbours" );
-
-        n_neighbours[point_index] = get_neighbours_of_point(
-                                     polygons, poly, vertex_index, neighs,
-                                     MAX_NEIGHBOURS, &dummy );
-
-        SET_ARRAY_SIZE( all_neighs, total_n_neighs,
-            total_n_neighs + n_neighbours[point_index], DEFAULT_CHUNK_SIZE );
-
-        for_less( i, 0, n_neighbours[point_index] )
-        {
-            all_neighs[total_n_neighs + i] = neighs[i];
-        }
-
-        total_n_neighs += n_neighbours[point_index];
-
-        update_progress_report( &progress, point_index+1 );
-    }
-
-    terminate_progress_report( &progress );
-
-    total_n_neighs = 0;
-    for_less( point_index, 0, polygons->n_points )
-    {
-        neighbours[point_index] = &all_neighs[total_n_neighs];
-
-        total_n_neighs += n_neighbours[point_index];
-    }
 }
 
 private  Real  evaluate_gaussian(
