@@ -6,30 +6,43 @@ int  main(
     char  *argv[] )
 {
     STRING            input_filename, output_filename;
-    int               x, y;
+    int               x, y, n_files, r, g, b, a;
     pixels_struct     pixels, top_pixels;
-    Colour            bottom, top;
+    Colour            bottom, top, col;
+    BOOLEAN           add_flag;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( NULL, &output_filename ) ||
-        !get_string_argument( NULL, &input_filename ) )
+    if( argc <= 1 )
     {
-        print( "Usage: %s output.rgb input1.rgb  [input2.rgb] ...\n", argv[0] );
+        print( "Usage: %s output.rgb [-add] input1.rgb  [input2.rgb] ...\n", argv[0] );
         return( 1 );
     }
 
-    if( input_rgb_file( input_filename, &pixels ) != OK )
-        return( 1 );
+    output_filename = NULL;
 
-    if( pixels.pixel_type != RGB_PIXEL )
-    {
-        print( "Pixels must be RGB type.\n" );
-        return( 1 );
-    }
+    n_files = 0;
+    add_flag = FALSE;
 
     while( get_string_argument( NULL, &input_filename ) )
     {
+        if( equal_strings( input_filename, "-add" ) )
+        {
+            add_flag = TRUE;
+            continue;
+        }
+        if( equal_strings( input_filename, "-composite" ) )
+        {
+            add_flag = FALSE;
+            continue;
+        }
+
+        if( output_filename == NULL )
+        {
+            output_filename = input_filename;
+            continue;
+        }
+
         if( input_rgb_file( input_filename, &top_pixels ) != OK )
             return( 1 );
 
@@ -39,17 +52,50 @@ int  main(
             return( 1 );
         }
 
-        for_less( x, 0, pixels.x_size )
+        if( n_files == 0 )
+            pixels = top_pixels;
+        else
         {
-            for_less( y, 0, pixels.y_size )
+            if( top_pixels.x_size != pixels.x_size ||
+                top_pixels.y_size != pixels.y_size )
             {
-                bottom = PIXEL_RGB_COLOUR(pixels,x,y);
-                top = PIXEL_RGB_COLOUR(top_pixels,x,y);
-                COMPOSITE_COLOURS( PIXEL_RGB_COLOUR(pixels,x,y), top, bottom );
+                print_error( "Error in pixels sizes\n" );
+                return( 1 );
             }
+
+            for_less( x, 0, pixels.x_size )
+            {
+                for_less( y, 0, pixels.y_size )
+                {
+                    bottom = PIXEL_RGB_COLOUR(pixels,x,y);
+                    top = PIXEL_RGB_COLOUR(top_pixels,x,y);
+
+                    if( add_flag )
+                    {
+                        r = get_Colour_r(bottom) + get_Colour_r(top);
+                        g = get_Colour_g(bottom) + get_Colour_g(top);
+                        b = get_Colour_b(bottom) + get_Colour_b(top);
+                        a = get_Colour_a(bottom) + get_Colour_a(top);
+
+                        if( r > 255 )  r = 255;
+                        if( g > 255 )  g = 255;
+                        if( b > 255 )  b = 255;
+                        if( a > 255 )  a = 255;
+
+                        col = make_rgba_Colour( r, g, b, a );
+                    }
+                    else
+                    {
+                        COMPOSITE_COLOURS( col, top, bottom );
+                    }
+
+                    PIXEL_RGB_COLOUR(pixels,x,y) = col;
+                }
+            }
+            delete_pixels( &top_pixels );
         }
 
-        delete_pixels( &top_pixels );
+        ++n_files;
     }
 
     if( output_rgb_file( output_filename, &pixels ) != OK )
