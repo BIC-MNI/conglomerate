@@ -24,7 +24,8 @@ int  main(
     if( !get_string_argument( NULL, &src_filename ) ||
         !get_string_argument( NULL, &dest_filename ) )
     {
-        print_error( "Usage: %s  input.obj output.obj [n]\n", argv[0] );
+        print_error( "Usage: %s  input.obj output.obj [step] [n_iters]\n",
+                     argv[0] );
         return( 1 );
     }
 
