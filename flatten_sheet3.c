@@ -141,6 +141,35 @@ int  main(
     return( 0 );
 }
 
+private  void  flatten_around_point(
+    Point            points[],
+    int              point,
+    int              n_neighbours[],
+    int              **neighbours,
+    Smallest_int     interior_flags[],
+    Point            flat[] )
+{
+    int              n;
+    Real             *x_flat, *y_flat;
+
+    ALLOC( x_flat, n_neighbours[point] );
+    ALLOC( y_flat, n_neighbours[point] );
+
+    for_less( n, 0, n_neighbours[point] )
+        flat[n] = points[neighbours[point][n]];
+
+    flatten_around_vertex( &points[point],
+                           n_neighbours[point], flat,
+                           (BOOLEAN) interior_flags[point],
+                           x_flat, y_flat );
+
+    for_less( n, 0, n_neighbours[point] )
+        fill_Point( flat[n], x_flat[n], y_flat[n], 0.0 );
+
+    FREE( x_flat );
+    FREE( y_flat );
+}
+
 private  void  create_coefficients(
     int              n_points,
     Point            points[],
@@ -164,9 +193,8 @@ private  void  create_coefficients(
     int              indices[6], nodes[3], dim2, n_to_do;
     Real             con, node_weights[6], x, y;
     Real             weights[2][3][2], len;
-    Real             *flat[2];
+    Point            *flat;
     Vector           v12, v13, offset;
-    Point            *neigh_points;
     BOOLEAN          found;
     progress_struct  progress;
 
@@ -179,9 +207,7 @@ private  void  create_coefficients(
     for_less( point, 0, n_points )
         max_neighbours = MAX( max_neighbours, n_neighbours[point] );
 
-    ALLOC( flat[0], max_neighbours );
-    ALLOC( flat[1], max_neighbours );
-    ALLOC( neigh_points, max_neighbours );
+    ALLOC( flat, max_neighbours );
 
     initialize_progress_report( &progress, FALSE, n_points,
                                 "Creating coefficients" );
@@ -202,13 +228,8 @@ private  void  create_coefficients(
         if( !found || n_neighbours[point] < 2 )
             continue;
 
-        for_less( n, 0, n_neighbours[point] )
-            neigh_points[n] = points[neighbours[point][n]];
-
-        flatten_around_vertex( &points[point],
-                               n_neighbours[point], neigh_points,
-                               (BOOLEAN) interior_flags[point],
-                               flat[0], flat[1] );
+        flatten_around_point( points, point, n_neighbours, neighbours,
+                              interior_flags, flat );
 
         if( interior_flags[point] )
             n_to_do = n_neighbours[point];
@@ -222,8 +243,8 @@ private  void  create_coefficients(
             nodes[1] = neighbours[point][nn];
             nodes[2] = neighbours[point][next_n];
 
-            fill_Vector( v12, flat[0][nn], flat[1][nn], 0.0 );
-            fill_Vector( v13, flat[0][next_n], flat[1][next_n], 0.0 );
+            CONVERT_POINT_TO_VECTOR( v12, flat[nn] );
+            CONVERT_POINT_TO_VECTOR( v13, flat[next_n] );
 
             len = DOT_VECTORS( v12, v12 );
             x = DOT_VECTORS( v12, v13 ) / len;
@@ -314,9 +335,7 @@ private  void  create_coefficients(
 
     terminate_progress_report( &progress );
 
-    FREE( flat[0] );
-    FREE( flat[1] );
-    FREE( neigh_points );
+    FREE( flat );
 
     REALLOC_LSQ( n_parameters, *n_cross_terms, *cross_parms, *cross_terms );
 }
@@ -391,14 +410,15 @@ private  void  flatten_polygons(
     int              fixed_indices[],
     int              n_iters )
 {
-    int              i, p, point, which;
+    int              i, p, point, which, n;
     Real             *fixed_pos[2];
     Real             constant;
     int              *n_cross_terms, **cross_parms, w_offset;
     ftype            *linear_terms, *square_terms, **cross_terms;
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
-    Vector           x_dir, y_dir, offset, p12, p13;
+    Vector           x_dir, y_dir, offset;
+    Point            *flat;
     polygons_struct  tmp_polygons;
     BOOLEAN          alloced_fixed;
 
@@ -418,30 +438,30 @@ private  void  flatten_polygons(
             which = choose_static_polygon( n_points, n_neighbours, neighbours,
                                            interior_flags );
 
-        n_fixed = 3;
+        ALLOC( flat, n_neighbours[which] );
+
+        flatten_around_point( points, which, n_neighbours, neighbours,
+                              interior_flags, flat );
+
+        n_fixed = n_neighbours[which]+1;
         ALLOC( fixed_indices, n_fixed );
         ALLOC( fixed_pos[0], n_fixed );
         ALLOC( fixed_pos[1], n_fixed );
 
         fixed_indices[0] = which;
-        for_less( i, 0, 2 )
-            fixed_indices[i+1] = neighbours[which][i];
+        for_less( n, 0, n_fixed-1 )
+            fixed_indices[n+1] = neighbours[which][n];
 
         fixed_pos[0][0] = 0.0;
         fixed_pos[1][0] = 0.0;
 
-        fixed_pos[0][1] = distance_between_points( &points[which],
-                                                   &points[fixed_indices[1]] );
-        fixed_pos[1][1] = 0.0;
+        for_less( n, 0, n_fixed-1 )
+        {
+            fixed_pos[0][1+n] = RPoint_x(flat[n]);
+            fixed_pos[1][1+n] = RPoint_y(flat[n]);
+        }
 
-        SUB_POINTS( p12, points[fixed_indices[1]], points[which] );
-        SUB_POINTS( p13, points[fixed_indices[2]], points[which] );
-
-        NORMALIZE_VECTOR( p12, p12 );
-        fixed_pos[0][2] = DOT_VECTORS( p13, p12 );
-        SCALE_VECTOR( p12, p12, fixed_pos[0][2] );
-        SUB_VECTORS( p13, p13, p12 );
-        fixed_pos[1][2] = MAGNITUDE( p13 );
+        FREE( flat );
 
         alloced_fixed = TRUE;
     }
