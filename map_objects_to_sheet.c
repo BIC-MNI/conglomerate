@@ -13,7 +13,7 @@ Usage: %s surface.obj  input.obj|input.txt [invert] output\n\
                        x2 y2 z2 u2 v2 \n\
                        [x_size y_size] \n\
                        [u_min u_max v_min v_max] | \n\
-                       [x3 y3 z3 x4 y4 z4 ...] \n\
+                       [bound_file.obj] \n\
      Maps an object on a surface to a flat sheet.\n\n";
 
     print_error( usage_str, executable );
@@ -56,13 +56,15 @@ int  main(
     Real                 bottom_left[N_DIMENSIONS], zero[N_DIMENSIONS];
     Real                 voxel[N_DIMENSIONS];
     Real                 separations[N_DIMENSIONS];
-    int                  x_voxel, y_voxel;
+    int                  x_voxel, y_voxel, n_bound_objects;
     object_struct        **objects, **surf_objects;
     Point                unit_point, centre, unit_point1, unit_point2, pt;
     progress_struct      progress;
     BOOLEAN              invert_flag, transforming_values;
     int                  sizes[N_DIMENSIONS];
     STRING               dim_names[] = { MIzspace, MIxspace, MIyspace };
+    STRING               bound_filename;
+    object_struct        **bound_objects;
     Volume               image;
 
     /*--- get the arguments from the command line */
@@ -89,20 +91,16 @@ int  main(
     else
         invert_flag = FALSE;
 
-    if( !get_real_argument( 0.0, &x1 ) ||
-        !get_real_argument( 0.0, &y1 ) ||
-        !get_real_argument( 0.0, &z1 ) ||
-        !get_real_argument( 0.0, &u1 ) ||
-        !get_real_argument( 0.0, &v1 ) ||
-        !get_real_argument( 0.0, &x2 ) ||
-        !get_real_argument( 0.0, &y2 ) ||
-        !get_real_argument( 0.0, &z2 ) ||
-        !get_real_argument( 0.0, &u2 ) ||
-        !get_real_argument( 0.0, &v2 ) )
-    {
-        usage( argv[0] );
-        return( 1 );
-    }
+    (void) get_real_argument( 0.0, &x1 );
+    (void) get_real_argument( 0.0, &y1 );
+    (void) get_real_argument( 0.0, &z1 );
+    (void) get_real_argument( 0.0, &u1 );
+    (void) get_real_argument( 0.0, &v1 );
+    (void) get_real_argument( 0.0, &x2 );
+    (void) get_real_argument( 0.0, &y2 );
+    (void) get_real_argument( 0.0, &z2 );
+    (void) get_real_argument( 0.0, &u2 );
+    (void) get_real_argument( 0.0, &v2 );
 
     if( filename_extension_matches( input_filename, "obj" ) )
         transforming_values = FALSE;
@@ -139,28 +137,32 @@ int  main(
             }
             n_bounding_points = 0;
         }
-        else
+        else if( n_args == 1 )
         {
-            if( n_args < 3 || n_args % 3 != 0 )
+            if( !get_string_argument( NULL, &bound_filename ) ||
+                input_graphics_file( bound_filename, &format,
+                                     &n_bound_objects,
+                                     &bound_objects ) != OK )
             {
                 usage( argv[0] );
                 return( 1 );
             }
 
-            n_bounding_points = n_args / 3;
-            ALLOC( bounding_points, n_bounding_points );
+            n_bounding_points = 0;
+            bounding_points = NULL;
 
-            for_less( point, 0, n_bounding_points )
+            for_less( obj, 0, n_bound_objects )
             {
-                if( !get_real_argument( 0.0, &x ) ||
-                    !get_real_argument( 0.0, &y ) ||
-                    !get_real_argument( 0.0, &z ) )
+                n_points = get_object_points( bound_objects[obj], &points );
+
+                for_less( point, 0, n_points )
                 {
-                    usage( argv[0] );
-                    return( 1 );
+                    ADD_ELEMENT_TO_ARRAY( bounding_points, n_bounding_points,
+                                          points[point], DEFAULT_CHUNK_SIZE );
                 }
-                fill_Point( bounding_points[point], x, y, z );
             }
+
+            delete_object_list( n_bound_objects, bound_objects );
         }
     }
 
@@ -232,8 +234,8 @@ int  main(
                                (Real) Point_z(unit_point2),
                                u2, v2, &transform ) )
     {
-        print_error( "Error in sphere transform\n" );
-        return( 1 );
+        print( "Using identity for sphere transform.\n" );
+        make_identity_transform( &transform );
     }
 
     compute_transform_inverse( &transform, &inverse );
