@@ -10,8 +10,8 @@ private  void  usage(
     (void) fprintf( stderr, "   model_weight model_filename|avg|none\n" );
     (void) fprintf( stderr, "   min_curvature max_curvature\n" );
     (void) fprintf( stderr, "   fract_step max_step\n" );
-    (void) fprintf( stderr, "   max_search_distance search_increment\n" );
-    (void) fprintf( stderr, "   min_size min_isovalue max_isovalue +/-/n\n" );
+    (void) fprintf( stderr, "   max_search_distance degrees_continuity\n" );
+    (void) fprintf( stderr, "   min_isovalue max_isovalue +/-/n\n" );
     (void) fprintf( stderr, "   max_iterations  stop_threshold\n" );
 }
 
@@ -36,6 +36,8 @@ int  main( argc, argv )
 
     initialize_argument_processing( argc, argv );
 
+    initialize_deformation_parameters( &deform );
+
     if( !get_string_argument( "", &volume_filename ) ||
         !get_string_argument( "", &activity_filename ) ||
         !get_int_argument( 0, &nx ) ||
@@ -50,8 +52,7 @@ int  main( argc, argv )
         !get_real_argument( 0.0, &deform.fractional_step ) ||
         !get_real_argument( 0.0, &deform.max_step ) ||
         !get_real_argument( 0.0, &deform.max_search_distance ) ||
-        !get_real_argument( 0.0, &deform.search_increment ) ||
-        !get_real_argument( 0.0, &deform.min_size ) ||
+        !get_int_argument( 0.0, &deform.degrees_continuity ) ||
         !get_real_argument( 0.0, &deform.boundary_definition.min_isovalue ) ||
         !get_real_argument( 0.0, &deform.boundary_definition.max_isovalue ) ||
         !get_string_argument( "", &normal_direction ) ||
@@ -127,6 +128,10 @@ int  main( argc, argv )
         else if( strcmp( model_filename, "avg" ) == 0 )
         {
             deform.deformation_model.model_type = AVERAGE_MODEL;
+        }
+        else if( strcmp( model_filename, "parametric" ) == 0 )
+        {
+            deform.deformation_model.model_type = PARAMETRIC_MODEL;
         }
         else
         {
