@@ -1,6 +1,22 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+private  void  compute_transforms(
+    int        n_surfaces,
+    int        n_points,
+    Point      **points,
+    Transform  transforms[] );
+
+private  void  create_average_polygons(
+    int               n_surfaces,
+    int               n_points,
+    Point             **points,
+    Transform         transforms[],
+    polygons_struct   *polygons );
+
+private  void  print_transform(
+    Transform   *trans );
+
 int  main(
     int    argc,
     char   *argv[] )
@@ -14,6 +30,7 @@ int  main(
     object_struct    **object_list;
     polygons_struct  *polygons, *average_polygons;
     Point            **points_list;
+    Transform        *transforms;
 
     status = OK;
 
@@ -77,6 +94,14 @@ int  main(
         delete_object_list( n_objects, object_list );
     }
 
+    ALLOC( transforms, n_surfaces );
+
+    compute_transforms( n_surfaces, average_polygons->n_points,
+                        points_list, transforms );
+
+    create_average_polygons( n_surfaces, average_polygons->n_points,
+                             points_list, transforms, average_polygons );
+
     compute_polygon_normals( average_polygons );
 
     if( status == OK )
@@ -87,4 +112,107 @@ int  main(
         print( "Objects output.\n" );
 
     return( status != OK );
+}
+
+private  void  compute_point_to_point_transform(
+    int        n_points,
+    Point      src_points[],
+    Point      dest_points[],
+    Transform  *transform )
+{
+    int    p, dim;
+    Real   **coords, *target, coefs[4];
+
+    ALLOC2D( coords, n_points, 3 );
+    ALLOC( target, n_points );
+
+    for_less( p, 0, n_points )
+    {
+        coords[p][X] = Point_x(src_points[p]);
+        coords[p][Y] = Point_y(src_points[p]);
+        coords[p][Z] = Point_z(src_points[p]);
+    }
+
+    make_identity_transform( transform );
+
+    for_less( dim, 0, N_DIMENSIONS )
+    {
+        for_less( p, 0, n_points )
+            target[p] = Point_coord(dest_points[p],dim);
+
+        least_squares( n_points, N_DIMENSIONS, coords, target, coefs );
+
+        Transform_elem( *transform, dim, 0 ) = coefs[1];
+        Transform_elem( *transform, dim, 1 ) = coefs[2];
+        Transform_elem( *transform, dim, 2 ) = coefs[3];
+        Transform_elem( *transform, dim, 3 ) = coefs[0];
+    }
+
+    FREE( target );
+    FREE2D( coords );
+}
+
+private  void  compute_transforms(
+    int        n_surfaces,
+    int        n_points,
+    Point      **points,
+    Transform  transforms[] )
+{
+    int   s;
+
+    make_identity_transform( &transforms[0] );
+
+    for_less( s, 1, n_surfaces )
+    {
+        compute_point_to_point_transform( n_points, points[s], points[0],
+                                          &transforms[s] );
+    }
+}
+
+private  void  create_average_polygons(
+    int               n_surfaces,
+    int               n_points,
+    Point             **points,
+    Transform         transforms[],
+    polygons_struct   *polygons )
+{
+    Point  avg;
+    Real   x, y, z;
+    int    p, s;
+
+    for_less( p, 0, n_points )
+    {
+        fill_Point( avg, 0.0, 0.0, 0.0 );
+
+        for_less( s, 0, n_surfaces )
+        {
+            transform_point( &transforms[s],
+                             Point_x(points[s][p]),
+                             Point_y(points[s][p]),
+                             Point_z(points[s][p]), &x, &y, &z );
+
+            Point_x(avg) += x;
+            Point_y(avg) += y;
+            Point_z(avg) += z;
+        }
+
+        SCALE_POINT( polygons->points[p], avg, 1.0/(Real) n_surfaces );
+
+        polygons->colours[p] = WHITE;
+    }
+}
+
+private  void  print_transform(
+    Transform   *trans )
+{
+    int   i, j;
+
+    for_less( i, 0, N_DIMENSIONS )
+    {
+        for_less( j, 0, N_DIMENSIONS+1 )
+            print( " %12g", Transform_elem(*trans,i,j) );
+        print( "\n" );
+    }
+
+    print( "\n" );
 }
