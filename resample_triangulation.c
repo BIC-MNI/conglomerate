@@ -11,6 +11,7 @@ typedef struct
 {
     int                n_points;
     Point              *points;
+    Point              *model_points;
     int                n_triangles;
     tri_node_struct    *triangles;
 } tri_mesh_struct;
@@ -20,7 +21,8 @@ private   int   get_tri_mesh_n_triangles(
 
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
-    tri_mesh_struct  *mesh );
+    tri_mesh_struct  *mesh,
+    Point            points[] );
 
 private   void   convert_mesh_to_polygons(
     tri_mesh_struct   *mesh,
@@ -34,7 +36,8 @@ private  Status  output_triangular_mesh(
 private  Status  input_triangular_mesh(
     STRING           filename,
     File_formats     format,
-    tri_mesh_struct  *mesh );
+    tri_mesh_struct  *mesh,
+    Point            points[] );
 
 private   void   resample_mesh(
     tri_mesh_struct   *mesh,
@@ -47,47 +50,50 @@ private  void  usage(
     STRING  usage_str = "\n\
 Usage: %s  input.obj|input.msh  output.obj  output.msh min_size max_size\n\
 \n\
+    or %s  -copy model.obj|model.msh  input.obj  output.obj min_size max_size\n\
+\n\
      Subdivides the triangular mesh.\n\h";
 
-    print_error( usage_str, executable );
+    print_error( usage_str, executable, executable );
 }
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename;
-    STRING           output_mesh_filename;
+    STRING           input_filename, output_filename, first_arg;
+    STRING           output_mesh_filename, model_filename;
     int              n_objects, prev_n_polys, new_n_polys;
     File_formats     format;
     object_struct    **object_list, *object;
     polygons_struct  *polygons;
     Real             min_size, max_size;
+    Point            *points;
     BOOLEAN          input_mesh_specified;
     tri_mesh_struct  mesh;
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( NULL, &input_filename ) ||
-        !get_string_argument( NULL, &output_filename ) ||
-        !get_string_argument( NULL, &output_mesh_filename ) ||
-        !get_real_argument( 0.0, &min_size ) ||
-        !get_real_argument( 0.0, &max_size ) )
+    if( !get_string_argument( NULL, &first_arg ) )
     {
         usage( argv[0] );
         return( 1 );
     }
 
-    input_mesh_specified = filename_extension_matches( input_filename, "msh" );
-
-    if( input_mesh_specified )
+    if( equal_strings( first_arg, "-copy" ) )
     {
-        if( input_triangular_mesh( input_filename, BINARY_FORMAT,
-                                   &mesh ) != OK )
+        if( !get_string_argument( NULL, &model_filename ) ||
+            !get_string_argument( NULL, &input_filename ) ||
+            !get_string_argument( NULL, &output_filename ) ||
+            !get_real_argument( 0.0, &min_size ) ||
+            !get_real_argument( 0.0, &max_size ) )
+        {
+            usage( argv[0] );
             return( 1 );
-    }
-    else
-    {
+        }
+
+        output_mesh_filename = NULL;
+
         if( input_graphics_file( input_filename, &format, &n_objects,
                                  &object_list ) != OK ||
             n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
@@ -98,8 +104,73 @@ int  main(
 
         polygons = get_polygons_ptr( object_list[0] );
 
-        convert_polygons_to_mesh( polygons, &mesh );
-        delete_polygons( polygons );
+        points = polygons->points;
+        ALLOC( polygons->points, 1 );
+
+        delete_object_list( n_objects, object_list );
+
+        input_mesh_specified = filename_extension_matches( model_filename,
+                                                           "msh" );
+
+        if( input_mesh_specified )
+        {
+            if( input_triangular_mesh( model_filename, BINARY_FORMAT,
+                                       &mesh, points ) != OK )
+                return( 1 );
+        }
+        else
+        {
+            if( input_graphics_file( model_filename, &format, &n_objects,
+                                     &object_list ) != OK ||
+                n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
+            {
+                print_error( "Error in model file.\n" );
+                return( 1 );
+            }
+
+            polygons = get_polygons_ptr( object_list[0] );
+
+            convert_polygons_to_mesh( polygons, &mesh, points );
+
+            delete_object_list( n_objects, object_list );
+        }
+    }
+    else
+    {
+        input_filename = first_arg;
+        if( !get_string_argument( NULL, &output_filename ) ||
+            !get_string_argument( NULL, &output_mesh_filename ) ||
+            !get_real_argument( 0.0, &min_size ) ||
+            !get_real_argument( 0.0, &max_size ) )
+        {
+            usage( argv[0] );
+            return( 1 );
+        }
+
+        input_mesh_specified = filename_extension_matches( input_filename, "msh" );
+
+        if( input_mesh_specified )
+        {
+            if( input_triangular_mesh( input_filename, BINARY_FORMAT,
+                                       &mesh, NULL ) != OK )
+                return( 1 );
+        }
+        else
+        {
+            if( input_graphics_file( input_filename, &format, &n_objects,
+                                     &object_list ) != OK ||
+                n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
+            {
+                print_error( "Error in input file.\n" );
+                return( 1 );
+            }
+
+            polygons = get_polygons_ptr( object_list[0] );
+
+            convert_polygons_to_mesh( polygons, &mesh, NULL );
+
+            delete_object_list( n_objects, object_list );
+        }
     }
 
     prev_n_polys = get_tri_mesh_n_triangles( &mesh );
@@ -117,9 +188,9 @@ int  main(
 
     (void) output_graphics_file( output_filename, format, 1, &object );
 
-    (void) output_triangular_mesh( output_mesh_filename, BINARY_FORMAT, &mesh );
-
-    delete_object_list( n_objects, object_list );
+    if( output_mesh_filename != NULL )
+        (void) output_triangular_mesh( output_mesh_filename, BINARY_FORMAT,
+                                       &mesh );
 
     return( 0 );
 }
@@ -187,6 +258,7 @@ private  void  tri_mesh_insert_triangle(
 
 private  int  tri_mesh_insert_point(
     tri_mesh_struct  *mesh,
+    Point            *model_point,
     Point            *point )
 {
     int  ind;
@@ -194,6 +266,9 @@ private  int  tri_mesh_insert_point(
     ind = mesh->n_points;
 
     ADD_ELEMENT_TO_ARRAY( mesh->points, mesh->n_points, *point,
+                          DEFAULT_CHUNK_SIZE )
+    --mesh->n_points;
+    ADD_ELEMENT_TO_ARRAY( mesh->model_points, mesh->n_points, *model_point,
                           DEFAULT_CHUNK_SIZE )
 
     return( ind );
@@ -302,10 +377,11 @@ private  Status  input_tri_node(
 private  Status  input_triangular_mesh(
     STRING           filename,
     File_formats     format,
-    tri_mesh_struct  *mesh )
+    tri_mesh_struct  *mesh,
+    Point            points[] )
 {
     FILE   *file;
-    int    tri;
+    int    tri, point;
 
     initialize_tri_mesh( mesh );
 
@@ -315,11 +391,19 @@ private  Status  input_triangular_mesh(
     if( io_int( file, READ_FILE, format, &mesh->n_points ) != OK )
         return( ERROR );
 
+    SET_ARRAY_SIZE( mesh->model_points, 0, mesh->n_points, DEFAULT_CHUNK_SIZE );
     SET_ARRAY_SIZE( mesh->points, 0, mesh->n_points, DEFAULT_CHUNK_SIZE );
 
-    if( io_points( file, READ_FILE, format, mesh->n_points, &mesh->points )
-                                              != OK )
-        return( ERROR );
+    for_less( point, 0, mesh->n_points )
+    {
+        if( io_point( file, READ_FILE, format, &mesh->model_points[point] )!=OK)
+            return( ERROR );
+
+        if( points == NULL )
+            mesh->points[point] = mesh->model_points[point];
+        else
+            mesh->points[point] = points[point];
+    }
 
     if( io_int( file, READ_FILE, format, &mesh->n_triangles ) != OK )
         return( ERROR );
@@ -406,9 +490,14 @@ private  void   delete_unused_nodes(
     for_less( point, 0, mesh->n_points )
     {
         if( new_id[point] >= 0 )
+        {
             mesh->points[new_id[point]] = mesh->points[point];
+            mesh->model_points[new_id[point]] = mesh->model_points[point];
+        }
     }
 
+    SET_ARRAY_SIZE( mesh->model_points, mesh->n_points, new_n_points,
+                    DEFAULT_CHUNK_SIZE );
     SET_ARRAY_SIZE( mesh->points, mesh->n_points, new_n_points,
                     DEFAULT_CHUNK_SIZE );
     mesh->n_points = new_n_points;
@@ -419,14 +508,23 @@ private  void   delete_unused_nodes(
 
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
-    tri_mesh_struct  *mesh )
+    tri_mesh_struct  *mesh,
+    Point            points[] )
 {
     int    poly, size, point;
+    Point  *p;
 
     initialize_tri_mesh( mesh );
 
     for_less( point, 0, polygons->n_points )
-        (void) tri_mesh_insert_point( mesh, &polygons->points[point] );
+    {
+        if( points == NULL )
+            p = &polygons->points[point];
+        else
+            p = &points[point];
+         
+        (void) tri_mesh_insert_point( mesh, &polygons->points[point], p );
+    }
 
     for_less( poly, 0, polygons->n_items )
     {
@@ -496,16 +594,18 @@ private  int  get_edge_midpoint(
     int                  p1 )
 {
     int     key, midpoint;
-    Point   mid;
+    Point   mid, model_mid;
 
     midpoint = 0;  /* to avoid compiler message*/
 
     if( lookup_edge_midpoint( edge_lookup, p0, p1, (void *) &midpoint ) )
         return( midpoint );
 
+    INTERPOLATE_POINTS( model_mid, mesh->model_points[p0],
+                        mesh->model_points[p1], 0.5 );
     INTERPOLATE_POINTS( mid, mesh->points[p0], mesh->points[p1], 0.5 );
 
-    midpoint = tri_mesh_insert_point( mesh, &mid );
+    midpoint = tri_mesh_insert_point( mesh, &model_mid, &mid );
 
     key = get_key( p0, p1 );
     insert_in_hash_table( edge_lookup, key, (void *) &midpoint );
@@ -755,9 +855,9 @@ private  BOOLEAN   delete_small_triangles(
 
     if( node->children[0] == NULL )
     {
-        size = get_triangle_size( &mesh->points[node->nodes[0]],
-                                  &mesh->points[node->nodes[1]],
-                                  &mesh->points[node->nodes[2]] );
+        size = get_triangle_size( &mesh->model_points[node->nodes[0]],
+                                  &mesh->model_points[node->nodes[1]],
+                                  &mesh->model_points[node->nodes[2]] );
 
         return( size < min_size_sq );
     }
@@ -775,9 +875,9 @@ private  void   subdivide_large_triangles(
 
     if( node->children[0] == NULL )
     {
-        size = get_triangle_size( &mesh->points[node->nodes[0]],
-                                  &mesh->points[node->nodes[1]],
-                                  &mesh->points[node->nodes[2]] );
+        size = get_triangle_size( &mesh->model_points[node->nodes[0]],
+                                  &mesh->model_points[node->nodes[1]],
+                                  &mesh->model_points[node->nodes[2]] );
 
         if( size > max_size_sq )
             subdivide_tri_node( mesh, edge_lookup, node );
