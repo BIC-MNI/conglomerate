@@ -1,3 +1,8 @@
+2004-02-05  Jason Lerch	   <jason@bic.mni.mcgill.ca>
+
+	* surface_mask2 now outputs volumes in the same dimension order as
+	the input volume.
+
 2003-11-17  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* COPYING: New.  License text copied from bicpl.

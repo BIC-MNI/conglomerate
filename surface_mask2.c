@@ -55,7 +55,6 @@ int binary_object_mask( STRING input_surface_filename,
     BOOLEAN              inside, erase_flag;
     progress_struct      progress;
 
-
     if( input_graphics_file( input_surface_filename,
                              &format, &n_objects, &objects ) != OK )
         return( 1 );
@@ -246,13 +245,17 @@ int binary_object_mask( STRING input_surface_filename,
 
 int main ( int argc, char *argv[] )
 {
-  STRING         input_volume_filename, output_file_name;
-  STRING         surface_filename;
-  Real           outside_value, inside_value;
-  Volume         binary_volume, out_volume;
-  int            sizes[MAX_DIMENSIONS];
-  int            x,y,z;
-  Real           original_value, binary_value;
+  STRING               input_volume_filename, output_file_name;
+  STRING               surface_filename;
+  Real                 outside_value, inside_value;
+  Volume               binary_volume, out_volume;
+  int                  sizes[MAX_DIMENSIONS];
+  int                  x,y,z;
+  Real                 original_value, binary_value;
+  minc_output_options  output_options;
+  volume_input_struct  input_struct;
+  STRING               *original_dimnames;
+
 
   outside_value = 0;
   inside_value = 1;
@@ -272,6 +275,19 @@ int main ( int argc, char *argv[] )
     print_error("Usage: %s in_volume.mnc surface.obj output.mnc \n", argv[0] );
     return( 1 );
   }
+
+  /*
+   * open the volume without reading in the voxel data. This will
+   * allow us to get the original dimensions names so that we can
+   * write the volume out again in the same orientation (we have to
+   * read it in XYZ order for the data processing. 
+   */
+
+  start_volume_input( input_volume_filename, 3, NULL,
+		      MI_ORIGINAL_TYPE, FALSE, 0.0, 0.0, TRUE,
+		      &binary_volume, NULL, &input_struct );
+  original_dimnames = get_volume_dimension_names( binary_volume );
+  delete_volume_input( &input_struct );
 
   /*
    * create two copies of the volume - one to use for the binary mask,
@@ -313,13 +329,17 @@ int main ( int argc, char *argv[] )
     }
   }
 
+  /* use the original dimension order rather than the XYZ that we loade */
+  set_default_minc_output_options( &output_options );
+  set_minc_output_dimensions_order( &output_options, 3, original_dimnames );
+
   if (output_binary_mask == 1) {
     output_volume(output_file_name, NC_BYTE, FALSE, 0.0, 1.0,
-                  binary_volume, "", NULL );
+                  binary_volume, "", &output_options );
   }
   else {
     output_volume(output_file_name, MI_ORIGINAL_TYPE, FALSE, 0.0, 0.0,
-                  out_volume, "", NULL );
+                  out_volume, "", &output_options );
   }
 
   return 0;
