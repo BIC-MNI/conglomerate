@@ -21,7 +21,7 @@ int  main(
     char  *argv[] )
 {
     STRING               volume_filename, mask_volume_filename;
-    STRING               output_filename, dummy;
+    STRING               output_filename;
     Real                 mask_value, set_voxel, min_mask, max_mask;
     Real                 value_to_set;
     int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed;
@@ -73,10 +73,10 @@ int  main(
         {
             for_less( z, 0, sizes[Z] )
             {
-                GET_VALUE_3D( mask_value, mask_volume, x, y, z );
+                mask_value = get_volume_real_value( mask_volume, x, y, z, 0, 0);
                 if( min_mask <= mask_value && mask_value <= max_mask )
                 {
-                    SET_VOXEL_3D( volume, x, y, z, set_voxel );
+                    set_volume_real_value( volume, x, y, z, 0, 0, set_voxel );
                     ++n_changed;
                 }
             }
