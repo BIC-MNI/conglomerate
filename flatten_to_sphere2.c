@@ -325,11 +325,25 @@ private  void  evaluate_fit_along_line(
     Real   dx, dy, dz, dr, dist, radius;
     Real   dx1, dy1, dz1, x1, y1, z1;
     Real   x, y, z;
-    Real   a, b, c, ax, ay, az, bx, by, bz, weight;
-    Real   line_coefs[3], s_coefs[5];
+    Real   a1, b1, c1, a2, b2, c2, a3, b3, c3;
+    Real   ax, ay, az, bx, by, bz, weight;
+    Real   line_coefs[3];
+    Real   d00, d01, d02, d11, d12, d22;
+    Real   s00, s01, s02, s11, s12, s22;
 
-    for_less( p, 0, 5 )
-        coefs[p] = 0.0;
+    d00 = 0.0;
+    d01 = 0.0;
+    d02 = 0.0;
+    d11 = 0.0;
+    d12 = 0.0;
+    d22 = 0.0;
+
+    s00 = 0.0;
+    s01 = 0.0;
+    s02 = 0.0;
+    s11 = 0.0;
+    s12 = 0.0;
+    s22 = 0.0;
 
     n_points = n_parameters / 3;
 
@@ -338,9 +352,6 @@ private  void  evaluate_fit_along_line(
         radius = (Real) parameters[n_parameters-1];
         dr = (Real) delta[n_parameters-1];
     }
-
-    if( sphere_weight > 0.0 )
-        sphere_weight = sqrt( sphere_weight );
 
     ind = 0;
     for_less( p, 0, n_points )
@@ -354,18 +365,15 @@ private  void  evaluate_fit_along_line(
         dz1 = (Real) delta[p_index+2];
 
         line_coefs[0] = x1 * x1 + y1 * y1 + z1 * z1 - radius * radius;
-        line_coefs[1] = 2.0 * (x1 * dx1 + y1 * dy1 + z1 * dz1 - radius * dr);
+        line_coefs[1] = x1 * dx1 + y1 * dy1 + z1 * dz1 - radius * dr;
         line_coefs[2] = dx1 * dx1 + dy1 * dy1 + dz1 * dz1 - dr * dr;
-        line_coefs[0] *= sphere_weight;
-        line_coefs[1] *= sphere_weight;
-        line_coefs[2] *= sphere_weight;
 
-        coefs[0] += line_coefs[0] * line_coefs[0];
-        coefs[1] += 2.0 * line_coefs[1] * line_coefs[0];
-        coefs[2] += 2.0 * line_coefs[2] * line_coefs[0] +
-                          line_coefs[1] * line_coefs[1];
-        coefs[3] += 2.0 * line_coefs[2] * line_coefs[1];
-        coefs[4] += line_coefs[2] * line_coefs[2];
+        s00 += line_coefs[0] * line_coefs[0];
+        s01 += line_coefs[0] * line_coefs[1];
+        s02 += line_coefs[0] * line_coefs[2];
+        s11 += line_coefs[1] * line_coefs[1];
+        s12 += line_coefs[1] * line_coefs[2];
+        s22 += line_coefs[2] * line_coefs[2];
 
         for_less( n, 0, n_neighbours[p] )
         {
@@ -385,90 +393,111 @@ private  void  evaluate_fit_along_line(
             dz = dz1 - (Real) delta[n_index+2];
 
             line_coefs[0] = x * x + y * y + z * z - dist;
-            line_coefs[1] = 2.0 * (x * dx + y * dy + z * dz);
+            line_coefs[1] = x * dx + y * dy + z * dz;
             line_coefs[2] = dx * dx + dy * dy + dz * dz;
 
-            coefs[0] += line_coefs[0] * line_coefs[0];
-            coefs[1] += 2.0 * line_coefs[1] * line_coefs[0];
-            coefs[2] += 2.0 * line_coefs[2] * line_coefs[0] +
-                              line_coefs[1] * line_coefs[1];
-            coefs[3] += 2.0 * line_coefs[2] * line_coefs[1];
-            coefs[4] += line_coefs[2] * line_coefs[2];
+            d00 += line_coefs[0] * line_coefs[0];
+            d01 += line_coefs[0] * line_coefs[1];
+            d02 += line_coefs[0] * line_coefs[2];
+            d11 += line_coefs[1] * line_coefs[1];
+            d12 += line_coefs[1] * line_coefs[2];
+            d22 += line_coefs[2] * line_coefs[2];
         }
     }
 
+    coefs[0] = d00 + s00 * sphere_weight;
+    coefs[1] = 4.0 * (d01 + s01 * sphere_weight);
+    coefs[2] = 2.0 * (d02 + sphere_weight * s02) +
+               4.0 * (d11 + sphere_weight * s11);
+    coefs[3] = 4.0 * (d12 + sphere_weight * s12);
+    coefs[4] = d22 + sphere_weight * s22;
+
     if( centroid_weight > 0.0 )
     {
-        for_less( p, 0, 5 )
-            s_coefs[p] = 0.0;
+        s00 = 0.0;
+        s01 = 0.0;
+        s02 = 0.0;
+        s11 = 0.0;
+        s12 = 0.0;
+        s22 = 0.0;
 
         ind = 0;
         for_less( p, 0, n_points )
         {
-            p_index = IJ( p, 0, 3 );
-
             ax = 0.0;
-            ay = 0.0;
-            az = 0.0;
             bx = 0.0;
+            ay = 0.0;
             by = 0.0;
+            az = 0.0;
             bz = 0.0;
 
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
+#ifdef USE_CENTROID
+                ax += (Real)      delta[n_index+0];
+                bx += (Real) parameters[n_index+0];
+                ay += (Real)      delta[n_index+1];
+                by += (Real) parameters[n_index+1];
+                az += (Real)      delta[n_index+2];
+                bz += (Real) parameters[n_index+2];
+#else
                 weight = (Real) centroid_weights[ind+n];
-                ax += (Real) delta[n_index+0] * weight;
-                ay += (Real) delta[n_index+1] * weight;
-                az += (Real) delta[n_index+2] * weight;
+                ax += (Real)      delta[n_index+0] * weight;
                 bx += (Real) parameters[n_index+0] * weight;
+                ay += (Real)      delta[n_index+1] * weight;
                 by += (Real) parameters[n_index+1] * weight;
+                az += (Real)      delta[n_index+2] * weight;
                 bz += (Real) parameters[n_index+2] * weight;
+#endif
             }
 
-            ax += (Real) -delta[p_index+0];
-            ay += (Real) -delta[p_index+1];
-            az += (Real) -delta[p_index+2];
+#ifdef USE_CENTROID
+            weight = 1.0 / (Real) n_neighbours[p];
+            ax *= weight;
+            bx *= weight;
+            ay *= weight;
+            by *= weight;
+            az *= weight;
+            bz *= weight;
+#endif
+
+            p_index = IJ( p, 0, 3 );
+            ax += (Real)      -delta[p_index+0];
             bx += (Real) -parameters[p_index+0];
+            ay += (Real)      -delta[p_index+1];
             by += (Real) -parameters[p_index+1];
+            az += (Real)      -delta[p_index+2];
             bz += (Real) -parameters[p_index+2];
 
-            a = ax * ax;
-            b = 2.0 * ax * bx;
-            c = bx * bx;
+            a1 = ax * ax;
+            b1 = ax * bx;
+            c1 = bx * bx;
 
-            s_coefs[0] += c * c;
-            s_coefs[1] += 2.0 * b * c;
-            s_coefs[2] += 2.0 * a * c + b * b;
-            s_coefs[3] += 2.0 * a * b;
-            s_coefs[4] += a * a;
+            a2 = ay * ay;
+            b2 = ay * by;
+            c2 = by * by;
 
-            a = ay * ay;
-            b = 2.0 * ay * by;
-            c = by * by;
+            a3 = az * az;
+            b3 = az * bz;
+            c3 = bz * bz;
 
-            s_coefs[0] += c * c;
-            s_coefs[1] += 2.0 * b * c;
-            s_coefs[2] += 2.0 * a * c + b * b;
-            s_coefs[3] += 2.0 * a * b;
-            s_coefs[4] += a * a;
-
-            a = az * az;
-            b = 2.0 * az * bz;
-            c = bz * bz;
-
-            s_coefs[0] += c * c;
-            s_coefs[1] += 2.0 * b * c;
-            s_coefs[2] += 2.0 * a * c + b * b;
-            s_coefs[3] += 2.0 * a * b;
-            s_coefs[4] += a * a;
+            s00 += c1 * c1 + c2 * c2 + c3 * c3;
+            s01 += b1 * c1 + b2 * c2 + b3 * c3;
+            s02 += a1 * c1 + a2 * c2 + a3 * c3;
+            s11 += b1 * b1 + b2 * b2 + b3 * b3;
+            s12 += a1 * b1 + a2 * b2 + a3 * b3;
+            s22 += a1 * a1 + a2 * a2 + a3 * a3;
 
             ind += n_neighbours[p];
         }
 
-        for_less( p, 0, 5 )
-            coefs[p] += centroid_weight * s_coefs[p];
+        coefs[0] += s00 * centroid_weight;
+        coefs[1] += 4.0 * s01 * centroid_weight;
+        coefs[2] += (2.0 * s02 + 4.0 * s11) * centroid_weight;
+        coefs[3] += 4.0 * s12 * centroid_weight;
+        coefs[4] += s22 * centroid_weight;
     }
 }
 
@@ -564,12 +593,15 @@ private  void  flatten_polygons(
     int              n_iters )
 {
     int              p, n, point, dim1, dim2, max_neighbours;
-    int              n_parameters, total_neighbours, total_edges, neigh;
+    int              n_parameters, total_neighbours, total_edges;
     Real             gg, dgg, gam, current_time, last_update_time;
     Real             fit;
     Real             len, radius, *weights[3][3], *x_flat, *y_flat, *z_flat;
     Point            centroid, *plane_points;
+#ifndef   USE_CENTROID
+    int              neigh;
     Vector           offset, normal, hor, vert;
+#endif
     int              iter, ind, update_rate;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
     dtype            *centroid_weights;
