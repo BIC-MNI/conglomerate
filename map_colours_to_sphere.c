@@ -80,7 +80,7 @@ int  main(
 
     get_volume_sizes( volume, sizes );
 
-    if( sizes[3] != 3 )
+    if( sizes[3] != 3 && sizes[3] != 4 )
     {
         print_error( "Volume must be RGB volume.\n" );
         return( 1 );
@@ -108,8 +108,10 @@ private  void  get_sphere_transform(
     Transform  *transform )
 {
     Real       z_angle, vert_angle, x, y, z;
-    Vector     axis, vert, up, up_transformed;
-    Transform  about_point, vert_rot, z_rot;
+    Vector     axis, vert, up, vert_transformed, up_transformed;
+    Vector     axis_transformed;
+    Point      origin;
+    Transform  about_point, vert_rot, z_rot, change;
 
     CONVERT_POINT_TO_VECTOR( axis, *pos );
 
@@ -131,12 +133,25 @@ private  void  get_sphere_transform(
     fill_Vector( up_transformed, x, y, z );
     NORMALIZE_VECTOR( up_transformed, up_transformed );
 
-    z_angle = 2.0 * PI * u;
+    z_angle = -2.0 * PI * u;
 
-    make_rotation_about_axis( &up_transformed, -z_angle, &z_rot );
+    make_rotation_about_axis( &up_transformed, z_angle, &z_rot );
 
-    concat_transforms( transform, &about_point, &vert_rot );
-    concat_transforms( transform, &z_rot, transform );
+    transform_point( &z_rot,
+                     (Real) Vector_x(vert),
+                     (Real) Vector_y(vert),
+                     (Real) Vector_z(vert), &x, &y, &z );
+    fill_Vector( vert_transformed, x, y, z );
+    NORMALIZE_VECTOR( vert_transformed, vert_transformed );
+    CROSS_VECTORS( axis_transformed, vert_transformed, up_transformed );
+    NORMALIZE_VECTOR( axis_transformed, axis_transformed );
+
+    fill_Point( origin, 0.0, 0.0, 0.0 );
+    make_change_from_bases_transform( &origin, &axis_transformed,
+                                      &vert_transformed, &up_transformed,
+                                      &change );
+
+    concat_transforms( transform, &about_point, &change );
 }
 
 private  void  convert_sphere_point_to_2d(
@@ -185,7 +200,7 @@ private  void  map_colours_to_sphere_topology(
     Real              rot_angle )
 {
     int              point_index, sizes[MAX_DIMENSIONS];
-    Real             u, v, voxel[MAX_DIMENSIONS], value[3];
+    Real             u, v, voxel[MAX_DIMENSIONS], value[4];
     Real             min_value, max_value, r, g, b;
     Point            centre, unit_origin;
     polygons_struct  unit_sphere;
@@ -214,7 +229,7 @@ private  void  map_colours_to_sphere_topology(
         fill_Point( unit_origin, 1.0, 0.0, 0.0 );
         origin_u = 0.0;
         origin_v = 0.5;
-        rot_angle = 0.0;
+        rot_angle = 135.0;
     }
 
     get_sphere_transform( &unit_origin, origin_u, origin_v, rot_angle,
@@ -261,10 +276,10 @@ private  void  evaluate_volume_by_voting(
     Real      values[] )
 {
     int      id[2][2][2], sizes[N_DIMENSIONS];
-    Real     corners[2][2][2][3], x_frac, y_frac, z_frac;
+    Real     corners[2][2][2][4], x_frac, y_frac, z_frac;
     int      i, j, k, tx, ty, tz, dx, dy, dz;
     int      clas, n_classes, coef_ind;
-    Real     coefs[8], best_value, interp[3], value;
+    Real     coefs[8], best_value, interp[4], value;
 
     get_volume_sizes( volume, sizes );
 
