@@ -105,12 +105,14 @@ int  main(
     z_grid_size = ROUND( (RPoint_z(max_point) - RPoint_z(min_point)) /
                           block_size) + 1;
 
+    print( "bytes: %d\n", x_grid_size * y_grid_size * z_grid_size / 8 );
+
     find_boundary_blocks( &min_point, block_size,
                           x_grid_size, y_grid_size, z_grid_size,
                           &bitlist, objects[0], radius_of_curvature );
 
     initialize_progress_report( &progress, FALSE, polygons->n_items,
-                                "Finding Boundary" );
+                                "Testing Polygons for Boundary" );
 
     total_surface_area = 0.0;
     buried_surface_area = 0.0;
@@ -171,6 +173,8 @@ int  main(
                                  format, n_objects, objects );
 
     delete_object_list( n_objects, objects );
+
+    output_alloc_to_file( ".alloc_debug" );
 
     return( 0 );
 }
@@ -234,19 +238,80 @@ private  void  find_boundary_blocks(
     object_struct      *surface,
     Real               radius_of_curvature )
 {
-    int                           n_to_do;
-    bitlist_3d_struct             visited_flags;
+    int                           n_to_do, poly, size;
+    polygons_struct               *polygons;
+    bitlist_3d_struct             visited_flags, intersects;
     QUEUE_STRUCT( voxel_struct )  queue;
     voxel_struct                  voxel;
     int                           x, y, z, *dx, *dy, *dz, dir, n_dirs;
+    Real                          x_min_real, x_max_real, y_min_real;
+    Real                          y_max_real, z_min_real, z_max_real;
+    int                           x_min, x_max, y_min, y_max, z_min, z_max;
     int                           nx, ny, nz;
-    Point                         block_centre;
-    BOOLEAN                       intersects;
-    Real                          distance;
+    Point                         block_centre, *points, lower, upper;
+    Point                         max_range, min_range, nearest_point;
+    Vector                        offset;
+    Real                          distance, dist;
     int                           max_x, max_y, max_z;
     progress_struct               progress;
 
     distance = radius_of_curvature;
+
+    create_bitlist_3d( x_size, y_size, z_size, &intersects );
+    polygons = get_polygons_ptr( surface );
+
+    initialize_progress_report( &progress, FALSE, polygons->n_items,
+                                "Scanning Polygons" );
+
+    ALLOC( points, polygons->n_points );
+
+    for_less( poly, 0, polygons->n_items )
+    {
+        size = get_polygon_points( polygons, poly, points );
+
+        get_range_points( size, points, &min_range, &max_range );
+
+        fill_Vector( offset, distance, distance, distance );
+        SUB_POINT_VECTOR( lower, min_range, offset );
+        ADD_POINT_VECTOR( upper, max_range, offset );
+        convert_world_to_block( min_point, block_size, &lower,
+                                &x_min_real, &y_min_real, &z_min_real );
+        convert_world_to_block( min_point, block_size, &upper,
+                                &x_max_real, &y_max_real, &z_max_real );
+
+        x_min = MAX( 0, FLOOR( x_min_real ) );
+        x_max = MIN( x_size-1, CEILING( x_max_real ) );
+        y_min = MAX( 0, FLOOR( y_min_real ) );
+        y_max = MIN( y_size-1, CEILING( y_max_real ) );
+        z_min = MAX( 0, FLOOR( z_min_real ) );
+        z_max = MIN( z_size-1, CEILING( z_max_real ) );
+
+        for_inclusive( x, x_min, x_max )
+        for_inclusive( y, y_min, y_max )
+        for_inclusive( z, z_min, z_max )
+        {
+            if( get_bitlist_bit_3d( &intersects, x, y, z ) )
+                continue;
+
+            convert_block_to_world( min_point, block_size,
+                                    (Real) x + 0.5,
+                                    (Real) y + 0.5,
+                                    (Real) z + 0.5, &block_centre );
+
+            dist = get_point_object_distance_sq( &block_centre,
+                                                 surface, poly,
+                                                 &nearest_point );
+
+            if( dist < distance * distance )
+                set_bitlist_bit_3d( &intersects, x, y, z, TRUE );
+        }
+
+        update_progress_report( &progress, poly+1 );
+    }
+
+    terminate_progress_report( &progress );
+
+    FREE( points );
 
     n_dirs = get_3D_neighbour_directions( EIGHT_NEIGHBOURS, &dx, &dy, &dz );
 
@@ -268,7 +333,7 @@ private  void  find_boundary_blocks(
 
     initialize_progress_report( &progress, FALSE,
                                 MAX3(x_size,y_size,z_size),
-                                "Pseudo-convex hulling" );
+                                "Filling from Outside" );
 
     while( !IS_QUEUE_EMPTY(queue) )
     {
@@ -287,6 +352,7 @@ private  void  find_boundary_blocks(
             update_progress_report( &progress,
                                     MAX3(x_size,y_size,z_size) -
                                     n_to_do + 1 );
+            print( "N in queue: %d\n", queue.n_queue_alloced );
         }
 
         for_less( dir, 0, n_dirs )
@@ -301,18 +367,9 @@ private  void  find_boundary_blocks(
                 get_bitlist_bit_3d( &visited_flags, nx, ny, nz ) )
                 continue;
 
-            convert_block_to_world( min_point, block_size,
-                                    (Real) nx + 0.5,
-                                    (Real) ny + 0.5,
-                                    (Real) nz + 0.5,
-                                    &block_centre );
-
-            intersects = point_within_distance( surface, &block_centre,
-                                                distance );
-
             set_bitlist_bit_3d( &visited_flags, nx, ny, nz, TRUE );
 
-            if( intersects )
+            if( get_bitlist_bit_3d( &intersects, nx, ny, nz ) )
                 set_bitlist_bit_3d( on_boundary, nx, ny, nz, TRUE );
             else
             {
@@ -328,6 +385,7 @@ private  void  find_boundary_blocks(
 
     DELETE_QUEUE( queue );
 
+    delete_bitlist_3d( &intersects );
     delete_bitlist_3d( &visited_flags );
 }
 
