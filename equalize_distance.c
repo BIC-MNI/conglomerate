@@ -4,6 +4,7 @@
 private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
+    Real              ratio,
     Real              movement_threshold,
     int               n_iters );
 
@@ -17,7 +18,7 @@ int  main(
     int                  n_src_objects, n_model_objects;
     object_struct        **model_objects, **src_objects;
     polygons_struct      *original, *model;
-    Real                 movement_threshold;
+    Real                 movement_threshold, ratio;
     int                  n_iters;
 
     initialize_argument_processing( argc, argv );
@@ -31,6 +32,7 @@ int  main(
     }
 
     (void) get_int_argument( 1, &n_iters );
+    (void) get_real_argument( 1.0, &ratio );
     (void) get_real_argument( 0.0, &movement_threshold );
 
     if( input_graphics_file( input_filename, &src_format,
@@ -65,7 +67,7 @@ int  main(
         return( 1 );
     }
 
-    reparameterize( original, model, movement_threshold, n_iters );
+    reparameterize( original, model, ratio, movement_threshold, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
                               src_objects ) != OK )
@@ -163,31 +165,6 @@ private  void  get_plane_normal(
     normal[Z] = vz;
 }
 
-private  void  project_direction_to_plane(
-    Real    direction[],
-    Real    plane_normal[] )
-{
-    Real   factor, bottom;
-
-    bottom = plane_normal[X] * plane_normal[X] +
-             plane_normal[Y] * plane_normal[Y] +
-             plane_normal[Z] * plane_normal[Z];
-
-    if( bottom == 0.0 )
-    {
-        handle_internal_error( "get_plane_normal" );
-        return;
-    }
-
-    factor = (direction[X] * plane_normal[X] +
-              direction[Y] * plane_normal[Y] +
-              direction[Z] * plane_normal[Z]) / bottom;
-
-    direction[X] -= factor * plane_normal[X];
-    direction[Y] -= factor * plane_normal[Y];
-    direction[Z] -= factor * plane_normal[Z];
-}
-
 private  Real  dot_vectors(
     Real  v1[],
     Real  v2[] )
@@ -213,6 +190,27 @@ private  void  cross_vectors(
     c[X] = v1[Y] * v2[Z] - v1[Z] * v2[Y];
     c[Y] = v1[Z] * v2[X] - v1[X] * v2[Z];
     c[Z] = v1[X] * v2[Y] - v1[Y] * v2[X];
+}
+
+private  void  project_direction_to_plane(
+    Real    direction[],
+    Real    plane_normal[] )
+{
+    Real   factor, bottom;
+
+    bottom = dot_vectors( plane_normal, plane_normal );
+
+    if( bottom == 0.0 )
+    {
+        handle_internal_error( "get_plane_normal" );
+        return;
+    }
+
+    factor = dot_vectors( direction, plane_normal) / bottom;
+
+    direction[X] -= factor * plane_normal[X];
+    direction[Y] -= factor * plane_normal[Y];
+    direction[Z] -= factor * plane_normal[Z];
 }
 
 private  Real  find_distance_to_edge(
@@ -251,10 +249,11 @@ private  Real  optimize_vertex(
     int               n_neighbours,
     Real              (*neighbours)[N_DIMENSIONS],
     Real              lengths[],
-    int               *which_triangle )
+    int               *which_triangle,
+    Real              ratio )
 {
     int    n, dim, v, vertex[10000], size, exit_neighbour;
-    Real   deriv[N_DIMENSIONS], edge_deriv[N_DIMENSIONS], movement;
+    Real   deriv[N_DIMENSIONS], edge_deriv[N_DIMENSIONS], movement, mag;
     Real   normal[N_DIMENSIONS], max_dist, dist_to_edge;
     Real   new_point[N_DIMENSIONS];
     Real   dx, dy, dz, step;
@@ -281,6 +280,15 @@ private  Real  optimize_vertex(
     get_plane_normal( size, original_points, vertex, normal );
 
     project_direction_to_plane( deriv, normal );
+
+    mag = dot_vectors( deriv, deriv );
+    if( mag == 0.0 )
+        return( 0.0 );
+
+    mag = sqrt( mag );
+    deriv[X] /= mag;
+    deriv[Y] /= mag;
+    deriv[Z] /= mag;
 
     max_dist = -1.0;
     
@@ -326,6 +334,15 @@ private  Real  optimize_vertex(
         }
     }
 
+    if( position == max_dist )
+    {
+        *which_triangle = original->neighbours[
+           POINT_INDEX(original->end_indices,*which_triangle,exit_neighbour)];
+    }
+    else
+        position *= ratio;
+
+
     for_less( dim, 0, N_DIMENSIONS )
         new_point[dim] = point[dim] + position * deriv[dim];
 
@@ -339,10 +356,6 @@ private  Real  optimize_vertex(
     for_less( dim, 0, N_DIMENSIONS )
         point[dim] = new_point[dim];
 
-    if( position == max_dist )
-        *which_triangle = original->neighbours[
-           POINT_INDEX(original->end_indices,*which_triangle,exit_neighbour)];
-
     return( movement );
 }
 
@@ -353,7 +366,8 @@ private  Real  perturb_vertices(
     int               n_neighbours[],
     int               *neighbours[],
     Real              (*new_points)[N_DIMENSIONS],
-    int               which_triangle[] )
+    int               which_triangle[],
+    Real              ratio )
 {
     int    d, point_index, max_neighbours, n, ind;
     Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
@@ -381,7 +395,7 @@ private  Real  perturb_vertices(
                                     new_points[point_index],
                                     n_neighbours[point_index],
                                     points, lengths,
-                                    &which_triangle[point_index] );
+                                    &which_triangle[point_index], ratio );
 
         max_movement = MAX( max_movement, movement );
     }
@@ -395,6 +409,7 @@ private  Real  perturb_vertices(
 private  void  reparameterize(
     polygons_struct   *original,
     polygons_struct   *model,
+    Real              ratio,
     Real              movement_threshold,
     int               n_iters )
 {
@@ -403,6 +418,7 @@ private  void  reparameterize(
     Real  *model_lengths, movement, (*new_points)[N_DIMENSIONS];
     Real  (*original_points)[N_DIMENSIONS];
     Real  scale, total_model, total_original;
+    Real  len, diff, max_error;
 
     create_polygon_point_neighbours( original, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -469,13 +485,10 @@ private  void  reparameterize(
     {
         movement = perturb_vertices( original, original_points, model_lengths,
                                      n_neighbours, neighbours,
-                                     new_points, which_triangle );
+                                     new_points, which_triangle, ratio );
         ++iter;
         print( "%3d: %g\n", iter, movement );
     }
-
-    delete_polygon_point_neighbours( original, n_neighbours,
-                                     neighbours, NULL, NULL );
 
     for_less( point, 0, original->n_points )
     {
@@ -483,6 +496,28 @@ private  void  reparameterize(
                     new_points[point][X], new_points[point][Y],
                     new_points[point][Z] );
     }
+
+    max_error = 0.0;
+
+    ind = 0;
+    for_less( point, 0, original->n_points )
+    {
+        for_less( n, 0, n_neighbours[point] )
+        {
+            len = distance_between_points( &original->points[point],
+                                   &original->points[neighbours[point][n]] );
+
+            diff = len - model_lengths[ind];
+            diff = FABS( diff ) / model_lengths[ind];
+            max_error = MAX( diff, max_error );
+            ++ind;
+        }
+    }
+
+    print( "Max error: %g\n", max_error );
+
+    delete_polygon_point_neighbours( original, n_neighbours,
+                                     neighbours, NULL, NULL );
 
     FREE( model_lengths );
     FREE( new_points );
