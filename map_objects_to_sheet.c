@@ -11,6 +11,7 @@ Usage: %s surface.obj  input.obj|input.txt [invert] output\n\
 \n\
                        x1 y1 z1 u1 v1 \n\
                        x2 y2 z2 u2 v2 \n\
+                       [x_size y_size] \n\
                        [u_min u_max v_min v_max] | \n\
                        [x3 y3 z3 x4 y4 z4 ...] \n\
      Maps an object on a surface to a flat sheet.\n\n";
@@ -41,19 +42,28 @@ int  main(
 #ifdef DEBUG
     int                  i, j;
 #endif
-    int                  n_objects, obj, n_points;
+    int                  n_objects, obj, n_points, x_size, y_size;
     int                  n_surf_objects, n_args;
-    int                  n_bounding_points, point;
+    int                  n_bounding_points, point, vertex, size, poly;
     FILE                 *file;
     Transform            transform, inverse;
     Point                *bounding_points, *points;
-    Real                 x, y, z;
+    Point                poly_point, polygon_vertices[MAX_POINTS_PER_POLYGON];
+    Real                 weights[MAX_POINTS_PER_POLYGON];
+    Real                 x, y, z, min_value, max_value, value;
     Real                 u, v, u1, v1, u2, v2, u_min, u_max, v_min, v_max;
     Real                 x1, y1, z1, x2, y2, z2, *values;
+    Real                 bottom_left[N_DIMENSIONS], zero[N_DIMENSIONS];
+    Real                 voxel[N_DIMENSIONS];
+    Real                 separations[N_DIMENSIONS];
+    int                  x_voxel, y_voxel;
     object_struct        **objects, **surf_objects;
     Point                unit_point, centre, unit_point1, unit_point2, pt;
     progress_struct      progress;
     BOOLEAN              invert_flag, transforming_values;
+    int                  sizes[N_DIMENSIONS];
+    STRING               dim_names[] = { MIzspace, MIxspace, MIyspace };
+    Volume               image;
 
     /*--- get the arguments from the command line */
 
@@ -94,41 +104,63 @@ int  main(
         return( 1 );
     }
 
-    n_args = get_n_arguments_remaining();
-
-    if( n_args == 4 )
-    {
-        if( !get_real_argument( 0.0, &u_min ) ||
-            !get_real_argument( 0.0, &u_max ) ||
-            !get_real_argument( 0.0, &v_min ) ||
-            !get_real_argument( 0.0, &v_max ) )
-        {
-            usage( argv[0] );
-            return( 1 );
-        }
-        n_bounding_points = 0;
-    }
+    if( filename_extension_matches( input_filename, "obj" ) )
+        transforming_values = FALSE;
     else
+        transforming_values = TRUE;
+
+    if( transforming_values )
     {
-        if( n_args < 3 || n_args % 3 != 0 )
+        if( !get_int_argument( 0, &x_size ) ||
+            !get_int_argument( 0, &y_size ) )
         {
             usage( argv[0] );
             return( 1 );
         }
 
-        n_bounding_points = n_args / 3;
-        ALLOC( bounding_points, n_bounding_points );
+        n_args = get_n_arguments_remaining();
 
-        for_less( point, 0, n_bounding_points )
+        if( n_args == 0 )
         {
-            if( !get_real_argument( 0.0, &x ) ||
-                !get_real_argument( 0.0, &y ) ||
-                !get_real_argument( 0.0, &z ) )
+            u_min = 0.0;
+            u_max = 1.0;
+            v_min = 0.0;
+            v_max = 1.0;
+        }
+        else if( n_args == 4 )
+        {
+            if( !get_real_argument( 0.0, &u_min ) ||
+                !get_real_argument( 0.0, &u_max ) ||
+                !get_real_argument( 0.0, &v_min ) ||
+                !get_real_argument( 0.0, &v_max ) )
             {
                 usage( argv[0] );
                 return( 1 );
             }
-            fill_Point( bounding_points[point], x, y, z );
+            n_bounding_points = 0;
+        }
+        else
+        {
+            if( n_args < 3 || n_args % 3 != 0 )
+            {
+                usage( argv[0] );
+                return( 1 );
+            }
+
+            n_bounding_points = n_args / 3;
+            ALLOC( bounding_points, n_bounding_points );
+
+            for_less( point, 0, n_bounding_points )
+            {
+                if( !get_real_argument( 0.0, &x ) ||
+                    !get_real_argument( 0.0, &y ) ||
+                    !get_real_argument( 0.0, &z ) )
+                {
+                    usage( argv[0] );
+                    return( 1 );
+                }
+                fill_Point( bounding_points[point], x, y, z );
+            }
         }
     }
 
@@ -144,21 +176,19 @@ int  main(
 
     surface = get_polygons_ptr( surf_objects[0] );
 
-    if( filename_extension_matches( input_filename, "obj" ) )
+    if( !transforming_values )
     {
-        transforming_values = FALSE;
-
         if( input_graphics_file( input_filename, &format, &n_objects, &objects)
              != OK )
             return( 1 );
     }
     else
     {
-        transforming_values = TRUE;
-
         if( open_file( input_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
             return( 1 );
 
+        min_value = 0.0;
+        max_value = 0.0;
         ALLOC( values, surface->n_points );
         for_less( point, 0, surface->n_points )
         {
@@ -167,6 +197,11 @@ int  main(
                 print_error( "Error reading values file: %s\n", input_filename);
                 return( 1 );
             }
+
+            if( point == 0 || values[point] < min_value )
+                min_value = values[point];
+            if( point == 0 || values[point] > max_value )
+                max_value = values[point];
         }
 
         (void) close_file( file );
@@ -203,7 +238,7 @@ int  main(
 
     compute_transform_inverse( &transform, &inverse );
 
-    if( invert_flag )
+    if( invert_flag || transforming_values )
     {
         check_polygons_neighbours_computed( &unit_sphere );
         create_polygons_bintree( &unit_sphere,
@@ -211,7 +246,7 @@ int  main(
                                          * BINTREE_FACTOR ));
     }
 
-    if( n_bounding_points > 0 )
+    if( transforming_values && n_bounding_points > 0 )
     {
         u_min = 0.0;
         u_max = 0.0;
@@ -240,7 +275,11 @@ int  main(
         }
     }
 
-    print( " %g %g   %g %g\n", u_min, u_max, v_min, v_max );
+    if( transforming_values )
+    {
+        print( "U range: %g %g   V range: %g %g\n",
+               u_min, u_max, v_min, v_max );
+    }
 
 #ifdef DEBUG
     for_less( i, 0, 3 )
@@ -255,6 +294,79 @@ int  main(
 
     if( transforming_values )
     {
+        image = create_volume( 3, dim_names, NC_SHORT, FALSE, 0.0, 0.0 );
+
+        sizes[0] = 2;
+        sizes[1] = MAX( 2, x_size );
+        sizes[2] = MAX( 2, y_size );
+
+        set_volume_sizes( image, sizes );
+
+        set_volume_real_range( image, min_value, max_value );
+
+        separations[1] = (u_max - u_min) / (Real) x_size;
+        separations[2] = (v_max - v_min) / (Real) y_size;
+        separations[0] = (separations[1] + separations[2]) / 2.0;
+        set_volume_separations( image, separations );
+
+        bottom_left[0] = 0.5;
+        bottom_left[1] = -0.5;
+        bottom_left[2] = -0.5;
+        zero[X] = u_min;
+        zero[Y] = v_min;
+        zero[Z] = 0.0;
+        set_volume_translation( image, bottom_left, zero );
+
+        alloc_volume_data( image );
+
+        initialize_progress_report( &progress, FALSE, x_size, "Mapping" );
+
+        for_less( x_voxel, 0, x_size )
+        {
+            for_less( y_voxel, 0, y_size )
+            {
+                voxel[0] = 0.0;
+                voxel[1] = (Real) x_voxel;
+                voxel[2] = (Real) y_voxel;
+
+                convert_voxel_to_world( image, voxel, &u, &v, &z );
+
+                map_uv_to_sphere( u, v, &x, &y, &z );
+
+                transform_point( &inverse, x, y, z, &x, &y, &z );
+
+                fill_Point( unit_point, x, y, z );
+
+                poly = find_closest_polygon_point( &unit_point, &unit_sphere,
+                                                   &poly_point );
+
+                size = get_polygon_points( &unit_sphere, poly,
+                                           polygon_vertices );
+
+                get_polygon_interpolation_weights( &poly_point,
+                                                   size, polygon_vertices,
+                                                   weights );
+
+                value = 0.0;
+
+                for_less( vertex, 0, size )
+                {
+                    point = unit_sphere.indices[
+                              POINT_INDEX(unit_sphere.end_indices,poly,vertex)];
+                    value += weights[vertex] * values[point];
+                }
+
+                set_volume_real_value( image, 0, x_voxel, y_voxel, 0, 0, value);
+                set_volume_real_value( image, 1, x_voxel, y_voxel, 0, 0, value);
+            }
+
+            update_progress_report( &progress, x_voxel + 1 );
+        }
+
+        if( output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                           image, "Flattened surface image map.\n", NULL )
+                                                                   != OK )
+            return( 1 );
     }
     else
     {
