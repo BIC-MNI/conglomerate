@@ -370,7 +370,7 @@ private  void  flatten_polygons(
 
     (void) MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed), n_equations,
                          n_nodes_per_equation, node_list, constants,
-                         node_weights, n_iters, parameters );
+                         node_weights, -1.0, n_iters, parameters );
 
     ALLOC( new_points, polygons->n_points );
 
