@@ -230,7 +230,7 @@ private  void  flatten_polygons(
     Real             *fixed_pos[2], scale, dist1, dist2;
     Real             sum_xx, sum_xy;
     Real             constant;
-    int              *n_cross_terms, **cross_parms;
+    int              *n_cross_terms, **cross_parms, w_offset;
     ftype            *linear_terms, *square_terms, **cross_terms;
     Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
     Real             *parameters;
@@ -241,8 +241,13 @@ private  void  flatten_polygons(
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, &interior_flags, NULL );
 
-    for_less( which, 0, polygons->n_points )
+    if( getenv( "FLATTEN_OFFSET" ) == NULL ||
+        sscanf( getenv("FLATTEN_OFFSET"), "%d", &w_offset ) != 1 )
+        w_offset = 0;
+
+    for_less( i, 0, polygons->n_points )
     {
+        which = (i + w_offset) % polygons->n_points;
         if( n_neighbours[which] > 1 )
             break;
     }
