@@ -64,8 +64,9 @@ int  main(
         !get_string_argument( NULL, &dump_filename ) )
     {
         print_error(
-          "Usage: %s output.obj hot|gray|spectral min max [input1.obj] [input2.obj] ...\n",
-          argv[0] );
+          "Usage: %s output.obj hot|gray|spectral min max none|dump_file\n",
+                  argv[0] );
+        print_error( "         [input1.obj] [input2.obj] ...\n" );
         return( 1 );
     }
 
@@ -92,8 +93,6 @@ int  main(
 
     initialize_colour_coding( &colour_coding, coding_type,
                               BLACK, WHITE, min_std_dev, max_std_dev );
-
-
 
     n_surfaces = 0;
 
@@ -321,6 +320,74 @@ private  void  compute_transforms(
 
 #endif
 
+private  Real  get_std_points(
+    int                   n_surfaces,
+    Point                 samples[],
+    Point                 *centroid )
+{
+    int    i, j, s;
+    Real   variance, dx, dy, dz, std_dev, tdx, tdy, tdz;
+    Real   sums[N_DIMENSIONS][N_DIMENSIONS];
+    Real   **matrix, **inverse;
+
+    for_less( i, 0, N_DIMENSIONS )
+        for_less( j, i, N_DIMENSIONS )
+            sums[i][j] = 0.0;
+
+    for_less( s, 0, n_surfaces )
+    {
+        dx = Point_x(samples[s]) - Point_x(*centroid);
+        dy = Point_y(samples[s]) - Point_y(*centroid);
+        dz = Point_z(samples[s]) - Point_z(*centroid);
+
+        sums[0][0] += dx * dx;
+        sums[0][1] += dx * dy;
+        sums[0][2] += dx * dz;
+        sums[1][1] += dy * dy;
+        sums[1][2] += dy * dz;
+        sums[2][2] += dz * dz;
+    }
+
+    ALLOC2D( matrix, N_DIMENSIONS, N_DIMENSIONS );
+    ALLOC2D( inverse, N_DIMENSIONS, N_DIMENSIONS );
+
+    for_less( i, 0, N_DIMENSIONS )
+    for_less( j, i, N_DIMENSIONS )
+    {
+        matrix[i][j] = sums[i][j];
+        matrix[j][i] = sums[i][j];
+    }
+
+    if( !invert_square_matrix( N_DIMENSIONS, matrix, inverse ) )
+    {
+        print_error( "Setting std dev to 0.\n" );
+        return( 0.0 );
+    }
+
+    variance = 0.0;
+    for_less( s, 0, n_surfaces )
+    {
+        dx = Point_x(samples[s]) - Point_x(*centroid);
+        dy = Point_y(samples[s]) - Point_y(*centroid);
+        dz = Point_z(samples[s]) - Point_z(*centroid);
+
+        tdx = inverse[0][0] * dx + inverse[0][1] * dy + inverse[0][2] * dz;
+        tdy = inverse[1][0] * dx + inverse[1][1] * dy + inverse[1][2] * dz;
+        tdz = inverse[2][0] * dx + inverse[2][1] * dy + inverse[2][2] * dz;
+
+        variance += tdx * tdx + tdy * tdy + tdz * tdz;
+    }
+
+    variance /= (Real) (n_surfaces-1);
+
+    std_dev = sqrt( variance );
+
+    FREE2D( matrix );
+    FREE2D( inverse );
+
+    return( std_dev );
+}
+
 private  void  create_average_polygons(
     int                   n_surfaces,
     int                   n_points,
@@ -330,15 +397,15 @@ private  void  create_average_polygons(
     FILE                  *dump_file,
     polygons_struct       *polygons )
 {
-    Point  avg;
     Real   x, y, z;
     int    p, s;
-    Real   variance, dx, dy, dz, std_dev;
+    Real   std_dev;
+    Point  *samples;
+
+    ALLOC( samples, n_surfaces );
 
     for_less( p, 0, n_points )
     {
-        fill_Point( avg, 0.0, 0.0, 0.0 );
-
         for_less( s, 0, n_surfaces )
         {
             transform_point( &transforms[s],
@@ -346,30 +413,12 @@ private  void  create_average_polygons(
                              Point_y(points[s][p]),
                              Point_z(points[s][p]), &x, &y, &z );
 
-            Point_x(avg) += x;
-            Point_y(avg) += y;
-            Point_z(avg) += z;
+            fill_Point( samples[s], x, y, z );
         }
 
-        SCALE_POINT( polygons->points[p], avg, 1.0/(Real) n_surfaces );
+        get_points_centroid( n_surfaces, samples, &polygons->points[p] );
 
-        variance = 0.0;
-
-        for_less( s, 0, n_surfaces )
-        {
-            transform_point( &transforms[s],
-                             Point_x(points[s][p]),
-                             Point_y(points[s][p]),
-                             Point_z(points[s][p]), &x, &y, &z );
-            dx = (x - Point_x(polygons->points[p]));
-            dy = (y - Point_y(polygons->points[p]));
-            dz = (z - Point_z(polygons->points[p]));
-            variance += dx * dx + dy * dy + dz * dz;
-        }
-
-        variance /= (Real) (n_surfaces-1);
-
-        std_dev = sqrt( variance );
+        std_dev = get_std_points( n_surfaces, samples, &polygons->points[p] );
 
         if( dump_file != NULL )
         {
@@ -379,6 +428,8 @@ private  void  create_average_polygons(
 
         polygons->colours[p] = get_colour_code( colour_coding, std_dev );
     }
+
+    FREE( samples );
 }
 
 private  void  print_transform(
