@@ -57,7 +57,7 @@ int  main(
 
     label_volume = create_label_volume( volume, NC_UNSPECIFIED );
 
-    num_labels = get_volume_voxel_max( label_volume );
+    num_labels = ROUND( get_volume_voxel_max( label_volume ) );
 
     get_volume_sizes( volume, sizes );
     n_dims = get_volume_n_dimensions( volume );
