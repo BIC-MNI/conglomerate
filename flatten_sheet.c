@@ -7,12 +7,21 @@
 #ifdef USING_FLOAT
 
 typedef  float  ftype;
-#define  MINIMIZE_LSQ  minimize_lsq_float
+#define  MINIMIZE_LSQ    minimize_lsq_float
+#define  INITIALIZE_LSQ  initialize_lsq_terms_float
+#define  ADD_TO_LSQ      add_to_lsq_terms_float
+#define  REALLOC_LSQ     realloc_lsq_terms_float
+#define  DELETE_LSQ      delete_lsq_terms_float
 
 #else
 
 typedef  Real   ftype;
-#define  MINIMIZE_LSQ  minimize_lsq
+#define  MINIMIZE_LSQ    minimize_lsq
+#define  MINIMIZE_LSQ    minimize_lsq
+#define  INITIALIZE_LSQ  initialize_lsq_terms
+#define  ADD_TO_LSQ      add_to_lsq_terms
+#define  REALLOC_LSQ     realloc_lsq_terms
+#define  DELETE_LSQ      delete_lsq_terms
 
 #endif
 
@@ -75,7 +84,7 @@ int  main(
     return( 0 );
 }
 
-private  int  create_coefficients(
+private  void  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              **neighbours,
@@ -85,53 +94,43 @@ private  int  create_coefficients(
     Real             *fixed_pos[2],
     int              to_parameters[],
     int              to_fixed_index[],
-    int              *n_nodes_involved[],
-    int              **node_list[],
-    ftype            *constants[],
-    ftype            **node_weights[] )
+    Real             *constant,
+    ftype            *linear_terms[],
+    ftype            *square_terms[],
+    int              *n_cross_terms[],
+    int              **cross_parms[],
+    ftype            **cross_terms[] )
 {
-    int              n_equations, node, p, eq, dim, n_nodes_in;
-    int              neigh;
+    int              node, p, dim, n_nodes_in, n_parameters;
+    int              neigh, *indices, parm;
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             flat[2][MAX_POINTS_PER_POLYGON];
     Real             *weights[2][2], cons[2], con;
+    Real             *node_weights;
     BOOLEAN          found, ignoring;
     progress_struct  progress;
+
+    n_parameters = 2 * (polygons->n_points - n_fixed);
+
+    INITIALIZE_LSQ( n_parameters, constant, linear_terms, square_terms,
+                    n_cross_terms, cross_parms, cross_terms );
 
     ALLOC( weights[0][0], MAX_POINTS_PER_POLYGON );
     ALLOC( weights[0][1], MAX_POINTS_PER_POLYGON );
     ALLOC( weights[1][0], MAX_POINTS_PER_POLYGON );
     ALLOC( weights[1][1], MAX_POINTS_PER_POLYGON );
 
-    n_equations = 0;
-    for_less( node, 0, polygons->n_points )
-    {
-        found = to_parameters[node] >= 0;
-        for_less( p, 0, n_neighbours[node] )
-        {
-            if( to_parameters[neighbours[node][p]] >= 0 )
-            {
-                found = TRUE;
-                break;
-            }
-        }
-        if( found && n_neighbours[node] >= 2 )
-            ++n_equations;
-    }
-
-    n_equations *= 2;
-
-    ALLOC( *n_nodes_involved, n_equations );
-    ALLOC( *constants, n_equations );
-    ALLOC( *node_weights, n_equations );
-    ALLOC( *node_list, n_equations );
-
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Creating coefficients" );
-    eq = 0;
+
+    ALLOC( node_weights, n_parameters );
+    ALLOC( indices, n_parameters );
+
     for_less( node, 0, polygons->n_points )
     {
-        found = to_parameters[node] >= 0;
+        parm = to_parameters[node];
+        found = (parm >= 0);
+
         for_less( p, 0, n_neighbours[node] )
         {
             if( to_parameters[neighbours[node][p]] >= 0 )
@@ -161,86 +160,48 @@ private  int  create_coefficients(
             print_error( "Error in interpolation weights, ignoring..\n" );
             ignoring = TRUE;
         }
-/*
-        else
-        {
-            for_less( p, 0, n_neighbours[node] )
-            {
-                if( FABS( consistency_weights[p] ) > 100.0 )
-                {
-                    ignoring = TRUE;
-                    break;
-                }
-            }
-        }
-*/
 
         if( ignoring )
-        {
-            (*n_nodes_involved)[eq] = 0;
-            (*constants)[eq] = (ftype) 0.0;
-            ++eq;
-            (*n_nodes_involved)[eq] = 0;
-            (*constants)[eq] = (ftype) 0.0;
-            ++eq;
             continue;
-        }
 
         for_less( dim, 0, 2 )
         {
-            n_nodes_in = 0;
-            if( to_parameters[node] >= 0 )
-                ++n_nodes_in;
-
-            for_less( p, 0, n_neighbours[node] )
-            {
-                if( to_parameters[neighbours[node][p]] >= 0 )
-                    n_nodes_in += 2;
-            }
-
-            (*n_nodes_involved)[eq] = n_nodes_in;
-            ALLOC( (*node_list)[eq], (*n_nodes_involved)[eq] );
-            ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
-
+            con = -cons[dim];
             n_nodes_in = 0;
             if( to_parameters[node] >= 0 )
             {
-                (*node_list)[eq][0] = 2 * to_parameters[node] + dim;
-                (*node_weights)[eq][0] = (ftype) 1.0;
+                indices[n_nodes_in] = IJ(to_parameters[node],dim,2);
+                node_weights[n_nodes_in] = 1.0;
                 ++n_nodes_in;
-                con = 0.0;
             }
             else
-                con = fixed_pos[dim][to_fixed_index[node]];
-
-            con -= cons[dim];
+                con += fixed_pos[dim][to_fixed_index[node]];
 
             for_less( p, 0, n_neighbours[node] )
             {
                 neigh = neighbours[node][p];
                 if( to_parameters[neigh] >= 0 )
                 {
-                    (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh] + 0;
-                    (*node_weights)[eq][n_nodes_in] =
-                                            (ftype) -weights[dim][0][p];
+                    indices[n_nodes_in] = IJ(to_parameters[neigh],0,2);
+                    node_weights[n_nodes_in] = -weights[dim][0][p];
                     ++n_nodes_in;
-                    (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh] + 1;
-                    (*node_weights)[eq][n_nodes_in] =
-                                            (ftype) -weights[dim][1][p];
+
+                    indices[n_nodes_in] = IJ(to_parameters[neigh],1,2);
+                    node_weights[n_nodes_in] = -weights[dim][1][p];
                     ++n_nodes_in;
                 }
                 else
                 {
                     con += -weights[dim][0][p] *
-                           fixed_pos[0][to_fixed_index[neigh]]
-                           -weights[dim][1][p] *
-                           fixed_pos[1][to_fixed_index[neigh]];
+                            fixed_pos[0][to_fixed_index[neigh]]
+                            -weights[dim][1][p] *
+                            fixed_pos[1][to_fixed_index[neigh]];
                 }
             }
 
-            (*constants)[eq] = (ftype) con;
-
-            ++eq;
+            ADD_TO_LSQ( n_parameters, constant, *linear_terms, *square_terms,
+                        *n_cross_terms, *cross_parms, *cross_terms,
+                        n_nodes_in, indices, node_weights, con );
         }
 
         update_progress_report( &progress, node + 1 );
@@ -248,26 +209,15 @@ private  int  create_coefficients(
 
     terminate_progress_report( &progress );
 
-#ifdef DEBUG
-#define DEBUG
-#undef DEBUG
-    for_less( eq, 0, n_equations )
-    {
-        print( "%3d: %g : ", eq, (*constants)[eq] );
-        for_less( p, 0, (*n_nodes_involved)[eq] )
-        {
-            print( " %d:%g ", (*node_list)[eq][p], (*node_weights)[eq][p] );
-        }
-        print( "\n" );
-    }
-#endif
+    REALLOC_LSQ( n_parameters, *n_cross_terms, *cross_parms, *cross_terms );
+
+    FREE( node_weights );
+    FREE( indices );
 
     FREE( weights[0][0] );
     FREE( weights[0][1] );
     FREE( weights[1][0] );
     FREE( weights[1][1] );
-
-    return( n_equations );
 }
 
 private  void  flatten_polygons(
@@ -275,12 +225,13 @@ private  void  flatten_polygons(
     Point            init_points[],
     int              n_iters )
 {
-    int              i, point, *n_neighbours, **neighbours, n, neigh, which;
-    int              n_equations, *n_nodes_per_equation, **node_list;
+    int              i, p, point, *n_neighbours, **neighbours, n, neigh, which;
     int              n_fixed, *fixed_indices;
     Real             *fixed_pos[2], scale, dist1, dist2;
     Real             sum_xx, sum_xy;
-    ftype            *constants, **node_weights;
+    Real             constant;
+    int              *n_cross_terms, **cross_parms;
+    ftype            *linear_terms, *square_terms, **cross_terms;
     Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
@@ -340,13 +291,12 @@ private  void  flatten_polygons(
         }
     }
 
+    create_coefficients( polygons, n_neighbours, neighbours, interior_flags,
+                         n_fixed, fixed_indices, fixed_pos,
+                         to_parameters, to_fixed_index,
+                         &constant, &linear_terms, &square_terms,
+                         &n_cross_terms, &cross_parms, &cross_terms );
 
-    n_equations = create_coefficients( polygons,
-                                       n_neighbours, neighbours, interior_flags,
-                                       n_fixed, fixed_indices, fixed_pos,
-                                       to_parameters, to_fixed_index,
-                                       &n_nodes_per_equation,
-                                       &node_list, &constants, &node_weights );
     ALLOC( parameters, 2 * (polygons->n_points - n_fixed) );
 
     if( init_points == NULL )
@@ -368,9 +318,25 @@ private  void  flatten_polygons(
         }
     }
 
-    (void) MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed), n_equations,
-                         n_nodes_per_equation, node_list, constants,
-                         node_weights, -1.0, n_iters, parameters );
+    (void) MINIMIZE_LSQ( 2 * (polygons->n_points - n_fixed),
+                         constant, linear_terms, square_terms,
+                         n_cross_terms, cross_parms, cross_terms,
+                         -1.0, n_iters, parameters );
+
+    FREE( linear_terms );
+    FREE( square_terms );
+    for_less( p, 0, 2 * (polygons->n_points - n_fixed) )
+    {
+        if( n_cross_terms[p] > 0 )
+        {
+            FREE( cross_parms[p] );
+            FREE( cross_terms[p] );
+        }
+    }
+    FREE( n_cross_terms );
+
+    FREE( cross_parms );
+    FREE( cross_terms );
 
     ALLOC( new_points, polygons->n_points );
 
