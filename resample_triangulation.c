@@ -196,10 +196,10 @@ int  main(
 
     create_edge_lookup( &mesh, &edge_lookup );
 
-    while( get_string_argument( NULL, &option ) &&
-           get_real_argument( 0.0, &value ) )
+    while( get_string_argument( NULL, &option ) )
     {
-        if( equal_strings( option, "-max_sub" ) )
+        if( equal_strings( option, "-max_sub" ) &&
+            get_real_argument( 0.0, &value ) )
             max_subdivisions = ROUND( value );
         else if( equal_strings( option, "-equalize" ) )
         {
@@ -207,18 +207,21 @@ int  main(
             mesh_subdivide_dangerous_triangles( &mesh, &edge_lookup,
                                                 max_subdivisions );
         }
-        else if( equal_strings( option, "-min_size" ) )
+        else if( equal_strings( option, "-min_size" ) &&
+                 get_real_argument( 0.0, &value ) )
         {
             print( "%s %g\n", option, value );
             mesh_delete_small_triangles( &mesh, &edge_lookup, value );
         }
-        else if( equal_strings( option, "-max_size" ) )
+        else if( equal_strings( option, "-max_size" ) &&
+                 get_real_argument( 0.0, &value ) )
         {
             print( "%s %g\n", option, value );
             mesh_subdivide_large_triangles( &mesh, &edge_lookup, value,
                                             max_subdivisions );
         }
         else if( equal_strings( option, "-sub_node_value" ) &&
+                 get_real_argument( 0.0, &value ) &&
                  get_real_argument( 0.0, &max_value ) &&
                  get_string_argument( NULL, &values_filename ) )
         {
@@ -238,6 +241,7 @@ int  main(
             FREE( values );
         }
         else if( equal_strings( option, "-coal_node_value" ) &&
+                 get_real_argument( 0.0, &value ) &&
                  get_real_argument( 0.0, &max_value ) &&
                  get_string_argument( NULL, &values_filename ) )
         {
