@@ -17,6 +17,7 @@ int  main(
     Real               separations[MAX_DIMENSIONS];
     Colour             colour, *label_map;
     General_transform  transform;
+    int                n_colour_comps;
 
     initialize_argument_processing( argc, argv );
 
@@ -44,10 +45,12 @@ int  main(
     ALLOC( label_map, n_labels );
 
     for_less( i, 0, n_labels )
-        label_map[i] = make_rgba_Colour( 0, 0, 0, 0 );
+        label_map[i] = make_rgba_Colour( 0, 0, 0, 255 );
 
     if( open_file( colour_map_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
+
+    n_colour_comps = 3;
 
     while( input_int( file, &index ) == OK )
     {
@@ -60,10 +63,13 @@ int  main(
             return( 1 );
         }
 
-        if( index >= int_min_value && index < int_max_value )
+        if( index >= int_min_value && index <= int_max_value )
         {
             label_map[index-int_min_value] = make_rgba_Colour_0_1(
                                                red, green, blue, alpha);
+
+            if( alpha != 1.0 )
+                n_colour_comps = 4;
         }
     }
 
@@ -83,7 +89,7 @@ int  main(
 
     rgb_volume =  create_volume( n_dims+1, dim_names_rgb,
                                  NC_BYTE, FALSE, 0.0, 0.0 );
-    sizes[n_dims] = 4;
+    sizes[n_dims] = n_colour_comps;
     set_volume_sizes( rgb_volume, sizes );
     alloc_volume_data( rgb_volume );
 
@@ -120,9 +126,12 @@ int  main(
         set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
                                get_Colour_b_0_1(colour) );
 
-        v[n_dims] = 3;
-        set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
-                               get_Colour_a_0_1(colour) );
+        if( n_colour_comps == 4 )
+        {
+            v[n_dims] = 3;
+            set_volume_real_value( rgb_volume, v[0], v[1], v[2], v[3], v[4],
+                                   get_Colour_a_0_1(colour) );
+        }
 
     END_ALL_VOXELS
 
