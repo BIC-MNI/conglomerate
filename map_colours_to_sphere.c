@@ -103,7 +103,7 @@ private  void  convert_sphere_point_to_2d(
     if( angle_up > PI )
         angle_up = 2 * PI - angle_up;
 
-    *v = angle_up / PI;
+    *v = 1.0 - angle_up / PI;
 
     angle_around = compute_clockwise_rotation(
                          DOT_POINT_VECTOR(*point,hor_dir),
