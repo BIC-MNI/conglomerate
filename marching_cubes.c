@@ -12,6 +12,7 @@ private  void  extract_isosurface(
     Real              max_label,
     int               spatial_axes[],
     General_transform *voxel_to_world_transform,
+    Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
     Real              max_threshold,
@@ -19,6 +20,7 @@ private  void  extract_isosurface(
     Real              valid_high,
     polygons_struct   *polygons );
 private  void  extract_surface(
+    Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
     Real              max_threshold,
@@ -66,6 +68,8 @@ int  main(
     Minc_file            minc_file, label_file;
     BOOLEAN              binary_flag;
     int                  c, spatial_axes[N_DIMENSIONS];
+    int                  int_method;
+    Marching_cubes_methods  method;
     object_struct        *object;
     volume_input_struct  volume_input;
     General_transform    voxel_to_world_transform;
@@ -81,6 +85,8 @@ int  main(
 
     (void) get_real_argument( 0.0, &min_threshold );
     (void) get_real_argument( min_threshold-1.0, &max_threshold );
+    (void) get_int_argument( (int) MARCHING_NO_HOLES,  &int_method );
+    method = (Marching_cubes_methods) int_method;
 
     if( max_threshold < min_threshold )
     {
@@ -156,7 +162,7 @@ int  main(
                         label_file, label_volume, min_label, max_label,
                         spatial_axes,
                         &voxel_to_world_transform,
-                        binary_flag,
+                        method, binary_flag,
                         min_threshold, max_threshold,
                         valid_low, valid_high, get_polygons_ptr(object) );
 
@@ -233,6 +239,7 @@ private  Real  get_slice_value(
 private  void  clear_points(
     int         x_size,
     int         y_size,
+    int         max_edges,
     int         ***point_ids )
 {
     int    x, y, edge;
@@ -241,7 +248,7 @@ private  void  clear_points(
     {
         for_less( y, 0, y_size+2 )
         {
-            for_less( edge, 0, N_DIMENSIONS )
+            for_less( edge, 0, max_edges )
                 point_ids[x][y][edge] = -1;
         }
     }
@@ -287,6 +294,7 @@ private  void  extract_isosurface(
     Real              max_label,
     int               spatial_axes[],
     General_transform *voxel_to_world_transform,
+    Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
     Real              max_threshold,
@@ -296,6 +304,7 @@ private  void  extract_isosurface(
 {
     int             n_slices, sizes[MAX_DIMENSIONS], x_size, y_size, slice;
     int             ***point_ids[2], ***tmp_point_ids;
+    int             max_edges;
     Real            **slices[2], **tmp_slices;
     Real            **label_slices[2];
     progress_struct progress;
@@ -335,15 +344,17 @@ private  void  extract_isosurface(
         ALLOC2D( label_slices[1], x_size, y_size );
     }
 
-    ALLOC3D( point_ids[0], x_size+2, y_size+2, N_DIMENSIONS );
-    ALLOC3D( point_ids[1], x_size+2, y_size+2, N_DIMENSIONS );
+    max_edges = get_max_marching_edges();
+
+    ALLOC3D( point_ids[0], x_size+2, y_size+2, max_edges );
+    ALLOC3D( point_ids[1], x_size+2, y_size+2, max_edges );
 
     clear_slice( volume, slices[1] );
     if( label_volume != NULL )
         clear_slice( volume, label_slices[1] );
 
-    clear_points( x_size, y_size, point_ids[0] );
-    clear_points( x_size, y_size, point_ids[1] );
+    clear_points( x_size, y_size, max_edges, point_ids[0] );
+    clear_points( x_size, y_size, max_edges, point_ids[1] );
 
     Surfprop_a(spr) = 0.3f;
     Surfprop_d(spr) = 0.6f;
@@ -379,9 +390,9 @@ private  void  extract_isosurface(
         tmp_point_ids = point_ids[0];
         point_ids[0] = point_ids[1];
         point_ids[1] = tmp_point_ids;
-        clear_points( x_size, y_size, point_ids[1] );
+        clear_points( x_size, y_size, max_edges, point_ids[1] );
 
-        extract_surface( binary_flag, min_threshold, max_threshold,
+        extract_surface( method, binary_flag, min_threshold, max_threshold,
                          valid_low, valid_high,
                          x_size, y_size, slices,
                          min_label, max_label, label_slices, slice,
@@ -419,7 +430,7 @@ private  int   get_point_index(
     int                 x_size,
     int                 y_size,
     voxel_point_type    *point,
-    Real                **slices[],
+    Real                corners[2][2][2],
     int                 spatial_axes[],
     General_transform   *voxel_to_world_transform,
     BOOLEAN             binary_flag,
@@ -429,8 +440,8 @@ private  int   get_point_index(
     polygons_struct     *polygons )
 {
     int            voxel[N_DIMENSIONS], edge, point_index;
-    Real           value1, value2;
-    Point          v1, v2, v, world_point;
+    Real           v[N_DIMENSIONS];
+    Point          world_point;
     Point_classes  point_class;
 
     voxel[X] = x + point->coord[X];
@@ -441,24 +452,13 @@ private  int   get_point_index(
     point_index = point_ids[voxel[Z]][voxel[X]+1][voxel[Y]+1][edge];
     if( point_index < 0 )
     {
-        value1 = get_slice_value( slices, x_size, y_size,
-                                  voxel[Z], voxel[X], voxel[Y] );
-        fill_Point( v1, voxel[X], voxel[Y],
-                    (Real) voxel[Z] + (Real) slice_index );
-
-        ++voxel[edge];
-        value2 = get_slice_value( slices, x_size, y_size,
-                                  voxel[Z], voxel[X], voxel[Y] );
-        fill_Point( v2, voxel[X], voxel[Y],
-                    (Real) voxel[Z] + (Real) slice_index );
-
-        --voxel[edge];
-
-        point_class = get_isosurface_point( &v1, value1, &v2, value2,
+        point_class = get_isosurface_point( corners, point,
                                             binary_flag,
-                                            min_threshold, max_threshold, &v );
+                                            min_threshold, max_threshold, v );
 
-        get_world_point( RPoint_z(v), RPoint_x(v), RPoint_y(v),
+        get_world_point( v[Z] + (Real) slice_index,
+                         v[X] + (Real) x,
+                         v[Y] + (Real) y,
                          spatial_axes, voxel_to_world_transform, &world_point );
 
         point_index = polygons->n_points;
@@ -472,6 +472,7 @@ private  int   get_point_index(
 }
 
 private  void  extract_surface(
+    Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
     Real              max_threshold,
@@ -527,12 +528,33 @@ private  void  extract_surface(
             if( !valid )
                 continue;
 
-            n_polys = compute_isosurface_in_voxel( MARCHING_NO_HOLES,
+            n_polys = compute_isosurface_in_voxel( method, x, y, slice_index,
                                   corners, binary_flag, min_threshold,
                                   max_threshold, &sizes, &points );
 
             if( n_polys == 0 )
                 continue;
+
+#ifdef DEBUG
+{
+int   ind, i;
+print( "Okay %d %d: \n", x, y );
+ind = 0;
+for_less( poly, 0, n_polys )
+{
+    for_less( i, 0, sizes[poly] )
+    {
+        print( "%d %d %d : %d\n", points[ind].coord[0],
+               points[ind].coord[1],
+               points[ind].coord[2],
+               points[ind].edge_intersected );
+        ++ind;
+    }
+
+    print( "\n" );
+}
+}
+#endif
 
             if( right_handed )
             {
@@ -557,7 +579,7 @@ private  void  extract_surface(
                 {
                     ind = start_points + p * dir;
                     point_index = get_point_index( x, y, slice_index,
-                                   x_size, y_size, &points[ind], slices,
+                                   x_size, y_size, &points[ind], corners,
                                    spatial_axes, voxel_to_world_transform,
                                    binary_flag, min_threshold, max_threshold,
                                    point_ids, polygons );
