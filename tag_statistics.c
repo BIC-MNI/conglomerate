@@ -78,6 +78,7 @@ int  main(
     Real                 x_min, x_max, y_min, y_max, z_min, z_max;
     Real                 x_mean, y_mean, z_mean;
     Real                 min_value, max_value, mean, std_dev, median;
+    char                 *format;
     STRING               *filenames;
     Volume               volume;
     volume_input_struct  volume_input;
@@ -125,7 +126,9 @@ int  main(
 
     for_less( p, 0, n_files )
     {
+/*
         print( "[%d/%d] Reading %s\n", p+1, n_files, filenames[p] );
+*/
 
         status = input_objects_any_format( volume, filenames[p],
                                            GREEN, 1.0, BOX_MARKER,
@@ -169,59 +172,66 @@ int  main(
     if( n_samples == 0 )
         return( 0 );
 
-    if( structure_id < 0 )
-        print( "Statistics for ALL structure ids together\n" );
-    else
-        print( "Statistics for structure id: %d\n", structure_id );
+    print( "\n" );
+    print( "----------------------------------------------------------------------------\n" );
 
-    print( "-------------------------------\n" );
+    if( structure_id < 0 )
+        print( "           Statistics for ALL structure ids together (%d samples)\n", n_samples );
+    else
+        print( "           Statistics for structure id: %d (%d samples)\n", structure_id, n_samples );
+
+    print( "----------------------------------------------------------------------------\n" );
+    print( "\n" );
+
+    print( "  Variable       Minimum      Maximum       Mean       Std. Dev.      Median\n" );
+    print( "  --------      --------     --------     --------    ----------     -------\n" );
+    print( "\n" );
+
+    format = "%10s: %12.2f %12.2f %12.2f %12.2f %12.2f\n";
 
     compute_statistics( n_samples, x_means, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "X means: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "X mean", min_value, max_value, mean, std_dev, median );
 
     compute_statistics( n_samples, y_means, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "Y means: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "Y mean", min_value, max_value, mean, std_dev, median );
 
     compute_statistics( n_samples, z_means, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "Z means: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "Z mean", min_value, max_value, mean, std_dev, median );
 
     print( "\n" );
 
     compute_statistics( n_samples, x_mins, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "X minimum: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "X minimum", min_value, max_value, mean, std_dev, median );
 
     compute_statistics( n_samples, x_maxs, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "X maximum: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "X maximum", min_value, max_value, mean, std_dev, median );
+
+    print( "\n" );
 
     compute_statistics( n_samples, y_mins, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "Y minimum: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "Y minimum", min_value, max_value, mean, std_dev, median );
 
     compute_statistics( n_samples, y_maxs, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "Y maximum: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "Y maximum", min_value, max_value, mean, std_dev, median );
+
+    print( "\n" );
 
     compute_statistics( n_samples, z_mins, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "Z minimum: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "Z minimum", min_value, max_value, mean, std_dev, median );
 
     compute_statistics( n_samples, z_maxs, &min_value, &max_value,
                         &mean, &std_dev, &median );
-    print( "Z maximum: [ %g , %g ]  mean: %g   dev: %g  median %g\n",
-           min_value, max_value, mean, std_dev, median );
+    print( format, "Z maximum", min_value, max_value, mean, std_dev, median );
+
+    print( "\n" );
 
     return( status != OK );
 }
@@ -253,7 +263,9 @@ private  BOOLEAN  get_stats_for_one_file(
         {
             marker = get_marker_ptr( object_list[i] );
 
-            if( structure_id < 0 || marker->structure_id == structure_id )
+            if( structure_id < 0 ||
+                (marker->structure_id == structure_id ||
+                 marker->structure_id == structure_id + 1000) )
             {
                 SET_ARRAY_SIZE( x_positions, n_samples, n_samples+1,
                                 DEFAULT_CHUNK_SIZE );
