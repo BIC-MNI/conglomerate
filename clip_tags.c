@@ -2,7 +2,7 @@
 #include  <special_geometry.h>
 
 #define  X_FACTOR  5.0
-#define  Y_FACTOR  20.0
+#define  Y_FACTOR  40.0
 
 private  void  get_voxel_corners(
     Volume    volume,
@@ -26,19 +26,29 @@ private  Real  get_voxel_plane_volume(
     Real      left_constant,
     Vector    *right_normal,
     Real      right_constant );
+private  int  get_voxel_plane_status(
+    Volume    volume,
+    Real      x,
+    Real      y,
+    Real      z,
+    Vector    *left_normal,
+    Real      left_constant,
+    Vector    *right_normal,
+    Real      right_constant );
 
-#define  GRID  20
+#define  GRID  80
 
 int  main(
     int   argc,
     char  *argv[] )
 {
     BOOLEAN              create_plane, volume_desired;
+    Real                 separations[MAX_DIMENSIONS];
     char                 *three_tags_filename, *input_tags_filename;
     char                 *output_tags_filename, *plane_filename;
     char                 *volume_filename;
-    Real                 min_dist, max_dist, dist;
-    int                  i, n_objects;
+    Real                 min_dist, max_dist, dist, voxel_volume;
+    int                  i, n_objects, plane_status;
     Point                points[3], origin, point;
     Vector               normal;
     Vector               left_normal, right_normal;
@@ -50,6 +60,7 @@ int  main(
     int                  n_new_tags, *new_structure_ids, *new_patient_ids;
     Real                 **new_tags1, **new_tags2, *new_weights;
     char                 **new_labels;
+    progress_struct      progress;
     polygons_struct      voxel, tmp, clipped;
     Volume               vol;
     volume_input_struct  volume_input;
@@ -120,6 +131,8 @@ int  main(
                                 &volume_input ) != OK )
             return( 1 );
 
+        get_volume_separations( vol, separations );
+        voxel_volume = separations[0] * separations[1] * separations[2];
         volume = 0.0;
         true_volume = 0.0;
         initialize_polygons( &voxel, WHITE, NULL );
@@ -174,6 +187,9 @@ int  main(
         right_constant = - right_constant;
     }
 
+    initialize_progress_report( &progress, FALSE, n_tag_points,
+                                "Clipping" );
+
     for_less( i, 0, n_tag_points )
     {
         fill_Point( point, tags1[i][X], tags1[i][Y], tags1[i][Z] );
@@ -223,21 +239,39 @@ int  main(
 
         if( volume_desired )
         {
-            get_voxel_corners( vol, tags1[i][X], tags1[i][Y], tags1[i][Z],
-                               voxel.points );
-            clip_polygons_to_plane( &voxel, &left_normal, left_constant, &tmp );
-            clip_polygons_to_plane( &tmp, &right_normal, right_constant,
-                                    &clipped );
-            delete_polygons( &tmp );
-            volume += get_closed_polyhedron_volume( &clipped );
-            delete_polygons( &clipped );
-
-            true_volume += get_voxel_plane_volume( vol,
+            plane_status = get_voxel_plane_status( vol,
                                  tags1[i][X], tags1[i][Y], tags1[i][Z],
                                  &left_normal, left_constant,
                                  &right_normal, right_constant );
+
+            if( plane_status == 1 )
+            {
+                volume += voxel_volume;
+                true_volume += voxel_volume;
+            }
+            else if( plane_status == 0 )
+            {
+                get_voxel_corners( vol, tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                   voxel.points );
+                clip_polygons_to_plane( &voxel, &left_normal, left_constant,
+                                        &tmp );
+                clip_polygons_to_plane( &tmp, &right_normal, right_constant,
+                                        &clipped );
+                delete_polygons( &tmp );
+                volume += get_closed_polyhedron_volume( &clipped );
+                delete_polygons( &clipped );
+
+                true_volume += get_voxel_plane_volume( vol,
+                                     tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                     &left_normal, left_constant,
+                                     &right_normal, right_constant );
+            }
         }
+
+        update_progress_report( &progress, i+1 );
     }
+
+    terminate_progress_report( &progress );
 
     if( volume_desired )
     {
@@ -428,10 +462,11 @@ private  Real  get_voxel_plane_volume(
     Vector    *right_normal,
     Real      right_constant )
 {
-    int    i, j, k, n_inside;
+    int    i, j, axis, a1, a2;
     Real   v[MAX_DIMENSIONS], voxel[MAX_DIMENSIONS];
-    Real   separations[MAX_DIMENSIONS];
-    Real   xw, yw, zw, vol;
+    Real   separations[MAX_DIMENSIONS], max_axis_len;
+    Real   l1, l2, r1, r2;
+    Real   xw, yw, zw, vol, alpha_l, alpha_r, t_min, t_max;
     Point  point;
 
     get_volume_separations( volume, separations );
@@ -443,31 +478,109 @@ private  Real  get_voxel_plane_volume(
     voxel[1] = ROUND( voxel[1] );
     voxel[2] = ROUND( voxel[2] );
 
-    n_inside = 0.0;
+    max_axis_len = MAX3( ABS( Vector_x(*left_normal) ),
+                         ABS( Vector_y(*left_normal) ),
+                         ABS( Vector_z(*left_normal) ) );
+    if( ABS( Vector_x(*left_normal) ) == max_axis_len )
+        axis = X;
+    else if( ABS( Vector_y(*left_normal) ) == max_axis_len )
+        axis = Y;
+    else
+        axis = Z;
+
+    a1 = (axis + 1) % N_DIMENSIONS;
+    a2 = (axis + 2) % N_DIMENSIONS;
+
+    vol = 0.0;
 
     for_less( i, 0, GRID )
     {
-        v[0] = voxel[0] + ((Real) i + 0.5) / (Real) GRID - 0.5;
+        v[a1] = voxel[a1] + ((Real) i + 0.5) / (Real) GRID - 0.5;
         for_less( j, 0, GRID )
         {
-            v[1] = voxel[1] + ((Real) j + 0.5) / (Real) GRID - 0.5;
-            for_less( k, 0, GRID )
-            {
-                v[2] = voxel[2] + ((Real) k + 0.5) / (Real) GRID - 0.5;
+            v[a2] = voxel[a2] + ((Real) j + 0.5) / (Real) GRID - 0.5;
 
-                convert_voxel_to_world( volume, v, &xw, &yw, &zw );
-                fill_Point( point, xw, yw, zw );
-                if( distance_from_plane( &point, left_normal, left_constant )
-                                         >= 0.0 &&
-                    distance_from_plane( &point, right_normal, right_constant )
-                                         >= 0.0 )
-                    ++n_inside;
+            v[axis] = voxel[axis] - 0.5;
+            convert_voxel_to_world( volume, v, &xw, &yw, &zw );
+            fill_Point( point, xw, yw, zw );
+            l1 = distance_from_plane( &point, left_normal, left_constant );
+            r1 = distance_from_plane( &point, right_normal, right_constant );
+
+            v[axis] = voxel[axis] + 0.5;
+            convert_voxel_to_world( volume, v, &xw, &yw, &zw );
+            fill_Point( point, xw, yw, zw );
+            l2 = distance_from_plane( &point, left_normal, left_constant );
+            r2 = distance_from_plane( &point, right_normal, right_constant );
+
+            if( l1 == l2 || r1 == r2 )
+            {
+                if( l1 >= 0.0 && r1 >= 0.0 )
+                    vol += 1.0;
+            }
+            else
+            {
+                alpha_l = l1 / (l1 - l2);
+                alpha_r = r1 / (r1 - r2);
+
+                t_min = 0.0;
+                t_max = 1.0;
+
+                if( l1 < l2 )
+                    t_min = MAX( t_min, alpha_l );
+                else
+                    t_max = MIN( t_max, alpha_l );
+
+                if( r1 < r2 )
+                    t_min = MAX( t_min, alpha_r );
+                else
+                    t_max = MIN( t_max, alpha_r );
+
+                if( t_min < t_max )
+                    vol += t_max - t_min;
             }
         }
     }
 
-    vol = (Real) n_inside / (Real) (GRID * GRID * GRID) *
+    vol = (Real) vol / (Real) (GRID * GRID) *
           separations[0] * separations[1] * separations[2];
 
     return( vol );
+}
+
+private  int  get_voxel_plane_status(
+    Volume    volume,
+    Real      x,
+    Real      y,
+    Real      z,
+    Vector    *left_normal,
+    Real      left_constant,
+    Vector    *right_normal,
+    Real      right_constant )
+{
+    Real   separations[MAX_DIMENSIONS];
+    Real   l, r, max_dist;
+    Point  point;
+
+    get_volume_separations( volume, separations );
+
+    max_dist = separations[0] * separations[0] +
+               separations[1] * separations[1] +
+               separations[2] * separations[2];
+
+    fill_Point( point, x, y, z );
+
+    l = distance_from_plane( &point, left_normal, left_constant );
+    r = distance_from_plane( &point, right_normal, right_constant );
+
+    if( l < 0.0 && l * l >= max_dist )
+        return( -1 );
+    if( r < 0.0 && r * r >= max_dist )
+        return( -1 );
+    if( l > 0.0 && l * l >= max_dist &&
+        r > 0.0 && r * r >= max_dist )
+    {
+        return( 1 );
+    }
+    else
+        return( 0 );
 }
