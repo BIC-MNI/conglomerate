@@ -118,11 +118,15 @@ private  void  box_filter_volume(
     Volume   volume,
     Real     filter_widths[] )
 {
-    int   v, dim, n_dims, voxel[MAX_DIMENSIONS], blurring_dim, n;
+    int   v, dim, n_dims, blurring_dim, n;
+    int   v0, v1, v2, v3, v4;
     int   sizes[MAX_DIMENSIONS], max_size;
     int   start[MAX_DIMENSIONS];
     int   end[MAX_DIMENSIONS];
     int   count[MAX_DIMENSIONS];
+    int   count0, count1, count2, count3, count4;
+    int   start0, start1, start2, start3, start4;
+    int   end0, end1, end2, end3, end4;
     Real  *values, *output, volume_min, volume_max, value;
 
     n_dims = get_volume_n_dimensions( volume );
@@ -160,19 +164,35 @@ private  void  box_filter_volume(
         count[blurring_dim] = sizes[blurring_dim];
         n = sizes[blurring_dim];
 
-        for_inclusive( voxel[0], start[0], end[0] )
-        for_inclusive( voxel[1], start[1], end[1] )
-        for_inclusive( voxel[2], start[2], end[2] )
-        for_inclusive( voxel[3], start[3], end[3] )
-        for_inclusive( voxel[4], start[4], end[4] )
-        {
-            get_volume_voxel_hyperslab( volume, voxel[0], voxel[1], voxel[2],
-                                        voxel[3], voxel[4],
-                                        count[0], count[1], count[2],
-                                        count[3], count[4], values );
+        count0 = count[0];
+        count1 = count[1];
+        count2 = count[2];
+        count3 = count[3];
+        count4 = count[4];
 
-            box_filter_1d( sizes[blurring_dim], values, output,
-                           filter_widths[blurring_dim] );
+        start0 = start[0];
+        start1 = start[1];
+        start2 = start[2];
+        start3 = start[3];
+        start4 = start[4];
+
+        end0 = end[0];
+        end1 = end[1];
+        end2 = end[2];
+        end3 = end[3];
+        end4 = end[4];
+
+        for_inclusive( v0, start0, end0 )
+        for_inclusive( v1, start1, end1 )
+        for_inclusive( v2, start2, end2 )
+        for_inclusive( v3, start3, end3 )
+        for_inclusive( v4, start4, end4 )
+        {
+            get_volume_voxel_hyperslab( volume, v0, v1, v2, v3, v4,
+                                        count0, count1, count2, count3, count4,
+                                        values );
+
+            box_filter_1d( n, values, output, filter_widths[blurring_dim] );
 
             for_less( v, 0, n )
             {
@@ -182,12 +202,9 @@ private  void  box_filter_volume(
                     output[v] = volume_max;
             }
 
-            set_volume_voxel_hyperslab( volume, voxel[0], voxel[1], voxel[2],
-                                        voxel[3], voxel[4],
-                                        count[0], count[1], count[2],
-                                        count[3], count[4], output );
-
-            voxel[blurring_dim] = 0;
+            set_volume_voxel_hyperslab( volume, v0, v1, v2, v3, v4,
+                                        count0, count1, count2,
+                                        count3, count4, output );
         }
 
         print( "Blurred Dimensions %d out of %d\n", blurring_dim+1, n_dims );
