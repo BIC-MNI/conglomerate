@@ -2,22 +2,26 @@
 #include  <bicpl.h>
 
 private   void  check_neighbours(
-    Volume   volume,
-    int      x,
-    int      y,
-    int      z,
-    int      dx_min,
-    int      dx_max,
-    int      dy_min,
-    int      dy_max,
-    int      dz_min,
-    int      dz_max,
-    Real     min_threshold,
-    Real     max_threshold,
-    Real     min_voxel,
-    Real     max_voxel,
-    int      *n_lower,
-    int      *n_higher );
+    Volume        volume,
+    Smallest_int  ***flags,
+    int           x,
+    int           y,
+    int           z,
+    int           dx_min,
+    int           dx_max,
+    int           dy_min,
+    int           dy_max,
+    int           dz_min,
+    int           dz_max,
+    Real          min_threshold,
+    Real          max_threshold,
+    Real          min_voxel,
+    Real          max_voxel,
+    int           *n_lower,
+    int           *n_higher );
+
+typedef  enum  { BELOW_THRESHOLD, WITHIN_THRESHOLD, ABOVE_THRESHOLD }
+               Threshold_types;
 
 int  main(
     int   argc,
@@ -30,6 +34,7 @@ int  main(
     int                  x, y, z, sizes[N_DIMENSIONS];
     int                  dx_min, dx_max, dy_min, dy_max, dz_min, dz_max;
     int                  n_lower, n_higher;
+    Smallest_int         ***flags;
     progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
@@ -52,11 +57,31 @@ int  main(
 
     get_volume_voxel_range( volume, &min_voxel, &max_voxel );
 
-    initialize_progress_report( &progress, FALSE, sizes[0] * sizes[1],
-                                "Clamping" );
-
     n_lower = 0;
     n_higher = 0;
+
+    ALLOC3D( flags, sizes[0], sizes[1], sizes[2] );
+
+    for_less( x, 0, sizes[0] )
+    for_less( y, 0, sizes[1] )
+    for_less( z, 0, sizes[2] )
+    {
+        Threshold_types  type;
+        Real             value;
+
+        GET_VALUE_3D( value, volume, x, y, z );
+
+        if( value < min_threshold )
+            type = BELOW_THRESHOLD;
+        else if( value > max_threshold )
+            type = ABOVE_THRESHOLD;
+        else
+            type = WITHIN_THRESHOLD;
+        flags[x][y][z] = type;
+    }
+
+    initialize_progress_report( &progress, FALSE, sizes[0] * sizes[1],
+                                "Clamping" );
 
     for_less( x, 0, sizes[0] )
     {
@@ -89,7 +114,7 @@ int  main(
                 else
                     dz_max = 1;
 
-                check_neighbours( volume, x, y, z, dx_min, dx_max,
+                check_neighbours( volume, flags, x, y, z, dx_min, dx_max,
                                   dy_min, dy_max, dz_min, dz_max,
                                   min_threshold, max_threshold,
                                   min_voxel, max_voxel,
@@ -99,6 +124,8 @@ int  main(
             update_progress_report( &progress, x * sizes[1] + y + 1 );
         }
     }
+
+    FREE3D( flags );
 
     terminate_progress_report( &progress );
 
@@ -115,26 +142,28 @@ int  main(
 }
 
 private   void  check_neighbours(
-    Volume   volume,
-    int      x,
-    int      y,
-    int      z,
-    int      dx_min,
-    int      dx_max,
-    int      dy_min,
-    int      dy_max,
-    int      dz_min,
-    int      dz_max,
-    Real     min_threshold,
-    Real     max_threshold,
-    Real     min_voxel,
-    Real     max_voxel,
-    int      *n_lower,
-    int      *n_higher )
+    Volume        volume,
+    Smallest_int  ***flags,
+    int           x,
+    int           y,
+    int           z,
+    int           dx_min,
+    int           dx_max,
+    int           dy_min,
+    int           dy_max,
+    int           dz_min,
+    int           dz_max,
+    Real          min_threshold,
+    Real          max_threshold,
+    Real          min_voxel,
+    Real          max_voxel,
+    int           *n_lower,
+    int           *n_higher )
 {
-    int      dx, dy, dz;
-    Real     value;
-    BOOLEAN  lower, change;
+    int              dx, dy, dz;
+    Real             value;
+    BOOLEAN          lower, change;
+    Threshold_types  type;
 
     GET_VALUE_3D( value, volume, x, y, z );
     if( value >= min_threshold && value <= max_threshold )
@@ -149,9 +178,9 @@ private   void  check_neighbours(
         {
             for_inclusive( dz, dz_min, dz_max )
             {
-                GET_VALUE_3D( value, volume, x+dx, y+dy, z+dz );
-                if( lower && value >= min_threshold ||
-                    !lower && value <= max_threshold )
+                type = flags[x+dx][y+dy][z+dz];
+                if( lower && type != BELOW_THRESHOLD ||
+                    !lower && type != ABOVE_THRESHOLD )
                 {
                     change = FALSE;
                     break;
