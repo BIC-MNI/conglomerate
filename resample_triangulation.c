@@ -721,7 +721,7 @@ private  void  create_edge_lookup(
     int   tri;
 
     initialize_hash2_table( lookup, 10 * mesh->n_points,
-                           sizeof(int), 0.5, 0.25 );
+                            sizeof(int), 0.25, 0.125 );
 
     for_less( tri, 0, mesh->n_triangles )
         insert_edge_points( lookup, &mesh->triangles[tri] );
@@ -730,6 +730,12 @@ private  void  create_edge_lookup(
 private  void  delete_edge_lookup(
     hash2_table_struct  *lookup )
 {
+    int   i, n_non_null;
+
+    n_non_null = 0;
+    for_less( i, 0, lookup->size )
+        if( lookup->table[i] != NULL ) ++n_non_null;
+    print( "hash: %d %d\n", lookup->n_entries, n_non_null );
     delete_hash2_table( lookup );
 }
 
