@@ -32,6 +32,10 @@ int  main(
         if( input_objects_any_format( NULL, filename,
                                       GREEN, 1.0, SPHERE_MARKER,
                                       &n_objects, &object_list ) != OK )
+	{
+	    print_error( "Could not read input %s\n", filename );
+	    return 2;
+	}
 
         n_points = get_object_points( object_list[0], &points );
 
@@ -61,6 +65,16 @@ int  main(
             delete_object_list( n_objects, object_list );
 
         ++n_sets;
+    }
+
+    if ( n_sets == 0 ) {
+	print_error( "No input?!  No output for you!!\n" );
+	return 1;
+    }
+
+    for_less( i, 0, n_points )
+    {
+	SCALE_POINT( set_points[i], set_points[i], (1.0/n_sets) );
     }
 
     if( get_object_type( out_object ) == POLYGONS )

@@ -7,9 +7,9 @@ if [ ! -d m4 ]; then
 This package needs the MNI autoconf macros installed in directory named "m4".
 You can check out that package from CVS using
 
-    cvs -d ... checkout -d m4 mni-acmacros
+    cvs -d /software/source checkout -d m4 libraries/mni-acmacros
 
-(replace the dots by /software/source/libraries, or appropriate)
+(replace /software/source by user@shadow:/software/source, if remote)
 
 EOF
     exit 1

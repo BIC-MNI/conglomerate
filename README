@@ -1,3 +1,25 @@
+		average_objects
+		---------------
+
+  average_objects output.obj input1.obj [input2.obj [input3.obj ...]]
+
+Reads a number of input files, which may be of any type as long
+as each has the same number of points.  Output a file of the type
+of input1.obj, but with the point position set to the mean position
+of the corresponding points in the input files.
+
+
+		average_surfaces
+		----------------
+
+  average_surfaces output.obj  none|rms_file  none|variance_file n_groups
+                   input1.obj [input2.obj...]
+
+Reads a number of surface (POLYGONS) files, and outputs the mean surface,
+computed as for average_objects.  In addition, the RMS distance and
+inverse covariance matrix can be written to files.
+
+
 		create_grid
 		-----------
 

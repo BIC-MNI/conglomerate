@@ -1,3 +1,7 @@
+2003-04-30  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* average_objects.c: Completed the code.
+
 2003-03-02  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* configure.ac: Set version to 1.3.
