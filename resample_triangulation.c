@@ -16,6 +16,13 @@ typedef struct
     tri_node_struct    *triangles;
 } tri_mesh_struct;
 
+private  void  delete_edge_lookup(
+    hash_table_struct  *lookup );
+
+private  void  create_edge_lookup(
+    tri_mesh_struct    *mesh,
+    hash_table_struct  *lookup );
+
 private  void   convert_polygons_to_mesh(
     polygons_struct  *polygons,
     tri_mesh_struct  *mesh );
@@ -34,11 +41,6 @@ private  Status  input_triangular_mesh(
     File_formats     format,
     tri_mesh_struct  *mesh );
 
-private   void   resample_mesh(
-    tri_mesh_struct   *mesh,
-    Real              min_size,
-    Real              max_size );
-
 private  BOOLEAN  set_mesh_points(
     tri_mesh_struct   *mesh,
     int               n_points,
@@ -49,11 +51,29 @@ private  BOOLEAN  set_mesh_model_points(
     int               n_points,
     Point             points[] );
 
+private   void   mesh_delete_small_triangles(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              min_size );
+
+private   void   mesh_subdivide_large_triangles(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              max_size,
+    int               max_subdivisions );
+
+private  void   delete_unused_nodes(
+    tri_mesh_struct  *mesh );
+
 private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  input.obj|input.msh  model.obj input.obj output.msh output.obj min_size max_size\n\
+Usage: %s  input.obj|input.msh  model.obj input.obj output.msh output.obj\n\
+         [-min_size min_size]\n\
+         [-max_size max_size]\n\
+         [-max_curv max_curv]\n\
+         [-max_sub max_sub]\n\
 \n\
      Subdivides the triangular mesh.\n\h";
 
@@ -64,14 +84,17 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_mesh_filename, input_filename, output_filename;
-    STRING           output_mesh_filename, model_filename;
-    int              n_objects, new_n_polys;
-    File_formats     format;
-    object_struct    **object_list, *object;
-    polygons_struct  *polygons;
-    Real             min_size, max_size;
-    tri_mesh_struct  mesh;
+    STRING             input_mesh_filename, input_filename, output_filename;
+    STRING             output_mesh_filename, model_filename, option;
+    int                n_objects, new_n_polys, max_subdivisions;
+    File_formats       format;
+    object_struct      **object_list, *object;
+    polygons_struct    *polygons;
+    Real               value;
+    tri_mesh_struct    mesh;
+    hash_table_struct  edge_lookup;
+
+    max_subdivisions = -1;
 
     initialize_argument_processing( argc, argv );
 
@@ -79,9 +102,7 @@ int  main(
         !get_string_argument( NULL, &model_filename ) ||
         !get_string_argument( NULL, &input_filename ) ||
         !get_string_argument( NULL, &output_mesh_filename ) ||
-        !get_string_argument( NULL, &output_filename ) ||
-        !get_real_argument( 0.0, &min_size ) ||
-        !get_real_argument( 0.0, &max_size ) )
+        !get_string_argument( NULL, &output_filename ) )
     {
         usage( argv[0] );
         return( 1 );
@@ -140,7 +161,33 @@ int  main(
 
     delete_object_list( n_objects, object_list );
 
-    resample_mesh( &mesh, min_size, max_size );
+    create_edge_lookup( &mesh, &edge_lookup );
+
+    while( get_string_argument( NULL, &option ) &&
+           get_real_argument( 0.0, &value ) )
+    {
+        if( equal_strings( option, "-max_sub" ) )
+            max_subdivisions = ROUND( value );
+        else if( equal_strings( option, "-min_size" ) )
+        {
+            print( "%s %g\n", option, value );
+            mesh_delete_small_triangles( &mesh, &edge_lookup, value );
+        }
+        else if( equal_strings( option, "-max_size" ) )
+        {
+            print( "%s %g\n", option, value );
+            mesh_subdivide_large_triangles( &mesh, &edge_lookup, value,
+                                            max_subdivisions );
+        }
+        else
+        {
+            usage( argv[0] );
+            return( 1 );
+        }
+    }
+
+    delete_edge_lookup( &edge_lookup );
+    delete_unused_nodes( &mesh );
 
     object = create_object( POLYGONS );
     polygons = get_polygons_ptr( object );
@@ -862,64 +909,71 @@ private  void   subdivide_large_triangles(
     tri_mesh_struct   *mesh,
     hash_table_struct *edge_lookup,
     tri_node_struct   *node,
-    Real              max_size_sq )
+    Real              max_size_sq,
+    int               max_subdivisions )
 {
     Real   size;
 
-    if( node->children[0] == NULL )
+    if( max_subdivisions != 0 && node->children[0] == NULL )
     {
         size = get_triangle_size( &mesh->model_points[node->nodes[0]],
                                   &mesh->model_points[node->nodes[1]],
                                   &mesh->model_points[node->nodes[2]] );
 
         if( size > max_size_sq )
+        {
             subdivide_tri_node( mesh, edge_lookup, node );
+            --max_subdivisions;
+        }
     }
 
     if( node->children[0] != NULL )
     {
         subdivide_large_triangles( mesh, edge_lookup, node->children[0],
-                                   max_size_sq );
+                                   max_size_sq, max_subdivisions );
         subdivide_large_triangles( mesh, edge_lookup, node->children[1],
-                                   max_size_sq );
+                                   max_size_sq, max_subdivisions );
         subdivide_large_triangles( mesh, edge_lookup, node->children[2],
-                                   max_size_sq );
+                                   max_size_sq, max_subdivisions );
         subdivide_large_triangles( mesh, edge_lookup, node->children[3],
-                                   max_size_sq );
+                                   max_size_sq, max_subdivisions );
     }
 }
 
-private   void   resample_mesh(
+private   void   mesh_delete_small_triangles(
     tri_mesh_struct   *mesh,
-    Real              min_size,
-    Real              max_size )
+    hash_table_struct *edge_lookup,
+    Real              min_size )
 {
     int                tri;
-    hash_table_struct  edge_lookup;
-
-    create_edge_lookup( mesh, &edge_lookup );
 
     if( min_size > 0.0 )
     {
         for_less( tri, 0, mesh->n_triangles )
         {
-            (void) delete_small_triangles( mesh, &edge_lookup,
+            (void) delete_small_triangles( mesh, edge_lookup,
                                            &mesh->triangles[tri],
                                            min_size * min_size );
         }
     }
+}
+
+private   void   mesh_subdivide_large_triangles(
+    tri_mesh_struct   *mesh,
+    hash_table_struct *edge_lookup,
+    Real              max_size,
+    int               max_subdivisions )
+{
+    int                tri;
 
     if( max_size > 0.0 )
     {
         for_less( tri, 0, mesh->n_triangles )
         {
-            (void) subdivide_large_triangles( mesh, &edge_lookup,
+            (void) subdivide_large_triangles( mesh, edge_lookup,
                                               &mesh->triangles[tri],
-                                              max_size * max_size );
+                                              max_size * max_size,
+                                              max_subdivisions );
         }
     }
-
-    delete_edge_lookup( &edge_lookup );
-
-    delete_unused_nodes( mesh );
 }
