@@ -1,7 +1,7 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  BINTREE_FACTOR  0.5
+#define  BINTREE_FACTOR  0.4
 
 int  main(
     int    argc,
@@ -15,7 +15,7 @@ int  main(
     polygons_struct  *polygons1, *polygons2;
     Point            point;
     Real             dist, min_dist, max_dist, rms, avg_dist, std_dev;
-    Real             sum_x, sum_xx;
+    Real             sum_x, sum_xx, bintree_factor;
     BOOLEAN          outputting;
 
     initialize_argument_processing( argc, argv );
@@ -28,7 +28,9 @@ int  main(
         return( 1 );
     }
 
-    outputting = get_string_argument( NULL, &output_filename );
+    outputting = get_string_argument( NULL, &output_filename ) &&
+                 !equal_strings( output_filename, "-" );
+    (void) get_real_argument( BINTREE_FACTOR, &bintree_factor );
 
     if( input_graphics_file( input1_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 ||
@@ -52,7 +54,7 @@ int  main(
 
     create_polygons_bintree( polygons2,
                              ROUND( (Real) polygons2->n_items *
-                                    BINTREE_FACTOR ) );
+                                    bintree_factor ) );
 
     if( outputting &&
         open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
@@ -85,8 +87,6 @@ int  main(
         }
     }
 
-    min_dist = sqrt( min_dist );
-    max_dist = sqrt( max_dist );
     rms = sqrt( sum_xx / (Real) polygons1->n_points );
 
     avg_dist = sum_x / (Real) polygons1->n_points;
