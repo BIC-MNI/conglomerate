@@ -64,8 +64,7 @@ private  void  increment_voxel_count(
 
     GET_VOXEL_3D( value, volume, x, y, z );
 
-    if( ROUND( value ) < 255.0 )
-        value += 1.0;
+    value += 1.0;
 
     if( value > *max_value )
         *max_value = value;
@@ -81,14 +80,16 @@ int  main(
     char                 *input_filename, *landmark_filename, *output_filename;
     Real                 separations[N_DIMENSIONS];
     Real                 voxel[N_DIMENSIONS];
-    Real                 max_value, radius, radius_squared;
-    Real                 delta, dx2, dy2, dz2, value;
+    Real                 max_value, min_v, max_v, max_map;
+    Real                 radius, radius_squared;
+    Real                 delta, dx2, dy2, dz2;
+    String               *landmark_filenames;
     bitlist_3d_struct    bitlist;
     Volume               volume, output_volume;
     volume_input_struct  volume_input;
-    int                  n_objects, n_patients;
+    int                  n_objects, n_files, n_patients;
     object_struct        **object_list;
-    int                  i, x, y, z;
+    int                  i, p, x, y, z;
     int                  sizes[N_DIMENSIONS];
     int                  c, min_voxel[N_DIMENSIONS], max_voxel[N_DIMENSIONS];
     Real                 min_limit, max_limit;
@@ -116,13 +117,13 @@ int  main(
 
     /* --- create the output volume */
 
-    output_volume = create_volume( 3, in_dim_names, NC_BYTE, FALSE, 0.0, 0.0 );
+    output_volume = create_volume( 3, in_dim_names, NC_SHORT, FALSE, 0.0, 0.0 );
     set_volume_size( output_volume, NC_UNSPECIFIED, FALSE, sizes );
     output_volume->separation[X] = separations[X];
     output_volume->separation[Y] = separations[Y];
     output_volume->separation[Z] = separations[Z];
     output_volume->voxel_to_world_transform = volume->voxel_to_world_transform;
-    output_volume->min_value = 0.0;
+    output_volume->min_voxel = 0.0;
     output_volume->value_scale = 1.0;
     output_volume->value_translation = 0.0;
     alloc_volume_data( output_volume );
@@ -134,21 +135,28 @@ int  main(
             for_less( z, 0, sizes[Z] )
                 SET_VOXEL_3D( output_volume, x, y, z, 0.0 );
 
-    max_value = 0.0;
-    n_patients = 0;
+    n_files = 0;
 
     while( get_next_filename( &landmark_filename ) )
     {
-        print( "Reading %s\n", landmark_filename );
+        SET_ARRAY_SIZE( landmark_filenames, n_files, n_files + 1,
+                        DEFAULT_CHUNK_SIZE );
+        (void) strcpy( landmark_filenames[n_files], landmark_filename );
+        ++n_files;
+    }
 
-        status = input_landmark_file( volume, landmark_filename,
+    max_value = 0.0;
+
+    for_less( p, 0, n_files )
+    {
+        print( "Reading %s\n", landmark_filenames[p] );
+
+        status = input_landmark_file( volume, landmark_filenames[p],
                                       GREEN, 1.0, BOX_MARKER, &n_objects,
                                       &object_list );
 
         if( status != OK )
             return( 1 );
-
-        ++n_patients;
 
         for_less( i, 0, n_objects )
         {
@@ -218,31 +226,22 @@ int  main(
 
     delete_bitlist_3d( &bitlist );
 
-    for_less( x, 0, sizes[X] )
-    {
-        for_less( y, 0, sizes[Y] )
-        {
-            for_less( z, 0, sizes[Z] )
-            {
-                GET_VOXEL_3D( value, output_volume, x, y, z );
-                value = ROUND( 100.0 * value / (Real) n_patients / 3.0 * SCALE_FACTOR );
-                SET_VOXEL_3D( output_volume, x, y, z, value );
-            }
-        }
-    }
+    n_patients = n_files / 3;
 
-    value = ROUND( 100.0 * SCALE_FACTOR );
-    SET_VOXEL_3D( output_volume, 0, 0, 0, value );
+    SET_VOXEL_3D( output_volume, 0, 0, 0, n_patients );
 
-    output_volume->max_value = 100.0 * 255.0 / (Real) n_patients / 3.0 * SCALE_FACTOR;
+    output_volume->max_voxel = n_patients;
 
     cancel_volume_input( volume, &volume_input );
 
     print( "Writing %s\n", output_filename );
 
+    get_volume_voxel_range( output_volume, &min_v, &max_v);
+
     minc_file = initialize_minc_output( output_filename, 3, in_dim_names,
-                                    sizes, NC_BYTE, FALSE, 0.0,
-                                    output_volume->max_value,
+                                    sizes, NC_BYTE, FALSE,
+                                    min_v, max_v,
+                                    0.0, 100.0,
                                     &output_volume->voxel_to_world_transform );
 
     status = output_minc_volume( minc_file, output_volume );
