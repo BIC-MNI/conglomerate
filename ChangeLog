@@ -1,3 +1,7 @@
+2003-09-08  Jason Lerch    <jason@bic.mni.mcgill.ca>
+
+	* added a -output_binary_mask option to surface_mask2
+
 2003-08-29  Jason Lerch    <jason@bic.mni.mcgill.ca>
 
 	* fixed a bug in surface_mask2 which caused it to fail when the

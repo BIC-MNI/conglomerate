@@ -8,17 +8,29 @@
  *   4) Keep all original voxels inside binary mask, set the rest to 0
  *
  * Author: Jason Lerch <jason@bic.mni.mcgill.ca>
- * Last changed: Sep 2001.
+ * Last changed: Sep 2003.
  */
 
 #include  <volume_io/internal_volume_io.h>
 #include  <bicpl.h>
+#include  <ParseArgv.h>
 
 #define  BINTREE_FACTOR   0.1
 
 #define  OFFSET   1000.0
 
+/* argument parsing options */
+int    output_binary_mask = 0;
 
+/* argument parsing table */
+ArgvInfo argTable[] = {
+  { NULL, ARGV_HELP, (char *)NULL, (char *)NULL,
+    "\nOutput options:" },
+  { "-binary_mask", ARGV_CONSTANT, (char *) 1, (char *) &output_binary_mask,
+    "Create a binary output." },
+
+  { NULL, ARGV_END, NULL, NULL, NULL }
+};
 
 int binary_object_mask( STRING input_surface_filename,
                         Real set_value,
@@ -244,6 +256,12 @@ int main ( int argc, char *argv[] )
 
   outside_value = 0;
   inside_value = 1;
+
+  if (ParseArgv(&argc, argv, argTable, 0) ) {
+    fprintf(stderr, "\nUsage: %s in_volume.mnc surface.obj output.mnc\n",
+            argv[0]);
+    return(1);
+  }
   
   initialize_argument_processing( argc, argv );
 
@@ -266,6 +284,8 @@ int main ( int argc, char *argv[] )
     return( 1 );
 
   out_volume = copy_volume(binary_volume);
+  set_volume_real_range(binary_volume, 0, 1);
+
 
   /* create the binary mask */
   (void) binary_object_mask( surface_filename,
@@ -293,8 +313,14 @@ int main ( int argc, char *argv[] )
     }
   }
 
-  output_volume(output_file_name, NC_BYTE, FALSE, 0.0, 0.0,
-                out_volume, "", NULL );
+  if (output_binary_mask == 1) {
+    output_volume(output_file_name, NC_BYTE, FALSE, 0.0, 1.0,
+                  binary_volume, "", NULL );
+  }
+  else {
+    output_volume(output_file_name, MI_ORIGINAL_TYPE, FALSE, 0.0, 0.0,
+                  out_volume, "", NULL );
+  }
 
   return 0;
 }
