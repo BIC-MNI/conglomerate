@@ -9,9 +9,9 @@ private  void  usage(
     STRING   executable )
 {
     STRING   usage_str = "\n\
-Usage: %s input.mnc output.mnc x_width y_width z_width [time_width]\n\
+Usage: %s input.mnc output.mnc x_width [y_width [z_width [width4 [width5]]]]\n\
 \n\
-     Box filters a volume with the given WORLD widths,\n\n";
+     Box filters a volume with the given WORLD coordinate widths,\n\n";
 
     print_error( usage_str, executable );
 }
@@ -45,7 +45,13 @@ int  main(
     n_dims = get_volume_n_dimensions( volume );
 
     for_less( dim, 0, n_dims )
-        (void) get_real_argument( 0.0, &filter_widths[dim] );
+    {
+        if( !get_real_argument( 0.0, &filter_widths[dim] ) )
+        {
+            usage( argv[0] );
+            return( 1 );
+        }
+    }
 
     reorder_xyz_to_voxel( volume, filter_widths, file_order_filter_widths );
 
