@@ -32,6 +32,7 @@ int  main( argc, argv )
     object_struct     **object_list;
     Volume            volume, tmp;
     polygons_struct   *polygons;
+    static String     dim_names[] = { MIxspace, MIyspace, MIzspace };
 
     initialize_argument_processing( argc, argv );
 
@@ -75,7 +76,7 @@ int  main( argc, argv )
 
     deform.deformation_model.position_constrained = FALSE;
 
-    status = input_volume( volume_filename, &volume );
+    status = input_volume( volume_filename, dim_names, &volume );
 
     if( strcmp( activity_filename, "none" ) != 0 )
     {
