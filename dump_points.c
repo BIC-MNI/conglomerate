@@ -41,9 +41,9 @@ int  main(
 
     for_less( i, 0, n_points )
     {
-        if( output_real( file, Point_x(points[i]) ) != OK ||
-            output_real( file, Point_y(points[i]) ) != OK ||
-            output_real( file, Point_z(points[i]) ) != OK ||
+        if( output_real( file, (Real) Point_x(points[i]) ) != OK ||
+            output_real( file, (Real) Point_y(points[i]) ) != OK ||
+            output_real( file, (Real) Point_z(points[i]) ) != OK ||
             output_newline( file ) != OK )
             return( 1 );
     }
