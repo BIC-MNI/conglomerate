@@ -24,6 +24,7 @@ private  void   fit_polygons(
     Real               tangent_weight,
     Real               max_outward,
     Real               max_inward,
+    Smallest_int       fit_this_node[],
     BOOLEAN            floating_flag,
     int                oversample,
     int                n_iters,
@@ -36,7 +37,8 @@ private  void  usage(
 Usage:     %s  input.obj output.obj model.obj model_weight volume.mnc \n\
                   threshold +|-|0  tangent_weight out_dist in_dist\n\
                   float/nofloat oversample\n\
-                  [n_iters] [n_between]\n\n";
+                  [n_iters] [n_between]\n\
+                  [values_file min max]\n\n";
 
     print_error( usage_format, executable_name );
 }
@@ -47,7 +49,9 @@ int  main(
 {
     STRING               input_filename, output_filename, model_filename;
     STRING               surface_direction, volume_filename, floating_string;
-    int                  n_objects, n_m_objects;
+    STRING               values_filename;
+    FILE                 *file;
+    int                  i, n_objects, n_m_objects;
     int                  n_iters, n_iters_recompute, n_points;
     int                  *n_neighbours, **neighbours, oversample;
     File_formats         format;
@@ -57,6 +61,8 @@ int  main(
     Point                *surface_points, *model_points;
     Real                 threshold, model_weight;
     Real                 max_outward, max_inward, tangent_weight;
+    Smallest_int         *fit_this_node;
+    Real                 min_value, max_value, value;
     BOOLEAN              floating_flag;
 
     initialize_argument_processing( argc, argv );
@@ -80,6 +86,9 @@ int  main(
 
     (void) get_int_argument( 100, &n_iters );
     (void) get_int_argument( 1, &n_iters_recompute );
+    (void) get_string_argument( NULL, &values_filename );
+    (void) get_real_argument( 0.0, &min_value );
+    (void) get_real_argument( 0.0, &max_value );
 
     floating_flag = equal_strings( floating_string, "float" );
 
@@ -111,9 +120,33 @@ int  main(
                       TRUE, &volume, NULL ) != OK )
         return( 1 );
 
+    if( values_filename != NULL )
+    {
+        ALLOC( fit_this_node, n_points );
+        if( open_file( values_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+            return( 1 );
+
+        for_less( i, 0, n_points )
+        {
+            if( input_real( file, &value ) != OK )
+            {
+                print_error( "Error reading values.\n" );
+                return( 1 );
+            }
+
+            fit_this_node[i] = (Smallest_int)
+                            (min_value <= value && value <= max_value);
+        }
+
+        (void) close_file( file );
+    }
+    else
+        fit_this_node = NULL;
+
     fit_polygons( n_points, n_neighbours, neighbours, surface_points,
                   model_points, model_weight, volume, threshold,
                   surface_direction[0], tangent_weight, max_outward, max_inward,
+                  fit_this_node,
                   floating_flag, oversample, n_iters, n_iters_recompute );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
@@ -396,6 +429,7 @@ private  void  create_image_coefficients(
     Real                        tangent_weight,
     Real                        max_outward,
     Real                        max_inward,
+    Smallest_int                fit_this_node[],
     BOOLEAN                     floating_flag,
     int                         oversample,
     int                         n_nodes,
@@ -419,6 +453,9 @@ private  void  create_image_coefficients(
 
     for_less( node, 0, n_nodes )
     {
+        if( fit_this_node != NULL && !fit_this_node[node] )
+            continue;
+
         for_less( n, 0, n_neighbours[node] )
         {
             fill_Point( neigh_points[n],
@@ -551,7 +588,9 @@ private  void  create_image_coefficients(
             neigh = neighbours[node][n];
 
             if( oversample <= 0 ||
-                !this_is_unique_edge( node, neigh, n_neighbours, neighbours ) )
+                !this_is_unique_edge( node, neigh, n_neighbours, neighbours ) ||
+                (fit_this_node != NULL && !fit_this_node[node] &&
+                 !fit_this_node[neigh]) )
             continue;
 
             for_less( n2, 0, n_neighbours[neigh] )
@@ -759,6 +798,7 @@ private  void   fit_polygons(
     Real               tangent_weight,
     Real               max_outward,
     Real               max_inward,
+    Smallest_int       fit_this_node[],
     BOOLEAN            floating_flag,
     int                oversample,
     int                n_iters,
@@ -769,6 +809,7 @@ private  void   fit_polygons(
     int                         n_equations, *n_parms_involved, **parm_list;
     int                         n_image_per_point;
     int                         n_oversample_equations, n_bound_nodes;
+    int                         n_image_points;
     ftype                       *constants, **node_weights;
     Real                        *parameters;
     polygons_struct             save_p;
@@ -789,7 +830,14 @@ private  void   fit_polygons(
     else
         n_bound_nodes = 3;
 
-    n_image_equations = n_image_per_point * n_points;
+    n_image_points = 0;
+    for_less( point, 0, n_points )
+    {
+        if( fit_this_node == NULL || fit_this_node[point] )
+            ++n_image_points;
+    }
+
+    n_image_equations = n_image_per_point * n_image_points;
 
     n_oversample_equations = 0;
     for_less( point, 0, n_points )
@@ -797,7 +845,9 @@ private  void   fit_polygons(
         for_less( n, 0, n_neighbours[point] )
         {
             if( this_is_unique_edge( point, neighbours[point][n],
-                                     n_neighbours, neighbours ) )
+                                     n_neighbours, neighbours ) &&
+                (fit_this_node == NULL ||
+                 fit_this_node[point] || fit_this_node[neighbours[point][n]]) )
                 n_oversample_equations += oversample;
         }
     }
@@ -825,11 +875,14 @@ private  void   fit_polygons(
             node_weights[eq][n] *= (ftype) model_weight;
     }
 
+    eq = n_model_equations;
     for_less( point, 0, n_points )
     {
+        if( fit_this_node != NULL && !fit_this_node[point] )
+            continue;
+
         for_less( which, 0, n_image_per_point )
         {
-            eq = n_model_equations + IJ(point,which,n_image_per_point);
             n_parms_involved[eq] = n_bound_nodes;
             ALLOC( node_weights[eq], n_parms_involved[eq] );
             ALLOC( parm_list[eq], n_parms_involved[eq] );
@@ -843,6 +896,7 @@ private  void   fit_polygons(
                 parm_list[eq][1] = IJ(point,Y,3);
                 parm_list[eq][2] = IJ(point,Z,3);
             }
+            ++eq;
         }
     }
 
@@ -853,7 +907,9 @@ private  void   fit_polygons(
         {
             if( oversample > 0 &&
                 this_is_unique_edge( point, neighbours[point][n],
-                                     n_neighbours, neighbours ) )
+                                     n_neighbours, neighbours ) &&
+                (fit_this_node == NULL ||
+                 fit_this_node[point] || fit_this_node[neighbours[point][n]]) )
             {
                 for_less( o, 0, oversample )
                 for_less( which, 0, n_image_per_point )
@@ -895,8 +951,8 @@ private  void   fit_polygons(
     while( iter < n_iters )
     {
         create_image_coefficients( volume, &boundary, tangent_weight,
-                                   max_outward, max_inward, floating_flag,
-                                   oversample,
+                                   max_outward, max_inward, fit_this_node,
+                                   floating_flag, oversample,
                                    n_points, n_neighbours, neighbours,
                                    parameters,
                                    &parm_list[n_model_equations],
