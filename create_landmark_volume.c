@@ -15,7 +15,7 @@ int  main(
     Real                 max_voxel[N_DIMENSIONS];
     Boolean              first;
     Point                min_point, max_point;
-    Volume               volume, output_volume;
+    Volume               volume, new_volume;
     volume_input_struct  volume_input;
     int                  n_objects;
     object_struct        **object_list;
@@ -25,7 +25,6 @@ int  main(
     marker_struct        *marker;
     progress_struct      progress;
     static String        in_dim_names[] = { MIxspace, MIyspace, MIzspace };
-    Minc_file            minc_file;
     Transform            voxel_to_world_transform;
     Transform            translation;
 
@@ -115,30 +114,30 @@ int  main(
                         offset[c] + 1;
     }
 
-    output_volume = create_volume( 3, in_dim_names, NC_BYTE, FALSE,
+    new_volume = create_volume( 3, in_dim_names, NC_BYTE, FALSE,
                                    0.0, 0.0 );
-    set_volume_size( output_volume, NC_UNSPECIFIED, FALSE, dest_sizes );
-    alloc_volume_data( output_volume );
+    set_volume_size( new_volume, NC_UNSPECIFIED, FALSE, dest_sizes );
+    alloc_volume_data( new_volume );
 
     for_less( x, 0, dest_sizes[X] )
         for_less( y, 0, dest_sizes[Y] )
             for_less( z, 0, dest_sizes[Z] )
-                SET_VOXEL_3D( output_volume, x, y, z, 0.0 );
+                SET_VOXEL_3D( new_volume, x, y, z, 0.0 );
 
-    output_volume->min_voxel = 0.0;
-    output_volume->max_voxel = 255.0;
-    output_volume->value_scale = 1.0;
-    output_volume->value_translation = 0.0;
-    output_volume->separation[X] = separations[X];
-    output_volume->separation[Y] = separations[Y];
-    output_volume->separation[Z] = separations[Z];
+    new_volume->min_voxel = 0.0;
+    new_volume->max_voxel = 255.0;
+    new_volume->value_scale = 1.0;
+    new_volume->value_translation = 0.0;
+    new_volume->separation[X] = separations[X];
+    new_volume->separation[Y] = separations[Y];
+    new_volume->separation[Z] = separations[Z];
 
     make_translation_transform( (Real) offset[X], (Real) offset[Y],
                                 (Real) offset[Z], &translation );
     concat_transforms( &voxel_to_world_transform, &translation,
                        &voxel_to_world_transform );
 
-    output_volume->voxel_to_world_transform = voxel_to_world_transform;
+    new_volume->voxel_to_world_transform = voxel_to_world_transform;
 
     initialize_progress_report( &progress, FALSE, n_objects, "Voxelating" );
 
@@ -156,9 +155,9 @@ int  main(
             voxel[X] -= (Real) offset[X];
             voxel[Y] -= (Real) offset[Y];
             voxel[Z] -= (Real) offset[Z];
-            if( voxel_is_within_volume( output_volume, voxel ) )
+            if( voxel_is_within_volume( new_volume, voxel ) )
             {
-                SET_VOXEL_3D( output_volume, ROUND(voxel[X]),
+                SET_VOXEL_3D( new_volume, ROUND(voxel[X]),
                               ROUND(voxel[Y]), ROUND(voxel[Z]), 255.0 );
             }
         }
@@ -174,15 +173,8 @@ int  main(
 
     print( "Writing %s\n", output_filename );
 
-    minc_file = initialize_minc_output( output_filename, 3, in_dim_names,
-                                    dest_sizes, NC_BYTE, FALSE,
-                                    0.0, 255.0,
-                                    0.0, 255.0,
-                                    &voxel_to_world_transform );
-
-    status = output_minc_volume( minc_file, output_volume );
-
-    status = close_minc_output( minc_file );
+    status = output_volume( output_filename, 3, in_dim_names,
+                            dest_sizes, NC_BYTE, FALSE, new_volume );
 
     print_ellipse_parameters( &min_point, &max_point );
 
