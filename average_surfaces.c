@@ -7,14 +7,6 @@
 #define USE_IDENTITY_TRANSFORMS
 
 
-#define  GRAY_STRING       "gray"
-#define  HOT_STRING        "hot"
-#define  SPECTRAL_STRING   "spectral"
-#define  RED_STRING        "red"
-#define  GREEN_STRING      "green"
-#define  BLUE_STRING       "blue"
-
-
 private  void  compute_transforms(
     int        n_surfaces,
     int        n_points,
@@ -26,8 +18,8 @@ private  void  create_average_polygons(
     int                   n_points,
     Point                 **points,
     Transform             transforms[],
-    colour_coding_struct  *colour_coding,
-    FILE                  *dump_file,
+    FILE                  *rms_file,
+    FILE                  *variance_file,
     polygons_struct       *polygons );
 
 private  void  print_transform(
@@ -38,61 +30,36 @@ int  main(
     char   *argv[] )
 {
     Status           status;
-    FILE             *file;
-    STRING           filename, output_filename, dump_filename;
+    FILE             *rms_file, *variance_file;
+    STRING           filename, output_filename;
+    STRING           rms_filename, variance_filename;
     int              i, n_objects, n_surfaces;
-    Colour           *colours;
     File_formats     format;
     object_struct    *out_object;
     object_struct    **object_list;
     polygons_struct  *polygons, *average_polygons;
     Point            **points_list;
     Transform        *transforms;
-    Colour_coding_types  coding_type;
-    colour_coding_struct colour_coding;
-    STRING               coding_type_string;
-    Real                 min_std_dev, max_std_dev;
 
     status = OK;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &output_filename ) ||
-        !get_string_argument( NULL, &coding_type_string ) ||
-        !get_real_argument( 0.0, &min_std_dev ) ||
-        !get_real_argument( 0.0, &max_std_dev ) ||
-        !get_string_argument( NULL, &dump_filename ) )
+        !get_string_argument( NULL, &rms_filename ) ||
+        !get_string_argument( NULL, &variance_filename ) )
     {
         print_error(
-          "Usage: %s output.obj hot|gray|spectral min max none|dump_file\n",
+          "Usage: %s output.obj  none|rms_file  none|variance_file\n",
                   argv[0] );
         print_error( "         [input1.obj] [input2.obj] ...\n" );
         return( 1 );
     }
 
-    if( equal_strings( dump_filename, "none" ) )
-        dump_filename = NULL;
-
-    if( equal_strings( coding_type_string, GRAY_STRING ) )
-        coding_type = GRAY_SCALE;
-    else if( equal_strings( coding_type_string, HOT_STRING ) )
-        coding_type = HOT_METAL;
-    else if( equal_strings( coding_type_string, SPECTRAL_STRING ) )
-        coding_type = SPECTRAL;
-    else if( equal_strings( coding_type_string, RED_STRING ) )
-        coding_type = RED_COLOUR_MAP;
-    else if( equal_strings( coding_type_string, GREEN_STRING ) )
-        coding_type = GREEN_COLOUR_MAP;
-    else if( equal_strings( coding_type_string, BLUE_STRING ) )
-        coding_type = BLUE_COLOUR_MAP;
-    else
-    {
-        print( "Invalid coding type: %s\n", coding_type_string );
-        return( 1 );
-    }
-
-    initialize_colour_coding( &colour_coding, coding_type,
-                              BLACK, WHITE, min_std_dev, max_std_dev );
+    if( equal_strings( rms_filename, "none" ) )
+        rms_filename = NULL;
+    if( equal_strings( variance_filename, "none" ) )
+        variance_filename = NULL;
 
     n_surfaces = 0;
 
@@ -119,11 +86,6 @@ int  main(
         if( n_surfaces == 0 )
         {
             copy_polygons( polygons, average_polygons );
-
-            (void) get_object_colours( out_object, &colours );
-            REALLOC( colours, polygons->n_points );
-            set_object_colours( out_object, colours );
-            average_polygons->colour_flag = PER_VERTEX_COLOURS;
         }
         else if( !polygons_are_same_topology( average_polygons, polygons ) )
         {
@@ -154,20 +116,33 @@ int  main(
         print_transform( &transforms[i] );
 #endif
 
-    if( dump_filename != NULL )
+    if( rms_filename != NULL )
     {
-        if( open_file( dump_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( rms_filename, WRITE_FILE, ASCII_FORMAT, &rms_file )!= OK)
             return( 1 );
     }
     else
-        file = NULL;
+        rms_file = NULL;
+
+    if( variance_filename != NULL )
+    {
+        if( open_file( variance_filename, WRITE_FILE, ASCII_FORMAT,
+                       &variance_file )!= OK)
+            return( 1 );
+    }
+    else
+        variance_file = NULL;
 
     create_average_polygons( n_surfaces, average_polygons->n_points,
                              points_list, transforms,
-                             &colour_coding, file, average_polygons );
+                             rms_file, variance_file,
+                             average_polygons );
 
-    if( dump_filename != NULL )
-        (void) close_file( file );
+    if( rms_filename != NULL )
+        (void) close_file( rms_file );
+
+    if( variance_filename != NULL )
+        (void) close_file( variance_file );
 
     compute_polygon_normals( average_polygons );
 
@@ -320,19 +295,24 @@ private  void  compute_transforms(
 
 #endif
 
-private  Real  get_std_points(
+private  Real  get_rms_points(
     int                   n_surfaces,
     Point                 samples[],
-    Point                 *centroid )
+    Point                 *centroid,
+    Real                  inv_variance[3][3] )
 {
     int    i, j, s;
-    Real   variance, dx, dy, dz, std_dev, tdx, tdy, tdz;
-    Real   sums[N_DIMENSIONS][N_DIMENSIONS];
-    Real   **matrix, **inverse;
+    Real   rms, dx, dy, dz;
+    Real   **variance, **inverse;
 
-    for_less( i, 0, N_DIMENSIONS )
-        for_less( j, i, N_DIMENSIONS )
-            sums[i][j] = 0.0;
+    rms = 0.0;
+
+    ALLOC2D( variance, 3, 3 );
+    ALLOC2D( inverse, 3, 3 );
+
+    for_less( i, 0, 3 )
+    for_less( j, 0, 3 )
+        variance[i][j] = 0;
 
     for_less( s, 0, n_surfaces )
     {
@@ -340,52 +320,39 @@ private  Real  get_std_points(
         dy = Point_y(samples[s]) - Point_y(*centroid);
         dz = Point_z(samples[s]) - Point_z(*centroid);
 
-        sums[0][0] += dx * dx;
-        sums[0][1] += dx * dy;
-        sums[0][2] += dx * dz;
-        sums[1][1] += dy * dy;
-        sums[1][2] += dy * dz;
-        sums[2][2] += dz * dz;
+        variance[0][0] += dx * dx;
+        variance[0][1] += dx * dy;
+        variance[0][2] += dx * dz;
+        variance[1][1] += dy * dy;
+        variance[1][2] += dy * dz;
+        variance[2][2] += dz * dz;
+
+        rms += dx * dx + dy * dy + dz * dz;
     }
 
-    ALLOC2D( matrix, N_DIMENSIONS, N_DIMENSIONS );
-    ALLOC2D( inverse, N_DIMENSIONS, N_DIMENSIONS );
+    variance[1][0] = variance[0][1];
+    variance[2][0] = variance[0][2];
+    variance[2][1] = variance[1][2];
 
-    for_less( i, 0, N_DIMENSIONS )
-    for_less( j, i, N_DIMENSIONS )
-    {
-        matrix[i][j] = sums[i][j];
-        matrix[j][i] = sums[i][j];
-    }
+    for_less( i, 0, 3 )
+    for_less( j, 0, 3 )
+        variance[i][j] /= (Real) (n_surfaces-1);
 
-    if( !invert_square_matrix( N_DIMENSIONS, matrix, inverse ) )
-    {
-        print_error( "Setting std dev to 0.\n" );
-        return( 0.0 );
-    }
+    if( !invert_square_matrix( 3, variance, inverse ) )
+        print_error( "Error getting inverse of variance\n" );
 
-    variance = 0.0;
-    for_less( s, 0, n_surfaces )
-    {
-        dx = Point_x(samples[s]) - Point_x(*centroid);
-        dy = Point_y(samples[s]) - Point_y(*centroid);
-        dz = Point_z(samples[s]) - Point_z(*centroid);
+    for_less( i, 0, 3 )
+    for_less( j, 0, 3 )
+        inv_variance[i][j] = inverse[i][j];
 
-        tdx = inverse[0][0] * dx + inverse[0][1] * dy + inverse[0][2] * dz;
-        tdy = inverse[1][0] * dx + inverse[1][1] * dy + inverse[1][2] * dz;
-        tdz = inverse[2][0] * dx + inverse[2][1] * dy + inverse[2][2] * dz;
+    rms /= (Real) n_surfaces;
 
-        variance += tdx * tdx + tdy * tdy + tdz * tdz;
-    }
+    rms = sqrt( rms );
 
-    variance /= (Real) (n_surfaces-1);
-
-    std_dev = sqrt( variance );
-
-    FREE2D( matrix );
+    FREE2D( variance );
     FREE2D( inverse );
 
-    return( std_dev );
+    return( rms );
 }
 
 private  void  create_average_polygons(
@@ -393,13 +360,13 @@ private  void  create_average_polygons(
     int                   n_points,
     Point                 **points,
     Transform             transforms[],
-    colour_coding_struct  *colour_coding,
-    FILE                  *dump_file,
+    FILE                  *rms_file,
+    FILE                  *variance_file,
     polygons_struct       *polygons )
 {
     Real   x, y, z;
-    int    p, s;
-    Real   std_dev;
+    int    i, j, p, s;
+    Real   rms, inv_variance[3][3];
     Point  *samples;
 
     ALLOC( samples, n_surfaces );
@@ -418,15 +385,22 @@ private  void  create_average_polygons(
 
         get_points_centroid( n_surfaces, samples, &polygons->points[p] );
 
-        std_dev = get_std_points( n_surfaces, samples, &polygons->points[p] );
+        rms = get_rms_points( n_surfaces, samples, &polygons->points[p],
+                              inv_variance );
 
-        if( dump_file != NULL )
+        if( rms_file != NULL )
         {
-            (void) output_real( dump_file, std_dev );
-            (void) output_newline( dump_file );
+            (void) output_real( rms_file, rms );
+            (void) output_newline( rms_file );
         }
 
-        polygons->colours[p] = get_colour_code( colour_coding, std_dev );
+        if( variance_file != NULL )
+        {
+            for_less( i, 0, 3 )
+            for_less( j, 0, 3 )
+                (void) output_real( variance_file, inv_variance[i][j] );
+            (void) output_newline( variance_file );
+        }
     }
 
     FREE( samples );
