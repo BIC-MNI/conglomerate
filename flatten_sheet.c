@@ -53,6 +53,30 @@ int  main(
 
     polygons = get_polygons_ptr( object_list[0] );
 
+#ifdef DEBUG
+{
+    int   poly, size, v, neighbours[10], n, n_neigh;
+    BOOLEAN  interior;
+
+    check_polygons_neighbours_computed( polygons );
+
+    for_less( poly, 0, polygons->n_items )
+    {
+        size = GET_OBJECT_SIZE( *polygons, poly );
+        for_less( v, 0, size )
+        {
+            n_neigh = get_neighbours_of_point( polygons, poly, v, neighbours,
+                            10, &interior );
+            print( "Vertex %d (%d): ", polygons->indices[
+                    POINT_INDEX(polygons->end_indices,poly,v)], interior );
+            for_less( n, 0, n_neigh )
+                print( " %d", neighbours[n] );
+            print( "\n" );
+        }
+    }
+}
+#endif
+
     flatten_polygons( polygons, init_points, n_iters );
 
     (void) output_graphics_file( dest_filename, format, 1, object_list );
@@ -64,6 +88,7 @@ private  int  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              **neighbours,
+    Smallest_int     interior_flags[],
     int              n_fixed,
     int              fixed_indices[],
     Real             *fixed_pos[2],
@@ -79,8 +104,25 @@ private  int  create_coefficients(
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             flat[2][MAX_POINTS_PER_POLYGON];
     Real             consistency_weights[MAX_POINTS_PER_POLYGON];
+    BOOLEAN          found;
 
-    n_equations = 2 * polygons->n_points;
+    n_equations = 0;
+    for_less( node, 0, polygons->n_points )
+    {
+        found = to_parameters[node] >= 0;
+        for_less( p, 0, n_neighbours[node] )
+        {
+            if( to_parameters[neighbours[node][p]] >= 0 )
+            {
+                found = TRUE;
+                break;
+            }
+        }
+        if( found && n_neighbours[node] >= 3 )
+            ++n_equations;
+    }
+
+    n_equations *= 2;
 
     ALLOC( *n_nodes_involved, n_equations );
     ALLOC( *constants, n_equations );
@@ -90,15 +132,28 @@ private  int  create_coefficients(
     eq = 0;
     for_less( node, 0, polygons->n_points )
     {
+        found = to_parameters[node] >= 0;
+        for_less( p, 0, n_neighbours[node] )
+        {
+            if( to_parameters[neighbours[node][p]] >= 0 )
+            {
+                found = TRUE;
+                break;
+            }
+        }
+
+        if( !found || n_neighbours[node] < 3 )
+            continue;
+
         for_less( p, 0, n_neighbours[node] )
             neigh_points[p] = polygons->points[neighbours[node][p]];
 
         flatten_around_vertex( &polygons->points[node],
-                               n_neighbours[node],
-                               neigh_points, flat[0], flat[1] );
+                               n_neighbours[node], neigh_points,
+                               (BOOLEAN) interior_flags[node],
+                               flat[0], flat[1] );
 
-        if( n_neighbours[node] < 3 ||
-            !get_interpolation_weights_2d( 0.0, 0.0, n_neighbours[node],
+        if( !get_interpolation_weights_2d( 0.0, 0.0, n_neighbours[node],
                                            flat[0], flat[1],
                                            consistency_weights ) )
         {
@@ -146,8 +201,8 @@ private  int  create_coefficients(
                 }
                 else
                 {
-                    (*constants)[eq] = -consistency_weights[p] *
-                                          fixed_pos[dim][to_fixed_index[neigh]];
+                    (*constants)[eq] += -consistency_weights[p] *
+                                        fixed_pos[dim][to_fixed_index[neigh]];
                 }
             }
 
@@ -175,35 +230,43 @@ private  void  flatten_polygons(
     Point            init_points[],
     int              n_iters )
 {
-    int      i, point, *n_neighbours, **neighbours, n, neigh;
-    int      n_equations, *n_nodes_per_equation, **node_list;
-    int      n_fixed, *fixed_indices;
-    Real     *fixed_pos[2], scale, dist1, dist2;
-    Real     *constants, **node_weights, sum_xx, sum_xy;
-    Point    neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
-    Real     *parameters;
-    int      *to_parameters, *to_fixed_index, ind;
+    int              i, point, *n_neighbours, **neighbours, n, neigh, which;
+    int              n_equations, *n_nodes_per_equation, **node_list;
+    int              n_fixed, *fixed_indices;
+    Real             *fixed_pos[2], scale, dist1, dist2;
+    Real             *constants, **node_weights, sum_xx, sum_xy;
+    Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
+    Real             *parameters;
+    int              *to_parameters, *to_fixed_index, ind;
+    Smallest_int     *interior_flags;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
-                                     &neighbours, NULL );
+                                     &neighbours, &interior_flags, NULL );
 
-    n_fixed = 1 + n_neighbours[0];
+    for_less( which, 0, polygons->n_points )
+    {
+        if( n_neighbours[which] > 2 )
+            break;
+    }
+
+    n_fixed = 1 + n_neighbours[which];
     ALLOC( fixed_indices, n_fixed );
     ALLOC( fixed_pos[0], n_fixed );
     ALLOC( fixed_pos[1], n_fixed );
 
-    fixed_indices[0] = 0;
-    for_less( i, 0, n_neighbours[0] )
-        fixed_indices[i+1] = neighbours[0][i];
+    fixed_indices[0] = which;
+    for_less( i, 0, n_neighbours[which] )
+        fixed_indices[i+1] = neighbours[which][i];
 
-    for_less( i, 0, n_neighbours[0] )
-        neigh_points[i] = polygons->points[neighbours[0][i]];
+    for_less( i, 0, n_neighbours[which] )
+        neigh_points[i] = polygons->points[neighbours[which][i]];
 
     fixed_pos[0][0] = 0.0;
     fixed_pos[1][0] = 0.0;
 
-    flatten_around_vertex( &polygons->points[0], n_neighbours[0],
-                           neigh_points, &fixed_pos[0][1], &fixed_pos[1][1] );
+    flatten_around_vertex( &polygons->points[which], n_neighbours[which],
+                           neigh_points, (BOOLEAN) interior_flags[which],
+                           &fixed_pos[0][1], &fixed_pos[1][1] );
 
     ALLOC( to_parameters, polygons->n_points );
     ALLOC( to_fixed_index, polygons->n_points );
@@ -230,12 +293,11 @@ private  void  flatten_polygons(
 
 
     n_equations = create_coefficients( polygons,
-                                       n_neighbours, neighbours,
+                                       n_neighbours, neighbours, interior_flags,
                                        n_fixed, fixed_indices, fixed_pos,
                                        to_parameters, to_fixed_index,
                                        &n_nodes_per_equation,
                                        &node_list, &constants, &node_weights );
-
     ALLOC( parameters, 2 * (polygons->n_points - n_fixed) );
 
     if( init_points == NULL )
@@ -256,6 +318,25 @@ private  void  flatten_polygons(
             }
         }
     }
+
+#define DEBUG
+#ifdef DEBUG
+{
+    for_less( i, 0, n_equations )
+    {
+        Real  sum;
+
+        print( "%d: (%g) ", i, constants[i] );
+        sum = constants[i];
+        for_less( n, 0, n_nodes_per_equation[i] )
+        {
+            print( " %d:%g ", node_list[i][n], node_weights[i][n] );
+            sum += node_weights[i][n] * parameters[node_list[i][n]];
+        }
+        print( ":  %g\n", sum );
+    }
+}
+#endif
 
     (void) minimize_lsq( 2 * (polygons->n_points - n_fixed), n_equations,
                          n_nodes_per_equation, node_list, constants,
@@ -298,7 +379,8 @@ private  void  flatten_polygons(
         }
     }
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours, NULL );
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     interior_flags, NULL );
 
     if( sum_xx == 0.0 )
     {
@@ -310,7 +392,6 @@ private  void  flatten_polygons(
         scale = sum_xy / sum_xx;
     }
 
-    scale = 1.0;
     for_less( point, 0, polygons->n_points )
     {
         SCALE_POINT( polygons->points[point], new_points[point], scale );
