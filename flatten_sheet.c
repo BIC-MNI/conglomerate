@@ -201,7 +201,7 @@ private  void  create_coefficients(
 
             ADD_TO_LSQ( n_parameters, constant, *linear_terms, *square_terms,
                         *n_cross_terms, *cross_parms, *cross_terms,
-                        n_nodes_in, indices, node_weights, con );
+                        n_nodes_in, indices, node_weights, con, 5 );
         }
 
         update_progress_report( &progress, node + 1 );
