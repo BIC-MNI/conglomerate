@@ -23,7 +23,7 @@ private  void  usage(
 {
     STRING  usage_str = "\n\
 Usage: %s  input_lines.tag  output_lines.obj n_controls n_intervals\n\
-                  [smoothness_weight]\n\
+                  [smoothness_weight] [disjoint_distance]\n\
 \n\
      Creates a cubic spline curve that approximates the set of points in\n\
      the tag file.  The n_controls effectively sets the smoothness of the \n\
@@ -42,12 +42,16 @@ int  main(
 {
     STRING               input_filename, output_filename;
     Real                 **tags, u, smoothness_weight;
+    Real                 disjoint_distance, sq_disjoint_distance;
     int                  p, n_piecewise, n_tag_points, n_volumes, axis;
     int                  n_intervals_per, i, n_cvs, ind, n;
-    object_struct        *object;
+    int                  n_class_points, p2, p1, n_classes;
+    object_struct        **object_list;
     lines_struct         *lines;
-    Point                *points, line_origin, *cvs;
+    Point                *points, line_origin, *cvs, *class_points;
     Vector               line_direction;
+    BOOLEAN              break_up_flag;
+    int                  *classes, cl, n_changed;
 
     initialize_argument_processing( argc, argv );
 
@@ -61,6 +65,7 @@ int  main(
     }
 
     (void) get_real_argument( 0.0, &smoothness_weight );
+    break_up_flag = get_real_argument( 0.0, &disjoint_distance );
 
     if( input_tag_file( input_filename, &n_volumes, &n_tag_points,
                         &tags, NULL, NULL, NULL, NULL, NULL ) != OK )
@@ -74,46 +79,121 @@ int  main(
     }
     else if( n_tag_points == 1 )
     {
-        object = create_object( LINES );
-        lines = get_lines_ptr( object );
-        initialize_lines_with_size( lines, WHITE, 1, FALSE );
+        ALLOC( object_list, 1 );
+        object_list[0] = create_object( LINES );
+        lines = get_lines_ptr( object_list[0] );
+        initialize_lines_with_size( lines, WHITE, 2, FALSE );
         fill_Point( lines->points[0], tags[0][X], tags[0][Y], tags[0][Z] );
-        if( output_graphics_file( output_filename, ASCII_FORMAT, 1, &object )
+        fill_Point( lines->points[1], tags[0][X], tags[0][Y], tags[0][Z] );
+        if( output_graphics_file( output_filename, ASCII_FORMAT, 1, object_list)
                                   !=OK )
             return( 1 );
+
+        delete_object_list( 1, object_list );
         return( 0 );
     }
 
     ALLOC( points, n_tag_points );
+    ALLOC( classes, n_tag_points );
 
     for_less( p, 0, n_tag_points )
-        fill_Point( points[p], tags[p][X], tags[p][Y], tags[p][Z] );
-
-    get_best_line( n_tag_points, points, &line_origin, &line_direction, &axis );
-
-    n_cvs = MAX( n_piecewise + 2, 5 );
-
-    ALLOC( cvs, n_cvs );
-
-    fit_curve( n_tag_points, points, &line_origin, &line_direction, axis,
-               smoothness_weight, n_cvs, cvs );
-
-    object = create_object( LINES );
-    lines = get_lines_ptr( object );
-    initialize_lines_with_size( lines, WHITE, n_intervals_per * (n_cvs-3) + 1,
-                                FALSE );
-
-    ind = 0;
-    for_less( p, 1, n_cvs-2 )
     {
-        if( p == n_cvs-3 )
-            n = n_intervals_per + 1;
-        else
-            n = n_intervals_per;
-        for_less( i, 0, n )
+        fill_Point( points[p], tags[p][X], tags[p][Y], tags[p][Z] );
+        classes[p] = -1;
+    }
+
+    sq_disjoint_distance = disjoint_distance * disjoint_distance;
+    n_classes = 0;
+
+    for_less( p, 0, n_tag_points )
+    {
+        if( classes[p] != -1 )
+            continue;
+
+        classes[p] = n_classes;
+
+        do
         {
-            u = (Real) i / (Real) (n_intervals_per-1);
-            fill_Point( lines->points[ind],
+            n_changed = 0;
+
+            for_less( p1, 0, n_tag_points )
+            {
+                if( classes[p1] != n_classes )
+                    continue;
+                for_less( p2, 0, n_tag_points )
+                {
+                    if( classes[p2] == -1 &&
+                        (!break_up_flag ||
+                         sq_distance_between_points( &points[p1],
+                                        &points[p2] ) <= sq_disjoint_distance) )
+                    {
+                        classes[p2] = n_classes;
+                        ++n_changed;
+                    }
+                }
+            }
+        }
+        while( n_changed > 0 );
+
+        ++n_classes;
+    }
+
+    print( "Created %d sets of points\n", n_classes );
+
+    ALLOC( object_list, n_classes );
+    ALLOC( class_points, n_tag_points );
+
+    for_less( cl, 0, n_classes )
+    {
+        n_class_points = 0;
+        for_less( p, 0, n_tag_points )
+        {
+            if( classes[p] == cl )
+            {
+                class_points[n_class_points] = points[p];
+                ++n_class_points;
+            }
+        }
+
+        object_list[cl] = create_object( LINES );
+        lines = get_lines_ptr( object_list[cl] );
+
+        if( n_class_points == 1 )
+        {
+            initialize_lines_with_size( lines, WHITE, 2, FALSE );
+            fill_Point( lines->points[0], Point_x(class_points[0]),
+                                          Point_y(class_points[0]),
+                                          Point_z(class_points[0]) );
+            lines->points[1] = lines->points[0];
+            continue;
+        }
+
+        get_best_line( n_class_points, class_points,
+                       &line_origin, &line_direction, &axis );
+
+        n_cvs = MAX( n_piecewise + 2, 5 );
+
+        ALLOC( cvs, n_cvs );
+
+        fit_curve( n_class_points, class_points,
+                   &line_origin, &line_direction, axis,
+                   smoothness_weight, n_cvs, cvs );
+
+        initialize_lines_with_size( lines, WHITE,
+                                    n_intervals_per * (n_cvs-3) + 1,
+                                    FALSE );
+
+        ind = 0;
+        for_less( p, 1, n_cvs-2 )
+        {
+            if( p == n_cvs-3 )
+                n = n_intervals_per + 1;
+            else
+                n = n_intervals_per;
+            for_less( i, 0, n )
+            {
+                u = (Real) i / (Real) (n_intervals_per-1);
+                fill_Point( lines->points[ind],
                         cubic_interpolate( u, RPoint_x(cvs[p-1]),
                                               RPoint_x(cvs[p+0]),
                                               RPoint_x(cvs[p+1]),
@@ -126,15 +206,23 @@ int  main(
                                               RPoint_z(cvs[p+0]),
                                               RPoint_z(cvs[p+1]),
                                               RPoint_z(cvs[p+2]) ) );
-            ++ind;
+                ++ind;
+            }
         }
+
+        FREE( cvs );
+
+        if( ind != lines->n_points )
+            handle_internal_error( " ind != lines->n_points" );
     }
 
-    if( ind != lines->n_points )
-        handle_internal_error( " ind != lines->n_points" );
-
-    if( output_graphics_file( output_filename, ASCII_FORMAT, 1, &object ) != OK)
+    if( output_graphics_file( output_filename, ASCII_FORMAT, n_classes,
+                              object_list ) != OK)
         return( 1 );
+
+    FREE( class_points );
+    FREE( points );
+    delete_object_list( n_classes, object_list );
 
     return( 0 );
 }
