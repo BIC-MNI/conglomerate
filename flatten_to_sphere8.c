@@ -383,6 +383,89 @@ private  Real  minimize_along_line(
     return( current_fit );
 }
 
+private  void  get_third_point(
+    Real      radius,
+    Point     *p1,
+    Point     *p2,
+    Point     *p3,
+    Point     *s1,
+    Point     *s2,
+    Point     *s3 )
+{
+    Real    d2, a, u, h, fraction;
+    Vector  p12, p13, up, hor, s12;
+    Point   m;
+
+    SUB_POINTS( p12, *p2, *p1 );
+    SUB_POINTS( p13, *p3, *p1 );
+
+    fraction = DOT_VECTORS( p12, p13 ) / DOT_VECTORS( p12, p12 );
+
+    INTERPOLATE_POINTS( m, *p1, *p2, fraction );
+    d2 = distance_between_points( &m, p3 );
+    a = radius - sqrt( DOT_POINTS( m, m ) );
+
+    INTERPOLATE_POINTS( m, *s1, *s2, fraction );
+
+    CONVERT_POINT_TO_VECTOR( up, m );
+    SUB_POINTS( s12, *s2, *s1 );
+    CROSS_VECTORS( hor, up, s12 );
+
+    NORMALIZE_VECTOR( up, up );
+    NORMALIZE_VECTOR( hor, hor );
+
+    u = (2.0 * radius * a - a * a - d2*d2) / (2.0 * a - 2.0 * radius);
+    h = sqrt( d2*d2 - u * u);
+
+    SCALE_VECTOR( up, up, u );
+    SCALE_VECTOR( hor, hor, h );
+
+    ADD_POINT_VECTOR( *s3, m, up );
+    ADD_POINT_VECTOR( *s3, *s3, hor );
+
+    if( !numerically_close( DOT_POINTS(*s1,*s1), radius*radius, 1.0e-4 ) )
+        handle_internal_error( "Nope s1" );
+    if( !numerically_close( DOT_POINTS(*s2,*s2), radius*radius, 1.0e-4 ) )
+        handle_internal_error( "Nope s2" );
+    if( !numerically_close( DOT_POINTS(*s3,*s3), radius*radius, 1.0e-4 ) )
+        handle_internal_error( "Nope s3" );
+    if( !numerically_close( distance_between_points(p1,p3),
+                            distance_between_points(s1,s3), 1.0e-4 ) )
+        handle_internal_error( "No way 1" );
+
+    if( !numerically_close( distance_between_points(p2,p3),
+                            distance_between_points(s2,s3), 1.0e-4 ) )
+        handle_internal_error( "No wayi 2" );
+}
+
+private  void  compute_sphere_points(
+    Real       radius,
+    Point      *p1,
+    Point      *p2,
+    Point      *p3,
+    Point      *p4,
+    Vector     *v2,
+    Vector     *v3,
+    Vector     *v4 )
+{
+    Real    x, y, d12;
+    Point   s1, s2, s3, s4;
+
+    fill_Point( s1, radius, 0.0, 0.0 );
+
+    d12 = distance_between_points( p1, p2 );
+    x = (2.0 * radius * radius - d12 * d12) / (2.0 * radius);
+    y = sqrt( radius * radius - x * x );
+
+    fill_Point( s2, x, y, 0.0 );
+
+    get_third_point( radius, p1, p2, p3, &s1, &s2, &s3 );
+    get_third_point( radius, p1, p3, p4, &s1, &s3, &s4 );
+
+    SUB_POINTS( *v2, s2, s1 );
+    SUB_POINTS( *v3, s3, s1 );
+    SUB_POINTS( *v4, s4, s1 );
+}
 
 private  void  flatten_polygons(
     int              n_points,
@@ -397,7 +480,7 @@ private  void  flatten_polygons(
     Real             gg, dgg, gam, current_time, last_update_time, fit;
     Real             len, step, d;
     Point            p1, p2, p3, p4;
-    Vector           v1, v2, v3, cross;
+    Vector           v2, v3, v4, cross;
     int              iter, update_rate, n, total_neighbours;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *volumes;
     BOOLEAN          init_supplied, changed, debug, testing;
@@ -426,14 +509,14 @@ private  void  flatten_polygons(
             p3 = points[neighbours[point][n]];
             p4 = points[neighbours[point][(n+1)%n_neighbours[point]]];
 
-            SUB_POINTS( v1, p2, p1 );
-            SUB_POINTS( v2, p3, p1 );
-            SUB_POINTS( v3, p4, p1 );
+            compute_sphere_points( radius, &p1, &p2, &p3, &p4,
+                                   &v2, &v3, &v4 );
 
-            CROSS_VECTORS( cross, v1, v2 );
-            d = DOT_VECTORS( cross, v3 );
+            CROSS_VECTORS( cross, v2, v3 );
+            d = DOT_VECTORS( cross, v4 );
 
             volumes[ind] = (float) d;
+
             ++ind;
         }
     }
