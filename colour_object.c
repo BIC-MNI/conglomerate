@@ -17,9 +17,10 @@ int  main(
     STRING               under_colour_name, over_colour_name;
     int                  i, p, n_objects, n_points, n_values, value_index;
     Point                *points;
-    File_formats         format, values_format;
+    File_formats         format;
     object_struct        **object_list;
     Colour               *colours, under_colour, over_colour, prev_colour, col;
+    STRING               default_over;
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
     Colour_flags         *colour_flag_ptr;
@@ -43,6 +44,8 @@ int  main(
         return( 1 );
     }
 
+    default_over = "WHITE";
+
     if( equal_strings( coding_type_string, GRAY_STRING ) )
         coding_type = GRAY_SCALE;
     else if( equal_strings( coding_type_string, HOT_STRING ) )
@@ -57,12 +60,12 @@ int  main(
         coding_type = BLUE_COLOUR_MAP;
     else
     {
-        print_error( "Invalid coding type: %s\n", coding_type_string );
-        return( 1 );
+        coding_type = SINGLE_COLOUR_SCALE;
+        default_over = coding_type_string;
     }
 
     (void) get_string_argument( "BLACK", &under_colour_name );
-    (void) get_string_argument( "WHITE", &over_colour_name );
+    (void) get_string_argument( default_over, &over_colour_name );
     (void) get_real_argument( 1.0, &opacity );
     dont_composite_flag = get_string_argument( NULL, &dummy );
 
@@ -76,13 +79,7 @@ int  main(
                              &object_list ) != OK )
         return( 1 );
 
-    if( filename_extension_matches( values_filename, MNC_ENDING ) )
-        values_format = BINARY_FORMAT;
-    else
-        values_format = ASCII_FORMAT;
-
-    if( input_texture_values( values_filename, values_format,
-                              &n_values, &values ) != OK )
+    if( input_texture_values( values_filename, &n_values, &values ) != OK )
         return( 1 );
 
     value_index = 0;
