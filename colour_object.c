@@ -66,12 +66,8 @@ int  main(
     (void) get_string_argument( "WHITE", &over_colour_name );
     (void) get_real_argument( 1.0, &opacity );
 
-    if( !lookup_colour( under_colour_name, &under_colour ) ||
-        !lookup_colour( over_colour_name, &over_colour ) )
-    {
-        print_error( "Invalid colour names.\n" );
-        return( 1 );
-    }
+    under_colour = convert_string_to_colour( under_colour_name );
+    over_colour = convert_string_to_colour( over_colour_name );
 
     initialize_colour_coding( &colour_coding, coding_type,
                               under_colour, over_colour, low, high );
@@ -79,12 +75,6 @@ int  main(
     if( input_graphics_file( src_filename, &format, &n_objects,
                              &object_list ) != OK )
         return( 1 );
-
-    if( n_objects != 1 )
-    {
-        print_error( "Must contain exactly one object.\n" );
-        return( 1 );
-    }
 
     if( open_file( values_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
