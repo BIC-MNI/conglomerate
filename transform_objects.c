@@ -5,9 +5,9 @@ public  Status  process_object(
     object_struct  *object );
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: transform_objects  input.obj  input.xfm  [output.obj]\n\
 \n\
      Transforms the input objects by the input transform, placing output in\n\
@@ -42,8 +42,8 @@ int  main(
     char   *argv[] )
 {
     Status         status;
-    char           *input_filename, *output_filename, *transform_filename;
-    char           *dummy;
+    STRING         input_filename, output_filename, transform_filename;
+    STRING         dummy;
     int            i, n_objects;
     BOOLEAN        invert;
     Transform      transform, inverse;
