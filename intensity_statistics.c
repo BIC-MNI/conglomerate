@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    static  char  usage_str[] = "\n\
+    static  STRING  usage_str = "\n\
 Usage: %s  volume.mnc  input.tag|input.mnc|none  [dump_file]\n\
 \n\
      Computes the statistics for the volume intensity of the volume.  If\n\
@@ -20,8 +20,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *volume_filename, *label_filename;
-    char                 *dump_filename;
+    STRING               volume_filename, label_filename;
+    STRING               dump_filename;
     Real                 x_min, x_max, mean, median, std_dev, *samples, value;
     Volume               volume, label_volume;
     Real                 separations[MAX_DIMENSIONS];
@@ -50,7 +50,7 @@ int  main(
 
     get_volume_separations( volume, separations );
 
-    labels_present = strcmp( label_filename, "none ) != 0;
+    labels_present = !equal_strings( label_filename, "none" );
 
     if( labels_present )
     {
