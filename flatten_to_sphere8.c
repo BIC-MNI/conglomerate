@@ -12,6 +12,10 @@ private  void  flatten_polygons(
     int              *neighbours[],
     Point            init_points[],
     Real             radius,
+    Real             ratio,
+    BOOLEAN          min_specified,
+    Real             minimum_value,
+    Real             maximum_value,
     int              n_iters );
 
 int  main(
@@ -21,23 +25,29 @@ int  main(
     STRING               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters, poly;
     int                  *n_neighbours, **neighbours, n_points;
-    Real                 radius;
+    Real                 radius, ratio, minimum_value, maximum_value;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons, p;
     Point                *init_points, *points;
+    BOOLEAN              min_specified, init_specified;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &src_filename ) ||
         !get_string_argument( NULL, &dest_filename ) )
     {
-        print_error( "Usage: %s  input.obj output.obj [n_iters] [init]\n",
+        print_error( "Usage: %s  input.obj output.obj [n_iters] [init] [ratio] [min max]\n",
                      argv[0] );
         return( 1 );
     }
 
     (void) get_int_argument( 100, &n_iters );
+    init_specified = get_string_argument( NULL, &initial_filename ) &&
+                     !equal_strings( initial_filename, "-" );
+    (void) get_real_argument( 1.0, &ratio );
+    min_specified = get_real_argument( 0.0, &minimum_value ) &&
+                    get_real_argument( 0.0, &maximum_value );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 ||
@@ -58,7 +68,7 @@ int  main(
         return( 1 );
     }
 
-    if( get_string_argument( NULL, &initial_filename ) )
+    if( init_specified )
     {
         if( input_graphics_file( initial_filename, &format, &n_i_objects,
                                  &i_object_list ) != OK || n_i_objects != 1 ||
@@ -86,7 +96,8 @@ int  main(
     delete_object_list( 1, object_list );
 
     flatten_polygons( n_points, points, n_neighbours, neighbours,
-                      init_points, radius, n_iters );
+                      init_points, radius, ratio,
+                      min_specified, minimum_value, maximum_value, n_iters );
 
     p.n_points = n_points;
     delete_polygon_point_neighbours( &p, n_neighbours, neighbours, NULL, NULL );
@@ -496,14 +507,18 @@ private  void  flatten_polygons(
     int              *neighbours[],
     Point            init_points[],
     Real             radius,
+    Real             ratio,
+    BOOLEAN          min_specified,
+    Real             minimum_value,
+    Real             maximum_value,
     int              n_iters )
 {
     int              p, point, n_parameters, ind;
     Real             gg, dgg, gam, current_time, last_update_time, fit;
-    Real             len, step, d;
+    Real             len, step, d_orig, d_sphere;
     Point            p1, p2, p3, p4;
     Vector           v2, v3, v4, cross;
-    int              iter, update_rate, n, total_neighbours;
+    int              iter, update_rate, n, total_neighbours, n_affected;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *volumes;
     BOOLEAN          init_supplied, changed, debug, testing;
 
@@ -519,6 +534,7 @@ private  void  flatten_polygons(
 
     ALLOC( volumes, total_neighbours );
 
+    n_affected = 0;
     ind = 0;
     for_less( point, 0, n_points )
     {
@@ -535,13 +551,41 @@ private  void  flatten_polygons(
                                    &v2, &v3, &v4 );
 
             CROSS_VECTORS( cross, v2, v3 );
-            d = DOT_VECTORS( cross, v4 );
+            d_sphere = DOT_VECTORS( cross, v4 );
 
-            volumes[ind] = (float) d;
+            SUB_POINTS( v2, p2, p1 );
+            SUB_POINTS( v3, p3, p1 );
+            SUB_POINTS( v4, p4, p1 );
+
+            CROSS_VECTORS( cross, v2, v3 );
+            d_orig = DOT_VECTORS( cross, v4 );
+
+            volumes[ind] = (float) (d_orig + (d_sphere - d_orig) * ratio);
+
+            if( min_specified )
+            {
+                if( d_orig < minimum_value && d_sphere > d_orig )
+                {
+                    volumes[ind] = MIN( (float) minimum_value, volumes[ind] );
+                    ++n_affected;
+                }
+                else if( d_orig > maximum_value && d_sphere < d_orig )
+                {
+                    volumes[ind] = MAX( (float) maximum_value, volumes[ind] );
+                    ++n_affected;
+                }
+                else
+                    volumes[ind] = (float) d_orig;
+            }
+            else
+                volumes[ind] = (float) (d_orig + (d_sphere - d_orig) * ratio);
 
             ++ind;
         }
     }
+
+    if( min_specified )
+        print( "N to be brought up to the minimum %d\n", n_affected );
 
     n_parameters = 3 * n_points;
 
