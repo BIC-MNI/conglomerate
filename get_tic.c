@@ -7,13 +7,13 @@ private  void  usage(
     static  STRING  usage_str = "\n\
 Usage: %s filename.mnc  x y z v|w [radius1] [radius2] [radius3]\n\
 \n\
-     Computes the min, max, mean, standard deviation, and median or a set\n\
+     Computes the min, max, mean, standard deviation, and median for a set\n\
      of spherical regions in the specified volume.\n\
 \n\
      If the fifth argument is 'v', then the previous three arguments are voxel\n\
-     positions, in the same order as the dimensions are specified in the file,\n\
-     which is not necessarily in xyz order.  If the fifth argument is 'w',\n\
-     the previous three arguments are in world space.\n\n";
+     positions, in the order of x y z, not necessarily that of the file.\n\
+     If the fifth argument is 'w', the previous three arguments are in \n\
+     world space.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -70,13 +70,16 @@ int  main(
     get_volume_real_range( volume, &min_value, &max_value );
     dim_names = get_volume_dimension_names( volume );
 
+    for_less( dim, 0, N_DIMENSIONS )
+        spatial_dims[dim] = -1;
+
     n_spatial_dims = 0;
 
     for_less( dim, 0, n_dims )
     {
         if( convert_dim_name_to_spatial_axis( dim_names[dim], &axis ) )
         {
-            spatial_dims[n_spatial_dims] = dim;
+            spatial_dims[axis] = dim;
             ++n_spatial_dims;
             start_voxel[dim] = 0;
             end_voxel[dim] = 0;
