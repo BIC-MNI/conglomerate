@@ -101,7 +101,7 @@ public  void  calc_distances_from_point(
     int               next_point,
     float             **distances )
 {
-    int                                     i, p, n, point_index;
+    int                                     p, n, point_index;
     int                                     neigh, neigh_index, n_index;
     Real                                    dist;
     float                                   new_dist;
@@ -135,28 +135,26 @@ public  void  calc_distances_from_point(
     while( neighbours[start_point][n] != prev_point )
     {
         point_index = neighbours[start_point][n];
-        if( used_flags[point_index] )
+
+        if( !used_flags[point_index] )
         {
-            handle_internal_error(
-                    "compute_distances_from_point(): used_flags" );
+            dist = distance_between_points( &points[start_point],
+                                            &points[point_index] );
+
+            n_index = get_neigh_index( point_index, n_neighbours, neighbours,
+                                       start_point );
+
+            if( n_index > 255 )
+            {
+                handle_internal_error(
+                       "Must rewrite code to handle > 255 neighbours" );
+            }
+
+            distances[point_index][n_index] = (float) dist;
+            entry.point_index = point_index;
+            entry.n_index = (Smallest_int) n_index;
+            INSERT_IN_PRIORITY_QUEUE( queue, entry, -dist );
         }
-
-        dist = distance_between_points( &points[start_point],
-                                        &points[point_index] );
-
-        n_index = get_neigh_index( point_index, n_neighbours, neighbours,
-                                   start_point );
-
-        if( n_index > 255 )
-        {
-            handle_internal_error(
-                   "Must rewrite code to handle > 255 neighbours" );
-        }
-
-        distances[point_index][n_index] = (float) dist;
-        entry.point_index = point_index;
-        entry.n_index = (Smallest_int) n_index;
-        INSERT_IN_PRIORITY_QUEUE( queue, entry, -dist );
 
         n = (n + 1) % n_neighbours[start_point];
 
@@ -173,13 +171,14 @@ public  void  calc_distances_from_point(
         if( n_neighbours[point_index] <= 3 )
             continue;
 
-        n = n_index + 2;
+        n = (n_index + 2) % n_neighbours[point_index];
         do
         {
             neigh = neighbours[point_index][n];
             neigh_index = get_neigh_index( neigh, n_neighbours,
                                            neighbours, point_index );
-            if( distances[neigh][neigh_index] >
+            if( distances[neigh][neigh_index] < 0.0f ||
+                distances[neigh][neigh_index] >
                 distances[point_index][n_index] )
             {
                 new_dist = distances[point_index][n_index] +
@@ -187,7 +186,8 @@ public  void  calc_distances_from_point(
                                                   &points[point_index],
                                                   &points[neigh_index] );
 
-                if( new_dist < distances[neigh][neigh_index] )
+                if( distances[neigh][neigh_index] < 0.0f ||
+                    new_dist < distances[neigh][neigh_index] )
                 {
                     distances[neigh][neigh_index] = new_dist;
                     entry.point_index = neigh;
@@ -205,51 +205,76 @@ public  void  calc_distances_from_point(
     DELETE_PRIORITY_QUEUE( queue );
 }
 
-#ifdef NOT_YET
-private  int  create_path_between_poles(
+private  int  create_path_between_points(
     int              n_points,
-    Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
-    int              north_pole,
-    int              south_pole,
-    float            vertical[],
+    int              from_point,
+    int              to_point,
+    int              neigh1,
+    int              neigh2,
+    float            *distances[],
     int              *path_ptr[] )
 {
-    int     n_path, *path, current, best_neigh, n, neigh;
+    int     p, n_path, *path, current, best_neigh, n, neigh, tmp;
+    int     n_index1, n_index2, offset, n_to_do;
     float   dist, best_dist;
 
     n_path = 0;
     path = NULL;
-    ADD_ELEMENT_TO_ARRAY( path, n_path, south_pole, DEFAULT_CHUNK_SIZE );
+    ADD_ELEMENT_TO_ARRAY( path, n_path, to_point, DEFAULT_CHUNK_SIZE );
 
-    current = south_pole;
+    current = to_point;
 
     do
     {
-        best_dist = 0.0f;
-        for_less( neigh, 0, n_neighbours[current] )
+        if( neigh1 >= 0 && neigh2 >= 0 )
         {
-            n = neighbours[current][neigh];
-            dist = (float) distance_between_points( &points[current],
-                                                    &points[n] ) +
-                   vertical[n];
+            n_index1 = get_neigh_index( current, n_neighbours, neighbours,
+                                        neigh1 );
+            n_index2 = get_neigh_index( current, n_neighbours, neighbours,
+                                        neigh2 );
 
-            if( neigh == 0 || dist < best_dist )
+            offset = (n_index1 + 1) % n_neighbours[current];
+            n_to_do = (n_index2 - n_index1 + n_neighbours[current]) %
+                      n_neighbours[current] - 2;
+        }
+        else
+            offset = 0;
+            n_to_do = n_neighbours[current];
+
+        best_neigh = 0;
+        best_dist = -1.0f;
+        for_less( n, 0, n_to_do )
+        {
+            neigh = (n + offset) % n_neighbours[current];
+            dist = distances[current][neigh];
+            if( dist >= 0.0f && (best_dist < 0.0f || dist < best_dist) )
             {
                 best_dist = dist;
-                best_neigh = n;
+                best_neigh = neighbours[current][neigh];
             }
         }
 
         current = best_neigh;
         ADD_ELEMENT_TO_ARRAY( path, n_path, current, DEFAULT_CHUNK_SIZE );
+        neigh1 = -1;
+        neigh2 = -1;
     }
-    while( current != north_pole );
+    while( current != from_point );
+
+    for_less( p, 0, n_path/2 )
+    {
+        tmp = path[p];
+        path[p] = path[n_path-1-p];
+        path[n_path-1-p] = tmp;
+    }
 
     *path_ptr = path;
     return( n_path );
 }
+
+#ifdef NOT_YET
 
 private  int  get_polygon_containing_vertices(
     polygons_struct  *polygons,
@@ -426,18 +451,20 @@ private  int  get_farthest_point_from(
     float  farthest_dist, best_dist, dist;
     int    p, furthest,n;
 
-    farthest_dist = 0.0f;
+    farthest_dist = -1.0f;
     furthest = 0;
     for_less( p, 0, n_points )
     {
-        best_dist = 0.0;
+        best_dist = -1.0f;
         for_less( n, 0, n_neighbours[p] )
         {
-            if( n == 0 || distances[p][n] < best_dist )
-                best_dist = distances[p][n];
+            dist = distances[p][n];
+            if( dist >= 0.0f && (dist < best_dist || best_dist < 0.0f) )
+                best_dist = dist;
         }
 
-        if( p == 0 || best_dist > farthest_dist )
+        if( best_dist >= 0.0f &&
+            (farthest_dist < 0.0f || best_dist > farthest_dist) )
         {
             farthest_dist = best_dist;
             furthest = p;
@@ -447,19 +474,110 @@ private  int  get_farthest_point_from(
     return( furthest );
 }
 
+private  int  get_vertex_on_path(
+    int     path_size,
+    int     path[],
+    Point   points[],
+    Real    fractional_distance,
+    int     *vertex_index )
+{
+    int   p;
+    Real  total_dist, desired_dist;
+
+    total_dist = 0.0;
+    for_less( p, 0, path_size-1 )
+    {
+        total_dist += distance_between_points( &points[path[p]],
+                                               &points[path[p+1]] );
+    }
+
+    desired_dist = fractional_distance * total_dist;
+
+    p = 0;
+    total_dist = 0.0;
+    while( p < path_size-1 && total_dist < desired_dist )
+    {
+        total_dist += distance_between_points( &points[path[p]],
+                                               &points[path[p+1]] );
+        ++p;
+    }
+
+    *vertex_index = p;
+
+    return( path[p] );
+}
+
+private  void  assign_used_flags(
+    int           path_size,
+    int           path[],
+    Smallest_int  used_flags[] )
+{
+    int  p;
+
+    for_less( p, 0, path_size )
+        used_flags[path[p]] = TRUE;
+}
+
+private  void  add_to_loop(
+    int      *loop_size,
+    int      *loop[],
+    int      path_size,
+    int      path[],
+    BOOLEAN  reverse_flag,
+    BOOLEAN  closing )
+{
+    int    start, end, step, p;
+
+    if( reverse_flag )
+    {
+        start = path_size-1;
+        end = -1;
+        step = -1;
+    }
+    else
+    {
+        start = 0;
+        end = path_size;
+        step = 1;
+    }
+
+    if( *loop_size > 0 )
+    {
+        if( (*loop)[*loop_size-1] != path[start] )
+            handle_internal_error( "add_to_loop() start" );
+        start += step;
+    }
+
+    if( closing && (*loop)[0] != path[end-step] )
+        handle_internal_error( "add_to_loop() end" );
+
+    if( closing )
+    {
+        end -= step;
+        if( path_size == 2 )
+            return;
+    }
+
+    for( p = start;  p != end;  p += step )
+        ADD_ELEMENT_TO_ARRAY( *loop, *loop_size, path[p], DEFAULT_CHUNK_SIZE );
+}
+
 private  void  embed_in_sphere(
     polygons_struct  *polygons,
     Real             radius,
     Point            sphere_points[] )
 {
-    int               point, *n_neighbours, **neighbours, south_pole, path_size;
-    int               *path, *polygons_in_path, p, n_not_done, n_points;
-    float             **distances, neigh_dist, best_dist, best_hor;
-    int               n, neigh, current, total_neighbours, north_pole;
+    int               point, *n_neighbours, **neighbours, south_pole;
+    int               p, n_points, loop_size, *loop;
+    float             **distances;
+    float             **equator_distances;
+    int               left_size, *left_path, right_size, *right_path;
+    int               total_neighbours, north_pole;
+    int               *long_path, long_path_size, equator_point;
+    int               other_equator_point, size1, size2;
+    int               *equator1_path, *equator2_path, equator_index;
     Point             *points;
     Smallest_int      *used_flags;
-    progress_struct   progress;
-    Real              x, y, z, dummy;
 
     create_polygon_point_neighbours( polygons, TRUE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -487,26 +605,92 @@ private  void  embed_in_sphere(
 
     south_pole = get_farthest_point_from( n_points, n_neighbours, distances );
 
-    print( "NP: %g %g %g\n", RPoint_x(polygons->points[north_pole]),
-                         RPoint_y(polygons->points[north_pole]),
-                         RPoint_z(polygons->points[north_pole]) );
-    print( "SP: %g %g %g\n", RPoint_x(polygons->points[south_pole]),
-                         RPoint_y(polygons->points[south_pole]),
-                         RPoint_z(polygons->points[south_pole]) );
+    print( "NP: %g %g %g\n", RPoint_x(points[north_pole]),
+                             RPoint_y(points[north_pole]),
+                             RPoint_z(points[north_pole]) );
+    print( "SP: %g %g %g\n", RPoint_x(points[south_pole]),
+                             RPoint_y(points[south_pole]),
+                             RPoint_z(points[south_pole]) );
 
-#ifdef NOT_YET
-    south_pole = 0;
-    for_less( point, 0, polygons->n_points )
+    long_path_size = create_path_between_points( n_points,
+                               n_neighbours, neighbours, north_pole,
+                               south_pole, -1, -1, distances, &long_path );
+
+    assign_used_flags( long_path_size, long_path, used_flags );
+
+    equator_point = get_vertex_on_path( long_path_size, long_path, points,
+                                        0.5, &equator_index );
+
+    ALLOC( equator_distances, n_points );
+    ALLOC( equator_distances[0], total_neighbours );
+    for_less( p, 1, n_points )
+        equator_distances[p] = &equator_distances[p-1][n_neighbours[p-1]];
+
+    calc_distances_from_point( n_points, points, n_neighbours, neighbours,
+                               used_flags, equator_point, -1, -1,
+                               equator_distances );
+
+    other_equator_point = get_farthest_point_from( n_points, n_neighbours,
+                                                   equator_distances );
+
+    calc_distances_from_point( n_points, points, n_neighbours, neighbours,
+                               used_flags, other_equator_point, -1, -1,
+                               equator_distances );
+
+    size1 = create_path_between_points( n_points,
+                               n_neighbours, neighbours, other_equator_point,
+                               north_pole, -1, -1, equator_distances,
+                               &equator1_path );
+
+    size2 = create_path_between_points( n_points,
+                               n_neighbours, neighbours, other_equator_point,
+                               south_pole, -1, -1, equator_distances,
+                               &equator2_path );
+
+    while( size1 >= 2 && size2 >= 2 &&
+           equator1_path[1] == equator2_path[1] )
     {
-        if( point == 0 || dist_from_north[point] > dist_from_north[south_pole] )
-            south_pole = point;
+        print( "Removing overlap: %d\n", equator1_path[0] );
+        --size1;
+        --size2;
+        for_less( p, 0, size1 )
+            equator1_path[p] = equator1_path[p+1];
+        for_less( p, 0, size2 )
+            equator2_path[p] = equator2_path[p+1];
     }
 
-    long_path_size = create_path_between_poles( polygons->n_points,
-                               polygons->points,
-                               n_neighbours, neighbours, north_pole,
-                               south_pole, dist_from_north, &long_path );
+    other_equator_point = equator1_path[0];
 
+    assign_used_flags( size1, equator1_path, used_flags );
+    assign_used_flags( size2, equator2_path, used_flags );
+
+    calc_distances_from_point( n_points, points, n_neighbours, neighbours,
+                               used_flags, other_equator_point, -1, -1,
+                               equator_distances );
+
+    left_size = create_path_between_points( n_points,
+                               n_neighbours, neighbours, other_equator_point,
+                               equator_point, long_path[equator_index-1],
+                               long_path[equator_index+1], equator_distances,
+                               &left_path );
+
+    right_size = create_path_between_points( n_points,
+                               n_neighbours, neighbours, other_equator_point,
+                               equator_point, long_path[equator_index+1],
+                               long_path[equator_index-1], equator_distances,
+                               &right_path );
+
+    assign_used_flags( left_size, left_path, used_flags );
+    assign_used_flags( right_size, right_path, used_flags );
+
+    loop_size = 0;
+    loop = NULL;
+
+    add_to_loop( &loop_size, &loop, right_size, right_path, TRUE, FALSE );
+    add_to_loop( &loop_size, &loop, size1, equator1_path, FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, equator_index+1, long_path, FALSE, TRUE );
+
+#ifdef NOT_YET
     half_dist = dist_from_north[south_pole] / 2.0;
     dist = 0;
     p = 0;
