@@ -53,32 +53,6 @@ int  main(
 
     polygons = get_polygons_ptr( object_list[0] );
 
-    check_polygons_neighbours_computed( polygons );
-
-#ifdef DEBUG
-#define DEBUG
-{
-    int   poly, size, v, neighbours[10], n, n_neigh;
-    BOOLEAN  interior;
-
-
-    for_less( poly, 0, polygons->n_items )
-    {
-        size = GET_OBJECT_SIZE( *polygons, poly );
-        for_less( v, 0, size )
-        {
-            n_neigh = get_neighbours_of_point( polygons, poly, v, neighbours,
-                            10, &interior );
-            print( "Vertex %d (%d): ", polygons->indices[
-                    POINT_INDEX(polygons->end_indices,poly,v)], interior );
-            for_less( n, 0, n_neigh )
-                print( " %d", neighbours[n] );
-            print( "\n" );
-        }
-    }
-}
-#endif
-
     flatten_polygons( polygons, init_points, n_iters );
 
     (void) output_graphics_file( dest_filename, format, 1, object_list );
@@ -289,67 +263,9 @@ private  void  flatten_polygons(
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, &interior_flags, NULL );
 
-#ifdef DEBUG
-#define DEBUG
-{
-    int   poly, size, v, p1, p2;
-
-    for_less( poly, 0, polygons->n_items )
-    {
-        size = GET_OBJECT_SIZE( *polygons, poly );
-        for_less( v, 0, size )
-        {
-            p1 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,v)];
-            p2 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,(v+1)%size)];
-            for_less( i, 0, n_neighbours[p1] )
-                if( neighbours[p1][i] == p2 )
-                    break;
-            if( i >= n_neighbours[p1] )
-                handle_internal_error( "flatten" );
-
-            for_less( i, 0, n_neighbours[p2] )
-                if( neighbours[p2][i] == p1 )
-                    break;
-            if( i >= n_neighbours[p2] )
-                handle_internal_error( "flatten" );
-        }
-    }
-
-    for_less( poly, 0, polygons->n_items )
-    {
-        size = GET_OBJECT_SIZE( *polygons, poly );
-        for_less( v, 0, size )
-        {
-            p1 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,v)];
-            p2 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,(v+1)%size)];
-            for_less( i, 0, n_neighbours[p1] )
-                if( neighbours[p1][i] == p2 )
-                    break;
-
-            neighbours[p1][i] = -1;
-
-            for_less( i, 0, n_neighbours[p2] )
-                if( neighbours[p2][i] == p1 )
-                    break;
-
-            neighbours[p2][i] = -1;
-        }
-    }
-
-    for_less( point, 0, polygons->n_points )
-    {
-        for_less( n, 0, n_neighbours[point] )
-            if( neighbours[point][n] >= 0 )
-                handle_internal_error( "unaccounted" );
-    }
-    abort();
-}
-#endif
-
-
     for_less( which, 0, polygons->n_points )
     {
-        if( n_neighbours[which] > 2 )
+        if( n_neighbours[which] > 1 )
             break;
     }
 
@@ -407,55 +323,23 @@ private  void  flatten_polygons(
     ALLOC( parameters, 2 * (polygons->n_points - n_fixed) );
 
     if( init_points == NULL )
-    {
-        for_less( point, 0, polygons->n_points )
-        {
-            if( to_parameters[point] >= 0 )
-            {
-                parameters[2*to_parameters[point]] =
-                                    RPoint_x(polygons->points[point]);
-                parameters[2*to_parameters[point]+1] =
-                                    RPoint_y(polygons->points[point]);
-            }
-        }
-    }
-    else
-    {
-        SUB_POINTS( x_dir, init_points[neighbours[which][0]],
-                    init_points[which] );
-        NORMALIZE_VECTOR( x_dir, x_dir );
-        fill_Point( y_dir, -RVector_y(x_dir), RVector_x(x_dir), 0.0 );
-        for_less( point, 0, polygons->n_points )
-        {
-            if( to_parameters[point] >= 0 )
-            {
-                SUB_POINTS( offset, init_points[point], init_points[which] );
-                parameters[2*to_parameters[point]] =
-                               DOT_VECTORS( offset, x_dir );
-                parameters[2*to_parameters[point]+1] =
-                               DOT_VECTORS( offset, y_dir );
-            }
-        }
-    }
+        init_points = polygons->points;
 
-#ifdef DEBUG
-#define DEBUG
-{
-    for_less( i, 0, n_equations )
+    SUB_POINTS( x_dir, init_points[neighbours[which][0]],
+                init_points[which] );
+    NORMALIZE_VECTOR( x_dir, x_dir );
+    fill_Point( y_dir, -RVector_y(x_dir), RVector_x(x_dir), 0.0 );
+    for_less( point, 0, polygons->n_points )
     {
-        Real  sum;
-
-        print( "%d: (%g) ", i, constants[i] );
-        sum = constants[i];
-        for_less( n, 0, n_nodes_per_equation[i] )
+        if( to_parameters[point] >= 0 )
         {
-            print( " %d:%g ", node_list[i][n], node_weights[i][n] );
-            sum += node_weights[i][n] * parameters[node_list[i][n]];
+            SUB_POINTS( offset, init_points[point], init_points[which] );
+            parameters[2*to_parameters[point]] =
+                           DOT_VECTORS( offset, x_dir );
+            parameters[2*to_parameters[point]+1] =
+                           DOT_VECTORS( offset, y_dir );
         }
-        print( ":  %g\n", sum );
     }
-}
-#endif
 
     (void) minimize_lsq( 2 * (polygons->n_points - n_fixed), n_equations,
                          n_nodes_per_equation, node_list, constants,
@@ -511,7 +395,7 @@ private  void  flatten_polygons(
         scale = sum_xy / sum_xx;
     }
 
-scale = 1.0;
+    scale = 1.0;
     for_less( point, 0, polygons->n_points )
     {
         SCALE_POINT( polygons->points[point], new_points[point], scale );
