@@ -4,6 +4,7 @@
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
+    Real             centroid_weight,
     Real             sphere_weight,
     int              n_iters );
 
@@ -17,7 +18,7 @@ int  main(
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons;
     Point                *init_points;
-    Real                 sphere_weight;
+    Real                 sphere_weight, centroid_weight;
 
     initialize_argument_processing( argc, argv );
 
@@ -29,6 +30,7 @@ int  main(
         return( 1 );
     }
 
+    (void) get_real_argument( 1.0, &centroid_weight );
     (void) get_real_argument( 1.0, &sphere_weight );
     (void) get_int_argument( 100, &n_iters );
 
@@ -56,7 +58,8 @@ int  main(
         init_points = polygons->points;
     }
 
-    flatten_polygons( polygons, init_points, sphere_weight, n_iters );
+    flatten_polygons( polygons, init_points, centroid_weight,
+                      sphere_weight, n_iters );
 
     if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
         print_error( "Error outputting: %s\n", dest_filename );
@@ -70,10 +73,12 @@ private  Real  evaluate_fit(
     Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
+    Real    centroid_weight,
     Real    sphere_weight )
 {
     int    p, n_points, ind, n, neigh;
     Real   fit, dx, dy, dz, dist, diff, act_dist, radius;
+    Real   xc, yc, zc, x, y, z;
 
     fit = 0.0;
     n_points = n_parameters / 3;
@@ -99,16 +104,52 @@ private  Real  evaluate_fit(
         }
     }
 
-    radius = parameters[n_parameters-1];
-
-    for_less( p, 0, n_points )
+    if( centroid_weight > 0.0 )
     {
-        dx = parameters[IJ(p,0,3)];
-        dy = parameters[IJ(p,1,3)];
-        dz = parameters[IJ(p,2,3)];
-        act_dist = dx * dx + dy * dy + dz * dz;
-        diff = radius * radius - act_dist;
-        fit += sphere_weight * diff * diff;
+        for_less( p, 0, n_points )
+        {
+            xc = 0.0;
+            yc = 0.0;
+            zc = 0.0;
+            for_less( n, 0, n_neighbours[p] )
+            {
+                neigh = neighbours[p][n];
+                xc += parameters[IJ(neigh,0,3)];
+                yc += parameters[IJ(neigh,1,3)];
+                zc += parameters[IJ(neigh,2,3)];
+            }
+
+            xc /= (Real) n_neighbours[p];
+            yc /= (Real) n_neighbours[p];
+            zc /= (Real) n_neighbours[p];
+
+            x = parameters[IJ(p,0,3)];
+            y = parameters[IJ(p,1,3)];
+            z = parameters[IJ(p,2,3)];
+
+            dx = x - xc;
+            dy = y - yc;
+            dz = z - zc;
+
+            diff = dx * dx + dy * dy + dz * dz;
+
+            fit += centroid_weight * diff * diff;
+        }
+    }
+
+    if( sphere_weight > 0.0 )
+    {
+        radius = parameters[n_parameters-1];
+
+        for_less( p, 0, n_points )
+        {
+            dx = parameters[IJ(p,0,3)];
+            dy = parameters[IJ(p,1,3)];
+            dz = parameters[IJ(p,2,3)];
+            act_dist = dx * dx + dy * dy + dz * dz;
+            diff = radius * radius - act_dist;
+            fit += sphere_weight * diff * diff;
+        }
     }
 
     return( fit );
@@ -120,12 +161,15 @@ private  void  evaluate_fit_derivative(
     Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
+    Real    centroid_weight,
     Real    sphere_weight,
     Real    deriv[] )
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
     Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
     Real   x1, y1, z1, x2, y2, z2, weight;
+    Real   xc, yc, zc;
+    Real   x_factor, y_factor, z_factor, x_diff, y_diff, z_diff;
 
     for_less( p, 0, n_parameters )
         deriv[p] = 0.0;
@@ -141,13 +185,16 @@ private  void  evaluate_fit_derivative(
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
 
-        act_dist = x1 * x1 + y1 * y1 + z1 * z1;
-        diff = act_dist - radius * radius;
-        weight = 4.0 * sphere_weight * diff;
-        deriv[p_index+0] += weight * x1;
-        deriv[p_index+1] += weight * y1;
-        deriv[p_index+2] += weight * z1;
-        deriv[n_parameters-1] += -weight * radius;
+        if( sphere_weight > 0.0 )
+        {
+            act_dist = x1 * x1 + y1 * y1 + z1 * z1;
+            diff = act_dist - radius * radius;
+            weight = 4.0 * sphere_weight * diff;
+            deriv[p_index+0] += weight * x1;
+            deriv[p_index+1] += weight * y1;
+            deriv[p_index+2] += weight * z1;
+            deriv[n_parameters-1] += -weight * radius;
+        }
 
         for_less( n, 0, n_neighbours[p] )
         {
@@ -179,6 +226,58 @@ private  void  evaluate_fit_derivative(
             deriv[n_index+2] += -dz * factor;
         }
     }
+
+    if( centroid_weight > 0.0 )
+    {
+        for_less( p, 0, n_points )
+        {
+            p_index = IJ(p,0,3);
+            x1 = parameters[p_index+0];
+            y1 = parameters[p_index+1];
+            z1 = parameters[p_index+2];
+            xc = 0.0;
+            yc = 0.0;
+            zc = 0.0;
+            for_less( n, 0, n_neighbours[p] )
+            {
+                neigh = neighbours[p][n];
+                n_index = IJ(neigh,0,3);
+                xc += parameters[n_index+0];
+                yc += parameters[n_index+1];
+                zc += parameters[n_index+2];
+            }
+
+            weight = 1.0 / (Real) n_neighbours[p];
+            xc *= weight;
+            yc *= weight;
+            zc *= weight;
+            x_diff = xc - x1;
+            x_diff = x_diff * x_diff * x_diff;
+            y_diff = yc - y1;
+            y_diff = y_diff * y_diff * y_diff;
+            z_diff = zc - z1;
+            z_diff = z_diff * z_diff * z_diff;
+            x_factor = centroid_weight * 4.0 * x_diff;
+            y_factor = centroid_weight * 4.0 * y_diff;
+            z_factor = centroid_weight * 4.0 * z_diff;
+
+            deriv[p_index+0] += -x_factor;
+            deriv[p_index+1] += -y_factor;
+            deriv[p_index+2] += -z_factor;
+            x_factor *= weight;
+            y_factor *= weight;
+            z_factor *= weight;
+
+            for_less( n, 0, n_neighbours[p] )
+            {
+                neigh = neighbours[p][n];
+                n_index = IJ(neigh,0,3);
+                deriv[n_index+0] += x_factor;
+                deriv[n_index+1] += y_factor;
+                deriv[n_index+2] += z_factor;
+            }
+        }
+    }
 }
 
 private  void  evaluate_fit_along_line(
@@ -188,6 +287,7 @@ private  void  evaluate_fit_along_line(
     Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
+    Real    centroid_weight,
     Real    sphere_weight,
     Real    coefs[] )
 {
@@ -195,7 +295,8 @@ private  void  evaluate_fit_along_line(
     Real   dx, dy, dz, dr, dist, radius;
     Real   dx1, dy1, dz1, x1, y1, z1;
     Real   x, y, z;
-    Real   line_coefs[3];
+    Real   a, b, c, ax, ay, az, bx, by, bz, weight;
+    Real   line_coefs[3], s_coefs[5];
 
     for_less( p, 0, 5 )
         coefs[p] = 0.0;
@@ -262,6 +363,85 @@ private  void  evaluate_fit_along_line(
             coefs[4] += line_coefs[2] * line_coefs[2];
         }
     }
+
+    if( centroid_weight > 0.0 )
+    {
+        for_less( p, 0, 5 )
+            s_coefs[p] = 0.0;
+
+        for_less( p, 0, n_points )
+        {
+            p_index = IJ( p, 0, 3 );
+
+            ax = 0.0;
+            ay = 0.0;
+            az = 0.0;
+            bx = 0.0;
+            by = 0.0;
+            bz = 0.0;
+
+            for_less( n, 0, n_neighbours[p] )
+            {
+                neigh = neighbours[p][n];
+                n_index = IJ(neigh,0,3);
+                ax += delta[n_index+0];
+                ay += delta[n_index+1];
+                az += delta[n_index+2];
+                bx += parameters[n_index+0];
+                by += parameters[n_index+1];
+                bz += parameters[n_index+2];
+            }
+
+            weight = 1.0 / (Real) n_neighbours[p];
+
+            ax *= weight;
+            ay *= weight;
+            az *= weight;
+            bx *= weight;
+            by *= weight;
+            bz *= weight;
+
+            ax += -delta[p_index+0];
+            ay += -delta[p_index+1];
+            az += -delta[p_index+2];
+            bx += -parameters[p_index+0];
+            by += -parameters[p_index+1];
+            bz += -parameters[p_index+2];
+
+            a = ax * ax;
+            b = 2.0 * ax * bx;
+            c = bx * bx;
+
+            s_coefs[0] += c * c;
+            s_coefs[1] += 2.0 * b * c;
+            s_coefs[2] += 2.0 * a * c + b * b;
+            s_coefs[3] += 2.0 * a * b;
+            s_coefs[4] += a * a;
+
+            a = ay * ay;
+            b = 2.0 * ay * by;
+            c = by * by;
+
+            s_coefs[0] += c * c;
+            s_coefs[1] += 2.0 * b * c;
+            s_coefs[2] += 2.0 * a * c + b * b;
+            s_coefs[3] += 2.0 * a * b;
+            s_coefs[4] += a * a;
+
+            a = az * az;
+            b = 2.0 * az * bz;
+            c = bz * bz;
+
+            s_coefs[0] += c * c;
+            s_coefs[1] += 2.0 * b * c;
+            s_coefs[2] += 2.0 * a * c + b * b;
+            s_coefs[3] += 2.0 * a * b;
+            s_coefs[4] += a * a;
+        }
+
+        for_less( p, 0, 5 )
+            coefs[p] += centroid_weight * s_coefs[p];
+    }
 }
 
 private  void  minimize_along_line(
@@ -271,6 +451,7 @@ private  void  minimize_along_line(
     Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
+    Real    centroid_weight,
     Real    sphere_weight )
 {
     int    p, s, n_solutions, best_index;
@@ -282,8 +463,8 @@ private  void  minimize_along_line(
     ALLOC( test, n_parameters );
 
     evaluate_fit_along_line( n_parameters, parameters, delta, distances,
-                             n_neighbours, neighbours, sphere_weight,
-                             coefs );
+                             n_neighbours, neighbours, centroid_weight,
+                             sphere_weight, coefs );
 
     for_less( p, 0, 4 )
         deriv[p] = (Real) (p+1) * coefs[p+1];
@@ -337,31 +518,40 @@ private  void  minimize_along_line(
             parameters[p] = parameters[p] + t * delta[p];
     }
 
+    if( sphere_weight > 0.0 && parameters[n_parameters-1] < 0.0 )
+        parameters[n_parameters-1] *= -1.0;
+
     FREE( test );
 }
+
+#define TOLERANCE   1.0e-10
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
+    Real             centroid_weight,
     Real             sphere_weight,
     int              n_iters )
 {
     int              p, n, point, *n_neighbours, **neighbours;
     int              n_parameters, total_neighbours;
-    Real             gg, dgg, gam, current_time, last_update_time;
+    Real             gg, dgg, gam, current_time, last_update_time, prev_fit;
     Real             *parameters, *g, *h, *xi, fit, *unit_dir;
     Real             *distances, len, radius;
     Point            centroid;
     int              iter, ind, update_rate;
 
-    radius = 0.0;
-    get_points_centroid( polygons->n_points, init_points, &centroid );
-    for_less( point, 0, polygons->n_points )
+    if( sphere_weight > 0.0 )
     {
-        radius += distance_between_points( &polygons->points[point],
-                                           &centroid );
+        radius = 0.0;
+        get_points_centroid( polygons->n_points, init_points, &centroid );
+        for_less( point, 0, polygons->n_points )
+        {
+            radius += distance_between_points( &polygons->points[point],
+                                               &centroid );
+        }
+        radius /= (Real) polygons->n_points;
     }
-    radius /= (Real) polygons->n_points;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -387,7 +577,9 @@ private  void  flatten_polygons(
         }
     }
 
-    n_parameters = 3 * polygons->n_points + 1;
+    n_parameters = 3 * polygons->n_points;
+    if( sphere_weight > 0.0 )
+        ++n_parameters;
     ALLOC( parameters, n_parameters );
     ALLOC( g, n_parameters );
     ALLOC( h, n_parameters );
@@ -401,18 +593,22 @@ private  void  flatten_polygons(
         parameters[IJ(point,2,3)] = RPoint_z(init_points[point] );
     }
 
-    parameters[n_parameters-1] = radius;
+    if( sphere_weight > 0.0 )
+        parameters[n_parameters-1] = radius;
 
     sphere_weight *= (Real) total_neighbours / (Real) polygons->n_points;
+    centroid_weight *= (Real) total_neighbours / (Real) polygons->n_points;
 
     fit = evaluate_fit( n_parameters, parameters, distances,
-                        n_neighbours, neighbours, sphere_weight );
+                        n_neighbours, neighbours,
+                        centroid_weight, sphere_weight );
 
     print( "Initial  %g\n", fit );
     (void) flush_file( stdout );
 
     evaluate_fit_derivative( n_parameters, parameters, distances,
-                             n_neighbours, neighbours, sphere_weight, xi );
+                             n_neighbours, neighbours, centroid_weight,
+                             sphere_weight, xi );
 
     for_less( p, 0, n_parameters )
     {
@@ -423,6 +619,7 @@ private  void  flatten_polygons(
 
     update_rate = 1;
     last_update_time = current_cpu_seconds();
+    prev_fit = fit;
 
     for_less( iter, 0, n_iters )
     {
@@ -435,24 +632,36 @@ private  void  flatten_polygons(
             unit_dir[p] = xi[p] / len;
 
         minimize_along_line( n_parameters, parameters, unit_dir, distances,
-                             n_neighbours, neighbours, sphere_weight );
+                             n_neighbours, neighbours,
+                             centroid_weight, sphere_weight );
 
         if( ((iter+1) % update_rate) == 0 || iter == n_iters - 1 )
         {
             fit = evaluate_fit( n_parameters, parameters, distances,
-                                n_neighbours, neighbours, sphere_weight );
+                                n_neighbours, neighbours, centroid_weight,
+                                sphere_weight );
 
-            print( "%d: %g  \t Radius: %g\n", iter+1, fit,
-                   parameters[n_parameters-1] );
+            print( "%d: %g", iter+1, fit );
+            if( sphere_weight > 0.0 )
+                print( "\t Radius: %g", parameters[n_parameters-1] );
+            print( "\n" );
+
             (void) flush_file( stdout );
             current_time = current_cpu_seconds();
             if( current_time - last_update_time < 1.0 )
                 update_rate *= 10;
+/*
+            else if( iter > 100 && prev_fit - fit < TOLERANCE )
+                break;
+*/
+            prev_fit = fit;
+
             last_update_time = current_time;
         }
 
         evaluate_fit_derivative( n_parameters, parameters, distances,
-                                 n_neighbours, neighbours, sphere_weight, xi );
+                                 n_neighbours, neighbours, centroid_weight,
+                                 sphere_weight, xi );
 
         gg = 0.0;
         dgg = 0.0;
