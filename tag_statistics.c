@@ -88,25 +88,34 @@ private  BOOLEAN  is_right_id(
     return( id >= 20 && id <= 29 || id == 40 );
 }
 
+#define  MAX_IDS  1100
+
 private  int   find_left_right_error(
     BOOLEAN         left,
     int             n_objects,
-    object_struct   *object_list[] )
+    object_struct   *object_list[],
+    int             id_errors[] )
 {
-    int            i, n_errors;
+    int            i, n_errors, id;
     marker_struct  *marker;
 
     n_errors = 0;
+
+    for_less( i, 0, MAX_IDS )
+        id_errors[i] = 0;
 
     for_less( i, 0, n_objects )
     {
         if( object_list[i]->object_type == MARKER )
         {
             marker = get_marker_ptr( object_list[i] );
+            id = marker->structure_id;
+            if( id >= 1000 ) id -= 1000;
 
-            if( left && !is_left_id( marker->structure_id ) ||
-                !left && !is_right_id( marker->structure_id ) )
+            if( id != 1 )
+            if( left && !is_left_id( id ) || !left && !is_right_id( id ) )
             {
+                ++id_errors[id];
                 ++n_errors;
             }
         }
@@ -130,12 +139,13 @@ int  main(
     BOOLEAN              left;
     FILE                 *left_right_errors, *frequency_file;
     char                 *format;
-    STRING               *filenames, curr_patient, directory;
+    STRING               *filenames;
+    int                  id_errors[MAX_IDS];
     Volume               volume;
     volume_input_struct  volume_input;
     int                  n_files, n_objects, n_files_for_patient, total_in_file;
     object_struct        **object_list;
-    int                  p, n_samples, n_errors, s;
+    int                  e, p, n_samples, n_errors;
     int                  structure_id, n_in_file;
 
     initialize_argument_processing( argc, argv );
@@ -185,10 +195,6 @@ int  main(
     status = open_file( freq_filename, WRITE_FILE, ASCII_FORMAT,
                         &frequency_file );
 
-    n_files_for_patient = 0;
-    curr_patient[0] = (char) 0;
-    (void) strcpy( curr_patient, directory );
-
     for_less( p, 0, n_files )
     {
 /*
@@ -209,13 +215,19 @@ int  main(
             break;
         }
 
-        n_errors = find_left_right_error( left, n_objects, object_list );
+        n_errors = find_left_right_error( left, n_objects, object_list,
+                                          id_errors );
 
         if( n_errors > 0 )
         {
-            (void) fprintf( left_right_errors,
-                            "%d left-right error in file: %s\n",
-                            n_errors, filenames[p] );
+            (void) fprintf( left_right_errors, "File %s: \t%d wrong ids: \t",
+                            filenames[p], n_errors );
+
+            for_less( e, 0, MAX_IDS )
+                if( id_errors[e] > 0 )
+                    (void) fprintf( left_right_errors, " %d(%d)", e,
+                                    id_errors[e] );
+            (void) fprintf( left_right_errors, "\n" );
         }
 
         if( status != OK )
@@ -251,27 +263,6 @@ int  main(
             z_means[n_samples] = z_mean;
 
             ++n_samples;
-        }
-
-        (void) strcpy( directory, filenames[p] );
-        s = strlen( directory );
-        while( s > 0 && directory[s] != '/' )
-            --s;
-        directory[s] = (char) 0;
-
-        if( strcmp( directory, curr_patient ) == 0 && p != )
-            ++n_files_for_patient;
-        else
-            n_files_for_patient = 1;
-
-        if( p == n_files - 1 || strcmp( directory, curr_patient ) != 0 )
-        {
-            if( n_files_for_patient != 2 )
-            {
-                print( "Missing files for %s\n", curr_patient );
-            }
-
-            (void) strcpy( curr_patient, directory );
         }
 
         if( left && is_left_id(structure_id) ||
