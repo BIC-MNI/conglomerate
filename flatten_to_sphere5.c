@@ -3,9 +3,6 @@
 
 #define  TOLERANCE         1.0e-7
 
-#undef  USE_CENTROID
-#define USE_CENTROID
-
 typedef  float  dtype;
 
 private  void  flatten_polygons(
@@ -14,8 +11,6 @@ private  void  flatten_polygons(
     int              n_neighbours[],
     int              *neighbours[],
     Point            init_points[],
-    Real             centroid_weight,
-    Real             sphere_weight,
     int              n_iters );
 
 int  main(
@@ -29,7 +24,6 @@ int  main(
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons, p;
     Point                *init_points, *points;
-    Real                 sphere_weight, centroid_weight;
 
     initialize_argument_processing( argc, argv );
 
@@ -41,8 +35,6 @@ int  main(
         return( 1 );
     }
 
-    (void) get_real_argument( 1.0, &centroid_weight );
-    (void) get_real_argument( 1.0, &sphere_weight );
     (void) get_int_argument( 100, &n_iters );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
@@ -78,8 +70,7 @@ int  main(
     delete_object_list( 1, object_list );
 
     flatten_polygons( n_points, points, n_neighbours, neighbours,
-                      init_points, centroid_weight,
-                      sphere_weight, n_iters );
+                      init_points, n_iters );
 
     p.n_points = n_points;
     delete_polygon_point_neighbours( &p, n_neighbours, neighbours, NULL, NULL );
@@ -102,87 +93,53 @@ int  main(
 private  Real  evaluate_fit(
     int     n_parameters,
     dtype   parameters[],
-    dtype   distances[],
+    dtype   heights[],
     int     n_neighbours[],
-    int     *neighbours[],
-    Real    centroid_weight,
-    dtype   centroid_weights[],
-    Real    sphere_weight )
+    int     *neighbours[] )
 {
-    int    p, n_points, ind, n, neigh;
-    Real   fit, dx, dy, dz, dist, diff, act_dist, radius;
-    Real   xc, yc, zc, x, y, z, weight;
+    int     p, n_points, max_neighbours, n, neigh, p_index, n_index;
+    Real    fit, diff, height, actual_height;
+    Point   *neigh_points, centroid, this_point;
+    Vector  offset, normal;
 
     fit = 0.0;
-    n_points = n_parameters / 3;
 
-    ind = 0;
+    n_points = (n_parameters-1) / 3;
+
+    max_neighbours = 0;
+    for_less( p, 0, n_points )
+        max_neighbours = MAX( max_neighbours, n_neighbours[p] );
+
+    ALLOC( neigh_points, max_neighbours );
+
     for_less( p, 0, n_points )
     {
+        p_index = IJ( p, 0, 3 );
+        fill_Point( this_point,
+                    parameters[p_index+0], parameters[p_index+1],
+                    parameters[p_index+2] );
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
-            if( neigh < p )
-                continue;
-
-            dist = (Real) distances[ind];
-            ++ind;
-
-            dx = (Real)parameters[IJ(p,0,3)] - (Real)parameters[IJ(neigh,0,3)];
-            dy = (Real)parameters[IJ(p,1,3)] - (Real)parameters[IJ(neigh,1,3)];
-            dz = (Real)parameters[IJ(p,2,3)] - (Real)parameters[IJ(neigh,2,3)];
-            act_dist = dx * dx + dy * dy + dz * dz;
-            diff = dist - act_dist;
-            fit += diff * diff;
+            n_index = IJ( neigh, 0, 3 );
+            fill_Point( neigh_points[n],
+                        parameters[n_index+0],
+                        parameters[n_index+1],
+                        parameters[n_index+2] );
         }
+
+        get_points_centroid( n_neighbours[p], neigh_points, &centroid );
+        find_polygon_normal( n_neighbours[p], neigh_points, &normal );
+
+        height = (Real) heights[p];
+           
+        SUB_POINTS( offset, this_point, centroid );
+        actual_height = DOT_VECTORS( offset, normal );
+        diff = actual_height - height;
+        fit += diff * diff;
     }
 
-    if( centroid_weight > 0.0 )
-    {
-        ind = 0;
-        for_less( p, 0, n_points )
-        {
-            xc = 0.0;
-            yc = 0.0;
-            zc = 0.0;
-            for_less( n, 0, n_neighbours[p] )
-            {
-                neigh = neighbours[p][n];
-                weight = (Real) centroid_weights[ind+n];
-                xc += (Real) parameters[IJ(neigh,0,3)] * weight;
-                yc += (Real) parameters[IJ(neigh,1,3)] * weight;
-                zc += (Real) parameters[IJ(neigh,2,3)] * weight;
-            }
-
-            x = (Real) parameters[IJ(p,0,3)];
-            y = (Real) parameters[IJ(p,1,3)];
-            z = (Real) parameters[IJ(p,2,3)];
-
-            dx = x - xc;
-            dy = y - yc;
-            dz = z - zc;
-
-            diff = dx * dx + dy * dy + dz * dz;
-
-            fit += centroid_weight * diff;
-            ind += n_neighbours[p];
-        }
-    }
-
-    if( sphere_weight > 0.0 )
-    {
-        radius = (Real) parameters[n_parameters-1];
-
-        for_less( p, 0, n_points )
-        {
-            dx = (Real) parameters[IJ(p,0,3)];
-            dy = (Real) parameters[IJ(p,1,3)];
-            dz = (Real) parameters[IJ(p,2,3)];
-            act_dist = dx * dx + dy * dy + dz * dz;
-            diff = radius * radius - act_dist;
-            fit += sphere_weight * diff * diff;
-        }
-    }
+    FREE( neigh_points );
 
     return( fit );
 }
@@ -190,160 +147,74 @@ private  Real  evaluate_fit(
 private  void  evaluate_fit_derivative(
     int      n_parameters,
     dtype    parameters[],
-    dtype    distances[],
+    dtype    heights[],
     int      n_neighbours[],
     int      *neighbours[],
-    Real     centroid_weight,
-    dtype    centroid_weights[],
-    Real     sphere_weight,
     dtype    deriv[] )
 {
-    int    p, n_points, ind, n, neigh, p_index, n_index;
-    Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
-    Real   x1, y1, z1, x2, y2, z2, weight, cw4;
-    Real   xc, yc, zc, x_deriv, y_deriv, z_deriv;
-    Real   x_factor, y_factor, z_factor, x_diff, y_diff, z_diff;
-#ifdef USE_CENTROID
-    dtype  fx_factor, fy_factor, fz_factor;
-#endif
+    int    p, n_points, n, neigh, p_index, n_index, max_neighbours;
+    Real   diff, factor, nx, ny, nz, actual_height, height;
+    Point  *neigh_points, this_point, centroid;
+    Vector offset, normal;
 
     for_less( p, 0, n_parameters )
         deriv[p] = (dtype) 0.0;
 
-    n_points = n_parameters / 3;
-    if( sphere_weight > 0.0 )
-        radius = (Real) parameters[n_parameters-1];
+    n_points = (n_parameters-1) / 3;
 
-    ind = 0;
+    max_neighbours = 0;
+    for_less( p, 0, n_points )
+        max_neighbours = MAX( max_neighbours, n_neighbours[p] );
+
+    ALLOC( neigh_points, max_neighbours );
+
     for_less( p, 0, n_points )
     {
         p_index = IJ(p,0,3);
-        x1 = (Real) parameters[p_index+0];
-        y1 = (Real) parameters[p_index+1];
-        z1 = (Real) parameters[p_index+2];
-
-        x_deriv = 0.0;
-        y_deriv = 0.0;
-        z_deriv = 0.0;
-
-        if( sphere_weight > 0.0 )
+        fill_Point( this_point,
+                    parameters[p_index+0], parameters[p_index+1],
+                    parameters[p_index+2] );
+        for_less( n, 0, n_neighbours[p] )
         {
-            act_dist = x1 * x1 + y1 * y1 + z1 * z1;
-            diff = act_dist - radius * radius;
-            weight = 4.0 * sphere_weight * diff;
-            x_deriv += weight * x1;
-            y_deriv += weight * y1;
-            z_deriv += weight * z1;
-            deriv[n_parameters-1] += (dtype) (-weight * radius);
+            neigh = neighbours[p][n];
+            n_index = IJ( neigh, 0, 3 );
+            fill_Point( neigh_points[n],
+                        parameters[n_index+0],
+                        parameters[n_index+1],
+                        parameters[n_index+2] );
         }
+
+        get_points_centroid( n_neighbours[p], neigh_points, &centroid );
+        find_polygon_normal( n_neighbours[p], neigh_points, &normal );
+
+        height = (Real) heights[p];
+
+        SUB_POINTS( offset, this_point, centroid );
+        actual_height = DOT_VECTORS( offset, normal );
+        diff = actual_height - height;
+
+        factor = 2.0 * diff;
+        nx = RVector_x(normal);
+        ny = RVector_y(normal);
+        nz = RVector_z(normal);
+
+        deriv[p_index+0] += (dtype) (factor * nx);
+        deriv[p_index+1] += (dtype) (factor * ny);
+        deriv[p_index+2] += (dtype) (factor * nz);
+
+        factor /= (Real) n_neighbours[p];
 
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
-            if( neigh < p )
-                continue;
-
-            dist = (Real) distances[ind];
-            ++ind;
-
             n_index = IJ(neigh,0,3);
-            x2 = (Real) parameters[n_index+0];
-            y2 = (Real) parameters[n_index+1];
-            z2 = (Real) parameters[n_index+2];
-
-            dx = x1 - x2;
-            dy = y1 - y2;
-            dz = z1 - z2;
-            act_dist = dx * dx + dy * dy + dz * dz;
-            factor = 4.0 * (act_dist - dist);
-            dx *= factor;
-            dy *= factor;
-            dz *= factor;
-            x_deriv += dx;
-            y_deriv += dy;
-            z_deriv += dz;
-            deriv[n_index+0] += (dtype) -dx;
-            deriv[n_index+1] += (dtype) -dy;
-            deriv[n_index+2] += (dtype) -dz;
-        }
-
-        deriv[p_index+0] += (dtype) x_deriv;
-        deriv[p_index+1] += (dtype) y_deriv;
-        deriv[p_index+2] += (dtype) z_deriv;
-    }
-
-    if( centroid_weight > 0.0 )
-    {
-        cw4 = 2.0 * centroid_weight;
-        ind = 0;
-        for_less( p, 0, n_points )
-        {
-            p_index = IJ(p,0,3);
-            x1 = (Real) parameters[p_index+0];
-            y1 = (Real) parameters[p_index+1];
-            z1 = (Real) parameters[p_index+2];
-            xc = 0.0;
-            yc = 0.0;
-            zc = 0.0;
-            for_less( n, 0, n_neighbours[p] )
-            {
-                neigh = neighbours[p][n];
-                n_index = IJ(neigh,0,3);
-#ifdef USE_CENTROID
-                xc += (Real) parameters[n_index+0];
-                yc += (Real) parameters[n_index+1];
-                zc += (Real) parameters[n_index+2];
-#else
-                weight = (Real) centroid_weights[ind+n];
-                xc += (Real) parameters[n_index+0] * weight;
-                yc += (Real) parameters[n_index+1] * weight;
-                zc += (Real) parameters[n_index+2] * weight;
-#endif
-            }
-
-#ifdef USE_CENTROID
-            weight = 1.0 / (Real) n_neighbours[p];
-            xc *= weight;
-            yc *= weight;
-            zc *= weight;
-#endif
-
-            x_diff = xc - x1;
-            y_diff = yc - y1;
-            z_diff = zc - z1;
-            x_factor = cw4 * x_diff;
-            y_factor = cw4 * y_diff;
-            z_factor = cw4 * z_diff;
-
-            deriv[p_index+0] += (dtype) (-x_factor);
-            deriv[p_index+1] += (dtype) (-y_factor);
-            deriv[p_index+2] += (dtype) (-z_factor);
-
-#ifdef USE_CENTROID
-            fx_factor = (dtype) (x_factor * weight);
-            fy_factor = (dtype) (y_factor * weight);
-            fz_factor = (dtype) (z_factor * weight);
-#endif
-
-            for_less( n, 0, n_neighbours[p] )
-            {
-                neigh = neighbours[p][n];
-                n_index = IJ(neigh,0,3);
-#ifdef USE_CENTROID
-                deriv[n_index+0] += fx_factor;
-                deriv[n_index+1] += fy_factor;
-                deriv[n_index+2] += fz_factor;
-#else
-                weight = (Real) centroid_weights[ind+n];
-                deriv[n_index+0] += (dtype) (x_factor * weight);
-                deriv[n_index+1] += (dtype) (y_factor * weight);
-                deriv[n_index+2] += (dtype) (z_factor * weight);
-#endif
-            }
-
-            ind += n_neighbours[p];
+            deriv[n_index+0] += (dtype) (-factor * nx);
+            deriv[n_index+1] += (dtype) (-factor * ny);
+            deriv[n_index+2] += (dtype) (-factor * nz);
         }
     }
+
+    FREE( neigh_points );
 }
 
 private  Real  evaluate_fit_along_line(
@@ -352,12 +223,9 @@ private  Real  evaluate_fit_along_line(
     dtype   line_dir[],
     dtype   buffer[],
     Real    dist,
-    dtype   distances[],
+    dtype   heights[],
     int     n_neighbours[],
-    int     *neighbours[],
-    Real    centroid_weight,
-    dtype   centroid_weights[],
-    Real    sphere_weight )
+    int     *neighbours[] )
 {
     int     p;
     Real    fit;
@@ -366,9 +234,7 @@ private  Real  evaluate_fit_along_line(
         buffer[p] = (float) ( (Real) parameters[p] + dist * (Real) line_dir[p]);
 
     fit = evaluate_fit( n_parameters, buffer,
-                        distances, n_neighbours, neighbours,
-                        centroid_weight, centroid_weights,
-                        sphere_weight );
+                        heights, n_neighbours, neighbours );
 
     return( fit );
 }
@@ -380,12 +246,9 @@ private  Real  minimize_along_line(
     int     n_parameters,
     dtype   parameters[],
     dtype   line_dir[],
-    dtype   distances[],
+    dtype   heights[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    centroid_weight,
-    dtype   centroid_weights[],
-    Real    sphere_weight,
     BOOLEAN *changed )
 {
     int      p, n_iters;
@@ -409,9 +272,7 @@ private  Real  minimize_along_line(
 
         f0 = evaluate_fit_along_line( n_parameters, parameters, line_dir,
                                       test_parameters, t0,
-                                      distances, n_neighbours, neighbours,
-                                      centroid_weight, centroid_weights,
-                                      sphere_weight );
+                                      heights, n_neighbours, neighbours );
     }
     while( f0 <= f1 );
 
@@ -425,9 +286,7 @@ private  Real  minimize_along_line(
 
         f2 = evaluate_fit_along_line( n_parameters, parameters, line_dir,
                                       test_parameters, t2,
-                                      distances, n_neighbours, neighbours,
-                                      centroid_weight, centroid_weights,
-                                      sphere_weight );
+                                      heights, n_neighbours, neighbours );
     }
     while( f2 <= f1 );
 
@@ -438,9 +297,7 @@ private  Real  minimize_along_line(
 
         f_next = evaluate_fit_along_line( n_parameters, parameters, line_dir,
                                           test_parameters, t_next,
-                                          distances, n_neighbours, neighbours,
-                                          centroid_weight, centroid_weights,
-                                          sphere_weight );
+                                          heights, n_neighbours, neighbours );
 
 /*
         print( "%g  %g  %g  %g\n", t0, t_next, t1, t2 );
@@ -485,133 +342,64 @@ private  void  flatten_polygons(
     int              n_neighbours[],
     int              *neighbours[],
     Point            init_points[],
-    Real             centroid_weight,
-    Real             sphere_weight,
     int              n_iters )
 {
-    int              p, n, point, dim1, dim2, max_neighbours;
-    int              n_parameters, total_neighbours, total_edges;
+    int              p, n, point, max_neighbours;
+    int              n_parameters;
     Real             gg, dgg, gam, current_time, last_update_time;
-    Real             fit;
-    Real             len, radius, *weights[3][3], *x_flat, *y_flat, *z_flat;
-    Point            centroid, *plane_points;
-#ifndef   USE_CENTROID
-    int              neigh;
-    Vector           offset, normal, hor, vert;
-#endif
-    int              iter, ind, update_rate;
-    dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
-    dtype            *centroid_weights;
+    Real             fit, height;
+    Real             len, radius, *x_sphere, *y_sphere, *z_sphere;
+    Point            centroid, *neigh_points;
+    int              iter, update_rate;
+    dtype            *g, *h, *xi, *parameters, *unit_dir, *heights;
     BOOLEAN          init_supplied, changed;
 
     init_supplied = (init_points != NULL);
     if( !init_supplied )
         init_points = points;
 
-    if( sphere_weight > 0.0 )
-    {
-        radius = 0.0;
-        get_points_centroid( n_points, init_points, &centroid );
-        for_less( point, 0, n_points )
-        {
-            radius += distance_between_points( &points[point], &centroid );
-        }
-        radius /= (Real) n_points;
-    }
-
-    total_neighbours = 0;
-    total_edges = 0;
+    radius = 0.0;
+    get_points_centroid( n_points, init_points, &centroid );
     for_less( point, 0, n_points )
-    {
-        total_neighbours += n_neighbours[point];
-        for_less( n, 0, n_neighbours[point] )
-            if( neighbours[point][n] > point )
-                ++total_edges;
-    }
+        radius += distance_between_points( &points[point], &centroid );
+    radius /= (Real) n_points;
 
-    if( centroid_weight > 0.0 )
-    {
-        max_neighbours = 0;
-        for_less( point, 0, n_points )
-            max_neighbours = MAX( max_neighbours, n_neighbours[point] );
+    ALLOC( heights, n_points );
 
-        for_less( dim1, 0, 3 )
-        for_less( dim2, 0, 3 )
-            ALLOC( weights[dim1][dim2], max_neighbours );
-        ALLOC( x_flat, max_neighbours );
-        ALLOC( y_flat, max_neighbours );
-        ALLOC( z_flat, max_neighbours );
-        ALLOC( plane_points, max_neighbours );
+    max_neighbours = 0;
+    for_less( p, 0, n_points )
+        max_neighbours = MAX( max_neighbours, n_neighbours[p] );
 
-        ALLOC( centroid_weights, total_neighbours );
-        ind = 0;
-        for_less( point, 0, n_points )
-        {
-#ifdef USE_CENTROID
-            for_less( n, 0, n_neighbours[point] )
-                centroid_weights[ind+n] = (dtype)
-                            (1.0 / (Real) n_neighbours[point]);
-#else
-            for_less( n, 0, n_neighbours[point] )
-                plane_points[n] = points[neighbours[point][n]];
-
-            find_polygon_normal( n_neighbours[point], plane_points, &normal );
-            create_two_orthogonal_vectors( &normal, &hor, &vert );
-
-            for_less( n, 0, n_neighbours[point] )
-            {
-                neigh = neighbours[point][n];
-                SUB_POINTS( offset, points[neigh], points[point] );
-                x_flat[n] = DOT_VECTORS( offset, hor );
-                y_flat[n] = DOT_VECTORS( offset, vert );
-                z_flat[n] = 0.0;
-            }
-
-            if( !get_prediction_weights_3d( 0.0, 0.0, 0.0,
-                                            n_neighbours[point],
-                                            x_flat, y_flat, z_flat,
-                                            weights[0], weights[1], weights[2]))
-
-            {
-                print_error( "Error in interpolation weights.\n" );
-            }
-
-            for_less( n, 0, n_neighbours[point] )
-                centroid_weights[ind+n] = (dtype) weights[0][n][n];
-#endif
-
-            ind += n_neighbours[point];
-        }
-
-        for_less( dim1, 0, 3 )
-        for_less( dim2, 0, 3 )
-            FREE( weights[dim1][dim2] );
-        FREE( x_flat );
-        FREE( y_flat );
-        FREE( z_flat );
-        FREE( plane_points );
-    }
-
-    ALLOC( distances, total_edges );
-    ind = 0;
+    ALLOC( neigh_points, max_neighbours );
+    ALLOC( x_sphere, max_neighbours );
+    ALLOC( y_sphere, max_neighbours );
+    ALLOC( z_sphere, max_neighbours );
 
     for_less( point, 0, n_points )
     {
         for_less( n, 0, n_neighbours[point] )
-        {
-            if( neighbours[point][n] > point )
-            {
-                distances[ind] = (dtype) sq_distance_between_points(
-                                       &points[point],
-                                       &points[neighbours[point][n]] );
-                ++ind;
-            }
-        }
+            neigh_points[n] = points[neighbours[point][n]];
+
+        flatten_around_vertex_to_sphere( radius, &points[point],
+                                         n_neighbours[point], neigh_points,
+                                         x_sphere, y_sphere, z_sphere );
+
+
+        height = 0.0;
+        for_less( n, 0, n_neighbours[point] )
+            height += -z_sphere[n];
+        height /= (Real) n_neighbours[point];
+
+        heights[point] = (dtype) height;
     }
+
+    FREE( neigh_points );
+    FREE( x_sphere );
+    FREE( y_sphere );
+    FREE( z_sphere );
 
     n_parameters = 3 * n_points;
-    if( sphere_weight > 0.0 )
-        ++n_parameters;
+
     ALLOC( parameters, n_parameters );
     ALLOC( g, n_parameters );
     ALLOC( h, n_parameters );
@@ -628,22 +416,14 @@ private  void  flatten_polygons(
     if( init_supplied )
         FREE( init_points );
 
-    if( sphere_weight > 0.0 )
-        parameters[n_parameters-1] = (dtype) radius;
-
-    sphere_weight *= (Real) total_edges / (Real) n_points;
-    centroid_weight *= (Real) total_edges / (Real) n_points;
-
-    fit = evaluate_fit( n_parameters, parameters, distances,
-                        n_neighbours, neighbours,
-                        centroid_weight, centroid_weights, sphere_weight );
+    fit = evaluate_fit( n_parameters, parameters, heights,
+                        n_neighbours, neighbours );
 
     print( "Initial  %g\n", fit );
     (void) flush_file( stdout );
 
-    evaluate_fit_derivative( n_parameters, parameters, distances,
-                             n_neighbours, neighbours, centroid_weight,
-                             centroid_weights, sphere_weight, xi );
+    evaluate_fit_derivative( n_parameters, parameters, heights,
+                             n_neighbours, neighbours, xi );
 
     for_less( p, 0, n_parameters )
     {
@@ -666,9 +446,8 @@ private  void  flatten_polygons(
             unit_dir[p] = (dtype) ((Real) xi[p] / len);
 
         fit = minimize_along_line( fit, n_parameters, parameters, unit_dir,
-                                   distances, n_neighbours, neighbours,
-                                   centroid_weight, centroid_weights,
-                                   sphere_weight, &changed );
+                                   heights, n_neighbours, neighbours,
+                                   &changed );
 
         if( !changed )
             break;
@@ -676,8 +455,7 @@ private  void  flatten_polygons(
         if( ((iter+1) % update_rate) == 0 || iter == n_iters - 1 )
         {
             print( "%d: %g", iter+1, fit );
-            if( sphere_weight > 0.0 )
-                print( "\t Radius: %g", (Real) parameters[n_parameters-1] );
+            print( "\t Radius: %g", radius );
             print( "\n" );
 
             (void) flush_file( stdout );
@@ -688,9 +466,8 @@ private  void  flatten_polygons(
             last_update_time = current_time;
         }
 
-        evaluate_fit_derivative( n_parameters, parameters, distances,
-                                 n_neighbours, neighbours, centroid_weight,
-                                 centroid_weights, sphere_weight, xi );
+        evaluate_fit_derivative( n_parameters, parameters, heights,
+                                 n_neighbours, neighbours, xi );
 
         gg = 0.0;
         dgg = 0.0;
@@ -724,9 +501,7 @@ private  void  flatten_polygons(
                     parameters[IJ(point,2,3)] );
     }
 
-    if( centroid_weight > 0.0 )
-        FREE( centroid_weights );
-    FREE( distances );
+    FREE( heights );
     FREE( parameters );
     FREE( xi );
     FREE( g );
