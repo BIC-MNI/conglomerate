@@ -4,6 +4,7 @@
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
+    Real             sphere_weight,
     int              n_iters );
 
 int  main(
@@ -14,8 +15,9 @@ int  main(
     int                  n_objects, n_i_objects, n_iters;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
-    polygons_struct      *polygons;
+    polygons_struct      *polygons, *init_polygons;
     Point                *init_points;
+    Real                 sphere_weight;
 
     initialize_argument_processing( argc, argv );
 
@@ -27,24 +29,8 @@ int  main(
         return( 1 );
     }
 
+    (void) get_real_argument( 1.0, &sphere_weight );
     (void) get_int_argument( 100, &n_iters );
-
-    if( get_string_argument( NULL, &initial_filename ) )
-    {
-        if( input_graphics_file( initial_filename, &format, &n_i_objects,
-                                 &i_object_list ) != OK || n_i_objects != 1 ||
-            get_object_type(i_object_list[0]) != POLYGONS )
-            return( 1 );
-
-        polygons = get_polygons_ptr( i_object_list[0] );
-        init_points = polygons->points;
-        ALLOC( polygons->points, 1 );
-        delete_object_list( n_i_objects, i_object_list );
-    }
-    else
-    {
-        init_points = NULL;
-    }
 
     if( input_graphics_file( src_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 ||
@@ -53,297 +39,456 @@ int  main(
 
     polygons = get_polygons_ptr( object_list[0] );
 
-    flatten_polygons( polygons, init_points, n_iters );
+    if( get_string_argument( NULL, &initial_filename ) )
+    {
+        if( input_graphics_file( initial_filename, &format, &n_i_objects,
+                                 &i_object_list ) != OK || n_i_objects != 1 ||
+            get_object_type(i_object_list[0]) != POLYGONS )
+            return( 1 );
 
-    (void) output_graphics_file( dest_filename, format, 1, object_list );
+        init_polygons = get_polygons_ptr( i_object_list[0] );
+        init_points = init_polygons->points;
+        ALLOC( init_polygons->points, 1 );
+        delete_object_list( n_i_objects, i_object_list );
+    }
+    else
+    {
+        init_points = polygons->points;
+    }
+
+    flatten_polygons( polygons, init_points, sphere_weight, n_iters );
+
+    if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
+        print_error( "Error outputting: %s\n", dest_filename );
 
     return( 0 );
 }
 
-private  int  create_coefficients(
-    polygons_struct  *polygons,
-    int              n_neighbours[],
-    int              **neighbours,
-    Smallest_int     interior_flags[],
-    int              n_fixed,
-    int              fixed_indices[],
-    Real             *fixed_pos[2],
-    int              to_parameters[],
-    int              to_fixed_index[],
-    int              *n_nodes_involved[],
-    int              **node_list[],
-    Real             *constants[],
-    Real             **node_weights[] )
+private  Real  evaluate_fit(
+    int     n_parameters,
+    Real    parameters[],
+    Real    distances[],
+    int     n_neighbours[],
+    int     *neighbours[],
+    Real    sphere_weight )
 {
-    int              n_equations, node, p, eq, dim, dim1, n_nodes_in;
-    int              neigh, max_neighbours;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             flat[3][MAX_POINTS_PER_POLYGON];
-    Real             *weights[3][3];
-    BOOLEAN          found, ignoring;
-    progress_struct  progress;
+    int    p, n_points, ind, n, neigh;
+    Real   fit, dx, dy, dz, dist, diff, act_dist, radius;
 
-    max_neighbours = 0;
-    for_less( node, 0, polygons->n_points )
-        max_neighbours = MAX( max_neighbours, n_neighbours[node] );
+    fit = 0.0;
+    n_points = n_parameters / 3;
 
-    for_less( dim, 0, N_DIMENSIONS )
-    for_less( dim1, 0, N_DIMENSIONS )
-       ALLOC( weights[dim][dim1], max_neighbours );
-
-    n_equations = 0;
-    for_less( node, 0, polygons->n_points )
+    ind = 0;
+    for_less( p, 0, n_points )
     {
-        found = to_parameters[node] >= 0;
-        for_less( p, 0, n_neighbours[node] )
+        for_less( n, 0, n_neighbours[p] )
         {
-            if( to_parameters[neighbours[node][p]] >= 0 )
-            {
-                found = TRUE;
-                break;
-            }
+            neigh = neighbours[p][n];
+            if( neigh < p )
+                continue;
+
+            dist = distances[ind];
+            ++ind;
+
+            dx = parameters[IJ(p,0,3)] - parameters[IJ(neigh,0,3)];
+            dy = parameters[IJ(p,1,3)] - parameters[IJ(neigh,1,3)];
+            dz = parameters[IJ(p,2,3)] - parameters[IJ(neigh,2,3)];
+            act_dist = dx * dx + dy * dy + dz * dz;
+            diff = dist - act_dist;
+            fit += diff * diff;
         }
-        if( found )
-            ++n_equations;
     }
 
-    n_equations *= 3;
+    radius = parameters[n_parameters-1];
 
-    ALLOC( *n_nodes_involved, n_equations );
-    ALLOC( *constants, n_equations );
-    ALLOC( *node_weights, n_equations );
-    ALLOC( *node_list, n_equations );
-
-    initialize_progress_report( &progress, FALSE, polygons->n_points,
-                                "Creating coefficients" );
-    eq = 0;
-    for_less( node, 0, polygons->n_points )
+    for_less( p, 0, n_points )
     {
-        found = to_parameters[node] >= 0;
-        for_less( p, 0, n_neighbours[node] )
-        {
-            if( to_parameters[neighbours[node][p]] >= 0 )
-            {
-                found = TRUE;
-                break;
-            }
-        }
-
-        if( !found )
-            continue;
-
-        for_less( p, 0, n_neighbours[node] )
-            neigh_points[p] = polygons->points[neighbours[node][p]];
-
-        flatten_around_vertex( &polygons->points[node],
-                               n_neighbours[node], neigh_points,
-                               (BOOLEAN) interior_flags[node],
-                               flat[0], flat[1] );
-
-        for_less( p, 0, n_neighbours[node] )
-            flat[2][p] = 0.0;
-
-        ignoring = FALSE;
-        if( !get_prediction_weights_3d( 0.0, 0.0, 0.0,
-                                        n_neighbours[node],
-                                        flat[0], flat[1], flat[2],
-                                        weights[0], weights[1], weights[2] ) )
-        {
-            print_error( "Error in interpolation weights, ignoring..\n" );
-            ignoring = TRUE;
-        }
-
-        if( ignoring )
-        {
-            (*n_nodes_involved)[eq] = 0;
-            (*constants)[eq] = 0.0;
-            ++eq;
-            (*n_nodes_involved)[eq] = 0;
-            (*constants)[eq] = 0.0;
-            ++eq;
-            (*n_nodes_involved)[eq] = 0;
-            (*constants)[eq] = 0.0;
-            ++eq;
-            continue;
-        }
-
-        for_less( dim, 0, 3 )
-        {
-            n_nodes_in = 0;
-            if( to_parameters[node] >= 0 )
-                ++n_nodes_in;
-
-            for_less( p, 0, n_neighbours[node] )
-            {
-                if( to_parameters[neighbours[node][p]] >= 0 )
-                    ++n_nodes_in;
-            }
-
-            (*n_nodes_involved)[eq] = n_nodes_in;
-            ALLOC( (*node_list)[eq], (*n_nodes_involved)[eq] );
-            ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
-
-            n_nodes_in = 0;
-            if( to_parameters[node] >= 0 )
-            {
-                (*node_list)[eq][0] = IJ( to_parameters[node],dim,3);
-                (*node_weights)[eq][0] = 1.0;
-                ++n_nodes_in;
-                (*constants)[eq] = 0.0;
-            }
-            else
-                (*constants)[eq] = fixed_pos[dim][to_fixed_index[node]];
-
-            for_less( p, 0, n_neighbours[node] )
-            {
-                neigh = neighbours[node][p];
-                if( to_parameters[neigh] >= 0 )
-                {
-                    (*node_list)[eq][n_nodes_in] =
-                                         IJ(to_parameters[neigh],dim,3);
-                    (*node_weights)[eq][n_nodes_in] = -weights[dim][dim][p];
-                    ++n_nodes_in;
-                }
-                else
-                {
-                    (*constants)[eq] += -weights[dim][dim][p] *
-                                        fixed_pos[dim][to_fixed_index[neigh]];
-                }
-            }
-
-            ++eq;
-        }
-
-        update_progress_report( &progress, node + 1 );
+        dx = parameters[IJ(p,0,3)];
+        dy = parameters[IJ(p,1,3)];
+        dz = parameters[IJ(p,2,3)];
+        act_dist = dx * dx + dy * dy + dz * dz;
+        diff = radius * radius - act_dist;
+        fit += sphere_weight * diff * diff;
     }
 
-    terminate_progress_report( &progress );
+    return( fit );
+}
 
-    for_less( dim, 0, N_DIMENSIONS )
-    for_less( dim1, 0, N_DIMENSIONS )
-       FREE( weights[dim][dim1] );
+private  void  evaluate_fit_derivative(
+    int     n_parameters,
+    Real    parameters[],
+    Real    distances[],
+    int     n_neighbours[],
+    int     *neighbours[],
+    Real    sphere_weight,
+    Real    deriv[] )
+{
+    int    p, n_points, ind, n, neigh;
+    Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
+    Real   x1, y1, z1, x2, y2, z2;
 
-    return( n_equations );
+    for_less( p, 0, n_parameters )
+        deriv[p] = 0.0;
+
+    n_points = n_parameters / 3;
+
+    ind = 0;
+    for_less( p, 0, n_points )
+    {
+        for_less( n, 0, n_neighbours[p] )
+        {
+            neigh = neighbours[p][n];
+            if( neigh < p )
+                continue;
+
+            dist = distances[ind];
+            ++ind;
+
+            x1 = parameters[IJ(p,0,3)];
+            y1 = parameters[IJ(p,1,3)];
+            z1 = parameters[IJ(p,2,3)];
+            x2 = parameters[IJ(neigh,0,3)];
+            y2 = parameters[IJ(neigh,1,3)];
+            z2 = parameters[IJ(neigh,2,3)];
+            dx = x1 - x2;
+            dy = y1 - y2;
+            dz = z1 - z2;
+            act_dist = dx * dx + dy * dy + dz * dz;
+            factor = act_dist - dist;
+            deriv[IJ(p,0,3)] += 2.0 * (x1 - x2) * factor;
+            deriv[IJ(p,1,3)] += 2.0 * (y1 - y2) * factor;
+            deriv[IJ(p,2,3)] += 2.0 * (z1 - z2) * factor;
+            deriv[IJ(neigh,0,3)] += 2.0 * (x2 - x1) * factor;
+            deriv[IJ(neigh,1,3)] += 2.0 * (y2 - y1) * factor;
+            deriv[IJ(neigh,2,3)] += 2.0 * (z2 - z1) * factor;
+        }
+    }
+
+    radius = parameters[n_parameters-1];
+
+    for_less( p, 0, n_points )
+    {
+        dx = parameters[IJ(p,0,3)];
+        dy = parameters[IJ(p,1,3)];
+        dz = parameters[IJ(p,2,3)];
+        act_dist = dx * dx + dy * dy + dz * dz;
+        diff = act_dist - radius * radius;
+        deriv[IJ(p,0,3)] += sphere_weight * 4.0 * diff * dx;
+        deriv[IJ(p,1,3)] += sphere_weight * 4.0 * diff * dy;
+        deriv[IJ(p,2,3)] += sphere_weight * 4.0 * diff * dz;
+        deriv[n_parameters-1] += -sphere_weight * 4.0 * diff * radius;
+    }
+}
+
+private  void  evaluate_fit_along_line(
+    int     n_parameters,
+    Real    parameters[],
+    Real    delta[],
+    Real    distances[],
+    int     n_neighbours[],
+    int     *neighbours[],
+    Real    sphere_weight,
+    Real    coefs[] )
+{
+    int    p, n_points, ind, n, neigh;
+    Real   dx, dy, dz, dr, dist, radius;
+    Real   x, y, z;
+    Real   line_coefs[3];
+
+    for_less( p, 0, 5 )
+        coefs[p] = 0.0;
+
+    n_points = n_parameters / 3;
+
+    ind = 0;
+    for_less( p, 0, n_points )
+    {
+        for_less( n, 0, n_neighbours[p] )
+        {
+            neigh = neighbours[p][n];
+            if( neigh < p )
+                continue;
+
+            dist = distances[ind];
+            ++ind;
+
+            x = parameters[IJ(p,0,3)] - parameters[IJ(neigh,0,3)];
+            y = parameters[IJ(p,1,3)] - parameters[IJ(neigh,1,3)];
+            z = parameters[IJ(p,2,3)] - parameters[IJ(neigh,2,3)];
+            dx = delta[IJ(p,0,3)] - delta[IJ(neigh,0,3)];
+            dy = delta[IJ(p,1,3)] - delta[IJ(neigh,1,3)];
+            dz = delta[IJ(p,2,3)] - delta[IJ(neigh,2,3)];
+
+            line_coefs[0] = x * x + y * y + z * z - dist;
+            line_coefs[1] = 2.0 * (x * dx + y * dy + z * dz);
+            line_coefs[2] = dx * dx + dy * dy + dz * dz;
+
+            coefs[0] += line_coefs[0] * line_coefs[0];
+            coefs[1] += 2.0 * line_coefs[1] * line_coefs[0];
+            coefs[2] += 2.0 * line_coefs[2] * line_coefs[0] +
+                              line_coefs[1] * line_coefs[1];
+            coefs[3] += 2.0 * line_coefs[2] * line_coefs[1];
+            coefs[4] += line_coefs[2] * line_coefs[2];
+        }
+    }
+
+    radius = parameters[n_parameters-1];
+    dr = delta[n_parameters-1];
+
+    if( sphere_weight > 0.0 )
+        sphere_weight = sqrt( sphere_weight );
+
+    for_less( p, 0, n_points )
+    {
+        x = parameters[IJ(p,0,3)];
+        y = parameters[IJ(p,1,3)];
+        z = parameters[IJ(p,2,3)];
+        dx = delta[IJ(p,0,3)];
+        dy = delta[IJ(p,1,3)];
+        dz = delta[IJ(p,2,3)];
+        line_coefs[0] = x * x + y * y + z * z - radius * radius;
+        line_coefs[1] = 2.0 * (x * dx + y * dy + z * dz - radius * dr);
+        line_coefs[2] = dx * dx + dy * dy + dz * dz - dr * dr;
+        line_coefs[0] *= sphere_weight;
+        line_coefs[1] *= sphere_weight;
+        line_coefs[2] *= sphere_weight;
+
+        coefs[0] += line_coefs[0] * line_coefs[0];
+        coefs[1] += 2.0 * line_coefs[1] * line_coefs[0];
+        coefs[2] += 2.0 * line_coefs[2] * line_coefs[0] +
+                          line_coefs[1] * line_coefs[1];
+        coefs[3] += 2.0 * line_coefs[2] * line_coefs[1];
+        coefs[4] += line_coefs[2] * line_coefs[2];
+    }
+}
+
+private  void  minimize_along_line(
+    int     n_parameters,
+    Real    parameters[],
+    Real    delta[],
+    Real    distances[],
+    int     n_neighbours[],
+    int     *neighbours[],
+    Real    sphere_weight )
+{
+    int    p, s, n_solutions, best_index;
+    Real   coefs[5], deriv[4], *test, t, fit, best_fit, solutions[3];
+    Real   test_fit;
+
+    ALLOC( test, n_parameters );
+
+    evaluate_fit_along_line( n_parameters, parameters, delta, distances,
+                             n_neighbours, neighbours, sphere_weight,
+                             coefs );
+
+    for_less( p, 0, 4 )
+        deriv[p] = (Real) (p+1) * coefs[p+1];
+
+    n_solutions = solve_cubic( deriv[3], deriv[2], deriv[1], deriv[0],
+                               solutions );
+
+    if( n_solutions == 0 )
+        print( "N solutions = 0\n" );
+
+    best_fit = coefs[0];
+    best_index = -1;
+
+/*
+    test_fit = evaluate_fit( n_parameters, parameters, distances,
+                             n_neighbours, neighbours, sphere_weight );
+    print( "## %g %g\n", coefs[0], test_fit );
+*/
+
+    for_less( s, 0, n_solutions )
+    {
+        t = solutions[s];
+
+/*
+        for_less( p, 0, n_parameters )
+            test[p] = parameters[p] + t * delta[p];
+*/
+
+        fit = coefs[0] + t * (coefs[1] + t * (coefs[2] + t * (coefs[3] +
+              t * coefs[4])));
+
+/*
+        test_fit = evaluate_fit( n_parameters, test, distances,
+                                 n_neighbours, neighbours, sphere_weight );
+
+        print( "%g %g\n", fit, test_fit );
+*/
+
+        if( fit < best_fit )
+        {
+            best_fit = fit;
+            best_index = s;
+        }
+    }
+
+    if( best_index >= 0 )
+    {
+        t = solutions[best_index];
+
+        for_less( p, 0, n_parameters )
+            parameters[p] = parameters[p] + t * delta[p];
+    }
+
+    FREE( test );
 }
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
+    Real             sphere_weight,
     int              n_iters )
 {
-    int              i, point, *n_neighbours, **neighbours;
-    int              n_equations, *n_nodes_per_equation, **node_list;
-    int              n_fixed, *fixed_indices, size;
-    Real             *fixed_pos[3];
-    Real             *constants, **node_weights;
-    Point            *new_points;
-    Real             *parameters;
-    int              *to_parameters, *to_fixed_index, ind;
-    Smallest_int     *interior_flags;
+    int              p, n, point, *n_neighbours, **neighbours;
+    int              n_parameters, total_neighbours;
+    Real             gg, dgg, gam, current_time, last_update_time;
+    Real             *parameters, *g, *h, *xi, fit, *unit_dir;
+    Real             *distances, len, radius;
+    Point            centroid;
+    int              iter, ind, update_rate;
 
-    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
-                                     &neighbours, &interior_flags, NULL );
-
-    size = GET_OBJECT_SIZE( *polygons, 0 );
-
-    n_fixed = size;
-    ALLOC( fixed_indices, n_fixed );
-    ALLOC( fixed_pos[0], n_fixed );
-    ALLOC( fixed_pos[1], n_fixed );
-    ALLOC( fixed_pos[2], n_fixed );
-
-    for_less( i, 0, size )
-    {
-        fixed_indices[i] = polygons->indices[
-                            POINT_INDEX(polygons->end_indices,0,i)];
-        fixed_pos[0][i] = RPoint_x(polygons->points[fixed_indices[i]] );
-        fixed_pos[1][i] = RPoint_y(polygons->points[fixed_indices[i]] );
-        fixed_pos[2][i] = RPoint_z(polygons->points[fixed_indices[i]] );
-    }
-
-    ALLOC( to_parameters, polygons->n_points );
-    ALLOC( to_fixed_index, polygons->n_points );
-    ind = 0;
+    radius = 0.0;
+    get_points_centroid( polygons->n_points, init_points, &centroid );
     for_less( point, 0, polygons->n_points )
     {
-        for_less( i, 0, n_fixed )
+        radius += distance_between_points( &polygons->points[point],
+                                           &centroid );
+    }
+    radius /= (Real) polygons->n_points;
+
+    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
+                                     &neighbours, NULL, NULL );
+
+    total_neighbours = 0;
+    for_less( point, 0, polygons->n_points )
+        total_neighbours += n_neighbours[point];
+    total_neighbours /= 2;
+
+    ALLOC( distances, total_neighbours );
+    ind = 0;
+
+    for_less( point, 0, polygons->n_points )
+    {
+        for_less( n, 0, n_neighbours[point] )
         {
-            if( point == fixed_indices[i] )
-                break;
-        }
-        if( i < n_fixed )
-        {
-            to_fixed_index[point] = i;
-            to_parameters[point] = -1;
-        }
-        else
-        {
-            to_fixed_index[point] = -1;
-            to_parameters[point] = ind;
+            if( neighbours[point][n] < point )
+                continue;
+            distances[ind] = sq_distance_between_points(
+                                   &polygons->points[point],
+                                   &polygons->points[neighbours[point][n]] );
             ++ind;
         }
     }
 
-
-    n_equations = create_coefficients( polygons,
-                                       n_neighbours, neighbours, interior_flags,
-                                       n_fixed, fixed_indices, fixed_pos,
-                                       to_parameters, to_fixed_index,
-                                       &n_nodes_per_equation,
-                                       &node_list, &constants, &node_weights );
-    ALLOC( parameters, 3 * (polygons->n_points - n_fixed) );
-
-    if( init_points == NULL )
-        init_points = polygons->points;
+    n_parameters = 3 * polygons->n_points + 1;
+    ALLOC( parameters, n_parameters );
+    ALLOC( g, n_parameters );
+    ALLOC( h, n_parameters );
+    ALLOC( xi, n_parameters );
+    ALLOC( unit_dir, n_parameters );
 
     for_less( point, 0, polygons->n_points )
     {
-        if( to_parameters[point] >= 0 )
-        {
-            parameters[IJ(to_parameters[point],X,3)] =
-                           RPoint_x(init_points[point]);
-            parameters[IJ(to_parameters[point],Y,3)] =
-                           RPoint_y(init_points[point]);
-            parameters[IJ(to_parameters[point],Z,3)] =
-                           RPoint_z(init_points[point]);
-        }
+        parameters[IJ(point,0,3)] = RPoint_x(init_points[point] );
+        parameters[IJ(point,1,3)] = RPoint_y(init_points[point] );
+        parameters[IJ(point,2,3)] = RPoint_z(init_points[point] );
     }
 
-    (void) minimize_lsq( 3 * (polygons->n_points - n_fixed), n_equations,
-                         n_nodes_per_equation, node_list, constants,
-                         node_weights, n_iters, parameters );
+    parameters[n_parameters-1] = radius;
 
-    ALLOC( new_points, polygons->n_points );
+    sphere_weight *= (Real) total_neighbours / (Real) polygons->n_points;
 
-    for_less( point, 0, polygons->n_points )
+    fit = evaluate_fit( n_parameters, parameters, distances,
+                        n_neighbours, neighbours, sphere_weight );
+
+    print( "Initial  %g\n", fit );
+    (void) flush_file( stdout );
+
+    evaluate_fit_derivative( n_parameters, parameters, distances,
+                             n_neighbours, neighbours, sphere_weight, xi );
+
+    for_less( p, 0, n_parameters )
     {
-        if( to_parameters[point] >= 0 )
-        {
-            fill_Point( new_points[point],
-                        parameters[IJ(to_parameters[point],X,3)],
-                        parameters[IJ(to_parameters[point],Y,3)],
-                        parameters[IJ(to_parameters[point],Z,3)] );
-        }
-        else
-        {
-            fill_Point( new_points[point],
-                        fixed_pos[0][to_fixed_index[point]],
-                        fixed_pos[1][to_fixed_index[point]],
-                        fixed_pos[2][to_fixed_index[point]] );
-        }
+        g[p] = -xi[p];
+        h[p] = g[p];
+        xi[p] = g[p];
     }
 
-    FREE( parameters );
+    update_rate = 1;
+    last_update_time = current_cpu_seconds();
+
+    for_less( iter, 0, n_iters )
+    {
+        len = 0.0;
+        for_less( p, 0, n_parameters )
+            len += xi[p] * xi[p];
+
+        len = sqrt( len );
+        for_less( p, 0, n_parameters )
+            unit_dir[p] = xi[p] / len;
+
+        minimize_along_line( n_parameters, parameters, unit_dir, distances,
+                             n_neighbours, neighbours, sphere_weight );
+
+        if( ((iter+1) % update_rate) == 0 || iter == n_iters - 1 )
+        {
+            fit = evaluate_fit( n_parameters, parameters, distances,
+                                n_neighbours, neighbours, sphere_weight );
+
+            print( "%d: %g  \t Radius: %g\n", iter+1, fit,
+                   parameters[n_parameters-1] );
+            (void) flush_file( stdout );
+            current_time = current_cpu_seconds();
+            if( current_time - last_update_time < 1.0 )
+                update_rate *= 10;
+            last_update_time = current_time;
+        }
+
+        evaluate_fit_derivative( n_parameters, parameters, distances,
+                                 n_neighbours, neighbours, sphere_weight, xi );
+
+        gg = 0.0;
+        dgg = 0.0;
+        for_less( p, 0, n_parameters )
+        {
+            gg += g[p] * g[p];
+            dgg += (xi[p] + g[p]) * xi[p];
+/*
+            dgg += xi[p] * xi[p];
+*/
+        }
+
+        if( len == 0.0 )
+            break;
+
+        gam = dgg / gg;
+
+        for_less( p, 0, n_parameters )
+        {
+            g[p] = -xi[p];
+            h[p] = g[p] + gam * h[p];
+            xi[p] = h[p];
+        }
+    }
 
     delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
-                                     interior_flags, NULL );
+                                     NULL, NULL );
 
     for_less( point, 0, polygons->n_points )
-        polygons->points[point] = new_points[point];
+    {
+        fill_Point( polygons->points[point],
+                    parameters[IJ(point,0,3)],
+                    parameters[IJ(point,1,3)],
+                    parameters[IJ(point,2,3)] );
+    }
 
-    FREE( new_points );
-    FREE( to_parameters );
-    FREE( to_fixed_index );
-    FREE( fixed_pos[0] );
-    FREE( fixed_pos[1] );
+    FREE( distances );
+    FREE( parameters );
+    FREE( xi );
+    FREE( g );
+    FREE( h );
+    FREE( unit_dir );
 }
