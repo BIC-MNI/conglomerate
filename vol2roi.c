@@ -136,6 +136,9 @@ private  Status  write_contour(
 
     if( output_int( file, contour->n_pixels ) != OK ||
         output_newline( file ) != OK )
+    {
+        return( ERROR );
+    }
 
     for_less( i, 0, contour->n_pixels )
     {
@@ -200,7 +203,7 @@ private  BOOLEAN  is_boundary_pixel(
 {
     int    i;
 
-    for( i = 0;  i < N_DIRECTIONS;  i += 1 )
+    for( i = 0;  i < N_DIRECTIONS;  i += 2 )
     {
         if( get_value( x_size, y_size, slice,
                        x+Delta_x[i], y+Delta_y[i] ) != slice[x][y] )
@@ -232,7 +235,7 @@ private  void  extract_contour(
     xy.x = x_start;
     xy.y = y_start;
 
-    for_less( dir, 0, N_DIRECTIONS )
+    for( dir = 0;  dir < N_DIRECTIONS;  dir += 2 )
     {
         if( get_value( x_size, y_size, slice,
                  x_start+Delta_x[dir], y_start+Delta_y[dir] ) != value )
@@ -241,60 +244,30 @@ private  void  extract_contour(
         }
     }
 
-    out_x = x_start + Delta_x[dir];
-    out_y = y_start + Delta_y[dir];
-    dir = (dir + N_DIRECTIONS / 2) % N_DIRECTIONS;
-
     do
     {
+        ADD_ELEMENT_TO_ARRAY( contour->pixels, contour->n_pixels, xy,
+                              DEFAULT_CHUNK_SIZE );
+        done[xy.x][xy.y] = TRUE;
+
+        if( contour->n_pixels > 1000000 )
+            HANDLE_INTERNAL_ERROR( "daffd" );
+
         for_less( i, 0, N_DIRECTIONS )
         {
-            xy.x = out_x + Delta_x[dir];
-            xy.y = out_y + Delta_y[dir];
-
-            if( get_value( x_size, y_size, slice, xy.x, xy.y ) != value )
-                break;
-
-            ADD_ELEMENT_TO_ARRAY( contour->pixels, contour->n_pixels, xy,
-                                  DEFAULT_CHUNK_SIZE );
-            done[xy.x][xy.y] = TRUE;
-
-            if( contour->n_pixels > 10000 )
-                HANDLE_INTERNAL_ERROR( "dfaf" );
-
             dir = (dir + 1) % N_DIRECTIONS;
-        }
-
-        if( i == N_DIRECTIONS )
-            break;
-
-        dir = (dir + N_DIRECTIONS - 1) % N_DIRECTIONS;
-
-        xy.x = out_x + Delta_x[dir];
-        xy.y = out_y + Delta_y[dir];
-
-        dir = (dir + N_DIRECTIONS / 2) % N_DIRECTIONS;
-
-        for_less( i, 0, N_DIRECTIONS )
-        {
-            out_x = xy.x + Delta_x[dir];
-            out_y = xy.y + Delta_y[dir];
-
-            if( get_value( x_size, y_size, slice, out_x, out_y ) == value )
+            if( get_value( x_size, y_size, slice,
+                       xy.x + Delta_x[dir], xy.y + Delta_y[dir] ) == value )
                 break;
-
-            dir = (dir + N_DIRECTIONS - 1) % N_DIRECTIONS;
         }
 
         if( i == N_DIRECTIONS )
             break;
 
-        dir = (dir + 1) % N_DIRECTIONS;
+        xy.x = xy.x + Delta_x[dir];
+        xy.y = xy.y + Delta_y[dir];
 
-        out_x = xy.x + Delta_x[dir];
-        out_y = xy.y + Delta_y[dir];
-
-        dir = (dir + N_DIRECTIONS / 2 + 1) % N_DIRECTIONS;
+        dir = new_dirs[dir];
     }
     while( xy.x != x_start || xy.y != y_start );
 
