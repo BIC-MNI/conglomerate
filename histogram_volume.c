@@ -1,4 +1,5 @@
-#include  <module.h>
+#include  <internal_volume_io.h>
+#include  <bicpl.h>
 
 #define  DEFAULT_N_INTERVALS  255
 
@@ -29,8 +30,8 @@ int  main(
     Real                 value, width_ratio, min_voxel, max_voxel, window_width;
     Real                 min_value, max_value, scale, trans, filter_ratio;
     Real                 *counts;
-    char                 *input_volume_filename, *output_filename;
-    char                 *axis_name;
+    STRING               input_volume_filename, output_filename;
+    STRING               axis_name;
     lines_struct         *lines;
     object_struct        *object;
     histogram_struct     histogram;
@@ -96,7 +97,7 @@ int  main(
         {
             for_less( z, start[Z], end[Z] )
             {
-                GET_VALUE_3D( value, volume, x, y, z );
+                value = get_volume_real_value( volume, x, y, z, 0, 0 );
                 add_to_histogram( &histogram, value );
             }
         }
@@ -115,7 +116,7 @@ int  main(
     n = get_histogram_counts( &histogram, &counts, window_width,
                               &scale, &trans );
 
-    int_width = ROUND( x_size * width_ratio / 2.0 );
+    int_width = ROUND( (Real) x_size * width_ratio / 2.0 );
     if( int_width < 1 )
         int_width = 1;
 
