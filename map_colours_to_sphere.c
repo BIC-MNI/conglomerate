@@ -3,10 +3,19 @@
 
 private  void  map_colours_to_sphere_topology(
     Volume            volume,
+    int               continuity,
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
     Point             *origin,
     Point             *equator );
+
+private  void  evaluate_volume_by_voting(
+    Volume    volume,
+    Real      x,
+    Real      y,
+    Real      z,
+    Real      fill_value,
+    Real      values[] );
 
 int  main(
     int    argc,
@@ -14,7 +23,7 @@ int  main(
 {
     STRING               input_filename, output_filename, volume_filename;
     Volume               volume;
-    int                  n_objects, sizes[MAX_DIMENSIONS];
+    int                  n_objects, sizes[MAX_DIMENSIONS], continuity;
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
@@ -38,6 +47,7 @@ int  main(
         return( 1 );
     }
 
+    (void) get_int_argument( -2, &continuity );
     (void) get_real_argument( 1.0, &origin_x );
     (void) get_real_argument( 0.0, &origin_y );
     (void) get_real_argument( 0.0, &origin_z );
@@ -79,7 +89,8 @@ int  main(
     REALLOC( polygons->colours, polygons->n_points );
     polygons->colour_flag = PER_VERTEX_COLOURS;
 
-    map_colours_to_sphere_topology( volume, polygons, origin_specified,
+    map_colours_to_sphere_topology( volume, continuity,
+                                    polygons, origin_specified,
                                     &origin, &equator );
 
     (void) output_graphics_file( output_filename, format, n_objects,
@@ -133,6 +144,7 @@ private  void  convert_uv_to_volume_position(
 
 private  void  map_colours_to_sphere_topology(
     Volume            volume,
+    int               continuity,
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
     Point             *origin,
@@ -181,13 +193,132 @@ private  void  map_colours_to_sphere_topology(
 
         convert_uv_to_volume_position( sizes, u, v, voxel );
 
-        (void) evaluate_volume( volume, voxel, interpolating, 0, FALSE, 0.0,
-                                value, NULL, NULL );
+        if( continuity == -2 )
+        {
+            evaluate_volume_by_voting( volume,
+                                       voxel[X], voxel[Y], voxel[Z],
+                                       0.0, value );
+        }
+        else
+        {
+            (void) evaluate_volume( volume, voxel, interpolating, continuity,
+                                    FALSE, 0.0, value, NULL, NULL );
+        }
 
         r = (value[0] - min_value) / (max_value - min_value);
         g = (value[1] - min_value) / (max_value - min_value);
         b = (value[2] - min_value) / (max_value - min_value);
 
         polygons->colours[point_index] = make_Colour_0_1( r, g, b );
+    }
+}
+
+private  void  evaluate_volume_by_voting(
+    Volume    volume,
+    Real      x,
+    Real      y,
+    Real      z,
+    Real      fill_value,
+    Real      values[] )
+{
+    int      id[2][2][2], sizes[N_DIMENSIONS];
+    Real     corners[2][2][2][3], x_frac, y_frac, z_frac;
+    int      i, j, k, tx, ty, tz, dx, dy, dz;
+    int      clas, n_classes, coef_ind;
+    Real     coefs[8], best_value, interp[3], value;
+
+    get_volume_sizes( volume, sizes );
+
+    i = FLOOR( x );
+    j = FLOOR( y );
+    k = FLOOR( z );
+
+    for_less( dx, 0, 2 )
+    {
+        tx = i + dx;
+        for_less( dy, 0, 2 )
+        {
+            ty = j + dy;
+            for_less( dz, 0, 2 )
+            {
+                tz = k + dz;
+
+                id[dx][dy][dz] = -1;
+                if( tx < 0 || tx >= sizes[X] ||
+                    ty < 0 || ty >= sizes[Y] ||
+                    tz < 0 || tz >= sizes[Z] )
+                {
+                    corners[dx][dy][dz][0] = fill_value;
+                    corners[dx][dy][dz][1] = fill_value;
+                    corners[dx][dy][dz][2] = fill_value;
+                }
+                else
+                {
+                    corners[dx][dy][dz][0] = get_volume_real_value( volume,
+                                                 tx, ty, tz, 0, 0 );
+                    corners[dx][dy][dz][1] = get_volume_real_value( volume,
+                                                 tx, ty, tz, 1, 0 );
+                    corners[dx][dy][dz][2] = get_volume_real_value( volume,
+                                                 tx, ty, tz, 2, 0 );
+                }
+            }
+        }
+    }
+
+    n_classes = 0;
+    for_less( dx, 0, 2 )
+    for_less( dy, 0, 2 )
+    for_less( dz, 0, 2 )
+    {
+        if( id[dx][dy][dz] >= 0 )
+            continue;
+
+        for_less( tx, 0, 2 )
+        for_less( ty, 0, 2 )
+        for_less( tz, 0, 2 )
+        {
+            if( corners[dx][dy][dz][0] == corners[tx][ty][tz][0] &&
+                corners[dx][dy][dz][1] == corners[tx][ty][tz][1] &&
+                corners[dx][dy][dz][2] == corners[tx][ty][tz][2] )
+                id[tx][ty][tz] = n_classes;
+        }
+        ++n_classes;
+    }
+
+    x_frac = x - (Real) i;
+    y_frac = y - (Real) j;
+    z_frac = z - (Real) k;
+
+    best_value = 0.0;
+
+    for_less( clas, 0, n_classes )
+    {
+        coef_ind = 0;
+        for_less( dx, 0, 2 )
+        for_less( dy, 0, 2 )
+        for_less( dz, 0, 2 )
+        {
+            if( id[dx][dy][dz] == clas )
+            {
+                coefs[coef_ind] = 1.0;
+                interp[0] = corners[dx][dy][dz][0];
+                interp[1] = corners[dx][dy][dz][1];
+                interp[2] = corners[dx][dy][dz][2];
+            }
+            else
+                coefs[coef_ind] = 0.0;
+            ++coef_ind;
+        }
+
+        evaluate_trivariate_interpolating_spline( x_frac, y_frac, z_frac,
+                                                  2, coefs, 0, &value );
+
+        if( clas == 0 || value > best_value )
+        {
+            best_value = value;
+            values[0] = interp[0];
+            values[1] = interp[1];
+            values[2] = interp[2];
+        }
     }
 }
