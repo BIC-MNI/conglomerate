@@ -16,6 +16,7 @@ int  main(
     FILE             *file;
     STRING           filename, output_filename;
     int              i, n_objects, n_surfaces[2], group, n_points, s, p;
+    int              v, nu;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  polygons;
@@ -23,12 +24,13 @@ int  main(
     Point            *avg1_points, *avg2_points;
     Vector           offset;
     Real             **inv_s, tx, ty, tz, mahalanobis;
+    Real             conversion_to_f_statistic;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &output_filename ) )
     {
-        print( "Usage: %s  output.variance  file1 file2 + file3 file4 ..\n",
+        print( "Usage: %s  output.f_stat  file1 file2 + file3 file4 ..\n",
                argv[0] );
         return( 1 );
     }
@@ -113,6 +115,13 @@ int  main(
 
     ALLOC2D( inv_s, 3, 3 );
 
+    v = n_surfaces[0] + n_surfaces[1] - 2;
+    nu = v - N_DIMENSIONS + 1;
+    conversion_to_f_statistic = (Real) nu /
+                                ((Real) v * (Real) N_DIMENSIONS *
+                                 (1.0 / (Real) n_surfaces[0] +
+                                  1.0 / (Real) n_surfaces[1]));
+
     for_less( p, 0, polygons.n_points )
     {
         compute_inv_variance( n_surfaces, samples, p, &avg1_points[p],
@@ -135,7 +144,7 @@ int  main(
                       tz * (Real) Vector_z(offset);
 
 
-        (void) output_real( file, mahalanobis );
+        (void) output_real( file, mahalanobis * conversion_to_f_statistic );
         (void) output_newline( file );
     }
 
