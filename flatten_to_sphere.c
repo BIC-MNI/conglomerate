@@ -239,7 +239,7 @@ private  int   flatten_patches_to_sphere(
     return( n_neighbours[node] + n_nn );
 }
 
-private  int  create_coefficients(
+private  void  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              **neighbours,
@@ -248,21 +248,22 @@ private  int  create_coefficients(
     Real             *fixed_pos[3],
     int              to_parameters[],
     int              to_fixed_index[],
-    int              *n_nodes_involved[],
-    int              **node_list[],
-    Real             *constants[],
-    Real             **node_weights[] )
+    Real             *constant,
+    float            *linear_terms[],
+    float            *square_terms[],
+    int              *n_cross_terms[],
+    int              **cross_parms[],
+    float            **cross_terms[] )
 {
-    int              node, p, eq, dim, max_neighbours;
-    int              neigh, ind, dim1, n_neighs;
+    int              node, p, dim, max_neighbours;
+    int              neigh, ind, dim1, n_neighs, n_parameters;
     Real             x_sphere[100];
     Real             y_sphere[100];
     Real             z_sphere[100];
     int              neigh_indices[100];
     Real             *weights[3][3];
-    Real             radius, con;
-    int              nodes[100];
-    Real             eq_weights[100];
+    Real             radius, con, *node_weights;
+    int              *indices;
     BOOLEAN          found, ignoring;
     progress_struct  progress;
 #ifdef SPHERE
@@ -279,6 +280,10 @@ private  int  create_coefficients(
 
     print( "Radius: %g\n", radius );
 
+    n_parameters = 3 * (polygons->n_points - n_fixed);
+    ALLOC( node_weights, n_parameters );
+    ALLOC( indices, n_parameters );
+
     max_neighbours = 0;
     for_less( node, 0, polygons->n_points )
         max_neighbours = MAX( max_neighbours, n_neighbours[node] );
@@ -292,15 +297,13 @@ private  int  create_coefficients(
         ALLOC( weights[2][dim], max_neighbours );
     }
 
-    *n_nodes_involved = NULL;
-    *constants = NULL;
-    *node_weights = NULL;
-    *node_list = NULL;
-
-    eq = 0;
+    initialize_lsq_terms_float( n_parameters, constant, linear_terms,
+                                square_terms, n_cross_terms, cross_parms,
+                                cross_terms );
 
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Creating Coefficients" );
+
     for_less( node, 0, polygons->n_points )
     {
         found = to_parameters[node] >= 0;
@@ -366,8 +369,8 @@ private  int  create_coefficients(
 
             if( to_parameters[node] >= 0 )
             {
-                nodes[ind] = 3 * to_parameters[node] + dim;
-                eq_weights[ind] = 1.0;
+                indices[ind] = 3 * to_parameters[node] + dim;
+                node_weights[ind] = 1.0;
                 ++ind;
                 con = 0.0;
             }
@@ -385,8 +388,8 @@ private  int  create_coefficients(
                     {
                         if( weights[dim][dim1][p] != 0.0 )
                         {
-                            nodes[ind] = 3 * to_parameters[neigh] + dim1;
-                            eq_weights[ind] = -weights[dim][dim1][p];
+                            indices[ind] = 3 * to_parameters[neigh] + dim1;
+                            node_weights[ind] = -weights[dim][dim1][p];
                             ++ind;
                         }
                     }
@@ -401,43 +404,16 @@ private  int  create_coefficients(
                 }
             }
 
-            if( ind > 0 )
-            {
-                SET_ARRAY_SIZE( *n_nodes_involved, eq,eq+1,DEFAULT_CHUNK_SIZE );
-                SET_ARRAY_SIZE( *node_list, eq,eq+1,DEFAULT_CHUNK_SIZE );
-                SET_ARRAY_SIZE( *node_weights, eq,eq+1,DEFAULT_CHUNK_SIZE );
-                SET_ARRAY_SIZE( *constants, eq,eq+1,DEFAULT_CHUNK_SIZE );
-                (*n_nodes_involved)[eq] = ind;
-                (*constants)[eq] = con;
-                ALLOC( (*node_list)[eq], (*n_nodes_involved)[eq] );
-                ALLOC( (*node_weights)[eq], (*n_nodes_involved)[eq] );
-                for_less( ind, 0, (*n_nodes_involved)[eq] )
-                {
-                    (*node_list)[eq][ind] = nodes[ind];
-                    (*node_weights)[eq][ind] = eq_weights[ind];
-                }
-                ++eq;
-            }
+            add_to_lsq_terms_float( n_parameters, constant, *linear_terms,
+                                    *square_terms, *n_cross_terms,
+                                    *cross_parms, *cross_terms, ind,
+                                    indices, node_weights, con, 5 );
         }
 
         update_progress_report( &progress, node + 1 );
     }
 
     terminate_progress_report( &progress );
-
-#ifdef DEBUG
-#define DEBUG
-    {
-        for_less( ind, 0, eq )
-        {
-            print( "%d: %g : ", ind, (*constants)[ind] );
-            for_less( p, 0, (*n_nodes_involved)[ind] )
-                print( " %d:%g", (*node_list)[ind][p], (*node_weights)[ind][p] );
-            print( "\n" );
-        }
-    }
-
-#endif
 
     for_less( dim, 0, N_DIMENSIONS )
     {
@@ -446,7 +422,11 @@ private  int  create_coefficients(
         FREE( weights[2][dim] );
     }
 
-    return( eq );
+    FREE( node_weights );
+    FREE( indices );
+
+    realloc_lsq_terms_float( n_parameters, *n_cross_terms, *cross_parms,
+                             *cross_terms );
 }
 
 private  void   get_transform(
@@ -523,10 +503,12 @@ private  void  flatten_polygons(
     int              n_iters )
 {
     int              i, point, *n_neighbours, **neighbours;
-    int              n_equations, *n_nodes_per_equation, **node_list;
     int              n_fixed, *fixed_indices, size, dim;
+    int              n_parameters;
     Real             *fixed_pos[3], x, y, z;
-    Real             *constants, **node_weights;
+    Real             constant;
+    float            *linear_terms, *square_terms, **cross_terms;
+    int              *n_cross_terms, **cross_parms;
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
     Point            first_points[MAX_POINTS_PER_POLYGON];
@@ -586,17 +568,18 @@ private  void  flatten_polygons(
     }
 
 
-    n_equations = create_coefficients( polygons,
-                                       n_neighbours, neighbours,
-                                       n_fixed, fixed_indices, fixed_pos,
-                                       to_parameters, to_fixed_index,
-                                       &n_nodes_per_equation,
-                                       &node_list, &constants, &node_weights );
+    create_coefficients( polygons, n_neighbours, neighbours,
+                         n_fixed, fixed_indices, fixed_pos,
+                         to_parameters, to_fixed_index,
+                         &constant, &linear_terms, &square_terms,
+                         &n_cross_terms, &cross_parms,
+                         &cross_terms );
 
     delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
                                      NULL, NULL );
 
-    ALLOC( parameters, 3 * (polygons->n_points - n_fixed) );
+    n_parameters = 3 * (polygons->n_points - n_fixed);
+    ALLOC( parameters, n_parameters );
 
     for_less( point, 0, polygons->n_points )
     {
@@ -613,31 +596,24 @@ private  void  flatten_polygons(
         }
     }
 
-#ifdef DEBUG
-#define DEBUG
-#undef DEBUG
     {
-    int eq;
-    Real value;
-        for_less( eq, 0, n_equations )
-        {
-            value = constants[eq];
-            for_less( point, 0, n_nodes_per_equation[eq] )
-            {
-                value += node_weights[eq][point] *
-                         parameters[node_list[eq][point]];
-            }
-
-            if( value > 1e-6 )
-                print( "%d: %g\n", eq, value );
-        }
+    int   p, n;
+    print( "Constant: %g\n", constant );
+    for_less( p, 0, n_parameters )
+    {
+        print( "%3d: %g %g %g : ", p, linear_terms[p], square_terms[p] );
+        for_less( n, 0, n_cross_terms[p] )
+            print( " %g", cross_terms[p][n] );
+        print( "\n" );
     }
-#endif
+    }
 
+    (void) minimize_lsq_float( n_parameters, constant, linear_terms,
+                               square_terms, n_cross_terms, cross_parms,
+                               cross_terms, -1.0, n_iters, parameters );
 
-    (void) minimize_lsq( 3 * (polygons->n_points - n_fixed), n_equations,
-                         n_nodes_per_equation, node_list, constants,
-                         node_weights, -1.0, n_iters, parameters );
+    delete_lsq_terms_float( n_parameters, linear_terms, square_terms,
+                            n_cross_terms, cross_parms, cross_terms );
 
     for_less( point, 0, polygons->n_points )
     {
