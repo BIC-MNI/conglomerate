@@ -965,6 +965,56 @@ private  void  create_image_coefficients(
     }
 }
 
+private  int  compute_coef_size(
+    int        n_equations,
+    int        n_parms_involved[] )
+{
+    int    eq, size;
+
+    size = n_equations * (int) sizeof(int);
+
+    for_less( eq, 0, n_equations )
+        size += n_parms_involved[eq] *
+                       ((int) sizeof(ftype) + (int) sizeof(int));
+
+    return( size );
+}
+
+private  int  compute_full_size(
+    int        n_parameters,
+    int        n_equations,
+    int        n_parms_involved[],
+    int        *parms_involved[] )
+{
+    int              eq, size, p, parm;
+    int              list_size, *list;
+
+    ALLOC( list, n_parameters );
+
+    for_less( p, 0, n_parameters )
+        list[p] = 0;
+
+    for_less( eq, 0, n_equations )
+    {
+        for_less( p, 0, n_parms_involved[eq] )
+        {
+            parm = parms_involved[eq][p];
+            if( list[parm] < n_parms_involved[eq] )
+                list[parm] = n_parms_involved[eq];
+        }
+    }
+
+    size = 2 * n_parameters * (int) sizeof(ftype);
+    for_less( parm, 0, n_parameters )
+    {
+        list_size = list[parm] - 1;
+
+        size += (list_size-1) * (int) (sizeof(ftype) + sizeof(int));
+    }
+
+    return( size );
+}
+
 private  void   fit_polygons(
     int                n_points,
     int                n_neighbours[],
@@ -1213,6 +1263,23 @@ private  void   fit_polygons(
         create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &done_bits );
         create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &surface_bits );
     }
+
+#define DEBUG
+#ifdef DEBUG
+#undef DEBUG
+    {
+        int  size;
+
+        size = compute_coef_size( n_equations, n_parms_involved );
+
+        print( "Size: %d\n", size );
+
+        size = compute_full_size( 3 * n_moving_points, n_equations,
+                                  n_parms_involved, parm_list );
+
+        print( "Full size: %d\n", size );
+    }
+#endif
 
     iter = 0;
     while( iter < n_iters )
