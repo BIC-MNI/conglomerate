@@ -69,6 +69,47 @@ private  BOOLEAN  get_next_filename(
     return( found );
 }
 
+private  int   find_left_right_error(
+    char            filename[],
+    int             n_objects,
+    object_struct   *object_list[] )
+{
+    int            i, n_errors;
+    marker_struct  *marker;
+    BOOLEAN        left;
+
+    if( strstr( filename, "cing_l" ) != (char *) NULL )
+        left = TRUE;
+    else if( strstr( filename, "cing_r" ) != (char *) NULL )
+        left = FALSE;
+    else
+        return( 10000000 );
+
+    n_errors = 0;
+
+    for_less( i, 0, n_objects )
+    {
+        if( object_list[i]->object_type == MARKER )
+        {
+            marker = get_marker_ptr( object_list[i] );
+
+            if( left &&
+                (marker->structure_id >= 20 && marker->structure_id <= 29 ||
+                 marker->structure_id == 40 ||
+                 Point_x(marker->position) > 5.0) ||
+                !left &&
+                (marker->structure_id >= 10 && marker->structure_id <= 19 ||
+                 marker->structure_id == 30 ||
+                 Point_x(marker->position) < -5.0) )
+            {
+                ++n_errors;
+            }
+        }
+    }
+
+    return( n_errors );
+}
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -81,13 +122,14 @@ int  main(
     Real                 x_mean, y_mean, z_mean;
     Real                 min_value, max_value, mean, std_dev, median;
     Real                 y_min_range, y_max_range;
+    FILE                 *left_right_errors;
     char                 *format;
     STRING               *filenames;
     Volume               volume;
     volume_input_struct  volume_input;
     int                  n_files, n_objects;
     object_struct        **object_list;
-    int                  p, n_samples;
+    int                  p, n_samples, n_errors;
     int                  structure_id;
 
     initialize_argument_processing( argc, argv );
@@ -129,6 +171,9 @@ int  main(
 
     n_samples = 0;
 
+    status = open_file( "/tmp/left_right_errors", WRITE_FILE, ASCII_FORMAT,
+                        &left_right_errors );
+
     for_less( p, 0, n_files )
     {
 /*
@@ -138,6 +183,15 @@ int  main(
         status = input_objects_any_format( volume, filenames[p],
                                            GREEN, 1.0, BOX_MARKER,
                                            &n_objects, &object_list );
+
+        n_errors = find_left_right_error( filenames[p], n_objects, object_list);
+
+        if( n_errors > 0 )
+        {
+            (void) fprintf( left_right_errors,
+                            "%d left-right error in file: %s\n",
+                            n_errors, filenames[p] );
+        }
 
         if( status != OK )
             return( 1 );
@@ -173,6 +227,8 @@ int  main(
 
         delete_object_list( n_objects, object_list );
     }
+
+    status = close_file( left_right_errors );
 
     if( volume != (Volume) NULL )
         cancel_volume_input( volume, &volume_input );
