@@ -105,8 +105,13 @@ private  int  create_coefficients(
     int              neigh;
     Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             flat[2][MAX_POINTS_PER_POLYGON];
-    Real             consistency_weights[MAX_POINTS_PER_POLYGON];
+    Real             *weights[2][2], cons[2];
     BOOLEAN          found, ignoring;
+
+    ALLOC( weights[0][0], MAX_POINTS_PER_POLYGON );
+    ALLOC( weights[0][1], MAX_POINTS_PER_POLYGON );
+    ALLOC( weights[1][0], MAX_POINTS_PER_POLYGON );
+    ALLOC( weights[1][1], MAX_POINTS_PER_POLYGON );
 
     n_equations = 0;
     for_less( node, 0, polygons->n_points )
@@ -120,7 +125,7 @@ private  int  create_coefficients(
                 break;
             }
         }
-        if( found && n_neighbours[node] >= 3 )
+        if( found && n_neighbours[node] >= 2 )
             ++n_equations;
     }
 
@@ -144,7 +149,7 @@ private  int  create_coefficients(
             }
         }
 
-        if( !found || n_neighbours[node] < 3 )
+        if( !found || n_neighbours[node] < 2 )
             continue;
 
         for_less( p, 0, n_neighbours[node] )
@@ -156,13 +161,15 @@ private  int  create_coefficients(
                                flat[0], flat[1] );
 
         ignoring = FALSE;
-        if( !get_interpolation_weights_2d( 0.0, 0.0, n_neighbours[node],
-                                           flat[0], flat[1],
-                                           consistency_weights ) )
+        if( !get_prediction_weights_2d( 0.0, 0.0, n_neighbours[node],
+                                         flat[0], flat[1],
+                                         weights[0], &cons[0],
+                                         weights[1], &cons[1] ) )
         {
             print_error( "Error in interpolation weights, ignoring..\n" );
             ignoring = TRUE;
         }
+/*
         else
         {
             for_less( p, 0, n_neighbours[node] )
@@ -174,6 +181,7 @@ private  int  create_coefficients(
                 }
             }
         }
+*/
 
         if( ignoring )
         {
@@ -183,7 +191,6 @@ private  int  create_coefficients(
             (*n_nodes_involved)[eq] = 0;
             (*constants)[eq] = 0.0;
             ++eq;
-            print( "Found linear neighbours.\n" );
             continue;
         }
 
@@ -196,7 +203,7 @@ private  int  create_coefficients(
             for_less( p, 0, n_neighbours[node] )
             {
                 if( to_parameters[neighbours[node][p]] >= 0 )
-                    ++n_nodes_in;
+                    n_nodes_in += 2;
             }
 
             (*n_nodes_involved)[eq] = n_nodes_in;
@@ -208,26 +215,32 @@ private  int  create_coefficients(
             {
                 (*node_list)[eq][0] = 2 * to_parameters[node] + dim;
                 (*node_weights)[eq][0] = 1.0;
-                (*constants)[eq] = 0.0;
                 ++n_nodes_in;
+                (*constants)[eq] = 0.0;
             }
             else
                 (*constants)[eq] = fixed_pos[dim][to_fixed_index[node]];
+
+            (*constants)[eq] -= cons[dim];
 
             for_less( p, 0, n_neighbours[node] )
             {
                 neigh = neighbours[node][p];
                 if( to_parameters[neigh] >= 0 )
                 {
-                    (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh]
-                                                   + dim;
-                    (*node_weights)[eq][n_nodes_in] = -consistency_weights[p];
+                    (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh] + 0;
+                    (*node_weights)[eq][n_nodes_in] = -weights[dim][0][p];
+                    ++n_nodes_in;
+                    (*node_list)[eq][n_nodes_in] = 2 * to_parameters[neigh] + 1;
+                    (*node_weights)[eq][n_nodes_in] = -weights[dim][1][p];
                     ++n_nodes_in;
                 }
                 else
                 {
-                    (*constants)[eq] += -consistency_weights[p] *
-                                        fixed_pos[dim][to_fixed_index[neigh]];
+                    (*constants)[eq] += -weights[dim][0][p] *
+                                        fixed_pos[0][to_fixed_index[neigh]]
+                                        -weights[dim][1][p] *
+                                        fixed_pos[1][to_fixed_index[neigh]];
                 }
             }
 
@@ -236,6 +249,8 @@ private  int  create_coefficients(
     }
 
 #ifdef DEBUG
+#define DEBUG
+#undef DEBUG
     for_less( eq, 0, n_equations )
     {
         print( "%3d: %g : ", eq, (*constants)[eq] );
@@ -246,6 +261,11 @@ private  int  create_coefficients(
         print( "\n" );
     }
 #endif
+
+    FREE( weights[0][0] );
+    FREE( weights[0][1] );
+    FREE( weights[1][0] );
+    FREE( weights[1][1] );
 
     return( n_equations );
 }
