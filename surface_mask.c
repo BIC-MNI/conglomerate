@@ -15,6 +15,7 @@ int  main(
     Volume               volume, label_volume;
     int                  x, y, z, n_objects, label, voxel[MAX_DIMENSIONS];
     int                  sizes[MAX_DIMENSIONS];
+    int                  range_changed[2][N_DIMENSIONS];
     object_struct        **objects;
 
     initialize_argument_processing( argc, argv );
@@ -59,18 +60,18 @@ int  main(
     dilate_voxels_3d( volume, label_volume,
                       1.0, 1.0, 0.0, -1.0, 
                       0.0, 0.0, 0.0, -1.0,
-                      1.0, EIGHT_NEIGHBOURS );
+                      1.0, EIGHT_NEIGHBOURS, range_changed );
 
     dilate_voxels_3d( volume, label_volume,
                       0.0, 0.0, 0.0, -1.0,
                       1.0, 1.0, 0.0, -1.0, 
-                      0.0, EIGHT_NEIGHBOURS );
+                      0.0, EIGHT_NEIGHBOURS, range_changed );
 
     voxel[0] = 0;
     voxel[1] = 0;
     voxel[2] = 0;
     fill_connected_voxels( volume, label_volume, FOUR_NEIGHBOURS,
-                           voxel, 0, 0, 2, 0.0, -1.0 );
+                           voxel, 0, 0, 2, 0.0, -1.0, range_changed );
 
     print( "Masking off external voxels.\n" );
 
