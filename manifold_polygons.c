@@ -4,13 +4,14 @@
 private  void   manifold_polygons(
     polygons_struct    *polygons,
     int                start_poly,
+    int                max_polygons,
     polygons_struct    *out );
 
 private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  input.obj  output.obj \n\
+Usage: %s  input.obj  output.obj [x y z] [max_poly]\n\
 \n\
      Creates a 2d manifold from an arbitrary polyhedron.\n\n";
 
@@ -22,8 +23,11 @@ int  main(
     char   *argv[] )
 {
     STRING           input_filename, output_filename;
-    int              n_objects;
-    int              start_poly;
+    int              n_objects, max_polygons;
+    int              start_poly, poly;
+    Real             x, y, z, dist, closest_dist;
+    Point            start, point;
+    BOOLEAN          start_specified;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons, out;
@@ -37,7 +41,17 @@ int  main(
         return( 1 );
     }
 
-    (void) get_int_argument( 0, &start_poly );
+    if( get_real_argument( 0.0, &x ) &&
+        get_real_argument( 0.0, &y ) &&
+        get_real_argument( 0.0, &z ) )
+    {
+        start_specified = TRUE;
+        fill_Point( start, x, y, z );
+    }
+    else
+        start_specified = FALSE;
+
+    (void) get_int_argument( -1, &max_polygons );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects < 1 ||
@@ -51,7 +65,30 @@ int  main(
 
     check_polygons_neighbours_computed( polygons );
 
-    manifold_polygons( polygons, start_poly, &out );
+    if( start_specified )
+    {
+        start_poly = -1;
+        closest_dist = 0.0;
+        for_less( poly, 0, polygons->n_items )
+        {
+            dist = get_point_object_distance_sq( &start, object_list[0],
+                                                 poly, &point );
+
+            if( start_poly < 0 || dist < closest_dist )
+            {
+                start_poly = poly;
+                closest_dist = dist;
+            }
+        }
+    }
+    else
+    {
+        start_poly = 0;
+    }
+
+    manifold_polygons( polygons, start_poly, max_polygons, &out );
+
+    print( "Extracted %d polygons from %d\n", out.n_items, polygons->n_items );
 
     delete_polygons( polygons );
     *polygons = out;
@@ -65,11 +102,13 @@ int  main(
 private  void   manifold_polygons(
     polygons_struct    *polygons,
     int                start_poly,
+    int                max_polygons,
     polygons_struct    *out )
 {
     int                point, poly, size, neigh, neigh_size, v, edge, p;
     int                current, n_points_included, n_polys_included;
     int                ind, *new_point_ids, n;
+    int                n_done;
     BOOLEAN            add;
     Smallest_int       *point_included, *poly_included;
     QUEUE_STRUCT(int)  queue;
@@ -102,8 +141,10 @@ private  void   manifold_polygons(
     }
 
     INSERT_IN_QUEUE( queue, start_poly );
+    n_done = 1;
 
-    while( !IS_QUEUE_EMPTY(queue) )
+    while( !IS_QUEUE_EMPTY(queue) &&
+           (max_polygons <= 0 || n_done < max_polygons) )
     {
         REMOVE_FROM_QUEUE( queue, current );
 
@@ -157,7 +198,7 @@ private  void   manifold_polygons(
                     add = TRUE;
             }
 
-            if( add )
+            if( add && (max_polygons <= 0 || n_done < max_polygons) )
             {
                 poly_included[neigh] = TRUE;
                 for_less( p, 0, neigh_size )
@@ -167,6 +208,7 @@ private  void   manifold_polygons(
                 }
 
                 INSERT_IN_QUEUE( queue, neigh );
+                ++n_done;
             }
         }
     }
@@ -185,7 +227,7 @@ private  void   manifold_polygons(
     {
         if( poly_included[poly] )
             ++n_polys_included;
-        else
+        else if( max_polygons <= 0 )
         {
             int  n;
             size = GET_OBJECT_SIZE( *polygons, poly );
