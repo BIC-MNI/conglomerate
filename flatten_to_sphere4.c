@@ -555,9 +555,7 @@ private  void  minimize_along_line(
 {
     int    p, s, n_solutions, best_index;
     Real   coefs[5], deriv[4], *test, t, fit, best_fit, solutions[3];
-/*
-    Real   test_fit;
-*/
+    Real   orig_fit;
 
     ALLOC( test, n_parameters );
 
@@ -574,33 +572,18 @@ private  void  minimize_along_line(
     if( n_solutions == 0 )
         print( "N solutions = 0\n" );
 
-    best_fit = coefs[0];
+    orig_fit = evaluate_fit( n_parameters, parameters, distances,
+                             n_neighbours, neighbours, centroid_weight,
+                             centroid_weights, sphere_weight );
+    best_fit = orig_fit;
     best_index = -1;
-
-/*
-    test_fit = evaluate_fit( n_parameters, parameters, distances,
-                             n_neighbours, neighbours, sphere_weight );
-    print( "## %g %g\n", coefs[0], test_fit );
-*/
 
     for_less( s, 0, n_solutions )
     {
         t = solutions[s];
 
-/*
-        for_less( p, 0, n_parameters )
-            test[p] = parameters[p] + t * delta[p];
-*/
-
         fit = coefs[0] + t * (coefs[1] + t * (coefs[2] + t * (coefs[3] +
               t * coefs[4])));
-
-/*
-        test_fit = evaluate_fit( n_parameters, test, distances,
-                                 n_neighbours, neighbours, sphere_weight );
-
-        print( "%g %g\n", fit, test_fit );
-*/
 
         if( fit < best_fit )
         {
@@ -615,6 +598,19 @@ private  void  minimize_along_line(
 
         for_less( p, 0, n_parameters )
             parameters[p] = (dtype) ((Real) parameters[p] + t*(Real) delta[p]);
+
+        fit = evaluate_fit( n_parameters, parameters, distances,
+                            n_neighbours, neighbours, centroid_weight,
+                            centroid_weights, sphere_weight );
+
+        if( fit > orig_fit )
+        {
+/*
+            print( "Correcting %g > %g becomes %g\n", fit, best_fit, orig_fit );
+*/
+            for_less( p, 0, n_parameters )
+                parameters[p] = (dtype) ((Real) parameters[p] - t*(Real) delta[p]);
+        }
     }
 
     if( sphere_weight > 0.0 && parameters[n_parameters-1] < (dtype) 0.0 )
@@ -643,7 +639,7 @@ private  void  flatten_polygons(
     int              neigh;
     Vector           offset, normal, hor, vert;
 #endif
-    int              iter, ind, update_rate, shake_every;
+    int              iter, ind, update_rate, shake_every, n_same_size;
     Real             shake_ratio;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
     dtype            *centroid_weights;
@@ -807,6 +803,7 @@ private  void  flatten_polygons(
 
     update_rate = 1;
     last_update_time = current_cpu_seconds();
+    n_same_size = 0;
 
     for_less( iter, 0, n_iters )
     {
@@ -818,39 +815,80 @@ private  void  flatten_polygons(
         for_less( p, 0, n_parameters )
             unit_dir[p] = (dtype) ((Real) xi[p] / len);
 
+        if( getenv( "NO_MINIMIZE" ) == NULL )
         minimize_along_line( n_parameters, parameters, unit_dir, distances,
                              n_neighbours, neighbours,
                              centroid_weight, centroid_weights, sphere_weight );
 
         if( shake_every > 0 && (iter % shake_every) == 0 )
         {
-            Real  xc, yc, zc;
-            int   p_index, n_index;
+            Real  xc, yc, zc, test_fit;
+            int   p_index, n_index, n_loop;
 
-            for_less( point, 0, n_points )
+            fit = evaluate_fit( n_parameters, parameters, distances,
+                                n_neighbours, neighbours, centroid_weight,
+                                centroid_weights, sphere_weight );
+
+            n_loop = 0;
+            do
             {
-                xc = 0.0;
-                yc = 0.0;
-                zc = 0.0;
-                for_less( n, 0, n_neighbours[point] )
+                for_less( point, 0, n_points )
                 {
-                    n_index = 3 * neighbours[point][n];
-                    xc += (Real) parameters[n_index+0];
-                    yc += (Real) parameters[n_index+1];
-                    zc += (Real) parameters[n_index+2];
-                }
-                xc /= (Real) n_neighbours[point];
-                yc /= (Real) n_neighbours[point];
-                zc /= (Real) n_neighbours[point];
+                    xc = 0.0;
+                    yc = 0.0;
+                    zc = 0.0;
+                    for_less( n, 0, n_neighbours[point] )
+                    {
+                        n_index = 3 * neighbours[point][n];
+                        xc += (Real) parameters[n_index+0];
+                        yc += (Real) parameters[n_index+1];
+                        zc += (Real) parameters[n_index+2];
+                    }
+                    xc /= (Real) n_neighbours[point];
+                    yc /= (Real) n_neighbours[point];
+                    zc /= (Real) n_neighbours[point];
 
-                p_index = 3 * point;
-                parameters[p_index+0] += (dtype) (shake_ratio *
-                                     (xc - (Real) parameters[p_index+0]));
-                parameters[p_index+1] += (dtype) (shake_ratio *
-                                     (xc - (Real) parameters[p_index+1]));
-                parameters[p_index+2] += (dtype) (shake_ratio *
-                                     (xc - (Real) parameters[p_index+2]));
+                    p_index = 3 * point;
+                    xi[p_index+0] = (dtype) ((Real) parameters[p_index+0] *
+                           (1.0 - shake_ratio) + shake_ratio * xc);
+                    xi[p_index+1] = (dtype) ((Real) parameters[p_index+1] *
+                           (1.0 - shake_ratio) + shake_ratio * yc);
+                    xi[p_index+2] = (dtype) ((Real) parameters[p_index+2] *
+                           (1.0 - shake_ratio) + shake_ratio * zc);
+                }
+
+                test_fit = evaluate_fit( n_parameters, xi, distances,
+                                    n_neighbours, neighbours, centroid_weight,
+                                    centroid_weights, sphere_weight );
+
+                if( test_fit >= fit )
+                {
+                    if( shake_ratio > 1.0e-20 )
+                        shake_ratio /= 2.0;
+                    else
+                        break;
+                }
+                ++n_loop;
             }
+            while( test_fit >= fit );
+
+            if( test_fit <= fit )
+            {
+                for_less( p, 0, n_parameters )
+                    parameters[p] = xi[p];
+            }
+
+            if( n_loop == 1 )
+            {
+                ++n_same_size;
+                if( n_same_size == 5 )
+                {
+                    shake_ratio *= 2.0;
+                    n_same_size = 0;
+                }
+            }
+            else
+                n_same_size = 0;
         }
 
         if( ((iter+1) % update_rate) == 0 || iter == n_iters - 1 )
@@ -859,7 +897,7 @@ private  void  flatten_polygons(
                                 n_neighbours, neighbours, centroid_weight,
                                 centroid_weights, sphere_weight );
 
-            print( "%d: %g", iter+1, fit );
+            print( "%d: %g %g", iter+1, fit, shake_ratio );
             if( sphere_weight > 0.0 )
                 print( "\t Radius: %g", (Real) parameters[n_parameters-1] );
             print( "\n" );
