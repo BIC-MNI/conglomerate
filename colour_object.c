@@ -11,14 +11,13 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    FILE                 *file;
-    Real                 value, min_range, max_range;
+    Real                 value, *values, min_range, max_range;
     Status               status;
     STRING               src_filename, dest_filename, values_filename;
     STRING               under_colour_name, over_colour_name;
-    int                  i, p, n_objects, n_points;
+    int                  i, p, n_objects, n_points, n_values, value_index;
     Point                *points;
-    File_formats         format;
+    File_formats         format, values_format;
     object_struct        **object_list;
     Colour               *colours, under_colour, over_colour, prev_colour, col;
     Colour_coding_types  coding_type;
@@ -77,8 +76,16 @@ int  main(
                              &object_list ) != OK )
         return( 1 );
 
-    if( open_file( values_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+    if( filename_extension_matches( values_filename, MNC_ENDING ) )
+        values_format = BINARY_FORMAT;
+    else
+        values_format = ASCII_FORMAT;
+
+    if( input_texture_values( values_filename, values_format,
+                              &n_values, &values ) != OK )
         return( 1 );
+
+    value_index = 0;
 
     for_less( i, 0, n_objects )
     {
@@ -103,11 +110,14 @@ int  main(
 
         for_less( p, 0, n_points )
         {
-            if( input_real( file, &value ) != OK )
+            if( value_index >= n_values )
             {
-                print_error( "Could not read %d'th value from file.\n", p );
+                print_error( "Insufficient number of values in file.\n" );
                 return( 1 );
             }
+
+            value = values[value_index];
+            ++value_index;
 
             col = get_colour_code( &colour_coding, value );
 
@@ -138,8 +148,6 @@ int  main(
 
         print( "Value range: %g %g\n", min_range, max_range );
     }
-
-    close_file( file );
 
     status = output_graphics_file( dest_filename, format,
                                    n_objects, object_list );
