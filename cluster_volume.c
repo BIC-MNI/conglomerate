@@ -22,6 +22,7 @@ int  main(
 {
     Real             min_threshold, max_threshold;
     int              sizes[N_DIMENSIONS], v[MAX_DIMENSIONS], n_dims;
+    int              range_changed[2][N_DIMENSIONS];
     int              current_label, num_labels, n_neighbours;
     STRING           volume_filename, output_filename;
     Volume           volume, label_volume;
@@ -73,7 +74,8 @@ int  main(
         {
             if( fill_connected_voxels( volume, label_volume, connectivity,
                                        v, 0, 0, current_label,
-                                       min_threshold, max_threshold ) &&
+                                       min_threshold, max_threshold,
+                                       range_changed ) &&
                 current_label < num_labels-1 )
             {
                 ++current_label;
