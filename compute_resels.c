@@ -1,8 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  DEBUG
 #undef   DEBUG
+#define  DEBUG
 
 private  Real  compute_resels(
     polygons_struct   *average_polygons,
@@ -368,8 +368,11 @@ private  Real  compute_lambda(
             lambda += delta_v[s][dim] * delta_v[s][dim];
     }
 
+/*
     lambda *= (Real) (n - 2) / (Real) (n - 1) / (Real) N_DIMENSIONS /
-              (Real) n;
+              (Real) n;   why the division by n?
+*/
+    lambda *= (Real) (n - 2) / (Real) (n - 1) / (Real) N_DIMENSIONS;
 
     FREE2D( delta_u );
     FREE2D( delta_v );
