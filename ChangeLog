@@ -1,10 +1,11 @@
 2001-05-11  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Update: Add files in ~david/Source/Batch_processing that did not
-	have an associated RCS file.  Add subdirectories Conglomerate
-	and Csh.  The files "test.obj" and "tt.obj" were converted to ascii
+	have an associated RCS file.  Add subdirectories Conglomerate and
+	Csh.  The files "test.obj" and "tt.obj" were converted to ascii
 	format.  Other obvious junk was removed, mostly files full of
-	curvature numbers, and the like.
+	curvature numbers, and the like.  This is tagged with
+	David-2001-05-11.
 
 	* Update: Updated all the current files from the checked-out
 	versions in ~david/Source/Batch_processing.  This is tagged with
