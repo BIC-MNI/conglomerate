@@ -27,11 +27,11 @@ private  Real  evaluate_energy(
     Point   tags[],
     int     n_points,
     Point   curve[] );
-private  Real   distance_point_to_curve(
+private  Real   rms_error_of_point(
     Point   *point,
     int     n_points,
     Point   curve[] );
-private  Real  distance_point_to_segment(
+private  Real  rms_to_segment(
     Point    *point,
     Point    *p1,
     Point    *p2 );
@@ -193,7 +193,7 @@ private  int  create_curve_approximating_points(
 #define  NUM_TEMPERATURE_STEPS     50
 #define  MAX_TRIES_FACTOR          100
 #define  MAX_SUCCESSES_FACTOR      10
-#define  TAG_DIST_FACTOR           0.1
+#define  CURVE_LENGTH_FACTOR       10.0
 
 #define  STOP_CRITERIA             3
 
@@ -305,50 +305,23 @@ private  Boolean  should_step(
             get_random_0_to_1() < exp( -delta_energy / temperature ) );
 }
 
-private  Real  avg_distance_to_curve(
+private  Real  rms_error(
     int     n_tags,
     Point   tags[],
     int     n_points,
     Point   curve[] )
 {
     int     i;
-    Real    sum_distance;
+    Real    sum_rms;
 
-    sum_distance = 0.0;
+    sum_rms = 0.0;
 
     for_less( i, 0, n_tags )
     {
-        sum_distance += distance_point_to_curve( &tags[i], n_points, curve );
+        sum_rms += rms_error_of_point( &tags[i], n_points, curve );
     }
 
-    return( sum_distance / (Real) n_tags );
-}
-
-private  Real  avg_distance_to_tag(
-    int     n_tags,
-    Point   tags[],
-    int     n_points,
-    Point   curve[] )
-{
-    int     i, t;
-    Real    sum_distance, dist, min_distance;
-
-    sum_distance = 0.0;
-
-    for_less( i, 0, n_points )
-    {
-        min_distance = 0.0;
-        for_less( t, 0, n_tags )
-        {
-            dist = distance_between_points( &curve[i], &tags[t] );
-            if( t == 0 || dist < min_distance )
-                min_distance = dist;
-        }
-
-        sum_distance += min_distance;
-    }
-
-    return( sum_distance / (Real) n_points );
+    return( sum_rms );
 }
 
 private  Real  evaluate_energy(
@@ -359,9 +332,10 @@ private  Real  evaluate_energy(
 {
     Real   energy;
 
-    energy = avg_distance_to_curve( n_tags, tags, n_points, curve ) +
-             TAG_DIST_FACTOR *
-             avg_distance_to_tag( n_tags, tags, n_points, curve );
+    energy = rms_error( n_tags, tags, n_points, curve ) +
+             CURVE_LENGTH_FACTOR * curve_length( n_points, curve );
+
+    energy /= (Real) n_tags;
 
     return( energy );
 }
@@ -374,34 +348,34 @@ private  Real  evaluate_delta_energy(
 {
 }
 
-private  Real   distance_point_to_curve(
+private  Real   rms_error_of_point(
     Point   *point,
     int     n_points,
     Point   curve[] )
 {
     int   i;
-    Real  distance, min_distance;
+    Real  rms, min_rms;
 
-    min_distance = 0.0;
+    min_rms = 0.0;
 
     for_less( i, 0, n_points-1 )
     {
-        distance = distance_point_to_segment( point, &curve[i], &curve[i+1] );
+        rms = rms_to_segment( point, &curve[i], &curve[i+1] );
 
-        if( i == 0 || distance < min_distance )
-            min_distance = distance;
+        if( i == 0 || rms < min_rms )
+            min_rms = rms;
     }
 
-    return( min_distance );
+    return( min_rms );
 }
 
-private  Real  distance_point_to_segment(
+private  Real  rms_to_segment(
     Point    *point,
     Point    *p1,
     Point    *p2 )
 {
     Vector   v, v12, offset;
-    Real     mag_v12, dist, ratio;
+    Real     mag_v12, rms, ratio;
 
     SUB_POINTS( v, *point, *p1 );
     SUB_POINTS( v12, *p2, *p1 );
@@ -413,17 +387,20 @@ private  Real  distance_point_to_segment(
     ratio = DOT_VECTORS( v, v12 ) / mag_v12;
 
     if( ratio <= 0.0 )
-        dist = distance_between_points( point, p1 );
+        rms = DOT_VECTORS( v, v );
     else if( ratio >= 1.0 )
-        dist = distance_between_points( point, p2 );
+    {
+        SUB_POINTS( v, *point, *p2 );
+        rms = DOT_VECTORS( v, v );
+    }
     else
     {
         SCALE_VECTOR( offset, v12, ratio );
         SUB_VECTORS( offset, v, offset );
-        dist = MAGNITUDE( offset );
+        rms = DOT_VECTORS( offset, offset );
     }
 
-    return( dist );
+    return( rms );
 }
 
 private  Real  curve_length(
