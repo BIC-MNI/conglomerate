@@ -1,6 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#define ON_GRID_POINT
+
 private int  count_voxels(
     Volume       volume1,
     Volume       volume2,
@@ -96,6 +98,9 @@ int  main(
         for_less( dim, 0, N_DIMENSIONS )
         {
             voxel_limits[0][dim] = get_random_0_to_1() * sizes1[dim];
+#ifdef ON_GRID_POINT
+            voxel_limits[0][dim] = (int) voxel_limits[0][dim] + 0.5;
+#endif
             voxel_limits[1][dim] = voxel_limits[0][dim] + (Real) voxel_radius;
         }
 
