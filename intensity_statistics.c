@@ -5,7 +5,7 @@ private  void  usage(
     char   executable[] )
 {
     static  char  usage_str[] = "\n\
-Usage: %s  volume.mnc  input.tag|input.mnc|-  [dump_file]\n\
+Usage: %s  volume.mnc  input.tag|input.mnc|none  [dump_file]\n\
 \n\
      Computes the statistics for the volume intensity of the volume.  If\n\
      an input tag or label file is specified, then only those voxels in\n\
@@ -50,7 +50,7 @@ int  main(
 
     get_volume_separations( volume, separations );
 
-    labels_present = strcmp( label_filename, "-" ) != 0;
+    labels_present = strcmp( label_filename, "none ) != 0;
 
     if( labels_present )
     {
@@ -175,6 +175,8 @@ int  main(
             print( " %g", max_world[c] );
         print( "\n" );
     }
+    else
+        print( "No samples found.\n" );
 
     return( 0 );
 }
