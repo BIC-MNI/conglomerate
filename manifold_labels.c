@@ -82,7 +82,7 @@ int  main(
 
         n_changed = dilate( volume, out_volume, n_dirs, dx, dy, dz,
                             value );
-        total_added = n_changed;
+        total_added += n_changed;
         print( "Dilated %d: %d\n", value, n_changed );
         ++value;
     }
@@ -218,6 +218,49 @@ private  void    get_connected_components(
     }
 }
 
+private  BOOLEAN    creates_diagonal_touching(
+    BOOLEAN   inside[3][3][3] )
+{
+    int   dim, a1, a2, dir0, dir1, dir2;
+    int   v0, v1, v2, s0, s1, s2, e0, e1, e2, d0, d1, d2, count;
+    int   voxel[N_DIMENSIONS];
+
+    for( dir0 = -1;  dir0 <= 1;  dir0 += 2 )
+    for( dir1 = -1;  dir1 <= 1;  dir1 += 2 )
+    for( dir2 = -1;  dir2 <= 1;  dir2 += 2 )
+    {
+        voxel[0] = dir0 + 1;
+        voxel[1] = dir1 + 1;
+        voxel[2] = dir2 + 1;
+        if( inside[voxel[0]][voxel[1]][voxel[2]] )
+            continue;
+
+        s0 = voxel[0];
+        e0 = 1;
+        s1 = voxel[1];
+        e1 = 1;
+        s2 = voxel[2];
+        e2 = 1;
+        d0 = e0 - s0;
+        d1 = e1 - s1;
+        d2 = e2 - s2;
+
+        count = 0;
+        for( v0 = s0;  v0 != e0+d0;  v0 += d0 )
+        for( v1 = s1;  v1 != e1+d1;  v1 += d1 )
+        for( v2 = s2;  v2 != e2+d2;  v2 += d2 )
+        {
+            if( inside[v0][v1][v2] )
+                ++count;
+        }
+
+        if( count == 7 )
+            return( TRUE );
+    }
+
+    return( FALSE );
+}
+
 private  BOOLEAN  can_delete_voxel(
     Volume    volume,
     int       sizes[],
@@ -250,7 +293,6 @@ private  BOOLEAN  can_delete_voxel(
         }
     }
 
-/*
     if( inside[2][1][1] && inside[1][2][1] && !inside[2][2][1] ||
         inside[0][1][1] && inside[1][0][1] && !inside[0][0][1] ||
         inside[2][1][1] && inside[1][0][1] && !inside[2][0][1] ||
@@ -264,7 +306,9 @@ private  BOOLEAN  can_delete_voxel(
         inside[1][0][1] && inside[1][1][0] && !inside[1][0][0] ||
         inside[1][2][1] && inside[1][1][0] && !inside[1][2][0] )
         return( FALSE );
-*/
+
+    if( creates_diagonal_touching( inside ) )
+        return( FALSE );
 
     get_connected_components( inside, components );
 
@@ -399,6 +443,7 @@ private  int  erode(
 
             this_time = current_realtime_seconds();
             diff_time = this_time - prev_time;
+            prev_time = this_time;
             if( diff_time < 1.0 )
                 increment *= 10;
             else if( diff_time > 20.0 && increment > 1 )
