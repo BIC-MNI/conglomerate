@@ -392,7 +392,7 @@ private  int  convert_manifold_to_sheet(
     int               p, n_points, poly, new_n_points, *new_ids, neigh_index;
     float             **distances;
     Real              x, y, total_length, current_length, north_length;
-    Real              south_length, limit, width;
+    Real              south_length, width, scale, z;
     int               total_neighbours;
     int               *path, path_size;
     int               size, vertex, p1;
@@ -507,13 +507,9 @@ private  int  convert_manifold_to_sheet(
         total_length += distance_between_points( &polygons->points[path[p]],
                                                  &polygons->points[path[p+1]] );
 
-    if( getenv("WIDTH") != NULL &&
-        sscanf( getenv("WIDTH"), "%lf", &width) == 1 )
-    {
-        limit = 0.5 - width / 2.0;
-    }
-    else
-        limit = -0.5;
+    if( getenv("SCALE") == NULL ||
+        sscanf( getenv("SCALE"), "%lf", &scale ) != 1 )
+        scale = 1.0;
 
     current_length = 0.0;
     for_less( p, 1, path_size-1 )
@@ -521,10 +517,9 @@ private  int  convert_manifold_to_sheet(
         current_length += distance_between_points( &polygons->points[path[p-1]],
                                                    &polygons->points[path[p]] );
         y = 1.0 - current_length / total_length;
-        if( y >= 0.5 )
-            x = INTERPOLATE( (y - 0.5) / 0.5, limit, 0.5 );
-        else
-            x = INTERPOLATE( y / 0.5, 0.5, limit );
+        z = cos( y * PI );
+        width = scale * sqrt( 1.0 - z * z );
+        x = 0.5 - width / 2.0;
 
         fill_Point( (*new_flat_points)[path[p]], x, y, 0.0 );
         fill_Point( (*new_flat_points)[new_ids[path[p]]], 1.0 - x, y, 0.0 );
