@@ -23,8 +23,10 @@ private  void  create_average_polygons(
     FILE                  *variance_file,
     polygons_struct       *polygons );
 
+#ifdef PRINT_TRANSFORMS
 private  void  print_transform(
     Transform   *trans );
+#endif
 
 int  main(
     int    argc,
@@ -64,6 +66,7 @@ int  main(
         variance_filename = NULL;
 
     n_surfaces = 0;
+    points_list = NULL;
 
     out_object = create_object( POLYGONS );
     average_polygons = get_polygons_ptr(out_object);
@@ -160,6 +163,7 @@ int  main(
 
 #ifdef SIMPLE_TRANSFORMATION
 
+#ifndef  USE_IDENTITY_TRANSFORMS
 private  void  compute_point_to_point_transform(
     int        n_points,
     Point      src_points[],
@@ -174,9 +178,9 @@ private  void  compute_point_to_point_transform(
 
     for_less( p, 0, n_points )
     {
-        coords[p][X] = Point_x(src_points[p]);
-        coords[p][Y] = Point_y(src_points[p]);
-        coords[p][Z] = Point_z(src_points[p]);
+        coords[p][X] = (Real) Point_x(src_points[p]);
+        coords[p][Y] = (Real) Point_y(src_points[p]);
+        coords[p][Z] = (Real) Point_z(src_points[p]);
     }
 
     make_identity_transform( transform );
@@ -184,7 +188,7 @@ private  void  compute_point_to_point_transform(
     for_less( dim, 0, N_DIMENSIONS )
     {
         for_less( p, 0, n_points )
-            target[p] = Point_coord(dest_points[p],dim);
+            target[p] = (Real) Point_coord(dest_points[p],dim);
 
         least_squares( n_points, N_DIMENSIONS, coords, target, coefs );
 
@@ -197,6 +201,7 @@ private  void  compute_point_to_point_transform(
     FREE( target );
     FREE2D( coords );
 }
+#endif
 
 private  void  compute_transforms(
     int        n_surfaces,
@@ -315,13 +320,13 @@ private  Real  get_rms_points(
 
     for_less( i, 0, 3 )
     for_less( j, 0, 3 )
-        variance[i][j] = 0;
+        variance[i][j] = 0.0;
 
     for_less( s, 0, n_surfaces )
     {
-        dx = Point_x(samples[s]) - Point_x(*centroid);
-        dy = Point_y(samples[s]) - Point_y(*centroid);
-        dz = Point_z(samples[s]) - Point_z(*centroid);
+        dx = (Real) Point_x(samples[s]) - (Real) Point_x(*centroid);
+        dy = (Real) Point_y(samples[s]) - (Real) Point_y(*centroid);
+        dz = (Real) Point_z(samples[s]) - (Real) Point_z(*centroid);
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -380,9 +385,9 @@ private  void  create_average_polygons(
         for_less( s, 0, n_surfaces )
         {
             transform_point( &transforms[s],
-                             Point_x(points[s][p]),
-                             Point_y(points[s][p]),
-                             Point_z(points[s][p]), &x, &y, &z );
+                             (Real) Point_x(points[s][p]),
+                             (Real) Point_y(points[s][p]),
+                             (Real) Point_z(points[s][p]), &x, &y, &z );
 
             fill_Point( samples[s], x, y, z );
         }
@@ -410,6 +415,7 @@ private  void  create_average_polygons(
     FREE( samples );
 }
 
+#ifdef PRINT_TRANSFORMS
 private  void  print_transform(
     Transform   *trans )
 {
@@ -424,3 +430,4 @@ private  void  print_transform(
 
     print( "\n" );
 }
+#endif
