@@ -27,6 +27,7 @@ int  main( argc, argv )
     char              *input_filename, *output_filename;
     char              *model_filename, *normal_direction, *original_filename;
     Real              min_isovalue, max_isovalue, gradient_threshold;
+    Real              model_weight, min_curvature_offset, max_curvature_offset;
     Real              angle, tolerance, max_distance;
     int               nx, ny, nz;
     deform_struct     deform;
@@ -36,7 +37,7 @@ int  main( argc, argv )
     object_struct     **object_list;
     Volume            volume, tmp;
     polygons_struct   *polygons;
-    static String     dim_names[] = { MIxspace, MIyspace, MIzspace };
+    static char       *dim_names[] = { MIxspace, MIyspace, MIzspace };
 
     initialize_argument_processing( argc, argv );
 
@@ -49,12 +50,12 @@ int  main( argc, argv )
         !get_int_argument( 0, &nz ) ||
         !get_string_argument( "", &input_filename ) ||
         !get_string_argument( "", &output_filename ) ||
-        !get_real_argument( 0.0, &deform.model_weight ) ||
+        !get_real_argument( 0.0, &model_weight ) ||
         !get_string_argument( "", &model_filename ) ||
         !get_string_argument( "", &original_filename ) ||
         !get_real_argument( 0.0, &max_distance ) ||
-        !get_real_argument( 0.0, &deform.deformation_model.min_curvature_offset ) ||
-        !get_real_argument( 0.0, &deform.deformation_model.max_curvature_offset ) ||
+        !get_real_argument( 0.0, &min_curvature_offset ) ||
+        !get_real_argument( 0.0, &max_curvature_offset ) ||
         !get_real_argument( 0.0, &deform.fractional_step ) ||
         !get_real_argument( 0.0, &deform.max_step ) ||
         !get_real_argument( 0.0, &deform.max_search_distance ) ||
@@ -77,9 +78,14 @@ int  main( argc, argv )
                              gradient_threshold, angle, normal_direction[0],
                              tolerance );
 
-    deform.deform_data.type = VOLUME_DATA;
+    if( add_deformation_model( &deform.deformation_model,
+                           -1, model_weight, model_filename,
+                           min_curvature_offset, max_curvature_offset ) != OK )
+    {
+        return( 1 );
+    }
 
-    deform.deformation_model.position_constrained = FALSE;
+    deform.deform_data.type = VOLUME_DATA;
 
     status = input_volume( volume_filename, dim_names, FALSE, &volume );
 
@@ -120,35 +126,14 @@ int  main( argc, argv )
     }
 
     if( status == OK )
-    {
         polygons = get_polygons_ptr( object_list[0] );
-
-        if( strcmp( model_filename, "none" ) == 0 )
-        {
-            deform.deformation_model.model_type = POINT_SPHERE_MODEL;
-        }
-        else if( strcmp( model_filename, "avg" ) == 0 )
-        {
-            deform.deformation_model.model_type = AVERAGE_MODEL;
-        }
-        else if( strcmp( model_filename, "parametric" ) == 0 )
-        {
-            deform.deformation_model.model_type = PARAMETRIC_MODEL;
-        }
-        else
-        {
-            status = input_deformation_model( object_list[0],
-                                              model_filename,
-                                              &deform.deformation_model );
-        }
-    }
 
     if( status == OK && strcmp( original_filename, "none" ) != 0 )
     {
         status = input_original_positions( &deform.deformation_model,
                                            original_filename,
+                                           max_distance,
                                            polygons->n_points );
-        deform.deformation_model.max_position_offset = max_distance;
     }
 
     if( status == OK )
