@@ -26,10 +26,10 @@ private  void  extract_surface(
     Real              valid_high,
     int               x_size,
     int               y_size,
-    float             ***slices,
+    Real              ***slices,
     Real              min_label,
     Real              max_label,
-    float             ***label_slices,
+    Real              ***label_slices,
     int               slice_index,
     BOOLEAN           right_handed,
     int               spatial_axes[],
@@ -72,8 +72,8 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &input_volume_filename ) ||
-        !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( NULL, &input_volume_filename ) ||
+        !get_string_argument( NULL, &output_filename ) )
     {
         usage( argv[0] );
         return( 1 );
@@ -93,7 +93,7 @@ int  main(
     (void) get_real_argument( 0.0, &valid_low );
     (void) get_real_argument( -1.0, &valid_high );
 
-    if( get_string_argument( "", &label_filename ) )
+    if( get_string_argument( NULL, &label_filename ) )
     {
         if( !get_real_argument( 0.0, &min_label ) ||
             !get_real_argument( 0.0, &max_label ) )
@@ -187,9 +187,9 @@ int  main(
 private  void  input_slice(
     Minc_file         minc_file,
     Volume            volume,
-    float             **slice )
+    Real              **slice )
 {
-    int    x, y, sizes[MAX_DIMENSIONS], x_size, y_size;
+    int    sizes[MAX_DIMENSIONS];
     Real   amount_done;
 
     while( input_more_minc_file( minc_file, &amount_done ) )
@@ -198,16 +198,9 @@ private  void  input_slice(
     (void) advance_input_volume( minc_file );
 
     get_volume_sizes( volume, sizes );
-    x_size = sizes[X];
-    y_size = sizes[Y];
 
-    for_less( x, 0, x_size )
-    {
-        for_less( y, 0, y_size )
-        {
-            GET_VALUE_2D( slice[x][y], volume, x, y );
-        }
-    }
+    get_volume_value_hyperslab_2d( volume, 0, 0, sizes[0], sizes[1],
+                                   &slice[0][0] );
 }
 
 private  void  clear_points(
@@ -276,8 +269,8 @@ private  void  extract_isosurface(
 {
     int             n_slices, sizes[MAX_DIMENSIONS], x_size, y_size, slice;
     int             ***point_ids[2], ***tmp_point_ids;
-    float           **slices[2], **tmp_slices;
-    float           **label_slices[2];
+    Real            **slices[2], **tmp_slices;
+    Real            **label_slices[2];
     progress_struct progress;
     Surfprop        spr;
     Point           point000, point100, point010, point001;
@@ -326,11 +319,11 @@ private  void  extract_isosurface(
     clear_points( x_size, y_size, point_ids[0] );
     clear_points( x_size, y_size, point_ids[1] );
 
-    Surfprop_a(spr) = 0.3;
-    Surfprop_d(spr) = 0.6;
-    Surfprop_s(spr) = 0.6;
-    Surfprop_se(spr) = 30.0;
-    Surfprop_t(spr) = 1.0;
+    Surfprop_a(spr) = 0.3f;
+    Surfprop_d(spr) = 0.6f;
+    Surfprop_s(spr) = 0.6f;
+    Surfprop_se(spr) = 30.0f;
+    Surfprop_t(spr) = 1.0f;
     initialize_polygons( polygons, WHITE, &spr );
 
     initialize_progress_report( &progress, FALSE, n_slices-1,
@@ -392,7 +385,7 @@ private  int   get_point_index(
     int                 y,
     int                 slice_index,
     voxel_point_type    *point,
-    float               **slices[],
+    Real                **slices[],
     int                 spatial_axes[],
     General_transform   *voxel_to_world_transform,
     BOOLEAN             binary_flag,
@@ -415,11 +408,13 @@ private  int   get_point_index(
     if( point_index < 0 )
     {
         value1 = slices[voxel[Z]][voxel[X]][voxel[Y]];
-        fill_Point( v1, voxel[X], voxel[Y], voxel[Z] + (Real) slice_index );
+        fill_Point( v1, voxel[X], voxel[Y],
+                    (Real) voxel[Z] + (Real) slice_index );
 
         ++voxel[edge];
         value2 = slices[voxel[Z]][voxel[X]][voxel[Y]];
-        fill_Point( v2, voxel[X], voxel[Y], voxel[Z] + (Real) slice_index );
+        fill_Point( v2, voxel[X], voxel[Y],
+                    (Real) voxel[Z] + (Real) slice_index );
 
         --voxel[edge];
 
@@ -427,7 +422,7 @@ private  int   get_point_index(
                                             binary_flag,
                                             min_threshold, max_threshold, &v );
 
-        get_world_point( Point_z(v), Point_x(v), Point_y(v),
+        get_world_point( RPoint_z(v), RPoint_x(v), RPoint_y(v),
                          spatial_axes, voxel_to_world_transform, &world_point );
 
         point_index = polygons->n_points;
@@ -448,10 +443,10 @@ private  void  extract_surface(
     Real              valid_high,
     int               x_size,
     int               y_size,
-    float             ***slices,
+    Real              ***slices,
     Real              min_label,
     Real              max_label,
-    float             ***label_slices,
+    Real              ***label_slices,
     int               slice_index,
     BOOLEAN           right_handed,
     int               spatial_axes[],
@@ -486,7 +481,7 @@ private  void  extract_surface(
                 if( min_label <= max_label &&
                     (label_slices[tz][x+tx][y+ty] < min_label ||
                      label_slices[tz][x+tx][y+ty] > max_label) )
-                    valid = FALSE;
+                    corners[tx][ty][tz] = 0.0;
             }
 
             if( !valid )

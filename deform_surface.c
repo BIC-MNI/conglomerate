@@ -20,12 +20,11 @@ private  void  usage(
     print_error( "   max_iterations  movement_threshold stop_threshold\n" );
 }
 
-int  main( argc, argv )
-    int    argc;
-    char   *argv[];
+int  main(
+    int    argc,
+    char   *argv[] )
 {
     Status            status;
-    Real              start_time, end_time;
     STRING            volume_filename, activity_filename;
     STRING            input_filename, output_filename;
     STRING            model_filename, normal_direction, original_filename;
@@ -84,7 +83,7 @@ int  main( argc, argv )
     if( !get_real_argument( 0.0, &deform.fractional_step ) ||
         !get_real_argument( 0.0, &deform.max_step ) ||
         !get_real_argument( 0.0, &deform.max_search_distance ) ||
-        !get_int_argument( 0.0, &deform.degrees_continuity ) ||
+        !get_int_argument( 0, &deform.degrees_continuity ) ||
         !get_real_argument( 0.0, &min_isovalue ) ||
         !get_real_argument( 0.0, &max_isovalue ) ||
         !get_string_argument( "", &normal_direction ) ||
@@ -116,9 +115,9 @@ int  main( argc, argv )
     {
         get_volume_separations( volume, separations );
 
-        x_filter_width /= ABS( separations[X] );
-        y_filter_width /= ABS( separations[Y] );
-        z_filter_width /= ABS( separations[Z] );
+        x_filter_width /= FABS( separations[X] );
+        y_filter_width /= FABS( separations[Y] );
+        z_filter_width /= FABS( separations[Z] );
 
         tmp = create_box_filtered_volume( volume, NC_BYTE, FALSE, 0.0, 0.0,
                                           x_filter_width,
@@ -163,24 +162,14 @@ int  main( argc, argv )
     }
 
     if( status == OK )
-    {
-        start_time = current_cpu_seconds();
-
         deform_polygons( polygons, &deform );
-    }
 
     if( status == OK )
         compute_polygon_normals( polygons );
 
     if( status == OK )
-        end_time = current_cpu_seconds();
-
-    if( status == OK )
         status = output_graphics_file( output_filename, BINARY_FORMAT,
                                        n_objects, object_list );
-/*
-    print_time( "Total cpu time: %g %s\n", end_time - start_time );
-*/
 
     return( status != OK );
 }
