@@ -28,6 +28,8 @@ typedef  Real   ftype;
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
+    int              n_fixed,
+    int              fixed_indices[],
     int              n_iters );
 
 int  main(
@@ -35,19 +37,22 @@ int  main(
     char   *argv[] )
 {
     STRING               src_filename, dest_filename, initial_filename;
+    STRING               fixed_filename;
     int                  n_objects, n_i_objects, n_iters;
+    int                  n_fixed, *fixed_indices, ind;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons;
     Point                *init_points;
+    FILE                 *file;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &src_filename ) ||
         !get_string_argument( NULL, &dest_filename ) )
     {
-        print_error( "Usage: %s  input.obj output.obj [n_iters]\n",
-                     argv[0] );
+        print_error( "Usage: %s  input.obj output.obj [n_iters]\n", argv[0] );
+        print_error( "          [initfile] [fixedfile]\n" );
         return( 1 );
     }
 
@@ -70,6 +75,22 @@ int  main(
         init_points = NULL;
     }
 
+    n_fixed = 0;
+    fixed_indices = NULL;
+    if( get_string_argument( NULL, &fixed_filename ) )
+    {
+        if( open_file( fixed_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+            return( 1 );
+
+        while( input_int( file, &ind ) == OK )
+        {
+            ADD_ELEMENT_TO_ARRAY( fixed_indices, n_fixed, ind,
+                                  DEFAULT_CHUNK_SIZE );
+        }
+
+        (void) close_file( file );
+    }
+
     if( input_graphics_file( src_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
@@ -77,7 +98,8 @@ int  main(
 
     polygons = get_polygons_ptr( object_list[0] );
 
-    flatten_polygons( polygons, init_points, n_iters );
+    flatten_polygons( polygons, init_points, n_fixed, fixed_indices,
+                      n_iters );
 
     (void) output_graphics_file( dest_filename, format, 1, object_list );
 
@@ -223,55 +245,75 @@ private  void  create_coefficients(
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
+    int              n_fixed,
+    int              fixed_indices[],
     int              n_iters )
 {
-    int              i, p, point, *n_neighbours, **neighbours, n, neigh, which;
-    int              n_fixed, *fixed_indices;
-    Real             *fixed_pos[2], scale, dist1, dist2;
-    Real             sum_xx, sum_xy;
+    int              i, p, point, *n_neighbours, **neighbours, which;
+    Real             *fixed_pos[2];
     Real             constant;
     int              *n_cross_terms, **cross_parms, w_offset;
     ftype            *linear_terms, *square_terms, **cross_terms;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
+    Point            neigh_points[MAX_POINTS_PER_POLYGON];
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
     Vector           x_dir, y_dir, offset;
     Smallest_int     *interior_flags;
+    BOOLEAN          alloced_fixed;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, &interior_flags, NULL );
 
-    if( getenv( "FLATTEN_OFFSET" ) == NULL ||
-        sscanf( getenv("FLATTEN_OFFSET"), "%d", &w_offset ) != 1 )
-        w_offset = 0;
-
-    for_less( i, 0, polygons->n_points )
+    if( n_fixed <= 0 || init_points == NULL )
     {
-        which = (i + w_offset) % polygons->n_points;
-        if( n_neighbours[which] > 1 )
-            break;
+        if( getenv( "FLATTEN_OFFSET" ) == NULL ||
+            sscanf( getenv("FLATTEN_OFFSET"), "%d", &w_offset ) != 1 )
+            w_offset = 0;
+
+        for_less( i, 0, polygons->n_points )
+        {
+            which = (i + w_offset) % polygons->n_points;
+            if( n_neighbours[which] > 1 )
+                break;
+        }
+
+        n_fixed = 1 + n_neighbours[which];
+        ALLOC( fixed_indices, n_fixed );
+        ALLOC( fixed_pos[0], n_fixed );
+        ALLOC( fixed_pos[1], n_fixed );
+
+        fixed_indices[0] = which;
+        for_less( i, 0, n_neighbours[which] )
+            fixed_indices[i+1] = neighbours[which][i];
+
+        for_less( i, 0, n_neighbours[which] )
+            neigh_points[i] = polygons->points[neighbours[which][i]];
+
+        fixed_pos[0][0] = 0.0;
+        fixed_pos[1][0] = 0.0;
+
+        flatten_around_vertex( &polygons->points[which], n_neighbours[which],
+                               neigh_points, (BOOLEAN) interior_flags[which],
+                               &fixed_pos[0][1], &fixed_pos[1][1] );
+
+        n_fixed = 3;
+        alloced_fixed = TRUE;
+    }
+    else
+    {
+        alloced_fixed = FALSE;
+        ALLOC( fixed_pos[0], n_fixed );
+        ALLOC( fixed_pos[1], n_fixed );
     }
 
-    n_fixed = 1 + n_neighbours[which];
-    ALLOC( fixed_indices, n_fixed );
-    ALLOC( fixed_pos[0], n_fixed );
-    ALLOC( fixed_pos[1], n_fixed );
-
-    fixed_indices[0] = which;
-    for_less( i, 0, n_neighbours[which] )
-        fixed_indices[i+1] = neighbours[which][i];
-
-    for_less( i, 0, n_neighbours[which] )
-        neigh_points[i] = polygons->points[neighbours[which][i]];
-
-    fixed_pos[0][0] = 0.0;
-    fixed_pos[1][0] = 0.0;
-
-    flatten_around_vertex( &polygons->points[which], n_neighbours[which],
-                           neigh_points, (BOOLEAN) interior_flags[which],
-                           &fixed_pos[0][1], &fixed_pos[1][1] );
-
-    n_fixed = 3;
+    if( init_points != NULL )
+    {
+        for_less( i, 0, n_fixed )
+        {
+            fixed_pos[0][i] = RPoint_x(init_points[fixed_indices[i]]);
+            fixed_pos[1][i] = RPoint_y(init_points[fixed_indices[i]]);
+        }
+    }
 
     ALLOC( to_parameters, polygons->n_points );
     ALLOC( to_fixed_index, polygons->n_points );
@@ -302,24 +344,38 @@ private  void  flatten_polygons(
                          &constant, &linear_terms, &square_terms,
                          &n_cross_terms, &cross_parms, &cross_terms );
 
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     interior_flags, NULL );
+
     ALLOC( parameters, 2 * (polygons->n_points - n_fixed) );
 
     if( init_points == NULL )
-        init_points = polygons->points;
+    {
+        SUB_POINTS( x_dir, polygons->points[neighbours[which][0]],
+                           polygons->points[which] );
+        NORMALIZE_VECTOR( x_dir, x_dir );
+        fill_Point( y_dir, -RVector_y(x_dir), RVector_x(x_dir), 0.0 );
+    }
 
-    SUB_POINTS( x_dir, init_points[neighbours[which][0]],
-                init_points[which] );
-    NORMALIZE_VECTOR( x_dir, x_dir );
-    fill_Point( y_dir, -RVector_y(x_dir), RVector_x(x_dir), 0.0 );
     for_less( point, 0, polygons->n_points )
     {
         if( to_parameters[point] >= 0 )
         {
-            SUB_POINTS( offset, init_points[point], init_points[which] );
-            parameters[2*to_parameters[point]] =
-                           DOT_VECTORS( offset, x_dir );
-            parameters[2*to_parameters[point]+1] =
-                           DOT_VECTORS( offset, y_dir );
+            if( init_points == NULL )
+            {
+                SUB_POINTS( offset, init_points[point], init_points[which] );
+                parameters[2*to_parameters[point]] =
+                               DOT_VECTORS( offset, x_dir );
+                parameters[2*to_parameters[point]+1] =
+                               DOT_VECTORS( offset, y_dir );
+            }
+            else
+            {
+                parameters[2*to_parameters[point]] =
+                                      RPoint_x(init_points[point]);
+                parameters[2*to_parameters[point]+1] =
+                                      RPoint_y(init_points[point]);
+            }
         }
     }
 
@@ -361,24 +417,23 @@ private  void  flatten_polygons(
             FREE( cross_terms[p] );
         }
     }
+
     FREE( n_cross_terms );
 
     FREE( cross_parms );
     FREE( cross_terms );
 
-    ALLOC( new_points, polygons->n_points );
-
     for_less( point, 0, polygons->n_points )
     {
         if( to_parameters[point] >= 0 )
         {
-            fill_Point( new_points[point],
+            fill_Point( polygons->points[point],
                         parameters[2*to_parameters[point]],
                         parameters[2*to_parameters[point]+1], 0.0 );
         }
         else
         {
-            fill_Point( new_points[point],
+            fill_Point( polygons->points[point],
                         fixed_pos[0][to_fixed_index[point]],
                         fixed_pos[1][to_fixed_index[point]], 0.0 );
         }
@@ -386,45 +441,13 @@ private  void  flatten_polygons(
 
     FREE( parameters );
 
-    sum_xx = 0.0;
-    sum_xy = 0.0;
-    for_less( point, 0, polygons->n_points )
-    {
-        for_less( n, 0, n_neighbours[point] )
-        {
-            neigh = neighbours[point][n];
-            dist1 = distance_between_points( &polygons->points[point],
-                                             &polygons->points[neigh] );
-            dist2 = distance_between_points( &new_points[point],
-                                             &new_points[neigh] );
-
-            sum_xx += dist2 * dist2;
-            sum_xy += dist1 * dist2;
-        }
-    }
-
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
-                                     interior_flags, NULL );
-
-    if( sum_xx == 0.0 )
-    {
-        print_error( "sum_xx = 0.0" );
-        scale = 1.0;
-    }
-    else
-    {
-        scale = sum_xy / sum_xx;
-    }
-
-    scale = 1.0;
-    for_less( point, 0, polygons->n_points )
-    {
-        SCALE_POINT( polygons->points[point], new_points[point], scale );
-    }
-
-    FREE( new_points );
     FREE( to_parameters );
     FREE( to_fixed_index );
-    FREE( fixed_pos[0] );
-    FREE( fixed_pos[1] );
+
+    if( alloced_fixed )
+    {
+        FREE( fixed_indices );
+        FREE( fixed_pos[0] );
+        FREE( fixed_pos[1] );
+    }
 }
