@@ -5,7 +5,11 @@ private  Real  get_area_of_values(
     polygons_struct   *polygons,
     Real              values[],
     Real              low,
-    Real              high );
+    Real              high,
+    BOOLEAN           clip_flag,
+    int               clip_axis,
+    Real              clip_sign,
+    Real              plane_pos );
 
 int  main(
     int    argc,
@@ -18,6 +22,10 @@ int  main(
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
+    STRING               axis_name, sign_name;
+    Real                 plane_pos, clip_sign;
+    int                  clip_axis;
+    BOOLEAN              clip_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -26,10 +34,26 @@ int  main(
         !get_real_argument( 0.0, &low ) ||
         !get_real_argument( 0.0, &high ) )
     {
-        print_error( "Usage: %s  src.obj values_file  low high\n",
+        print_error( "Usage: %s  src.obj values_file  low high [x|y|z +|- pos]\n",
                      argv[0] );
         return( 1 );
     }
+
+    if( get_string_argument( NULL, &axis_name ) &&
+        axis_name[0] >= 'x' && axis_name[0] <= 'z' &&
+        get_string_argument( NULL, &sign_name ) &&
+        (sign_name[0] == '-' || sign_name[0] == '+') &&
+        get_real_argument( 0.0, &plane_pos ) )
+    {
+        clip_flag = TRUE;
+        if( sign_name[0] == '-' )
+            clip_sign = -1.0;
+        else
+            clip_sign = 1.0;
+        clip_axis = (int) (axis_name[0] - 'x');
+    }
+    else
+        clip_flag = FALSE;
 
     if( input_graphics_file( src_filename, &format, &n_objects,
                              &object_list ) != OK )
@@ -57,7 +81,8 @@ int  main(
         }
     }
 
-    area = get_area_of_values( polygons, values, low, high );
+    area = get_area_of_values( polygons, values, low, high,
+                               clip_flag, clip_axis, clip_sign, plane_pos );
 
     print( "%g\n", area );
 
@@ -70,12 +95,16 @@ private  Real  get_area_of_values(
     polygons_struct   *polygons,
     Real              values[],
     Real              low,
-    Real              high )
+    Real              high,
+    BOOLEAN           clip_flag,
+    int               clip_axis,
+    Real              clip_sign,
+    Real              plane_pos )
 {
     int    n_points, i1, i2, size;
-    int    poly, v, indices[MAX_POINTS_PER_POLYGON];
-    Point  points[10000];
-    Real   area, alpha;
+    int    poly, v, indices[MAX_POINTS_PER_POLYGON], ind;
+    Point  points[2][1000];
+    Real   area, alpha, clip, prev_clip;
 
     area = 0.0;
 
@@ -96,31 +125,73 @@ private  Real  get_area_of_values(
             i1 = indices[v];
             if( low <= values[i1] && values[i1] <= high )
             {
-                points[n_points] = polygons->points[i1];
+                points[0][n_points] = polygons->points[i1];
                 ++n_points;
             }
 
             i2 = indices[(v+1)%size];
 
-            if( values[i1] * values[i2] < 0.0 )
+            if( values[i1] <= low && values[i2] >= low && values[i2] <= high ||
+                values[i2] <= low && values[i1] >= low && values[i1] <= high ||
+                values[i1] <= high && values[i2] >= high && values[i1] >= low ||
+                values[i2] <= high && values[i1] >= high && values[i2] >= low )
             {
-                alpha = values[i1] / (values[i1] - values[i2]);
+                if( values[i1] <= low && values[i2] >= low ||
+                    values[i2] <= low && values[i1] >= low )
+                    alpha = (low - values[i1]) / (values[i2] - values[i1]);
+                else
+                    alpha = (high - values[i1]) / (values[i2] - values[i1]);
+
                 if( alpha > 0.0 && alpha < 1.0 )
                 {
-                    INTERPOLATE_POINTS( points[n_points], polygons->points[i1],
+                    INTERPOLATE_POINTS( points[0][n_points],
+                                        polygons->points[i1],
                                         polygons->points[i2], alpha );
                     ++n_points;
                 }
             }
         }
 
-        if( n_points == 1 || n_points == 2 )
+        if( clip_flag && n_points > 2 )
         {
-            print_error( "get_area_of_values: n_points %d\n", n_points );
+            size = n_points;
+
+            n_points = 0;
+            clip = clip_sign *
+                   (RPoint_coord(points[0][size-1],clip_axis) - plane_pos);
+
+            for_less( v, 0, size )
+            {
+                prev_clip = clip;
+                clip = clip_sign *
+                          (RPoint_coord(points[0][v],clip_axis) - plane_pos);
+
+                if( clip * prev_clip < 0.0 )
+                {
+                    alpha = prev_clip / (prev_clip - clip);
+                    if( alpha > 0.0 && alpha < 1.0 )
+                    {
+                        INTERPOLATE_POINTS( points[1][n_points],
+                                            points[0][(v-1+size)%size],
+                                            points[0][v], alpha );
+                        ++n_points;
+                    }
+                }
+
+                if( clip >= 0.0 )
+                {
+                    points[1][n_points] = points[0][v];
+                    ++n_points;
+                }
+            }
+
+            ind = 1;
         }
+        else
+            ind = 0;
 
         if( n_points >= 3 )
-            area += get_polygon_surface_area( n_points, points );
+            area += get_polygon_surface_area( n_points, points[ind] );
     }
 
     return( area );
