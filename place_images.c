@@ -1,5 +1,5 @@
 #include  <internal_volume_io.h>
-#include  <images.h>
+#include  <bicpl.h>
 
 int  main(
     int   argc,
@@ -32,8 +32,18 @@ int  main(
            get_int_argument( 0, &x_pos ) &&
            get_int_argument( 0, &y_pos ) )
     {
-        if( input_rgb_file( input_filename, &in_pixels ) != OK )
-            return( 1 );
+        if( equal_strings( input_filename, "-" ) )
+        {
+            initialize_pixels( &in_pixels, 0, 0, 0, 0, 1.0, 1.0, RGB_PIXEL );
+        }
+        else
+        {
+            if( input_rgb_file( input_filename, &in_pixels ) != OK )
+            {
+                print( "Error in %s.\n", input_filename );
+                return( 1 );
+            }
+        }
 
         ADD_ELEMENT_TO_ARRAY( images, n_images, in_pixels, DEFAULT_CHUNK_SIZE );
         --n_images;
