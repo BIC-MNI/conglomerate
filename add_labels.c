@@ -21,6 +21,8 @@
 #include  <internal_volume_io.h>
 #include  <minc.h>
 
+/* -------- external declarations from label file -------- */
+
 public  BOOLEAN  read_label_lookup(
     int    minc_id,
     int    *n_labels,

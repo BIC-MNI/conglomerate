@@ -320,6 +320,22 @@ public  BOOLEAN  write_label_lookup(
     return( okay );
 }
 
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : lookup_label_value
+@INPUT      : n_labels
+              values
+              value
+@OUTPUT     :
+@RETURNS    : index if found, -1 otherwise 
+@DESCRIPTION: Searches for value in the array values, returning the index or
+              -1 if not found.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
 private  int   lookup_label_value(
     int    n_labels,
     int    values[],
@@ -333,6 +349,56 @@ private  int   lookup_label_value(
 
     return( -1 );
 }
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : lookup_label
+@INPUT      : n_labels
+              labels
+              label
+@OUTPUT     :
+@RETURNS    : index if found, -1 otherwise 
+@DESCRIPTION: Searches for label in the array labels, returning the index or
+              -1 if not found.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+private  int   lookup_label(
+    int    n_labels,
+    char   *labels[],
+    char   label[] )
+{
+    int   i;
+
+    for_less( i, 0, n_labels )
+        if( strcmp( labels[i], label ) == 0 )
+            return( i );
+
+    return( -1 );
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : add_label_to_list
+@INPUT      : n_labels
+              values
+              labels
+              value_to_add
+              label_to_add
+@OUTPUT     : 
+@RETURNS    : 
+@DESCRIPTION: Adds the value-label pair to the list of values and labels.
+              If the specified value already exists in the values array,
+              then the corresponding label is replaced by label_to_add.
+              Otherwise, the value-label pair is added to the end of the array.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
 
 public  void  add_label_to_list(
     int    *n_labels,
@@ -361,4 +427,79 @@ public  void  add_label_to_list(
 
     ALLOC( (*labels)[ind], strlen( label_to_add ) + 1 );
     (void) strcpy( (*labels)[ind], label_to_add );
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : lookup_value_for_label
+@INPUT      : n_labels
+              values
+              labels
+              label
+@OUTPUT     : value
+@RETURNS    : TRUE if found
+@DESCRIPTION: Searches for the specified label in the list.  If it is found,
+              passes back the value corresponding to this label.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+public  BOOLEAN  lookup_value_for_label(
+    int    n_labels,
+    int    values[],
+    char   *labels[],
+    char   label[],
+    int    *value )
+{
+    int   i;
+
+    i = lookup_label( n_labels, labels, label );
+
+    if( i >= 0 )
+        *value = values[i];
+
+    return( i >= 0 );
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : lookup_label_for_value
+@INPUT      : n_labels
+              values
+              labels
+              value
+@OUTPUT     : label
+@RETURNS    : TRUE if found
+@DESCRIPTION: Searches for the specified value in the list.  If it is found,
+              passes back a pointer to the label corresponding to this value.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Nov. 29, 1994    David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+public  BOOLEAN  lookup_label_for_value(
+    int    n_labels,
+    int    values[],
+    char   *labels[],
+    int    value,
+    char   *label[] )
+{
+    int   i;
+
+    i = lookup_label_value( n_labels, values, value );
+
+    if( i >= 0 )
+        *label = labels[i];
+
+    return( i >= 0 );
+}
+
+public  void  print_label(
+    int    value,
+    char   label[] )
+{
+    print( "%6d %s\n", value, label );
 }
