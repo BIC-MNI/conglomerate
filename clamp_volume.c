@@ -12,6 +12,7 @@ int  main(
     int                  x, y, z, sizes[N_DIMENSIONS];
     int                  dx, dy, dz;
     int                  dx_min, dx_max, dy_min, dy_max, dz_min, dz_max;
+    int                  n_lower, n_higher;
     progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
@@ -37,6 +38,9 @@ int  main(
     initialize_progress_report( &progress, FALSE, sizes[0] * sizes[1],
                                 "Clamping" );
 
+    n_lower = 0;
+    n_higher = 0;
+
     for_less( x, 0, sizes[0] )
     {
         if( x == 0 )
@@ -60,7 +64,7 @@ int  main(
             for_less( z, 0, sizes[2] )
             {
                 GET_VALUE_3D( value, volume, x, y, z );
-                if( value >= min_threshold || value <= max_threshold )
+                if( value >= min_threshold && value <= max_threshold )
                     continue;
 
                 if( z == 0 )
@@ -81,7 +85,7 @@ int  main(
                     {
                         for_inclusive( dz, dz_min, dz_max )
                         {
-                            GET_VALUE_3D( value, volume, x, y, z );
+                            GET_VALUE_3D( value, volume, x+dx, y+dy, z+dz );
                             if( lower && value >= min_threshold ||
                                 !lower && value <= max_threshold )
                             {
@@ -95,9 +99,15 @@ int  main(
                 }
 
                 if( change && lower )
+                {
                     SET_VOXEL_3D( volume, x, y, z, min_voxel )
+                    ++n_lower;
+                }
                 else if( change && !lower )
+                {
                     SET_VOXEL_3D( volume, x, y, z, max_voxel )
+                    ++n_higher;
+                }
             }
 
             update_progress_report( &progress, x * sizes[1] + y + 1 );
@@ -105,6 +115,9 @@ int  main(
     }
 
     terminate_progress_report( &progress );
+
+    print( "N lower changed: %d\n", n_lower );
+    print( "N higher changed: %d\n", n_higher );
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED,
                                    FALSE, 0.0, 0.0, volume, input_filename,
