@@ -9,6 +9,7 @@ private  void  fit_polygons(
     Volume             volume,
     Real               threshold,
     char               normal_direction,
+    Real               tangent_weight,
     Real               max_outward,
     Real               max_inward,
     int                n_iters,
@@ -19,7 +20,8 @@ private  void  usage(
 {
     STRING  usage_format = "\
 Usage:     %s  input.obj output.obj model.obj model_weight volume.mnc \n\
-                  threshold +|-|0  out_dist in_dist [n_iters] [n_between]\n\n";
+                  threshold +|-|0  tangent_weight out_dist in_dist\n\
+                  [n_iters] [n_between]\n\n";
 
     print_error( usage_format, executable_name );
 }
@@ -37,7 +39,7 @@ int  main(
     polygons_struct      *surface, *model_surface;
     Volume               volume;
     Real                 threshold, model_weight;
-    Real                 max_outward, max_inward;
+    Real                 max_outward, max_inward, tangent_weight;
 
     initialize_argument_processing( argc, argv );
 
@@ -48,6 +50,7 @@ int  main(
         !get_string_argument( NULL, &volume_filename ) ||
         !get_real_argument( 0.0, &threshold ) ||
         !get_string_argument( NULL, &surface_direction ) ||
+        !get_real_argument( 0.0, &tangent_weight ) ||
         !get_real_argument( 0.0, &max_outward ) ||
         !get_real_argument( 0.0, &max_inward ) )
     {
@@ -78,8 +81,8 @@ int  main(
         return( 1 );
 
     fit_polygons( surface, model_surface, model_weight, volume, threshold,
-                     surface_direction[0], max_outward, max_inward,
-                     n_iters, n_iters_recompute );
+                  surface_direction[0], tangent_weight, max_outward, max_inward,
+                  n_iters, n_iters_recompute );
 
     (void) output_graphics_file( output_filename, format, 1, object_list );
 
@@ -320,6 +323,7 @@ private  void  create_model_coefficients(
 private  void  create_image_coefficients(
     Volume                      volume,
     boundary_definition_struct  *boundary,
+    Real                        tangent_weight,
     Real                        max_outward,
     Real                        max_inward,
     int                         n_nodes,
@@ -330,11 +334,11 @@ private  void  create_image_coefficients(
     Real                        constants[],
     Real                        *node_weights[] )
 {
-    int     eq, node, n;
-    Real    dist;
+    int     eq, node, n, n_to_do;
+    Real    dist, dx, dy, dz, value;
     Point   origin, p;
     Point   neigh_points[100];
-    Vector  normal;
+    Vector  normal, vert, hor;
 
     eq = 0;
 
@@ -361,31 +365,57 @@ private  void  create_image_coefficients(
                                          boundary, &dist ) )
         {
             dist = MAX( max_outward, max_inward );
-            node_weights[eq][0] = 0.0;
-            constants[eq] = dist * dist;
-            ++eq;
-            node_weights[eq][0] = 0.0;
-            constants[eq] = dist * dist;
-            ++eq;
-            node_weights[eq][0] = 0.0;
-            constants[eq] = dist * dist;
-            ++eq;
+            if( tangent_weight == 0.0 )
+                n_to_do = 1;
+            else
+                n_to_do = 3;
+
+            for_less( n, 0, n_to_do )
+            {
+                node_weights[eq][0] = 0.0;
+                node_weights[eq][1] = 0.0;
+                node_weights[eq][2] = 0.0;
+                constants[eq] = dist * dist;
+                ++eq;
+            }
+
             continue;
         }
 
         GET_POINT_ON_RAY( p, origin, normal, dist );
 
-        node_weights[eq][0] = 1.0;
-        constants[eq] = -RPoint_x(p);
+        evaluate_volume_in_world( volume, RPoint_x(p), RPoint_y(p), RPoint_z(p),
+                                  0, FALSE, 0.0, &value,
+                                  &dx, &dy, &dz,
+                                  NULL, NULL, NULL, NULL, NULL, NULL );
+
+        fill_Vector( normal, dx, dy, dz );
+        NORMALIZE_VECTOR( normal, normal );
+        
+        node_weights[eq][0] = RVector_x(normal);
+        node_weights[eq][1] = RVector_y(normal);
+        node_weights[eq][2] = RVector_z(normal);
+        constants[eq] = -DOT_POINT_VECTOR( p, normal );
         ++eq;
 
-        node_weights[eq][0] = 1.0;
-        constants[eq] = -RPoint_y(p);
-        ++eq;
+        if( tangent_weight > 0.0 )
+        {
+            create_two_orthogonal_vectors( &normal, &hor, &vert );
+            NORMALIZE_VECTOR( hor, hor );
+            NORMALIZE_VECTOR( vert, vert );
 
-        node_weights[eq][0] = 1.0;
-        constants[eq] = -RPoint_z(p);
-        ++eq;
+            node_weights[eq][0] = tangent_weight * RVector_x(hor);
+            node_weights[eq][1] = tangent_weight * RVector_y(hor);
+            node_weights[eq][2] = tangent_weight * RVector_z(hor);
+            constants[eq] = -tangent_weight * DOT_POINT_VECTOR( p, hor );
+            ++eq;
+
+            node_weights[eq][0] = tangent_weight * RVector_x(vert);
+            node_weights[eq][1] = tangent_weight * RVector_y(vert);
+            node_weights[eq][2] = tangent_weight * RVector_z(vert);
+            constants[eq] = -tangent_weight * DOT_POINT_VECTOR( p, vert );
+            ++eq;
+        }
     }
 }
 
@@ -396,15 +426,16 @@ private  void  fit_polygons(
     Volume             volume,
     Real               threshold,
     char               normal_direction,
+    Real               tangent_weight,
     Real               max_outward,
     Real               max_inward,
     int                n_iters,
     int                n_iters_recompute )
 {
-    int              eq, point, n, iter, n_points;
+    int              eq, point, n, iter, n_points, which;
     int              n_model_equations, n_image_equations;
     int              n_equations, *n_parms_involved, **parm_list;
-    int              *n_neighbours, **neighbours;
+    int              *n_neighbours, **neighbours, n_image_per_point;
     Real             *constants, **node_weights;
     Real             *parameters;
     boundary_definition_struct  boundary;
@@ -418,7 +449,14 @@ private  void  fit_polygons(
                              normal_direction, 1.0e-4 );
 
     n_model_equations = 3 * n_points;
-    n_image_equations = 3 * n_points;
+
+    if( tangent_weight > 0.0 )
+        n_image_per_point = 3;
+    else
+        n_image_per_point = 1;
+
+    n_image_equations = n_image_per_point * n_points;
+
     n_equations = n_model_equations + n_image_equations;
 
     ALLOC( n_parms_involved, n_equations );
@@ -440,20 +478,16 @@ private  void  fit_polygons(
 
     for_less( point, 0, n_points )
     {
-        n_parms_involved[n_model_equations+IJ(point,X,3)] = 1;
-        ALLOC( node_weights[n_model_equations+IJ(point,X,3)], 1 );
-        ALLOC( parm_list[n_model_equations+IJ(point,X,3)], 1 );
-        parm_list[n_model_equations+IJ(point,X,3)][0] = IJ(point,X,3);
-
-        n_parms_involved[n_model_equations+IJ(point,Y,3)] = 1;
-        ALLOC( node_weights[n_model_equations+IJ(point,Y,3)], 1 );
-        ALLOC( parm_list[n_model_equations+IJ(point,Y,3)], 1 );
-        parm_list[n_model_equations+IJ(point,Y,3)][0] = IJ(point,Y,3);
-
-        n_parms_involved[n_model_equations+IJ(point,Z,3)] = 1;
-        ALLOC( node_weights[n_model_equations+IJ(point,Z,3)], 1 );
-        ALLOC( parm_list[n_model_equations+IJ(point,Z,3)], 1 );
-        parm_list[n_model_equations+IJ(point,Z,3)][0] = IJ(point,Z,3);
+        for_less( which, 0, n_image_per_point )
+        {
+            eq = n_model_equations + IJ(point,which,n_image_per_point);
+            n_parms_involved[eq] = 3;
+            ALLOC( node_weights[eq], 3 );
+            ALLOC( parm_list[eq], 3 );
+            parm_list[eq][0] = IJ(point,X,3);
+            parm_list[eq][1] = IJ(point,Y,3);
+            parm_list[eq][2] = IJ(point,Z,3);
+        }
     }
 
     ALLOC( parameters, 3 * n_points );
@@ -465,20 +499,36 @@ private  void  fit_polygons(
         parameters[IJ(point,Z,3)] = RPoint_z(surface->points[point]);
     }
 
-/*
-    n_equations = n_model_equations + 9;
-*/
-
     iter = 0;
     while( iter < n_iters )
     {
-        create_image_coefficients( volume, &boundary,
+        create_image_coefficients( volume, &boundary, tangent_weight,
                                    max_outward, max_inward,
                                    n_points, n_neighbours, neighbours,
                                    parameters,
                                    &parm_list[n_model_equations],
                                    &constants[n_model_equations],
                                    &node_weights[n_model_equations] );
+
+#ifdef DEBUG
+#define DEBUG
+#undef DEBUG
+    {
+    int  e;
+    for_less( e, 0, n_image_equations )
+    {
+        int  p;
+        eq = e + n_model_equations;
+        print( "%3d: %g : ", eq, constants[eq] );
+        for_less( p, 0, n_parms_involved[eq] )
+        {
+            print( " %d:%g ", parm_list[eq][p], node_weights[eq][p] );
+        }
+        print( "\n" );
+    }
+    }
+#endif
+
 
         (void) minimize_lsq( 3 * n_points, n_equations,
                              n_parms_involved, parm_list, constants,
