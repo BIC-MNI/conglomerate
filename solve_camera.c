@@ -105,7 +105,7 @@ private  void  transform_interval_point(
     /*--- x rot ----------- */
 
     COS_INTERVAL( c, parms[0] );
-    COS_INTERVAL( s, parms[0] );
+    SIN_INTERVAL( s, parms[0] );
 
     MULT_INTERVALS( cy, c, *yt );
     MULT_INTERVALS( sy, s, *yt );
@@ -118,7 +118,7 @@ private  void  transform_interval_point(
     /*--- y rot ----------- */
 
     COS_INTERVAL( c, parms[1] );
-    COS_INTERVAL( s, parms[1] );
+    SIN_INTERVAL( s, parms[1] );
 
     MULT_INTERVALS( cz, c, *zt );
     MULT_INTERVALS( sz, s, *zt );
@@ -131,7 +131,7 @@ private  void  transform_interval_point(
     /*--- z rot ----------- */
 
     COS_INTERVAL( c, parms[2] );
-    COS_INTERVAL( s, parms[2] );
+    SIN_INTERVAL( s, parms[2] );
 
     MULT_INTERVALS( cx, c, *xt );
     MULT_INTERVALS( sx, s, *xt );
@@ -328,12 +328,12 @@ private  BOOLEAN  solve_cameras(
     Real      done;
     progress_struct  progress;
 
-    SET_INTERVAL( parms[0], 0.0, 10.0 / 180.0 * PI )
-    SET_INTERVAL( parms[1], 0.0, 10.0 / 180.0 * PI )
-    SET_INTERVAL( parms[2], 0.0, 10.0 / 180.0 * PI )
-    SET_INTERVAL( parms[3], -10.0, 10.0 )
-    SET_INTERVAL( parms[4], -10.0, 10.0 )
-    SET_INTERVAL( parms[5], -10.0, 10.0 )
+    SET_INTERVAL( parms[0], 0.0 / 180.0 * PI, 1.0 / 180.0 * PI )
+    SET_INTERVAL( parms[1], 0.0 / 180.0 * PI, 1.0 / 180.0 * PI )
+    SET_INTERVAL( parms[2], 0.0 / 180.0 * PI, 1.0 / 180.0 * PI )
+    SET_INTERVAL( parms[3],  -1.0, -1.0 )
+    SET_INTERVAL( parms[4],  -1.0, 1.0 )
+    SET_INTERVAL( parms[5],  -1.0, 1.0 )
     SET_INTERVAL( parms[6], 1.0, 1.0 )
 
     ALLOC( interval_image1, n_pairs );
