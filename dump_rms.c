@@ -8,7 +8,7 @@ int  main(
     FILE             *file;
     STRING           input1_filename, input2_filename, output_filename;
     int              i, n_objects, n_points1, n_points2;
-    Real             dx, dy, dz, dist_sq;
+    Real             dx, dy, dz, dist_sq, rms;
     File_formats     format;
     object_struct    **object_list;
     Point            *points1, *points2;
@@ -52,19 +52,27 @@ int  main(
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
 
+    rms = 0.0;
+
     for_less( i, 0, n_points1 )
     {
-        dx = Point_x(points1[i]) - Point_x(points2[i]);
-        dy = Point_y(points1[i]) - Point_y(points2[i]);
-        dz = Point_z(points1[i]) - Point_z(points2[i]);
+        dx = (Real) Point_x(points1[i]) - (Real) Point_x(points2[i]);
+        dy = (Real) Point_y(points1[i]) - (Real) Point_y(points2[i]);
+        dz = (Real) Point_z(points1[i]) - (Real) Point_z(points2[i]);
 
         dist_sq = dx * dx + dy * dy + dz * dz;
 
         (void) output_real( file, dist_sq );
         (void) output_newline( file );
+
+        rms += dist_sq;
     }
 
     (void) close_file( file );
+
+    rms = sqrt( rms / (Real) n_points1 );
+
+    print( "Rms over the %d points: %g\n", n_points1, rms );
 
     return( 0 );
 }
