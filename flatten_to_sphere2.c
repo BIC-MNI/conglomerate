@@ -645,7 +645,16 @@ private  void  flatten_polygons(
     int              iter, ind, update_rate;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
     dtype            *centroid_weights;
-    BOOLEAN          init_supplied;
+    int              f[3];
+    BOOLEAN          init_supplied, fixed_points;
+
+    fixed_points = getenv( "FIX_POINTS" ) != NULL;
+    if( fixed_points )
+    {
+        f[0] = 0;
+        f[1] = neighbours[0][0];
+        f[2] = neighbours[0][1];
+    }
 
     init_supplied = (init_points != NULL);
     if( !init_supplied )
@@ -787,6 +796,15 @@ private  void  flatten_polygons(
     evaluate_fit_derivative( n_parameters, parameters, distances,
                              n_neighbours, neighbours, centroid_weight,
                              centroid_weights, sphere_weight, xi );
+    if( fixed_points )
+    {
+        for_less( p, 0, 3 )
+        {
+            xi[3*f[p]+0] = 0.0f;
+            xi[3*f[p]+1] = 0.0f;
+            xi[3*f[p]+2] = 0.0f;
+        }
+    }
 
     for_less( p, 0, n_parameters )
     {
@@ -834,6 +852,17 @@ private  void  flatten_polygons(
         evaluate_fit_derivative( n_parameters, parameters, distances,
                                  n_neighbours, neighbours, centroid_weight,
                                  centroid_weights, sphere_weight, xi );
+
+
+        if( fixed_points )
+        {
+            for_less( p, 0, 3 )
+            {
+                xi[3*f[p]+0] = 0.0f;
+                xi[3*f[p]+1] = 0.0f;
+                xi[3*f[p]+2] = 0.0f;
+            }
+        }
 
         gg = 0.0;
         dgg = 0.0;
