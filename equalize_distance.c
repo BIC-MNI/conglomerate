@@ -100,6 +100,16 @@ private  void  map_2d_to_3d(
     Real    x_sphere, y_sphere, z_sphere;
     Point   unit_sphere_point, original_point;
 
+    while( u < 0.0 )
+        u += 1.0;
+    while( u >= 1.0 )
+        u -= 1.0;
+
+    if( v > 1.0 )
+        v = 2.0 - v;
+    if( v < 0.0 )
+        v = -v;
+
     map_uv_to_sphere( u, v, &x_sphere, &y_sphere, &z_sphere );
 
     fill_Point( unit_sphere_point, x_sphere, y_sphere, z_sphere );
@@ -466,6 +476,7 @@ private  Real  optimize_vertex_2d(
     Real              point[],
     int               n_neighbours,
     Real              (*neighbours)[N_DIMENSIONS],
+    Real              (*neighbours_2d)[2],
     Real              lengths[],
     int               *which_triangle,
     int               n_steps,
@@ -486,16 +497,6 @@ private  Real  optimize_vertex_2d(
         new_point[0] = point[0] + steps[step][0];
         new_point[1] = point[1] + steps[step][1];
 
-        while( new_point[0] < 0.0 )
-            new_point[0] += 1.0;
-        while( new_point[0] >= 1.0 )
-            new_point[0] -= 1.0;
-
-        if( new_point[1] > 1.0 )
-            new_point[1] = 2.0 - new_point[1];
-        if( new_point[1] < 0.0 )
-            new_point[1] = -new_point[1];
-
         new_fit = evaluate_fit_2d( unit_sphere, original,
                                    new_point, n_neighbours, neighbours,
                                    lengths );
@@ -513,6 +514,16 @@ private  Real  optimize_vertex_2d(
 
         point[0] = point[0] + steps[which][0];
         point[1] = point[1] + steps[which][1];
+
+        while( point[0] < 0.0 )
+            point[0] += 1.0;
+        while( point[0] >= 1.0 )
+            point[0] -= 1.0;
+
+        if( point[1] > 1.0 )
+            point[1] = 2.0 - point[1];
+        if( point[1] < 0.0 )
+            point[1] = -point[1];
 
         map_2d_to_3d( unit_sphere, original, point[0], point[1], &x2, &y2, &z2);
 
@@ -542,15 +553,17 @@ private  Real  perturb_vertices_2d(
     Real              ratio )
 {
     int    point_index, max_neighbours, n, ind, neigh, step;
-    Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
+    Real   movement, max_movement, *lengths, (*neighs)[N_DIMENSIONS];
     Real   (*steps)[2], angle;
+    Real   (*neighbours_2d)[2], u_min, u_max, v_min, v_max;
 
     max_neighbours = 0;
     for_less( point_index, 0, original->n_points )
         max_neighbours = MAX( max_neighbours, n_neighbours[point_index] );
 
-    ALLOC( points, max_neighbours );
+    ALLOC( neighs, max_neighbours );
     ALLOC( lengths, max_neighbours );
+    ALLOC( neighbours_2d, max_neighbours );
 
     ALLOC( steps, n_steps );
     for_less( step, 0, n_steps )
@@ -564,6 +577,10 @@ private  Real  perturb_vertices_2d(
     ind = 0;
     for_less( point_index, 0, original->n_points )
     {
+        u_min = 0.0;
+        u_max = 0.0;
+        v_min = 0.0;
+        v_max = 0.0;
         for_less( n, 0, n_neighbours[point_index] )
         {
             lengths[n] = model_lengths[ind];
@@ -571,25 +588,51 @@ private  Real  perturb_vertices_2d(
 
             neigh = neighbours[point_index][n];
 
+            neighbours_2d[n][0] = new_points[n][0];
+            neighbours_2d[n][1] = new_points[n][1];
+
+            if( n == 0 || neighbours_2d[n][0] < u_min )
+                u_min = neighbours_2d[n][0];
+            if( n == 0 || neighbours_2d[n][0] > u_max )
+                u_max = neighbours_2d[n][0];
+
+            if( n == 0 || neighbours_2d[n][1] < v_min )
+                v_min = neighbours_2d[n][1];
+            if( n == 0 || neighbours_2d[n][1] > v_max )
+                v_max = neighbours_2d[n][1];
+
             map_2d_to_3d( unit_sphere, original,
                           new_points[neigh][X], new_points[neigh][Y],
-                          &points[n][X], &points[n][Y], &points[n][Z] );
+                          &neighs[n][X], &neighs[n][Y], &neighs[n][Z] );
         }
+
+        if( u_max - u_min > 0.5 )
+        {
+            for_less( n, 0, n_neighbours[point_index] )
+            {
+                if( neighbours_2d[n][0] < 0.5 )
+                    neighbours_2d[n][0] += 1.0;
+            }
+        }
+
+        if( v_max - v_min > 0.5 )
+            handle_internal_error( "Impossible\n" );
 
         movement = optimize_vertex_2d( unit_sphere, original,
                                        original_points, new_points,
                                        new_points[point_index],
                                        n_neighbours[point_index],
-                                       points, lengths,
+                                       neighs, neighbours_2d, lengths,
                                        &which_triangle[point_index],
                                        n_steps, steps );
 
         max_movement = MAX( max_movement, movement );
     }
 
-    FREE( points );
+    FREE( neighs );
     FREE( lengths );
     FREE( steps );
+    FREE( neighbours_2d );
 
     return( max_movement );
 }
