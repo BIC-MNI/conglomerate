@@ -14,6 +14,8 @@ AC_PROG_MAKE_SET
 AC_PROG_CC
 AC_PROG_CXX
 
+AM_PROG_LIBTOOL
+
 mni_REQUIRE_BICPL
 
 # check for special header files needed
