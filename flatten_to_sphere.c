@@ -239,8 +239,6 @@ private  int   flatten_patches_to_sphere(
     return( n_neighbours[node] + n_nn );
 }
 
-#define SPHERE
-
 private  int  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
@@ -451,6 +449,74 @@ private  int  create_coefficients(
     return( eq );
 }
 
+private  void   get_transform(
+    int         n_points,
+    Point       src_points[],
+    Point       dest_points[],
+    Transform   *transform )
+{
+    int                p, dim;
+    Real               **src_tags, **dest_tags;
+    Real               src_area, dest_area, scale;
+    Transform          from, to, scale_transform;
+    Point              origin;
+    Vector             hor, vert, normal;
+    General_transform  gen_transform;
+
+    if( n_points == 3 )
+    {
+        origin = src_points[0];
+        SUB_VECTORS( hor, src_points[1], src_points[0] );
+        SUB_VECTORS( vert, src_points[2], src_points[0] );
+        CROSS_VECTORS( normal, hor, vert );
+        src_area = MAGNITUDE( normal );
+        CROSS_VECTORS( vert, normal, hor );
+        NORMALIZE_VECTOR( normal, normal );
+        NORMALIZE_VECTOR( hor, hor );
+        NORMALIZE_VECTOR( vert, vert );
+        make_change_from_bases_transform( &origin, &hor, &vert, &normal, &from);
+
+        origin = dest_points[0];
+        SUB_VECTORS( hor, dest_points[1], dest_points[0] );
+        SUB_VECTORS( vert, dest_points[2], dest_points[0] );
+        CROSS_VECTORS( normal, hor, vert );
+        dest_area = MAGNITUDE( normal );
+        CROSS_VECTORS( vert, normal, hor );
+        NORMALIZE_VECTOR( normal, normal );
+        NORMALIZE_VECTOR( hor, hor );
+        NORMALIZE_VECTOR( vert, vert );
+        make_change_to_bases_transform( &origin, &hor, &vert, &normal, &to );
+
+        scale = sqrt( dest_area / src_area );
+        make_scale_transform( scale, scale, scale, &scale_transform );
+
+        concat_transforms( transform, &from, &scale_transform );
+        concat_transforms( transform, transform, &to );
+    }
+    else
+    {
+        ALLOC2D( src_tags, n_points, N_DIMENSIONS );
+        ALLOC2D( dest_tags, n_points, N_DIMENSIONS );
+
+        for_less( p, 0, n_points )
+        {
+            for_less( dim, 0, N_DIMENSIONS )
+            {
+                src_tags[p][dim] = RPoint_coord(src_points[p],dim);
+                dest_tags[p][dim] = RPoint_coord(dest_points[p],dim);
+            }
+        }
+
+        compute_transform_from_tags( n_points, dest_tags, src_tags, TRANS_LSQ7,
+                                     &gen_transform );
+
+        FREE2D( src_tags );
+        FREE2D( dest_tags );
+        *transform = *get_linear_transform_ptr( &gen_transform );
+        delete_general_transform( &gen_transform );
+    }
+}
+
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
@@ -459,15 +525,28 @@ private  void  flatten_polygons(
     int              i, point, *n_neighbours, **neighbours;
     int              n_equations, *n_nodes_per_equation, **node_list;
     int              n_fixed, *fixed_indices, size, dim;
-    Real             *fixed_pos[3];
+    Real             *fixed_pos[3], x, y, z;
     Real             *constants, **node_weights;
     Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
+    Point            first_points[MAX_POINTS_PER_POLYGON];
+    Point            init_first_points[MAX_POINTS_PER_POLYGON];
+    Transform        transform;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
 
     size = GET_OBJECT_SIZE( *polygons, 0 );
+    for_less( i, 0, size )
+    {
+        first_points[i] = polygons->points[polygons->indices[
+                           POINT_INDEX(polygons->end_indices,0,i)]];
+        init_first_points[i] = init_points[polygons->indices[
+                                  POINT_INDEX(polygons->end_indices,0,i)]];
+    }
+
+    get_transform( size, init_first_points, first_points, &transform );
+
     n_fixed = size;
     ALLOC( fixed_indices, n_fixed );
     ALLOC( fixed_pos[0], n_fixed );
@@ -523,9 +602,14 @@ private  void  flatten_polygons(
     {
         if( to_parameters[point] >= 0 )
         {
-            parameters[3*to_parameters[point]+0] = RPoint_x(init_points[point]);
-            parameters[3*to_parameters[point]+1] = RPoint_y(init_points[point]);
-            parameters[3*to_parameters[point]+2] = RPoint_z(init_points[point]);
+            transform_point( &transform, 
+                             RPoint_x(init_points[point]),
+                             RPoint_y(init_points[point]),
+                             RPoint_z(init_points[point]),
+                             &x, &y, &z );
+            parameters[3*to_parameters[point]+0] = x;
+            parameters[3*to_parameters[point]+1] = y;
+            parameters[3*to_parameters[point]+2] = z;
         }
     }
 
