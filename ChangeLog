@@ -1,0 +1,18 @@
+2001-05-11  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* RCS: The first import into CVS is a straight copy of
+	~david/Source/Batch_processing/RCS, plus this ChangeLog file.
+	This collection of files is tagged David-RCS.
+
+	* symlinks: The following symlinks were replaced by their target
+	files: test.obj, tt.obj.
+
+	* symlinks: The following symlinks were removed:
+	00100_81920.obj.gz, 00101, MNE.mnc,
+	phantom_1-0mm_normal_wht_20480.obj, 00100_20480.obj.gz.
+
+
+	* Batch_processing: Copied all of ~david/Source/Batch_processing
+	except "RCS/test_dynamic.c,v" and "sean", which were
+	read-protected.  Both files are old, dating to February 1996.  For
+	"test_dynamic.c", the checked-out file is newer, in any case.
