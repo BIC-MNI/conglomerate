@@ -142,7 +142,7 @@ private  int   separate_polygons(
     int                desired_index,
     object_struct      **out[] )
 {
-    int                point, ind, poly, vertex, size;
+    int                point, ind, p_ind, poly, vertex, size;
     int                point_index, *new_point_ids, n_objects, comp;
     Smallest_int       *poly_classes;
     int                n_components;
@@ -170,45 +170,107 @@ private  int   separate_polygons(
         new_poly = get_polygons_ptr( (*out)[n_objects] );
         ++n_objects;
         initialize_polygons( new_poly, WHITE, NULL );
-        ind = 0;
-
-        for_less( poly, 0, polygons->n_items )
+        if( desired_index >= 0 )
         {
-            if( poly_classes[poly] != (Smallest_int) comp )
-                continue;
-            size = GET_OBJECT_SIZE( *polygons, poly );
-            for_less( vertex, 0, size )
+            new_poly->points = polygons->points;
+            new_poly->normals = polygons->normals;
+            new_poly->indices = polygons->indices;
+            new_poly->n_items = 0;
+
+            for_less( poly, 0, polygons->n_items )
             {
-                point_index = polygons->indices[
+                if( poly_classes[poly] != (Smallest_int) comp )
+                    continue;
+                size = GET_OBJECT_SIZE( *polygons, poly );
+                ++new_poly->n_items;
+                for_less( vertex, 0, size )
+                {
+                    point_index = polygons->indices[
+                              POINT_INDEX(polygons->end_indices,poly,vertex)];
+                    if( new_point_ids[point_index] < 0 )
+                        new_point_ids[point_index] = 0;
+                }
+            }
+
+            ALLOC( new_poly->end_indices, new_poly->n_items );
+
+            ind = 0;
+            for_less( point, 0, polygons->n_points )
+            {
+                if( new_point_ids[point] >= 0 )
+                {
+                    new_point_ids[point] = ind;
+                    new_poly->points[ind] = new_poly->points[point];
+                    new_poly->normals[ind] = new_poly->normals[point];
+                    ++ind;
+                }
+            }
+
+            new_poly->n_points = ind;
+
+            p_ind = 0;
+            ind = 0;
+            for_less( poly, 0, polygons->n_items )
+            {
+                if( poly_classes[poly] != (Smallest_int) comp )
+                    continue;
+
+                size = GET_OBJECT_SIZE( *polygons, poly );
+
+                for_less( vertex, 0, size )
+                {
+                    point_index = polygons->indices[
+                         POINT_INDEX(polygons->end_indices,poly,vertex)];
+                    new_poly->indices[ind] = new_point_ids[point_index];
+                    ++ind;
+                }
+
+                new_poly->end_indices[p_ind] = ind;
+                ++p_ind;
+            }
+        }
+        else
+        {
+            ind = 0;
+            for_less( poly, 0, polygons->n_items )
+            {
+                if( poly_classes[poly] != (Smallest_int) comp )
+                    continue;
+
+                size = GET_OBJECT_SIZE( *polygons, poly );
+                for_less( vertex, 0, size )
+                {
+                    point_index = polygons->indices[
                               POINT_INDEX(polygons->end_indices,poly,vertex)];
 
-                if( new_point_ids[point_index] < 0 )
-                {
-                    new_point_ids[point_index] = new_poly->n_points;
-                    ADD_ELEMENT_TO_ARRAY( new_poly->points,
-                                          new_poly->n_points,
-                                          polygons->points[point_index],
-                                          DEFAULT_CHUNK_SIZE );
-                    --new_poly->n_points;
-                    ADD_ELEMENT_TO_ARRAY( new_poly->normals,
-                                          new_poly->n_points,
-                                          polygons->normals[point_index],
+                    if( new_point_ids[point_index] < 0 )
+                    {
+                        new_point_ids[point_index] = new_poly->n_points;
+                        ADD_ELEMENT_TO_ARRAY( new_poly->points,
+                                              new_poly->n_points,
+                                              polygons->points[point_index],
+                                              DEFAULT_CHUNK_SIZE );
+                        --new_poly->n_points;
+                        ADD_ELEMENT_TO_ARRAY( new_poly->normals,
+                                              new_poly->n_points,
+                                              polygons->normals[point_index],
+                                              DEFAULT_CHUNK_SIZE );
+                    }
+
+                    ADD_ELEMENT_TO_ARRAY( new_poly->indices, ind,
+                                          new_point_ids[point_index],
                                           DEFAULT_CHUNK_SIZE );
                 }
 
-                ADD_ELEMENT_TO_ARRAY( new_poly->indices, ind,
-                                      new_point_ids[point_index],
-                                      DEFAULT_CHUNK_SIZE );
+                ADD_ELEMENT_TO_ARRAY( new_poly->end_indices, new_poly->n_items,
+                                      ind, DEFAULT_CHUNK_SIZE );
             }
 
-            ADD_ELEMENT_TO_ARRAY( new_poly->end_indices, new_poly->n_items,
-                                  ind, DEFAULT_CHUNK_SIZE );
+            REALLOC( new_poly->points, new_poly->n_points );
+            REALLOC( new_poly->normals, new_poly->n_points );
+            REALLOC( new_poly->end_indices, new_poly->n_items );
+            REALLOC( new_poly->indices, ind );
         }
-
-        REALLOC( new_poly->points, new_poly->n_points );
-        REALLOC( new_poly->normals, new_poly->n_points );
-        REALLOC( new_poly->end_indices, new_poly->n_items );
-        REALLOC( new_poly->indices, ind );
     }
 
     FREE( poly_classes );
