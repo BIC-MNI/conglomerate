@@ -3,13 +3,14 @@
 
 private  int   separate_polygons(
     polygons_struct    *polygons,
+    int                desired_index,
     object_struct      **out[] );
 
 private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: %s  input.obj  output_prefix \n\
+Usage: %s  input.obj  output_prefix [which] \n\
 \n\
      Separates polygons into its disjoint parts.\n\n";
 
@@ -23,7 +24,7 @@ int  main(
     STRING           input_filename, output_prefix;
     char             out_filename[EXTREMELY_LARGE_STRING_SIZE];
     int              n_objects, n_out;
-    int              i, j, biggest;
+    int              i, j, biggest, desired_index;
     File_formats     format;
     object_struct    **object_list, **out, *tmp;
     polygons_struct  *polygons;
@@ -37,6 +38,8 @@ int  main(
         return( 1 );
     }
 
+    (void) get_int_argument( -1, &desired_index );
+
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects < 1 ||
         get_object_type( object_list[0] ) != POLYGONS )
@@ -49,7 +52,7 @@ int  main(
 
     check_polygons_neighbours_computed( polygons );
 
-    n_out = separate_polygons( polygons, &out );
+    n_out = separate_polygons( polygons, desired_index, &out );
 
     for_less( i, 0, n_out-1 )
     {
@@ -78,6 +81,7 @@ int  main(
 
 private  int   separate_polygons(
     polygons_struct    *polygons,
+    int                desired_index,
     object_struct      **out[] )
 {
     int                point, ind, poly, current_poly, edge, vertex, size;
@@ -85,6 +89,7 @@ private  int   separate_polygons(
     Smallest_int       *poly_done;
     int                n_components;
     QUEUE_STRUCT(int)  queue;
+    BOOLEAN            skip;
     polygons_struct    *new_poly;
 
     n_components = 0;
@@ -99,17 +104,25 @@ private  int   separate_polygons(
         if( poly_done[poly] )
             continue;
 
-        for_less( point, 0, polygons->n_points )
-            new_point_ids[point] = -1;
+        skip = desired_index >= 0 && desired_index != n_components;
+
+        if( !skip )
+        {
+            for_less( point, 0, polygons->n_points )
+                new_point_ids[point] = -1;
+
+            SET_ARRAY_SIZE( *out, n_components, n_components+1,
+                            DEFAULT_CHUNK_SIZE);
+            (*out)[n_components] = create_object( POLYGONS );
+            new_poly = get_polygons_ptr( (*out)[n_components] );
+            initialize_polygons( new_poly, WHITE, NULL );
+        }
 
         INITIALIZE_QUEUE( queue );
         INSERT_IN_QUEUE( queue, poly );
         poly_done[poly] = TRUE;
-        SET_ARRAY_SIZE( *out, n_components, n_components+1, DEFAULT_CHUNK_SIZE);
-        (*out)[n_components] = create_object( POLYGONS );
-        new_poly = get_polygons_ptr( (*out)[n_components] );
+
         ++n_components;
-        initialize_polygons( new_poly, WHITE, NULL );
         ind = 0;
 
         while( !IS_QUEUE_EMPTY(queue) )
@@ -117,29 +130,34 @@ private  int   separate_polygons(
             REMOVE_FROM_QUEUE( queue, current_poly );
             size = GET_OBJECT_SIZE( *polygons, current_poly );
 
-            for_less( vertex, 0, size )
+            if( !skip )
             {
-                point_index = polygons->indices[
-                   POINT_INDEX(polygons->end_indices,current_poly,vertex)];
-                if( new_point_ids[point_index] < 0 )
+                for_less( vertex, 0, size )
                 {
-                    new_point_ids[point_index] = new_poly->n_points;
-                    ADD_ELEMENT_TO_ARRAY( new_poly->points, new_poly->n_points,
-                                          polygons->points[point_index],
-                                          DEFAULT_CHUNK_SIZE );
-                    --new_poly->n_points;
-                    ADD_ELEMENT_TO_ARRAY( new_poly->normals, new_poly->n_points,
-                                          polygons->normals[point_index],
+                    point_index = polygons->indices[
+                       POINT_INDEX(polygons->end_indices,current_poly,vertex)];
+                    if( new_point_ids[point_index] < 0 )
+                    {
+                        new_point_ids[point_index] = new_poly->n_points;
+                        ADD_ELEMENT_TO_ARRAY( new_poly->points,
+                                              new_poly->n_points,
+                                              polygons->points[point_index],
+                                              DEFAULT_CHUNK_SIZE );
+                        --new_poly->n_points;
+                        ADD_ELEMENT_TO_ARRAY( new_poly->normals,
+                                              new_poly->n_points,
+                                              polygons->normals[point_index],
+                                              DEFAULT_CHUNK_SIZE );
+                    }
+
+                    ADD_ELEMENT_TO_ARRAY( new_poly->indices, ind,
+                                          new_point_ids[point_index],
                                           DEFAULT_CHUNK_SIZE );
                 }
 
-                ADD_ELEMENT_TO_ARRAY( new_poly->indices, ind,
-                                      new_point_ids[point_index],
-                                      DEFAULT_CHUNK_SIZE );
+                ADD_ELEMENT_TO_ARRAY( new_poly->end_indices, new_poly->n_items,
+                                      ind, DEFAULT_CHUNK_SIZE );
             }
-
-            ADD_ELEMENT_TO_ARRAY( new_poly->end_indices, new_poly->n_items, ind,
-                                  DEFAULT_CHUNK_SIZE );
 
             for_less( edge, 0, size )
             {
@@ -154,10 +172,23 @@ private  int   separate_polygons(
         }
 
         DELETE_QUEUE( queue );
+
+        if( !skip )
+        {
+            REALLOC( new_poly->points, new_poly->n_points );
+            REALLOC( new_poly->normals, new_poly->n_points );
+            REALLOC( new_poly->end_indices, new_poly->n_items );
+            REALLOC( new_poly->indices, ind );
+        }
     }
 
     FREE( poly_done );
     FREE( new_point_ids );
 
-    return( n_components );
+    if( desired_index >= n_components )
+        return( 0 );
+    else if( desired_index >= 0 )
+        return( 1 );
+    else
+        return( n_components );
 }
