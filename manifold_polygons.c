@@ -5,6 +5,7 @@ private  void   manifold_polygons(
     polygons_struct    *polygons,
     int                start_poly,
     int                max_polygons,
+    BOOLEAN            manifold_required,
     polygons_struct    *out );
 
 private  void  usage(
@@ -22,12 +23,12 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename;
+    STRING           input_filename, output_filename, dummy;
     int              n_objects, max_polygons;
     int              start_poly, poly;
     Real             x, y, z, dist, closest_dist;
     Point            start, point;
-    BOOLEAN          start_specified;
+    BOOLEAN          start_specified, manifold_required;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons, out;
@@ -52,6 +53,7 @@ int  main(
         start_specified = FALSE;
 
     (void) get_int_argument( -1, &max_polygons );
+    manifold_required = !get_string_argument( NULL, &dummy );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects < 1 ||
@@ -86,7 +88,8 @@ int  main(
         start_poly = 0;
     }
 
-    manifold_polygons( polygons, start_poly, max_polygons, &out );
+    manifold_polygons( polygons, start_poly, max_polygons, manifold_required,
+                       &out );
 
     print( "Extracted %d polygons from %d\n", out.n_items, polygons->n_items );
 
@@ -103,6 +106,7 @@ private  void   manifold_polygons(
     polygons_struct    *polygons,
     int                start_poly,
     int                max_polygons,
+    BOOLEAN            manifold_required,
     polygons_struct    *out )
 {
     int                point, poly, size, neigh, neigh_size, v, edge, p;
@@ -160,44 +164,53 @@ private  void   manifold_polygons(
                 continue;
 
             neigh_size = GET_OBJECT_SIZE( *polygons, neigh );
-            n_points_included = 0;
-            for_less( v, 0, neigh_size )
-            {
-                p = polygons->indices[POINT_INDEX(polygons->end_indices,
-                                                  neigh,v)];
-                if( point_included[p] )
-                    ++n_points_included;
-            }
 
-            if( n_points_included != 2 && n_points_included != 3 )
-            {
-                print( "N included: %d\n", n_points_included );
-                continue;
-            }
-
-            if( n_points_included == 2 )
+            if( !manifold_required )
                 add = TRUE;
             else
             {
-                n_polys_included = 0;
+                n_points_included = 0;
                 for_less( v, 0, neigh_size )
                 {
-                    n = polygons->neighbours[POINT_INDEX(polygons->end_indices,
-                                                         neigh,v)];
-                    if( n < 0 || poly_included[n] )
-                        ++n_polys_included;
+                    p = polygons->indices[POINT_INDEX(polygons->end_indices,
+                                                  neigh,v)];
+
+if( p == 39417 )
+    print( "poly: %d\n", neigh );
+                    if( point_included[p] )
+                        ++n_points_included;
                 }
 
-                if( n_polys_included == 0 )
+                if( n_points_included != 2 && n_points_included != 3 )
                 {
-                    print( "N poly included: %d\n", n_polys_included );
+                    print( "N included: %d\n", n_points_included );
                     continue;
                 }
 
-                if( n_polys_included == 1 )
-                    add = FALSE;
-                else
+                if( n_points_included == 2 )
                     add = TRUE;
+                else
+                {
+                    n_polys_included = 0;
+                    for_less( v, 0, neigh_size )
+                    {
+                        n = polygons->neighbours[POINT_INDEX(polygons->end_indices,
+                                                             neigh,v)];
+                        if( n < 0 || poly_included[n] )
+                            ++n_polys_included;
+                    }
+
+                    if( n_polys_included == 0 )
+                    {
+                        print( "N poly included: %d\n", n_polys_included );
+                        continue;
+                    }
+
+                    if( n_polys_included == 1 )
+                        add = FALSE;
+                    else
+                        add = TRUE;
+                }
             }
 
             if( add && (max_polygons <= 0 || n_done < max_polygons) )
@@ -230,7 +243,7 @@ private  void   manifold_polygons(
     {
         if( poly_included[poly] )
             ++n_polys_included;
-        else if( max_polygons <= 0 )
+        else if( max_polygons <= 0 && !manifold_required )
         {
             int  n;
             size = GET_OBJECT_SIZE( *polygons, poly );
