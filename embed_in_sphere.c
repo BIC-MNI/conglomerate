@@ -713,12 +713,12 @@ for_less( p, 0, loop_length )
 print( "\n" );
 */
 
-    n_attempts = 100;
+    n_attempts = 500;
 
     for_less( attempt, 0, n_attempts )
     {
         ind1 = get_random_int( loop_length );
-        if( attempt == 0 )
+        if( attempt < 10 )
             ind2 = (ind1 + loop_length / 2) % loop_length;
         else
         {
@@ -856,7 +856,7 @@ private  void  embed_in_sphere(
     Point            sphere_points[] )
 {
     int               point, *n_neighbours, **neighbours, south_pole;
-    int               p, n_points, loop_size, *loop, poly, n_done;
+    int               p, n_points, loop_size, *loop, poly, n_done, n;
     float             **distances;
     float             **equator_distances;
     int               left_size, *left_path, right_size, *right_path;
@@ -1011,6 +1011,20 @@ private  void  embed_in_sphere(
 
     assign_used_flags( size2, equator2_path, used_flags, NULL,
                        points, sphere_points, &n_done, &progress);
+
+    for_less( n, 0, n_neighbours[north_pole] )
+    {
+        if( used_flags[neighbours[north_pole][n]] &&
+            used_flags[neighbours[north_pole][(n+1)%n_neighbours[north_pole]]] )
+            handle_internal_error( "North pole connectivity" );
+    }
+
+    for_less( n, 0, n_neighbours[south_pole] )
+    {
+        if( used_flags[neighbours[south_pole][n]] &&
+            used_flags[neighbours[south_pole][(n+1)%n_neighbours[south_pole]]] )
+            handle_internal_error( "South pole connectivity" );
+    }
 
     calc_distances_from_point( n_points, points, n_neighbours, neighbours,
                                used_flags, other_equator_point, -1, -1,
