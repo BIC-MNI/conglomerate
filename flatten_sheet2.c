@@ -6,7 +6,8 @@ typedef  Real  LSQ_TYPE;
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
-    int              n_iters );
+    int              n_iters,
+    Real             step );
 
 int  main(
     int    argc,
@@ -18,6 +19,7 @@ int  main(
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons;
     Point                *init_points;
+    Real                 step;
 
     initialize_argument_processing( argc, argv );
 
@@ -30,6 +32,7 @@ int  main(
     }
 
     (void) get_int_argument( 100, &n_iters );
+    (void) get_real_argument( 1.0, &step );
 
     if( get_string_argument( NULL, &initial_filename ) )
     {
@@ -55,15 +58,12 @@ int  main(
 
     polygons = get_polygons_ptr( object_list[0] );
 
-    flatten_polygons( polygons, init_points, n_iters );
+    flatten_polygons( polygons, init_points, n_iters, step );
 
     (void) output_graphics_file( dest_filename, format, 1, object_list );
 
     return( 0 );
 }
-
-#define   N_SAVES          3
-#define   N_BETWEEN_SAVES  30
 
 private  Real  evaluate_fit(
     int         n_equations,
@@ -196,22 +196,17 @@ private  Real   local_minimize_lsq(
     LSQ_TYPE         constants[],
     LSQ_TYPE         *node_weights[],
     int              n_iters,
+    Real             step,
     Real             node_values[] )
 {
-    Real              fit;
-    int               iter, s, p;
+    Real              fit, len, test_fit;
+    int               iter, p;
     int               update_rate;
-    Real              *saves[N_SAVES], *swap, *derivs;
+    Real              *derivs, *test_values;
     Real              last_update_time, current_time;
 
-    for_less( s, 0, N_SAVES )
-    {
-        ALLOC( saves[s], n_parameters );
-        for_less( p, 0, n_parameters )
-            saves[s][p] = node_values[p];
-    }
-
     ALLOC( derivs, n_parameters );
+    ALLOC( test_values, n_parameters );
 
     fit = evaluate_fit( n_equations, n_nodes_per_equation,
                         node_list, constants, node_weights, node_values );
@@ -229,26 +224,29 @@ private  Real   local_minimize_lsq(
                                  node_list, constants, node_weights,
                                  n_parameters, node_values, derivs );
 
-        minimize_along_line( n_equations, n_nodes_per_equation,
-                             node_list, constants, node_weights,
-                             n_parameters, node_values, derivs );
-
-        s = get_random_int( N_SAVES );
-        for_less( p, 0, n_parameters )
+        len = step;
+        while( len > 1.0e-20 )
         {
-            derivs[p] = node_values[p] - saves[s][p];
-            node_values[p] = saves[s][p];
-        }
+            for_less( p, 0, n_parameters )
+                test_values[p] = node_values[p] - len * derivs[p];
 
-        minimize_along_line( n_equations, n_nodes_per_equation,
-                             node_list, constants, node_weights,
-                             n_parameters, node_values, derivs );
+            test_fit =  evaluate_fit( n_equations,
+                             n_nodes_per_equation,
+                             node_list, constants, node_weights, test_values );
+
+            if( test_fit < fit )
+            {
+                for_less( p, 0, n_parameters )
+                    node_values[p] = test_values[p];
+                fit = test_fit;
+                break;
+            }
+
+            len /= 2.0;
+        }
 
         if( ((iter+1) % update_rate) == 0 || iter == n_iters - 1 )
         {
-            fit =  evaluate_fit( n_equations,
-                             n_nodes_per_equation,
-                             node_list, constants, node_weights, node_values );
             print( "%d: %g\n", iter+1, fit );
             (void) flush_file( stdout );
             current_time = current_cpu_seconds();
@@ -256,22 +254,10 @@ private  Real   local_minimize_lsq(
                 update_rate *= 10;
             last_update_time = current_time;
         }
-
-        if( (iter % N_BETWEEN_SAVES) == 0 )
-        {
-            swap = saves[0];
-            for_less( s, 0, N_SAVES-1 )
-                saves[s] = saves[s+1];
-            saves[N_SAVES-1] = swap;
-            for_less( p, 0, n_parameters )
-                saves[s][p] = node_values[p];
-        }
     }
 
-    for_less( s, 0, N_SAVES )
-        FREE( saves[s] );
-
     FREE( derivs );
+    FREE( test_values );
 
     return( fit );
 }
@@ -456,7 +442,8 @@ private  int  create_coefficients(
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
-    int              n_iters )
+    int              n_iters,
+    Real             step )
 {
     int              i, point, *n_neighbours, **neighbours, n, neigh, which;
     int              n_equations, *n_nodes_per_equation, **node_list;
@@ -552,7 +539,7 @@ private  void  flatten_polygons(
 
     (void) local_minimize_lsq( 2 * (polygons->n_points - n_fixed), n_equations,
                          n_nodes_per_equation, node_list, constants,
-                         node_weights, n_iters, parameters );
+                         node_weights, n_iters, step, parameters );
 
     ALLOC( new_points, polygons->n_points );
 
