@@ -10,6 +10,12 @@ private  void  normalize_intensities(
     Volume   volume,
     Real     max_diff );
 
+private  BOOLEAN  solve_system(
+    int   n,
+    Real  **coefs,
+    Real  values[],
+    Real  solution[] );
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -124,10 +130,9 @@ private  void  normalize_intensities(
     Real  scale, trans, voxel, sum;
     Real  answer[6], cx, cy, cz;
     Real  x1, y1, z1, x2, y2, z2;
-    float d;
     Real  value1, value2, diff;
-    int   ind[7];
-    float **coefs, **inv, constants[7], p[8], col[7], **save_coefs;
+    Real  **coefs, constants[6], p[7];
+    Real  min_voxel, max_voxel;
 
     get_volume_sizes( volume, sizes );
 
@@ -135,12 +140,11 @@ private  void  normalize_intensities(
     cy = (Real) (sizes[1]-1) / 2.0;
     cz = (Real) (sizes[2]-1) / 2.0;
 
-    ALLOC2D( coefs, 7, 7 );
-    ALLOC2D( inv, 7, 7 );
+    ALLOC2D( coefs, 6, 6 );
 
-    for_less( i, 1, 7 )
+    for_less( i, 0, 6 )
     {
-        for_less( j, i, 7 )
+        for_less( j, 0, 6 )
         {
             coefs[i][j] = 0.0;
         }
@@ -190,23 +194,23 @@ private  void  normalize_intensities(
                         y2 = y + dy - cy;
                         z2 = z + dz - cz;
 
-                        p[1] = ((Real) x1 * value1 - (Real) x2 * value2);
-                        p[2] = ((Real) y1 * value1 - (Real) y2 * value2);
-                        p[3] = ((Real) z1 * value1 - (Real) z2 * value2);
+                        p[0] = ((Real) x1 * value1 - (Real) x2 * value2);
+                        p[1] = ((Real) y1 * value1 - (Real) y2 * value2);
+                        p[2] = ((Real) z1 * value1 - (Real) z2 * value2);
 
-                        p[4] = (Real) x1 - (Real) x2;
-                        p[5] = (Real) y1 - (Real) y2;
-                        p[6] = (Real) z1 - (Real) z2;
+                        p[3] = (Real) x1 - (Real) x2;
+                        p[4] = (Real) y1 - (Real) y2;
+                        p[5] = (Real) z1 - (Real) z2;
 
-                        p[7] = value1 - value2;
+                        p[6] = value1 - value2;
 
-                        for_less( i, 1, 7 )
+                        for_less( i, 0, 6 )
                         {
-                            for_less( j, i, 7 )
+                            for_less( j, 0, 6 )
                             {
                                 coefs[i][j] += p[i] * p[j];
                             }
-                            constants[i] += p[i] * p[7];
+                            constants[i] -= p[i] * p[6];
                         }
                     }
                 }
@@ -214,61 +218,22 @@ private  void  normalize_intensities(
         }
     }
 
-    for_less( i, 1, 6 )
+    for_less( i, 0, 5 )
     {
-        for_less( j, i+1, 7 )
+        for_less( j, i+1, 6 )
         {
             coefs[j][i] = coefs[i][j];
         }
     }
 
-    ALLOC2D( save_coefs, 7, 7 );
-    for_less( i, 1, 7 )
-        for_less( j, 1, 7 )
-            save_coefs[i][j] = coefs[i][j];
-
-    ludcmp( coefs, 6, ind, &d );
-
-    if( d != 0.0 )
+    if( solve_system( 6, coefs, constants, answer ) )
     {
-        for_inclusive( j, 1, 6 )
-        {
-            for_inclusive( i, 1, 6 )
-                col[i] = 0.0;
-            col[j] = 1.0;
-            lubksb( coefs, 6, ind, col );
-            for_inclusive( i, 1, 6 )
-                inv[i][j] = col[i];
-        }
-
-        for_inclusive( i, 1, 6 )
-        {
-            for_inclusive( j, 1, 6 )
-            {
-                int  k;
-
-                sum = 0.0;
-                for_inclusive( k, 1, 6 )
-                    sum += save_coefs[i][k] * inv[k][j];
-                print( " %.1f", sum );
-            }
-            print( "\n" );
-        }
-
-        for_less( i, 1, 7 )
+        for_less( i, 0, 6 )
         {
             sum = 0.0;
-            for_less( j, 1, 7 )
-                sum += inv[i][j] * (-constants[j]);
-            answer[i-1] = sum;
-        }
-
-        for_less( i, 1, 7 )
-        {
-            sum = 0.0;
-            for_less( j, 1, 7 )
-                sum += save_coefs[i][j] * answer[j-1];
-            sum += constants[i];
+            for_less( j, 0, 6 )
+                sum += coefs[i][j] * answer[j];
+            sum -= constants[i];
 
             if( sum > 1.0e-2 || sum < -1.0e-2 )
             {
@@ -284,14 +249,12 @@ private  void  normalize_intensities(
     {
         print( "No inverse.\n" );
         FREE2D( coefs );
-        FREE2D( save_coefs );
-        FREE2D( inv );
         return;
     }
 
     FREE2D( coefs );
-    FREE2D( save_coefs );
-    FREE2D( inv );
+
+    get_volume_voxel_range( volume, &min_voxel, &max_voxel );
 
     for_less( x, 0, sizes[0] )
     for_less( y, 0, sizes[1] )
@@ -303,6 +266,99 @@ private  void  normalize_intensities(
         trans = answer[3] * (x-cx) + answer[4] * (y-cy) + answer[5] * (z-cz);
         value1 = scale * value1 + trans;
         voxel = CONVERT_VALUE_TO_VOXEL( volume, value1 );
+        if( voxel < min_voxel )
+            voxel = min_voxel;
+        else if( voxel > max_voxel )
+            voxel = max_voxel;
         SET_VOXEL_3D( volume, x, y, z, voxel );
     }
+}
+
+private  BOOLEAN  solve_system(
+    int   n,
+    Real  **coefs,
+    Real  values[],
+    Real  solution[] )
+{
+    int       i, j, k, p, *row, tmp;
+    Real      **a, *s, val, best_val, m, sum;
+    BOOLEAN   success;
+
+    ALLOC2D( a, n, n+1 );
+    ALLOC( row, n );
+    ALLOC( s, n );
+
+    for_less( i, 0, n )
+    {
+        for_less( j, 0, n )
+            a[i][j] = coefs[i][j];
+        a[i][n] = values[i];
+    }
+
+    for_less( i, 0, n )
+    {
+        row[i] = i;
+        s[i] = ABS( a[i][0] );
+        for_less( j, 1, n )
+        {
+            if( ABS(a[i][j]) > s[i] )
+               s[i] = ABS(a[i][j]);
+        }
+    }
+
+    success = TRUE;
+
+    for_less( i, 0, n-1 )
+    {
+        p = i;
+        best_val = a[row[i]][i] / s[row[i]];
+        best_val = ABS( best_val );
+        for_less( j, i, n )
+        {
+            val = a[row[j]][i] / s[row[j]];
+            val = ABS( val );
+            if( val > best_val )
+            {
+                best_val = val;
+                p = j;
+            }
+        }
+
+        if( a[row[p]][i] == 0.0 )
+        {
+            success = FALSE;
+            break;
+        }
+
+        if( i != p )
+        {
+            tmp = row[i];
+            row[i] = row[p];
+            row[p] = tmp;
+        }
+
+        for_less( j, i+1, n )
+        {
+            m = a[row[j]][i] / a[row[i]][i];
+            for_less( k, i, n+1 )
+                a[row[j]][k] -= m * a[row[i]][k];
+        }
+    }
+
+    if( success && a[row[n-1]][n-1] == 0.0 )
+        success = FALSE;
+
+    for( i = n-1;  i >= 0;  --i )
+    {
+        sum = 0.0;
+        for_less( j, i+1, n )
+            sum += a[row[i]][j] * solution[j];
+        solution[i] = (a[row[i]][n] - sum) / a[row[i]][i];
+    }
+
+    FREE2D( a );
+    FREE( row );
+    FREE( s );
+
+    return( success );
 }
