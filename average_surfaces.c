@@ -99,6 +99,9 @@ int  main(
     compute_transforms( n_surfaces, average_polygons->n_points,
                         points_list, transforms );
 
+for_less( i, 0, n_surfaces )
+    print_transform( &transforms[i] );
+
     create_average_polygons( n_surfaces, average_polygons->n_points,
                              points_list, transforms, average_polygons );
 
@@ -113,6 +116,8 @@ int  main(
 
     return( status != OK );
 }
+
+#ifdef SIMPLE_TRANSFORMATION
 
 private  void  compute_point_to_point_transform(
     int        n_points,
@@ -168,6 +173,83 @@ private  void  compute_transforms(
                                           &transforms[s] );
     }
 }
+#else
+
+private  void  compute_transforms(
+    int        n_surfaces,
+    int        n_points,
+    Point      **points,
+    Transform  transforms[] )
+{
+    int                    dim, s, i, j;
+    linear_least_squares   lsq;
+    Real                   *coefs, n, constant;
+
+    ALLOC( coefs, (n_surfaces-1) * 4 );
+
+    for_less( s, 0, n_surfaces )
+        make_identity_transform( &transforms[s] );
+
+    n = (Real) n_surfaces;
+
+    for_less( dim, 0, N_DIMENSIONS )
+    {
+        initialize_linear_least_squares( &lsq, (n_surfaces-1) * 4 );
+
+        for_less( i, 0, n_points )
+        {
+            for_less( s, 0, n_surfaces )
+            {
+                for_less( j, 0, (n_surfaces-1)*4 )
+                    coefs[j] = 0.0;
+                constant = 0.0;
+
+                if( s == 0 )
+                {
+                    constant = -Point_coord(points[s][i],dim);
+                }
+                else
+                {
+                    coefs[IJ(s-1,0,4)] = Point_x(points[s][i]);
+                    coefs[IJ(s-1,1,4)] = Point_y(points[s][i]);
+                    coefs[IJ(s-1,2,4)] = Point_z(points[s][i]);
+                    coefs[IJ(s-1,3,4)] = 1.0;
+                }
+
+                for_less( j, 0, n_surfaces )
+                {
+                    if( j == 0 )
+                    {
+                        constant -= -Point_coord(points[j][i],dim) / n;
+                    }
+                    else
+                    {
+                        coefs[IJ(j-1,0,4)] -= Point_x(points[j][i]) / n;
+                        coefs[IJ(j-1,1,4)] -= Point_y(points[j][i]) / n;
+                        coefs[IJ(j-1,2,4)] -= Point_z(points[j][i]) / n;
+                        coefs[IJ(j-1,3,4)] -= 1.0 / n;
+                    }
+                }
+
+                add_to_linear_least_squares( &lsq, coefs, constant );
+            }
+        }
+
+        (void) get_linear_least_squares_solution( &lsq, coefs );
+
+        for_less( s, 1, n_surfaces )
+        {
+            for_less( j, 0, N_DIMENSIONS+1 )
+                Transform_elem(transforms[s],dim,j) = coefs[IJ(s-1,j,4)];
+        }
+
+        delete_linear_least_squares( &lsq );
+    }
+
+    FREE( coefs );
+}
+
+#endif
 
 private  void  create_average_polygons(
     int               n_surfaces,
