@@ -5,11 +5,12 @@
 
 #define  CONNECTIVITY  EIGHT_NEIGHBOURS
 
-#define  BINTREE_FACTOR  0.0
+#define  BINTREE_FACTOR  0.5
 
 #define  INSIDE_CONVEX_BIT                 128
 #define  JUST_INSIDE_CONVEX_HULL_BIT        64
-#define  LABEL_MASK         ((JUST_INSIDE_CONVEX_HULL_BIT)-1)
+#define  CONNECTED_TO_OUTSIDE_BIT           32
+#define  LABEL_MASK         ((CONNECTED_TO_OUTSIDE_BIT)-1)
 
 typedef struct
 {
@@ -23,7 +24,7 @@ private  int  remove_just_inside_label(
     int      y,
     int      z );
 
-private  void   label_inside_convex_hull(
+private  int   label_inside_convex_hull(
     Volume           volume,
     object_struct    *object,
     int              value_to_set );
@@ -48,6 +49,12 @@ private  BOOLEAN  fill_inside(
     int      *y_error,
     int      *z_error );
 
+private  void  label_connected_to_outside(
+    Volume   volume,
+    int      x,
+    int      y,
+    int      z );
+
 int  main(
     int   argc,
     char  *argv[] )
@@ -57,7 +64,7 @@ int  main(
     int                     i, n_objects, n_convex_boundaries;
     int                     close_threshold;
     int                     x_error, y_error, z_error, label_to_set;
-    int                     sizes[N_DIMENSIONS], x, y, z, value;
+    int                     sizes[N_DIMENSIONS], x, y, z, value, n_voxels;
     convex_boundary_struct  *convex_boundaries;
     STRING                  history;
     File_formats            format;
@@ -84,6 +91,21 @@ int  main(
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
 
+    get_volume_sizes( volume, sizes );
+
+    for_less( x, 0, sizes[X] )
+    for_less( y, 0, sizes[Y] )
+    for_less( z, 0, sizes[Z] )
+    {
+        value = get_volume_int_value( volume, x, y, z );
+        if( (value & LABEL_MASK) != value )
+        {
+            print( "Volume has values with large values, which would interfere\n" ); 
+            print( "with this program using the upper bits of volume as flags.\n" );
+            return( 1 );
+        }
+    }
+
     if( input_graphics_file( input_surface_filename,
                              &format, &n_objects, &objects ) != OK )
         return( 1 );
@@ -94,10 +116,49 @@ int  main(
         return( 1 );
     }
 
-    label_inside_convex_hull( volume, objects[0], INSIDE_CONVEX_BIT );
+    print( "Filling inside convex hull\n" );
+    n_voxels = label_inside_convex_hull( volume, objects[0],
+                                         INSIDE_CONVEX_BIT );
+    print( "   labeled %d voxels out of %d.\n", n_voxels,
+           sizes[X] * sizes[Y] * sizes[Z] );
+
+    print( "Labeling voxels just inside convex hull\n" );
 
     n_convex_boundaries = label_just_inside_convex_hull( volume,
                                                          &convex_boundaries );
+
+    print( "   found %d regions just inside convex hull.\n",
+           n_convex_boundaries );
+
+    print( "Labeling voxels connected to outside the convex hull.\n" );
+
+    for_less( i, 0, n_convex_boundaries )
+    {
+        label_connected_to_outside( volume,
+                                    convex_boundaries[i].voxel[X],
+                                    convex_boundaries[i].voxel[Y],
+                                    convex_boundaries[i].voxel[Z] );
+    }
+
+    print( "Filling in air pockets.\n" );
+
+    n_voxels = 0;
+    for_less( x, 0, sizes[X] )
+    for_less( y, 0, sizes[Y] )
+    for_less( z, 0, sizes[Z] )
+    {
+        value = get_volume_int_value( volume, x, y, z );
+        if( (value & CONNECTED_TO_OUTSIDE_BIT) == 0 &&
+            (value & INSIDE_CONVEX_BIT) != 0 )
+        {
+            value |= label_to_set;
+            set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+            ++n_voxels;
+        }
+    }
+
+    if( n_voxels > 0 )
+        print( "   filled in %d air pocket voxels.\n", n_voxels );
 
     for_less( i, 0, n_convex_boundaries )
     {
@@ -110,6 +171,9 @@ int  main(
 
     if( close_threshold > 0 )
     {
+        print( "Removing just-inside regions larger than threshold (%d)\n",
+               close_threshold );
+
         for_less( i, 0, n_convex_boundaries )
         {
             if( convex_boundaries[i].n_voxels >= close_threshold )
@@ -122,6 +186,8 @@ int  main(
                     handle_internal_error( "n voxels" );
             }
         }
+
+        print( "Filling inside the voxels.\n" );
 
         for_less( i, 0, n_convex_boundaries )
         {
@@ -143,8 +209,6 @@ int  main(
             }
         }
     }
-
-    get_volume_sizes( volume, sizes );
 
     for_less( x, 0, sizes[X] )
     for_less( y, 0, sizes[Y] )
@@ -177,7 +241,7 @@ private  int  get_volume_int_value(
     return( ROUND( value ) );
 }
 
-private  void   label_inside_convex_hull(
+private  int   label_inside_convex_hull(
     Volume           volume,
     object_struct    *object,
     int              value_to_set )
@@ -195,6 +259,7 @@ private  void   label_inside_convex_hull(
     Vector               ray_direction, offset;
     Real                 **enter_dist, **exit_dist;
     polygons_struct      *polygons;
+    progress_struct      progress;
 
     polygons = get_polygons_ptr( object );
 
@@ -244,6 +309,9 @@ private  void   label_inside_convex_hull(
 
     ALLOC2D( enter_dist, sizes[X], sizes[Y] );
     ALLOC2D( exit_dist, sizes[X], sizes[Y] );
+
+    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+                                "Testing inside" );
 
     for_less( x, 0, sizes[X] )
     {
@@ -329,10 +397,12 @@ private  void   label_inside_convex_hull(
                     ++n_set;
                 }
             }
+
+            update_progress_report( &progress, x * sizes[Y] + y + 1 );
         }
     }
 
-    print( "Set %d out of %d\n", n_set, sizes[X] * sizes[Y] * sizes[Z] );
+    terminate_progress_report( &progress );
 
     for_less( x, 1, sizes[X]-1 )
     {
@@ -374,6 +444,8 @@ private  void   label_inside_convex_hull(
 
     FREE2D( enter_dist );
     FREE2D( exit_dist );
+
+    return( n_set );
 }
 
 private  BOOLEAN  is_on_convex_boundary(
@@ -658,3 +730,69 @@ private  BOOLEAN  fill_inside(
     return( error );
 }
 
+private  void  label_connected_to_outside(
+    Volume   volume,
+    int      x,
+    int      y,
+    int      z )
+{
+    int                          i, n_dirs, *dx, *dy, *dz, tx, ty, tz, value;
+    int                          sizes[N_DIMENSIONS];
+    xyz_struct                   xyz;
+    QUEUE_STRUCT( xyz_struct )   queue;
+
+    get_volume_sizes( volume, sizes );
+
+    INITIALIZE_QUEUE( queue );
+
+    value = get_volume_int_value( volume, x, y, z );
+    value |= CONNECTED_TO_OUTSIDE_BIT;
+    set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+
+    xyz.x = (short) x;
+    xyz.y = (short) y;
+    xyz.z = (short) z;
+
+    n_dirs = get_3D_neighbour_directions( CONNECTIVITY, &dx, &dy, &dz );
+
+    INSERT_IN_QUEUE( queue, xyz );
+
+    while( !IS_QUEUE_EMPTY(queue) )
+    {
+        REMOVE_FROM_QUEUE( queue, xyz );
+
+        x = (int) xyz.x;
+        y = (int) xyz.y;
+        z = (int) xyz.z;
+
+        for_less( i, 0, n_dirs )
+        {
+            tx = x + dx[i];
+            ty = y + dy[i];
+            tz = z + dz[i];
+
+            if( tx >= 0 && tx < sizes[X] &&
+                ty >= 0 && ty < sizes[Y] &&
+                tz >= 0 && tz < sizes[Z] )
+            {
+                value = get_volume_int_value( volume, tx, ty, tz );
+
+                if( (value & LABEL_MASK) == 0 &&
+                    (value & INSIDE_CONVEX_BIT) != 0 &&
+                    (value & CONNECTED_TO_OUTSIDE_BIT) == 0 )
+                {
+                    value |= CONNECTED_TO_OUTSIDE_BIT;
+                    set_volume_real_value( volume, tx, ty, tz, 0, 0,
+                                           (Real) value );
+                    xyz.x = (short) tx;
+                    xyz.y = (short) ty;
+                    xyz.z = (short) tz;
+    
+                    INSERT_IN_QUEUE( queue, xyz );
+                }
+            }
+        }
+    }
+
+    DELETE_QUEUE( queue );
+}
