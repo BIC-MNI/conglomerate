@@ -122,6 +122,27 @@ private  void  map_2d_to_3d(
     *z = RPoint_z( original_point );
 }
 
+private  void  map_3d_to_2d(
+    polygons_struct   *unit_sphere,
+    polygons_struct   *original,
+    Real              x,
+    Real              y,
+    Real              z,
+    Real              *u,
+    Real              *v )
+{
+    Point   unit_sphere_point, original_point;
+
+    fill_Point( original_point, x, y, z );
+    map_point_to_unit_sphere( original, &original_point,
+                              unit_sphere, &unit_sphere_point );
+
+    map_sphere_to_uv( RPoint_x(unit_sphere_point),
+                      RPoint_y(unit_sphere_point),
+                      RPoint_z(unit_sphere_point),
+                      u, v );
+}
+
 private  Real  evaluate_fit(
     Real    point[],
     int     n_neighbours,
@@ -494,7 +515,7 @@ private  BOOLEAN  segments_intersect(
     dist_bx1 = distance_from_line_2d( b1, a1, a2 );
     dist_bx2 = distance_from_line_2d( b2, a1, a2 );
 
-    return( dist_bx1 * dist_bx2 > 0.0 );
+    return( dist_bx1 * dist_bx2 <= 0.0 );
 }
 
 private  Real  optimize_vertex_2d(
@@ -593,10 +614,14 @@ private  Real  perturb_vertices_2d(
     int               n_steps,
     Real              ratio )
 {
-    int    point_index, max_neighbours, n, ind, neigh, step;
-    Real   movement, max_movement, *lengths, (*neighs)[N_DIMENSIONS];
-    Real   (*steps)[2], angle;
-    Real   (*neighbours_2d)[2], u_min, u_max, v_min, v_max;
+    int     point_index, max_neighbours, n, ind, neigh, step, next_n, dim;
+    int     iter;
+    Real    movement, max_movement, *lengths, (*neighs)[N_DIMENSIONS];
+    Real    (*steps)[2], angle;
+    Real    (*neighbours_2d)[2], u_min, u_max, v_min, v_max;
+    Real    midpoint[N_DIMENSIONS], u_mid, v_mid;
+    Real    temp_point[2];
+    BOOLEAN changed;
 
     max_neighbours = 0;
     for_less( point_index, 0, original->n_points )
@@ -629,8 +654,8 @@ private  Real  perturb_vertices_2d(
 
             neigh = neighbours[point_index][n];
 
-            neighbours_2d[n][0] = new_points[n][0];
-            neighbours_2d[n][1] = new_points[n][1];
+            neighbours_2d[n][0] = new_points[neigh][0];
+            neighbours_2d[n][1] = new_points[neigh][1];
 
             if( n == 0 || neighbours_2d[n][0] < u_min )
                 u_min = neighbours_2d[n][0];
@@ -647,6 +672,66 @@ private  Real  perturb_vertices_2d(
                           &neighs[n][X], &neighs[n][Y], &neighs[n][Z] );
         }
 
+        iter = 0;
+        do
+        {
+            changed = FALSE;
+
+            for_less( n, 0, n_neighbours[point_index] )
+            {
+                next_n = (n+1)%n_neighbours[point_index];
+                for_less( dim, 0, N_DIMENSIONS )
+                {
+                    midpoint[dim] = (neighs[n][dim] +
+                         neighs[next_n][dim]) / 2.0;
+                }
+
+                map_3d_to_2d( unit_sphere, original,
+                              midpoint[X], midpoint[Y], midpoint[Z],
+                              &u_mid, &v_mid );
+
+                u_min = MIN( neighbours_2d[n][0], neighbours_2d[next_n][0] );
+                u_max = MAX( neighbours_2d[n][0], neighbours_2d[next_n][0] );
+
+                if( u_max - u_min < 0.5 )
+                    continue;
+
+                while( u_mid < u_min )
+                    u_mid += 1.0;
+
+/*
+                print( "%d  %g     %g    %g\n", point_index,
+                       MIN( neighbours_2d[n][0],
+                            neighbours_2d[next_n][0] ),
+                       u_mid,
+                       MAX( neighbours_2d[n][0],
+                            neighbours_2d[next_n][0] ) );
+*/
+ 
+                if( u_mid < u_min || u_mid > u_max )
+                {
+                    changed = TRUE;
+                    if( neighbours_2d[n][0] < neighbours_2d[next_n][0] )
+                    {
+                        neighbours_2d[n][0] += 1.0;
+                    }
+                    else
+                    {
+                        neighbours_2d[next_n][0] += 1.0;
+                    }
+                }
+            }
+
+            ++iter;
+        }
+        while( changed );
+
+        temp_point[0] = new_points[point_index][0];
+        if( iter > 1 && temp_point[0] < 0.5 )
+            temp_point[0] += 1.0;
+        temp_point[1] = new_points[point_index][1];
+
+/*
         if( u_max - u_min > 0.5 )
         {
             for_less( n, 0, n_neighbours[point_index] )
@@ -655,13 +740,14 @@ private  Real  perturb_vertices_2d(
                     neighbours_2d[n][0] += 1.0;
             }
         }
+*/
 
         if( v_max - v_min > 0.5 )
             handle_internal_error( "Impossible\n" );
 
         movement = optimize_vertex_2d( unit_sphere, original,
                                        original_points, new_points,
-                                       new_points[point_index],
+                                       temp_point,
                                        n_neighbours[point_index],
                                        neighs, neighbours_2d, lengths,
                                        &which_triangle[point_index],
@@ -766,7 +852,7 @@ private  void  reparameterize_by_looking(
     int              iter, point;
     Real             movement, step_size;
     polygons_struct  unit_sphere;
-    Point            centre, unit_sphere_point;
+    Point            centre;
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
     create_tetrahedral_sphere( &centre, 1.0, 1.0, 1.0, original->n_items,
@@ -779,13 +865,12 @@ private  void  reparameterize_by_looking(
 
     for_less( point, 0, original->n_points )
     {
-        map_point_to_unit_sphere( original, &original->points[point],
-                                  &unit_sphere, &unit_sphere_point );
-        map_sphere_to_uv( RPoint_x(unit_sphere_point),
-                          RPoint_y(unit_sphere_point),
-                          RPoint_z(unit_sphere_point),
-                          &new_points[point][X],
-                          &new_points[point][Y] );
+        map_3d_to_2d( &unit_sphere, original,
+                      RPoint_x(original->points[point]),
+                      RPoint_y(original->points[point]),
+                      RPoint_z(original->points[point]),
+                      &new_points[point][X],
+                      &new_points[point][Y] );
     }
 
     step_size = ratio;
