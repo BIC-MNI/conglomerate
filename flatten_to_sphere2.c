@@ -362,12 +362,12 @@ private  void  evaluate_fit_along_line(
     Real    coefs[] )
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
-    Real   dx, dy, dz, dr, dist, radius;
+    Real   dx, dy, dz, dr, dist, radius, radius2;
     Real   dx1, dy1, dz1, x1, y1, z1;
     Real   x, y, z;
     Real   a1, b1, c1, a2, b2, c2, a3, b3, c3;
     Real   ax, ay, az, bx, by, bz, weight;
-    Real   line_coefs[3];
+    Real   l0, l1, l2;
     Real   d00, d01, d02, d11, d12, d22;
     Real   s00, s01, s02, s11, s12, s22;
 
@@ -390,6 +390,7 @@ private  void  evaluate_fit_along_line(
     if( sphere_weight > 0.0 )
     {
         radius = (Real) parameters[n_parameters-1];
+        radius2 = radius * radius;
         dr = (Real) delta[n_parameters-1];
     }
 
@@ -404,16 +405,16 @@ private  void  evaluate_fit_along_line(
         dy1 = (Real) delta[p_index+1];
         dz1 = (Real) delta[p_index+2];
 
-        line_coefs[0] = x1 * x1 + y1 * y1 + z1 * z1 - radius * radius;
-        line_coefs[1] = x1 * dx1 + y1 * dy1 + z1 * dz1 - radius * dr;
-        line_coefs[2] = dx1 * dx1 + dy1 * dy1 + dz1 * dz1 - dr * dr;
+        l0 = x1 * x1 + y1 * y1 + z1 * z1 - radius2;
+        l1 = x1 * dx1 + y1 * dy1 + z1 * dz1 - radius * dr;
+        l2 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1 - dr * dr;
 
-        s00 += line_coefs[0] * line_coefs[0];
-        s01 += line_coefs[0] * line_coefs[1];
-        s02 += line_coefs[0] * line_coefs[2];
-        s11 += line_coefs[1] * line_coefs[1];
-        s12 += line_coefs[1] * line_coefs[2];
-        s22 += line_coefs[2] * line_coefs[2];
+        s00 += l0 * l0;
+        s01 += l0 * l1;
+        s02 += l0 * l2;
+        s11 += l1 * l1;
+        s12 += l1 * l2;
+        s22 += l2 * l2;
 
         for_less( n, 0, n_neighbours[p] )
         {
@@ -432,16 +433,16 @@ private  void  evaluate_fit_along_line(
             dy = dy1 - (Real) delta[n_index+1];
             dz = dz1 - (Real) delta[n_index+2];
 
-            line_coefs[0] = x * x + y * y + z * z - dist;
-            line_coefs[1] = x * dx + y * dy + z * dz;
-            line_coefs[2] = dx * dx + dy * dy + dz * dz;
+            l0 = x * x + y * y + z * z - dist;
+            l1 = x * dx + y * dy + z * dz;
+            l2 = dx * dx + dy * dy + dz * dz;
 
-            d00 += line_coefs[0] * line_coefs[0];
-            d01 += line_coefs[0] * line_coefs[1];
-            d02 += line_coefs[0] * line_coefs[2];
-            d11 += line_coefs[1] * line_coefs[1];
-            d12 += line_coefs[1] * line_coefs[2];
-            d22 += line_coefs[2] * line_coefs[2];
+            d00 += l0 * l0;
+            d01 += l0 * l1;
+            d02 += l0 * l2;
+            d11 += l1 * l1;
+            d12 += l1 * l2;
+            d22 += l2 * l2;
         }
     }
 
