@@ -15,10 +15,12 @@ int  main(
 
     initialize_argument_processing( argc, argv );
 
-    if( !get_string_argument( "", &object_filename ) ||
-        !get_string_argument( "", &output_filename ) )
+    if( !get_string_argument( NULL, &object_filename ) ||
+        !get_string_argument( NULL, &output_filename ) )
     {
-        print( "Usage: %s  object_file  output_file  [curvature_distance]\n", argv[0] );
+        print_error(
+              "Usage: %s  object_file  output_file  [curvature_distance]\n",
+              argv[0] );
         return( 1 );
     }
 
@@ -46,12 +48,9 @@ int  main(
 
     for_less( i, 0, polygons->n_points )
     {
-        if( curvatures[i] < 1.0e30 )
-        {
-            if( output_real( file, curvatures[i] ) != OK ||
-                output_newline( file ) != OK )
-                break;
-        }
+        if( output_real( file, curvatures[i] ) != OK ||
+            output_newline( file ) != OK )
+            break;
     }
 
     (void) close_file( file );
