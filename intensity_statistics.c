@@ -26,7 +26,7 @@ int  main(
     Real                 mean, median, std_dev, value;
     Real                 min_sample_value, max_sample_value;
     Volume               volume, label_volume;
-    BOOLEAN              median_required;
+    BOOLEAN              median_required, first_pass;
     Real                 separations[MAX_DIMENSIONS];
     Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
     Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
@@ -93,79 +93,70 @@ int  main(
     }
 
     first = TRUE;
-
-    BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
-
-        if( !labels_present || get_volume_label_data( label_volume, v ) != 0 )
-        {
-            value = get_volume_real_value( volume, v[0], v[1], v[2], v[3],v[4]);
-
-            if( dumping )
-            {
-                if( output_real( file, value ) != OK ||
-                    output_newline( file ) != OK )
-                    return( 1 );
-            }
-
-            for_less( c, 0, N_DIMENSIONS )
-                real_v[c] = (Real) v[c];
-
-            convert_voxel_to_world( volume, real_v,
-                                    &world[X], &world[Y], &world[Z]);
-
-            if( first )
-            {
-                first = FALSE;
-                for_less( c, 0, N_DIMENSIONS )
-                {
-                    min_voxel[c] = real_v[c];
-                    max_voxel[c] = real_v[c];
-                    min_world[c] = world[c];
-                    max_world[c] = world[c];
-                }
-            }
-            else
-            {
-                for_less( c, 0, N_DIMENSIONS )
-                {
-                    if( real_v[c] < min_voxel[c] )
-                        min_voxel[c] = real_v[c];
-                    else if( real_v[c] > max_voxel[c] )
-                        max_voxel[c] = real_v[c];
-
-                    if( world[c] < min_world[c] )
-                        min_world[c] = world[c];
-                    else if( world[c] > max_world[c] )
-                        max_world[c] = world[c];
-                }
-            }
-        }
-
-    END_ALL_VOXELS
-
-    if( dumping )
-        (void) close_file( file );
-
-    done = FALSE;
-
-    reorder_voxel_to_xyz( volume, min_voxel, min_xyz_voxel );
-    reorder_voxel_to_xyz( volume, max_voxel, max_xyz_voxel );
+    first_pass = TRUE;
 
     initialize_statistics( &stats, min_value, max_value );
+
+    done = FALSE;
 
     while( !done )
     {
         BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
 
-            if( !labels_present || get_volume_label_data( label_volume, v ) != 0 )
+            if( !labels_present || get_volume_label_data( label_volume, v )!= 0)
             {
                 value = get_volume_real_value( volume, v[0], v[1], v[2], v[3],
                                                v[4]);
 
                 add_sample_to_statistics( &stats, value );
+
+                if( first_pass )
+                {
+                    if( dumping )
+                    {
+                        if( output_real( file, value ) != OK ||
+                            output_newline( file ) != OK )
+                            return( 1 );
+                    }
+
+                    for_less( c, 0, N_DIMENSIONS )
+                        real_v[c] = (Real) v[c];
+
+                    convert_voxel_to_world( volume, real_v,
+                                            &world[X], &world[Y], &world[Z]);
+
+                    if( first )
+                    {
+                        first = FALSE;
+                        for_less( c, 0, N_DIMENSIONS )
+                        {
+                            min_voxel[c] = real_v[c];
+                            max_voxel[c] = real_v[c];
+                            min_world[c] = world[c];
+                            max_world[c] = world[c];
+                        }
+                    }
+                    else
+                    {
+                        for_less( c, 0, N_DIMENSIONS )
+                        {
+                            if( real_v[c] < min_voxel[c] )
+                                min_voxel[c] = real_v[c];
+                            else if( real_v[c] > max_voxel[c] )
+                                max_voxel[c] = real_v[c];
+
+                            if( world[c] < min_world[c] )
+                                min_world[c] = world[c];
+                            else if( world[c] > max_world[c] )
+                                max_world[c] = world[c];
+                        }
+                    }
+                }
             }
 
         END_ALL_VOXELS
+
+        first_pass = FALSE;
 
         get_statistics( &stats, &n_samples, &mean, &median, &median_is_exact,
                         &min_sample_value, &max_sample_value, &std_dev );
@@ -176,6 +167,9 @@ int  main(
             done = TRUE;
     }
 
+    if( dumping )
+        (void) close_file( file );
+
     terminate_statistics( &stats );
 
     delete_volume( volume );
@@ -185,6 +179,9 @@ int  main(
 
     if( n_samples > 0 )
     {
+        reorder_voxel_to_xyz( volume, min_voxel, min_xyz_voxel );
+        reorder_voxel_to_xyz( volume, max_voxel, max_xyz_voxel );
+
         print( "N Voxels : %d\n", n_samples );
         print( "Volume   : %g\n",
                n_samples * separations[X] * separations[Y] * separations[Z] );
