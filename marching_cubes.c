@@ -37,13 +37,13 @@ private  void  extract_surface(
     int               ***point_ids[],
     polygons_struct   *polygons );
 
-static  char    *dimension_names_3D[] = { MIzspace, MIyspace, MIxspace };
-static  char    *dimension_names[] = { MIyspace, MIxspace };
+static  STRING    dimension_names_3D[] = { MIzspace, MIyspace, MIxspace };
+static  STRING    dimension_names[] = { MIyspace, MIxspace };
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: marching_cubes  input.mnc  output.obj  threshold\n\
        marching_cubes  input.mnc  output.obj  min_threshold max_threshold\n\
 \n\
@@ -57,8 +57,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *input_volume_filename, *output_filename;
-    char                 *label_filename;
+    STRING               input_volume_filename, output_filename;
+    STRING               label_filename;
     Volume               volume, label_volume;
     Real                 min_threshold, max_threshold;
     Real                 min_label, max_label;
