@@ -5,13 +5,14 @@ private  void  usage(
     STRING   executable )
 {
     static  STRING  usage_str = "\n\
-Usage: %s  volume.mnc  input.tag|input.mnc|none  [dump_file]\n\
+Usage: %s  volume.mnc  input.tag|input.mnc|none  [dump_file|none] [nomedian]\n\
 \n\
      Computes the statistics for the volume intensity of the volume.  If\n\
      an input tag or label file is specified, then only those voxels in\n\
      in the region of the tags or mask volume or considered.   If a\n\
-     third argument is specified, all the intensities are placed in the\n\
-     file.\n\n";
+     third argument (other than the word none) is specified, all the\n\
+     intensities are placed in the file.  If a fourth argument is specified,\n\
+     then the median is not computed, which saves some time.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -20,11 +21,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, label_filename;
+    STRING               volume_filename, label_filename, dummy;
     STRING               dump_filename;
     Real                 mean, median, std_dev, value;
     Real                 min_sample_value, max_sample_value;
     Volume               volume, label_volume;
+    BOOLEAN              no_median_required;
     Real                 separations[MAX_DIMENSIONS];
     Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
     Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
@@ -44,7 +46,9 @@ int  main(
         return( 1 );
     }
 
-    dumping = get_string_argument( NULL, &dump_filename );
+    dumping = get_string_argument( NULL, &dump_filename ) &&
+              !equal_strings( dump_filename, "none" );
+    no_median_required = get_string_argument( NULL, &dummy );
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -161,7 +165,7 @@ int  main(
         get_statistics( &stats, &n_samples, &mean, &median, &median_is_exact,
                         &min_sample_value, &max_sample_value, &std_dev );
 
-        if( !median_is_exact )
+        if( !no_median_required && !median_is_exact )
             restart_statistics_with_narrower_median_range( &stats );
         else
             done = TRUE;
