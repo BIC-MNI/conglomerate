@@ -175,3 +175,6 @@ transform_tags
 transform_objects
 two_surface_resample
 volume_object_evaluate
+marching_cubes
+config.h
+autom4te.cache

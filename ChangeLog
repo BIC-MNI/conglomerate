@@ -1,5 +1,9 @@
 2003-01-25  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
+	* configure.ac: Set version to 1.2.
+
+2003-01-25  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
 	* configure.ac: Set version to 1.1.
 
 	* Makefile.am (m4_files): Add m4/smr_CGAL_MAKEFILE.m4.
