@@ -30,7 +30,7 @@ int  main( argc, argv )
     File_formats      file_format;
     int               n_objects;
     object_struct     **object_list;
-    volume_struct     volume, tmp;
+    Volume            volume, tmp;
     polygons_struct   *polygons;
 
     initialize_argument_processing( argc, argv );
@@ -74,7 +74,6 @@ int  main( argc, argv )
     deform.boundary_definition.variable_threshold_flag = FALSE;
     deform.boundary_definition.gradient_flag = FALSE;
     deform.deform_data.type = VOLUME_DATA;
-    deform.deform_data.volume = &volume;
 
     deform.deformation_model.position_constrained = FALSE;
 
@@ -82,26 +81,28 @@ int  main( argc, argv )
 
     if( strcmp( activity_filename, "none" ) != 0 )
     {
-        alloc_auxiliary_data( &volume );
+        alloc_auxiliary_data( volume );
 
         status = open_file( activity_filename, READ_FILE, BINARY_FORMAT,
                             &file );
 
         if( status == OK )
             status = io_volume_auxiliary_bit( file, READ_FILE,
-                                              &volume, ACTIVE_BIT );
+                                              volume, ACTIVE_BIT );
 
         status = close_file( file );
     }
 
     if( nx > 0 && ny > 0 && nz > 0 )
     {
-        smooth_resample_volume( &volume, nx, ny, nz, &tmp );
+        tmp = smooth_resample_volume( volume, nx, ny, nz );
 
-        delete_volume( &volume );
+        delete_volume( volume );
 
         volume = tmp;
     }
+
+    deform.deform_data.volume = volume;
 
     if( status == OK )
     {
