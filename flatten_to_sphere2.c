@@ -4,7 +4,10 @@
 typedef  float  dtype;
 
 private  void  flatten_polygons(
-    polygons_struct  *polygons,
+    int              n_points,
+    Point            points[],
+    int              n_neighbours[],
+    int              *neighbours[],
     Point            init_points[],
     Real             centroid_weight,
     Real             sphere_weight,
@@ -16,10 +19,11 @@ int  main(
 {
     STRING               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
+    int                  *n_neighbours, **neighbours;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons;
-    Point                *init_points;
+    Point                *init_points, *points;
     Real                 sphere_weight, centroid_weight;
 
     initialize_argument_processing( argc, argv );
@@ -27,7 +31,7 @@ int  main(
     if( !get_string_argument( NULL, &src_filename ) ||
         !get_string_argument( NULL, &dest_filename ) )
     {
-        print_error( "Usage: %s  input.obj output.obj [n_iters]\n",
+        print_error( "Usage: %s  input.obj output.obj [cw] [sw] [n_iters]\n",
                      argv[0] );
         return( 1 );
     }
@@ -57,11 +61,31 @@ int  main(
     }
     else
     {
-        init_points = polygons->points;
+        init_points = NULL;
     }
 
-    flatten_polygons( polygons, init_points, centroid_weight,
+    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
+                                     &neighbours, NULL, NULL );
+
+    points = polygons->points;
+    ALLOC( polygons->points, 1 );
+    delete_object_list( 1, object_list );
+
+    flatten_polygons( polygons->n_points, points, n_neighbours, neighbours,
+                      init_points, centroid_weight,
                       sphere_weight, n_iters );
+
+    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
+                                     NULL, NULL );
+
+    if( input_graphics_file( src_filename, &format, &n_objects,
+                         &object_list ) != OK || n_objects != 1 ||
+        get_object_type(object_list[0]) != POLYGONS )
+        return( 1 );
+
+    polygons = get_polygons_ptr( object_list[0] );
+    FREE( polygons->points );
+    polygons->points = points;
 
     if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
         print_error( "Error outputting: %s\n", dest_filename );
@@ -531,13 +555,16 @@ private  void  minimize_along_line(
 }
 
 private  void  flatten_polygons(
-    polygons_struct  *polygons,
+    int              n_points,
+    Point            points[],
+    int              n_neighbours[],
+    int              *neighbours[],
     Point            init_points[],
     Real             centroid_weight,
     Real             sphere_weight,
     int              n_iters )
 {
-    int              p, n, point, *n_neighbours, **neighbours;
+    int              p, n, n1, point;
     int              n_parameters, total_neighbours;
     Real             gg, dgg, gam, current_time, last_update_time;
     Real             fit;
@@ -545,44 +572,49 @@ private  void  flatten_polygons(
     Point            centroid;
     int              iter, ind, update_rate;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
+    BOOLEAN          init_supplied;
+
+    init_supplied = (init_points != NULL);
+    if( !init_supplied )
+        init_points = points;
 
     if( sphere_weight > 0.0 )
     {
         radius = 0.0;
-        get_points_centroid( polygons->n_points, init_points, &centroid );
-        for_less( point, 0, polygons->n_points )
+        get_points_centroid( n_points, init_points, &centroid );
+        for_less( point, 0, n_points )
         {
-            radius += distance_between_points( &polygons->points[point],
-                                               &centroid );
+            radius += distance_between_points( &points[point], &centroid );
         }
-        radius /= (Real) polygons->n_points;
+        radius /= (Real) n_points;
     }
 
-    create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
-                                     &neighbours, NULL, NULL );
-
     total_neighbours = 0;
-    for_less( point, 0, polygons->n_points )
-        total_neighbours += n_neighbours[point];
-    total_neighbours /= 2;
+    for_less( point, 0, n_points )
+    {
+        for_less( n, 0, n_neighbours[point] )
+            if( neighbours[point][n] > point )
+                ++total_neighbours;
+    }
 
     ALLOC( distances, total_neighbours );
     ind = 0;
 
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
     {
         for_less( n, 0, n_neighbours[point] )
         {
-            if( neighbours[point][n] < point )
-                continue;
-            distances[ind] = (dtype) sq_distance_between_points(
-                                   &polygons->points[point],
-                                   &polygons->points[neighbours[point][n]] );
-            ++ind;
+            if( neighbours[point][n] > point )
+            {
+                distances[ind] = (dtype) sq_distance_between_points(
+                                       &points[point],
+                                       &points[neighbours[point][n]] );
+                ++ind;
+            }
         }
     }
 
-    n_parameters = 3 * polygons->n_points;
+    n_parameters = 3 * n_points;
     if( sphere_weight > 0.0 )
         ++n_parameters;
     ALLOC( parameters, n_parameters );
@@ -591,18 +623,21 @@ private  void  flatten_polygons(
     ALLOC( xi, n_parameters );
     ALLOC( unit_dir, n_parameters );
 
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
     {
         parameters[IJ(point,0,3)] = (dtype) Point_x(init_points[point] );
         parameters[IJ(point,1,3)] = (dtype) Point_y(init_points[point] );
         parameters[IJ(point,2,3)] = (dtype) Point_z(init_points[point] );
     }
 
+    if( init_supplied )
+        FREE( init_points );
+
     if( sphere_weight > 0.0 )
         parameters[n_parameters-1] = (dtype) radius;
 
-    sphere_weight *= (Real) total_neighbours / (Real) polygons->n_points;
-    centroid_weight *= (Real) total_neighbours / (Real) polygons->n_points;
+    sphere_weight *= (Real) total_neighbours / (Real) n_points;
+    centroid_weight *= (Real) total_neighbours / (Real) n_points;
 
     fit = evaluate_fit( n_parameters, parameters, distances,
                         n_neighbours, neighbours,
@@ -686,12 +721,9 @@ private  void  flatten_polygons(
         }
     }
 
-    delete_polygon_point_neighbours( polygons, n_neighbours, neighbours,
-                                     NULL, NULL );
-
-    for_less( point, 0, polygons->n_points )
+    for_less( point, 0, n_points )
     {
-        fill_Point( polygons->points[point],
+        fill_Point( points[point],
                     parameters[IJ(point,0,3)],
                     parameters[IJ(point,1,3)],
                     parameters[IJ(point,2,3)] );
