@@ -81,6 +81,7 @@ private  int  create_coefficients(
     Real             flat[2][MAX_POINTS_PER_POLYGON];
     Real             *weights[2][2], cons[2];
     BOOLEAN          found, ignoring;
+    progress_struct  progress;
 
     ALLOC( weights[0][0], MAX_POINTS_PER_POLYGON );
     ALLOC( weights[0][1], MAX_POINTS_PER_POLYGON );
@@ -110,6 +111,8 @@ private  int  create_coefficients(
     ALLOC( *node_weights, n_equations );
     ALLOC( *node_list, n_equations );
 
+    initialize_progress_report( &progress, FALSE, polygons->n_points,
+                                "Creating coefficients" );
     eq = 0;
     for_less( node, 0, polygons->n_points )
     {
@@ -220,7 +223,11 @@ private  int  create_coefficients(
 
             ++eq;
         }
+
+        update_progress_report( &progress, node + 1 );
     }
+
+    terminate_progress_report( &progress );
 
 #ifdef DEBUG
 #define DEBUG
