@@ -103,13 +103,6 @@ int  main( argc, argv )
                              gradient_threshold, angle, normal_direction[0],
                              tolerance );
 
-    if( add_deformation_model( &deform.deformation_model,
-                           -1, model_weight, model_filename,
-                           min_curvature_offset, max_curvature_offset ) != OK )
-    {
-        return( 1 );
-    }
-
     deform.deform_data.type = VOLUME_DATA;
 
     status = input_volume( volume_filename, 3, XYZ_dimension_names,
