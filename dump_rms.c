@@ -9,21 +9,24 @@ int  main(
     STRING           input1_filename, input2_filename, output_filename;
     int              i, n_objects, n_points1, n_points2;
     Real             dx, dy, dz, dist_sq, rms;
+    Real             sum_x, sum_xx, std_dev, avg_dist;
     File_formats     format;
     object_struct    **object_list;
     Point            *points1, *points2;
+    BOOLEAN          output_flag;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &input1_filename ) ||
-        !get_string_argument( NULL, &input2_filename ) ||
-        !get_string_argument( NULL, &output_filename ) )
+        !get_string_argument( NULL, &input2_filename ) )
     {
         print_error(
           "Usage: %s input1.obj  input2.obj  output.txt\n",
                   argv[0] );
         return( 1 );
     }
+
+    output_flag = get_string_argument( NULL, &output_filename );
 
     if( input_graphics_file( input1_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 )
@@ -49,10 +52,12 @@ int  main(
         return( 1 );
     }
 
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    if( output_flag &&
+        open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
 
-    rms = 0.0;
+    sum_x = 0.0;
+    sum_xx = 0.0;
 
     for_less( i, 0, n_points1 )
     {
@@ -62,17 +67,32 @@ int  main(
 
         dist_sq = dx * dx + dy * dy + dz * dz;
 
-        (void) output_real( file, dist_sq );
-        (void) output_newline( file );
+        if( output_flag )
+        {
+            (void) output_real( file, dist_sq );
+            (void) output_newline( file );
+        }
 
-        rms += dist_sq;
+        if( dist_sq > 0.0 )
+        {
+            sum_x += sqrt( dist_sq );
+            sum_xx += dist_sq;
+        }
     }
 
-    (void) close_file( file );
+    if( output_flag )
+        (void) close_file( file );
 
-    rms = sqrt( rms / (Real) n_points1 );
+    rms = sqrt( sum_xx / (Real) n_points1 );
+    avg_dist = sum_x / (Real) n_points1;
+    std_dev = (sum_xx - sum_x * sum_x / (Real) n_points1) /
+              (Real) (n_points1-1);
+    if( std_dev > 0.0 )
+        std_dev = sqrt( std_dev );
 
     print( "Rms over the %d points: %g\n", n_points1, rms );
+    print( "Average           dist: %g\n", avg_dist );
+    print( "Std dev           dist: %g\n", std_dev );
 
     return( 0 );
 }
