@@ -21,8 +21,8 @@ int  main(
 {
     int                  x, y, z, sizes[N_DIMENSIONS], x_size, y_size;
     int                  n, i, *counts, window_width;
-    Real                 value, width_ratio;
-    Real                 min_value, max_value, scale, trans;
+    Real                 value, width_ratio, min_voxel, max_voxel, voxel;
+    Real                 min_value, max_value;
     char                 *input_volume_filename, *output_filename;
     lines_struct         *lines;
     object_struct        *object;
@@ -48,11 +48,17 @@ int  main(
         return( 1 );
 
     get_volume_sizes( volume, sizes );
+    get_volume_voxel_range( volume, &min_voxel, &max_voxel );
     get_volume_real_range( volume, &min_value, &max_value );
 
     initialize_histogram( &histogram,
                           (max_value - min_value) / (Real) (x_size-1),
                           min_value );
+
+    n = (int) max_voxel - (int) min_voxel + 1;
+    ALLOC( counts, n );
+    for_less( i, 0, n )
+        counts[i] = 0;
 
     for_less( x, 0, sizes[X] )
     {
@@ -62,6 +68,9 @@ int  main(
             {
                 GET_VALUE_3D( value, volume, x, y, z );
                 add_to_histogram( &histogram, value );
+
+                GET_VOXEL_3D( voxel, volume, x, y, z );
+                ++counts[(int)voxel - (int)min_voxel];
             }
         }
     }
@@ -74,18 +83,22 @@ int  main(
 
     (void) output_graphics_file( output_filename, ASCII_FORMAT, 1, &object );
 
-    window_width = ROUND( x_size * width_ratio );
+    window_width = ROUND( n * width_ratio );
     if( window_width < 1 )
         window_width = 1;
-
-    n = get_histogram_counts( &histogram, &counts, &scale, &trans );
 
     for_less( i, 0, n )
     {
         if( is_minimum( counts, i, n, window_width ) )
-            print( "Minimum at %g\n", scale * (Real) i + trans );
+        {
+            value = CONVERT_VOXEL_TO_VALUE( volume, i + (int) min_voxel );
+            print( "Minimum at %g\n", value );
+        }
         else if( is_maximum( counts, i, n, window_width ) )
-            print( "   Maximum at %g\n", scale * (Real) i + trans );
+        {
+            value = CONVERT_VOXEL_TO_VALUE( volume, i + (int) min_voxel );
+            print( "     Maximum at %g\n", value );
+        }
     }
 
     return( 0 );
