@@ -46,11 +46,23 @@ int  main(
     get_volume_separations( volume, separations );
     voxel_to_world_transform = volume->voxel_to_world_transform;
 
-    print( "Reading %s\n", landmark_filename );
+    if( filename_extension_matches( landmark_filename,
+                                get_default_landmark_file_suffix() ) )
+    {
+        print( "Reading OLD format Landmark file %s\n", landmark_filename );
 
-    status = input_landmark_file( volume, landmark_filename,
-                                  GREEN, 1.0, BOX_MARKER, &n_objects,
-                                  &object_list );
+        status = input_landmark_file( volume, landmark_filename,
+                                      GREEN, 1.0, BOX_MARKER,
+                                      &n_objects, &object_list );
+    }
+    else
+    {
+        print( "Reading TAG file %s\n", landmark_filename );
+
+        status = input_tag_file( landmark_filename,
+                                 GREEN, 1.0, BOX_MARKER,
+                                 &n_objects, &object_list );
+    }
 
     if( status != OK )
         return( 1 );
@@ -113,8 +125,8 @@ int  main(
             for_less( z, 0, dest_sizes[Z] )
                 SET_VOXEL_3D( output_volume, x, y, z, 0.0 );
 
-    output_volume->min_value = 0.0;
-    output_volume->max_value = 255.0;
+    output_volume->min_voxel = 0.0;
+    output_volume->max_voxel = 255.0;
     output_volume->value_scale = 1.0;
     output_volume->value_translation = 0.0;
     output_volume->separation[X] = separations[X];
@@ -163,7 +175,9 @@ int  main(
     print( "Writing %s\n", output_filename );
 
     minc_file = initialize_minc_output( output_filename, 3, in_dim_names,
-                                    dest_sizes, NC_BYTE, FALSE, 0.0, 255.0,
+                                    dest_sizes, NC_BYTE, FALSE,
+                                    0.0, 255.0,
+                                    0.0, 255.0,
                                     &voxel_to_world_transform );
 
     status = output_minc_volume( minc_file, output_volume );

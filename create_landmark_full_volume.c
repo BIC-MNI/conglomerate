@@ -80,10 +80,10 @@ int  main(
     char                 *input_filename, *landmark_filename, *output_filename;
     Real                 separations[N_DIMENSIONS];
     Real                 voxel[N_DIMENSIONS];
-    Real                 max_value, min_v, max_v, max_map;
+    Real                 max_value, max_map;
     Real                 radius, radius_squared;
     Real                 delta, dx2, dy2, dz2;
-    String               *landmark_filenames;
+    String               *filenames;
     bitlist_3d_struct    bitlist;
     Volume               volume, output_volume;
     volume_input_struct  volume_input;
@@ -139,9 +139,9 @@ int  main(
 
     while( get_next_filename( &landmark_filename ) )
     {
-        SET_ARRAY_SIZE( landmark_filenames, n_files, n_files + 1,
+        SET_ARRAY_SIZE( filenames, n_files, n_files + 1,
                         DEFAULT_CHUNK_SIZE );
-        (void) strcpy( landmark_filenames[n_files], landmark_filename );
+        (void) strcpy( filenames[n_files], landmark_filename );
         ++n_files;
     }
 
@@ -149,11 +149,11 @@ int  main(
 
     for_less( p, 0, n_files )
     {
-        print( "Reading %s\n", landmark_filenames[p] );
+        print( "[%d/%d] Reading %s\n", p+1, n_files, filenames[p] );
 
-        status = input_landmark_file( volume, landmark_filenames[p],
-                                      GREEN, 1.0, BOX_MARKER, &n_objects,
-                                      &object_list );
+        status = input_objects_any_format( volume, filenames[p],
+                                           GREEN, 1.0, BOX_MARKER,
+                                           &n_objects, &object_list );
 
         if( status != OK )
             return( 1 );
@@ -236,11 +236,9 @@ int  main(
 
     print( "Writing %s\n", output_filename );
 
-    get_volume_voxel_range( output_volume, &min_v, &max_v);
-
     minc_file = initialize_minc_output( output_filename, 3, in_dim_names,
                                     sizes, NC_BYTE, FALSE,
-                                    min_v, max_v,
+                                    0.0, 255.0,
                                     0.0, 100.0,
                                     &output_volume->voxel_to_world_transform );
 
