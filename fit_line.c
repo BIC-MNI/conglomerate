@@ -80,7 +80,7 @@ int   main(
 
     (void) get_int_argument( DEFAULT_MAX_POINTS, &max_points );
 
-    subdivide = get_string_argument( "", &dummy );
+    subdivide = !get_string_argument( "", &dummy );
 
     status = input_landmark_file( (Volume) NULL, input_filename,
                                   WHITE, 1.0, BOX_MARKER,
@@ -147,7 +147,7 @@ private  void   fit_line_to_points(
         add_point_to_line( lines, &curve_points[i] );
 }
 
-#define  MAX_ERROR     3.0
+#define  MAX_ERROR     (0.9 * 0.9)
 
 private  int  create_curve_approximating_points(
     int            n_tags,
@@ -181,6 +181,7 @@ private  int  create_curve_approximating_points(
     if( !subdivide )
     {
         REALLOC( curve, max_points );
+        n_points = max_points;
         curve[max_points-1] = curve[1];
 
         for_less( i, 1, max_points-1 )
@@ -219,6 +220,8 @@ private  int  create_curve_approximating_points(
         first_time = FALSE;
 
         rms_error = fit_curve( n_tags, tags, n_points, curve );
+
+        (void) flush_file( stdout );
     }
     while( n_points < max_points && rms_error >= MAX_ERROR );
 
@@ -227,16 +230,17 @@ private  int  create_curve_approximating_points(
     return( n_points );
 }
 
-#define  INITIAL_TEMPERATURE       0.01
-#define  TEMPERATURE_FACTOR        0.9
+#define  INITIAL_TEMPERATURE       0.1
+#define  TEMPERATURE_FACTOR        0.8
 #define  NUM_TEMPERATURE_STEPS     50
 #define  MAX_TRIES_FACTOR          100
 #define  MAX_SUCCESSES_FACTOR      10
-#define  CURVE_LENGTH_FACTOR       0.1
+#define  CURVE_LENGTH_FACTOR       0.01
 
 #define  STOP_CRITERIA             3
 
-#define  RANDOM_MOVEMENT_DISTANCE  0.5
+#define  START_RANDOM_MOVEMENT_DISTANCE  1.0
+#define  END_RANDOM_MOVEMENT_DISTANCE    0.01
 
 private  Real  fit_curve(
     int     n_tags,
@@ -244,7 +248,7 @@ private  Real  fit_curve(
     int     n_points,
     Point   curve[] )
 {
-    int    n_no_moves;
+    int    i, n_no_moves;
     Real   energy, new_energy, temperature, random_distance, rms_error;
     Real   delta_energy, min_delta_energy, max_delta_energy;
     Real   *tag_rms, *changed_tag_rms, *segment_lengths;
@@ -281,7 +285,10 @@ private  Real  fit_curve(
         n_successes = 0;
         n_pos_successes = 0;
 
-        random_distance = RANDOM_MOVEMENT_DISTANCE;
+        random_distance = INTERPOLATE( (Real) temperature_step /
+                                       (Real) (NUM_TEMPERATURE_STEPS-1),
+                                       START_RANDOM_MOVEMENT_DISTANCE,
+                                       END_RANDOM_MOVEMENT_DISTANCE );
 
         for_less( try, 0, max_tries )
         {
@@ -383,6 +390,7 @@ private  Real  fit_curve(
     rms_error = 0.0;
     for_less( i, 0, n_tags )
         rms_error += tag_rms[i];
+    rms_error /= (Real) n_tags;
 
     print( "Final energy: %g    Final rms: %g\n", energy, rms_error );
 
@@ -553,7 +561,6 @@ private  Real  evaluate_delta_avg_rms(
         {
             possible_change = TRUE;
 
-/*
             for_less( c, 0, N_DIMENSIONS )
             {
                 if( Point_coord(tags[i],c) + current_rms <
@@ -565,7 +572,6 @@ private  Real  evaluate_delta_avg_rms(
                     break;
                 }
             }
-*/
 
             if( possible_change )
             {
