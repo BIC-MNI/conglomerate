@@ -8,10 +8,12 @@ private  void  usage(
     (void) fprintf( stderr, "   activity_filename|none   nx ny nz\n" );
     (void) fprintf( stderr, "   input_polygons output_polygons\n");
     (void) fprintf( stderr, "   model_weight model_filename|avg|none\n" );
+    (void) fprintf( stderr, "   original_positions|none max_distance\n" );
     (void) fprintf( stderr, "   min_curvature max_curvature\n" );
     (void) fprintf( stderr, "   fract_step max_step\n" );
     (void) fprintf( stderr, "   max_search_distance degrees_continuity\n" );
     (void) fprintf( stderr, "   min_isovalue max_isovalue +/-/n\n" );
+    (void) fprintf( stderr, "   gradient_threshold angle tolerance\n" );
     (void) fprintf( stderr, "   max_iterations  stop_threshold\n" );
 }
 
@@ -23,7 +25,9 @@ int  main( argc, argv )
     Real              start_time, end_time;
     char              *volume_filename, *activity_filename;
     char              *input_filename, *output_filename;
-    char              *model_filename, *normal_direction;
+    char              *model_filename, *normal_direction, *original_filename;
+    Real              min_isovalue, max_isovalue, gradient_threshold;
+    Real              angle, tolerance, max_distance;
     int               nx, ny, nz;
     deform_struct     deform;
     FILE              *file;
@@ -47,15 +51,20 @@ int  main( argc, argv )
         !get_string_argument( "", &output_filename ) ||
         !get_real_argument( 0.0, &deform.model_weight ) ||
         !get_string_argument( "", &model_filename ) ||
+        !get_string_argument( "", &original_filename ) ||
+        !get_real_argument( 0.0, &max_distance ) ||
         !get_real_argument( 0.0, &deform.deformation_model.min_curvature_offset ) ||
         !get_real_argument( 0.0, &deform.deformation_model.max_curvature_offset ) ||
         !get_real_argument( 0.0, &deform.fractional_step ) ||
         !get_real_argument( 0.0, &deform.max_step ) ||
         !get_real_argument( 0.0, &deform.max_search_distance ) ||
         !get_int_argument( 0.0, &deform.degrees_continuity ) ||
-        !get_real_argument( 0.0, &deform.boundary_definition.min_isovalue ) ||
-        !get_real_argument( 0.0, &deform.boundary_definition.max_isovalue ) ||
+        !get_real_argument( 0.0, &min_isovalue ) ||
+        !get_real_argument( 0.0, &max_isovalue ) ||
         !get_string_argument( "", &normal_direction ) ||
+        !get_real_argument( 0.0, &gradient_threshold ) ||
+        !get_real_argument( 0.0, &angle ) ||
+        !get_real_argument( 0.0, &tolerance ) ||
         !get_int_argument( 0, &deform.max_iterations ) ||
         !get_real_argument( 0.0, &deform.stop_threshold ) )
     {
@@ -63,26 +72,19 @@ int  main( argc, argv )
         return( 1 );
     }
 
-    switch( normal_direction[0] )
-    {
-    case '-':
-        deform.boundary_definition.normal_direction = TOWARDS_LOWER;   break;
-    case '+':
-        deform.boundary_definition.normal_direction = TOWARDS_HIGHER;  break;
-    default:
-        deform.boundary_definition.normal_direction = ANY_DIRECTION;   break;
-    }
+    set_boundary_definition( &deform.boundary_definition,
+                             min_isovalue, max_isovalue,
+                             gradient_threshold, angle, normal_direction[0],
+                             tolerance );
 
     deform.deform_data.type = VOLUME_DATA;
 
     deform.deformation_model.position_constrained = FALSE;
 
-    status = input_volume( volume_filename, dim_names, &volume );
+    status = input_volume( volume_filename, dim_names, FALSE, &volume );
 
     if( strcmp( activity_filename, "none" ) != 0 )
     {
-        alloc_auxiliary_data( volume );
-
         status = open_file_with_default_suffix( activity_filename, "act",
                                         READ_FILE, BINARY_FORMAT, &file );
 
@@ -139,6 +141,14 @@ int  main( argc, argv )
                                               model_filename,
                                               &deform.deformation_model );
         }
+    }
+
+    if( status == OK && strcmp( original_filename, "none" ) != 0 )
+    {
+        status = input_original_positions( &deform.deformation_model,
+                                           original_filename,
+                                           polygons->n_points );
+        deform.deformation_model.max_position_offset = max_distance;
     }
 
     if( status == OK )
