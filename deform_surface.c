@@ -7,9 +7,12 @@ private  void  usage(
     (void) fprintf( stderr, "%s  volume_filename\n", executable );
     (void) fprintf( stderr, "   activity_filename|none   nx ny nz\n" );
     (void) fprintf( stderr, "   input_polygons output_polygons\n");
-    (void) fprintf( stderr, "   model_weight model_filename|avg|none\n" );
     (void) fprintf( stderr, "   original_positions|none max_distance\n" );
+    (void) fprintf( stderr, "   n_models\n");
+    (void) fprintf( stderr, "   up_to_n_points model_weight model_filename|avg|none\n" );
     (void) fprintf( stderr, "   min_curvature max_curvature\n" );
+    (void) fprintf( stderr, "   [up_to_n_points model_weight model_filename|avg|none\n" );
+    (void) fprintf( stderr, "   min_curvature max_curvature]\n" );
     (void) fprintf( stderr, "   fract_step max_step\n" );
     (void) fprintf( stderr, "   max_search_distance degrees_continuity\n" );
     (void) fprintf( stderr, "   min_isovalue max_isovalue +/-/n\n" );
@@ -29,7 +32,10 @@ int  main( argc, argv )
     Real              min_isovalue, max_isovalue, gradient_threshold;
     Real              model_weight, min_curvature_offset, max_curvature_offset;
     Real              angle, tolerance, max_distance;
-    int               nx, ny, nz, sizes[N_DIMENSIONS];
+    Real              separations[N_DIMENSIONS];
+    int               sizes[N_DIMENSIONS];
+    Real              x_filter_width, y_filter_width, z_filter_width;
+    int               i, n_models, up_to_n_points;
     deform_struct     deform;
     FILE              *file;
     File_formats      file_format;
@@ -44,18 +50,38 @@ int  main( argc, argv )
 
     if( !get_string_argument( "", &volume_filename ) ||
         !get_string_argument( "", &activity_filename ) ||
-        !get_int_argument( 0, &nx ) ||
-        !get_int_argument( 0, &ny ) ||
-        !get_int_argument( 0, &nz ) ||
+        !get_real_argument( 0.0, &x_filter_width ) ||
+        !get_real_argument( 0.0, &y_filter_width ) ||
+        !get_real_argument( 0.0, &z_filter_width ) ||
         !get_string_argument( "", &input_filename ) ||
         !get_string_argument( "", &output_filename ) ||
-        !get_real_argument( 0.0, &model_weight ) ||
-        !get_string_argument( "", &model_filename ) ||
         !get_string_argument( "", &original_filename ) ||
         !get_real_argument( 0.0, &max_distance ) ||
-        !get_real_argument( 0.0, &min_curvature_offset ) ||
-        !get_real_argument( 0.0, &max_curvature_offset ) ||
-        !get_real_argument( 0.0, &deform.fractional_step ) ||
+        !get_int_argument( 1, &n_models ) )
+    {
+        usage( argv[0] );
+        return( 1 );
+    }
+
+    for_less( i, 0, n_models )
+    {
+        if( !get_int_argument( 0, &up_to_n_points ) ||
+            !get_real_argument( 0.0, &model_weight ) ||
+            !get_string_argument( "", &model_filename ) ||
+            !get_real_argument( 0.0, &min_curvature_offset ) ||
+            !get_real_argument( 0.0, &max_curvature_offset ) )
+        {
+            usage( argv[0] );
+            return( 1 );
+        }
+
+        if( add_deformation_model( &deform.deformation_model,
+                   up_to_n_points, model_weight, model_filename,
+                   min_curvature_offset, max_curvature_offset ) != OK )
+            return( 1 );
+    }
+
+    if( !get_real_argument( 0.0, &deform.fractional_step ) ||
         !get_real_argument( 0.0, &deform.max_step ) ||
         !get_real_argument( 0.0, &deform.max_search_distance ) ||
         !get_int_argument( 0.0, &deform.degrees_continuity ) ||
@@ -90,11 +116,12 @@ int  main( argc, argv )
                            NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE,
                            &volume, (minc_input_options *) NULL );
 
-    get_volume_sizes( volume, sizes );
     label_volume = (Volume) NULL;
 
     if( strcmp( activity_filename, "none" ) != 0 )
     {
+        get_volume_sizes( volume, sizes );
+
         label_volume = create_label_volume( 3, sizes );
 
         status = open_file_with_default_suffix( activity_filename, "act",
@@ -106,9 +133,22 @@ int  main( argc, argv )
         status = close_file( file );
     }
 
-    if( nx > 0 && ny > 0 && nz > 0 )
+    if( x_filter_width > 0.0 && y_filter_width > 0.0 && z_filter_width > 0.0 )
     {
-        tmp = smooth_resample_volume( volume, nx, ny, nz );
+        get_volume_separations( volume, separations );
+
+        x_filter_width /= separations[X];
+        y_filter_width /= separations[Y];
+        z_filter_width /= separations[Z];
+
+        tmp = create_box_filtered_volume( volume, x_filter_width,
+                                          y_filter_width, z_filter_width );
+
+        if( label_volume != (Volume) NULL )
+        {
+            delete_volume( label_volume );
+            label_volume = (Volume) NULL;
+        }
 
         delete_volume( volume );
 
