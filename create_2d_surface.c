@@ -2,6 +2,8 @@
 #include  <bicpl.h>
 #include  <special_geometry.h>
 
+#define  DEBUG
+
 private  void  create_2d_coordinates(
     polygons_struct  *polygons,
     int              north_pole );
@@ -306,9 +308,13 @@ private  void  create_2d_coordinates(
 
     for_less( point, 0, polygons->n_points )
     {
-        vertical[point] = 1.0f - vertical[point] /
+        vertical[point] = horizontal[point] /
                           (vertical[point] + horizontal[point] );
     }
+
+#ifdef DEBUG
+    write_values_to_file( "vertical.txt", polygons->n_points, vertical );
+#endif
 
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Computing Horizontal Coord" );
@@ -326,8 +332,10 @@ private  void  create_2d_coordinates(
                                      NULL, NULL );
 
 #ifdef DEBUG
+/*
     write_values_to_file( "vertical.txt", polygons->n_points, vertical );
     write_values_to_file( "horizontal.txt", polygons->n_points, horizontal );
+*/
 #endif
 
     for_less( point, 0, polygons->n_points )
