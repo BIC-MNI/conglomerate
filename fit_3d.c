@@ -33,6 +33,7 @@ private  void   fit_polygons(
     Smallest_int       fit_this_node[],
     BOOLEAN            floating_flag,
     int                oversample,
+    Real               max_step,
     int                n_iters,
     int                n_iters_recompute );
 
@@ -43,7 +44,7 @@ private  void  usage(
 Usage:     %s  input.obj output.obj model.obj model_weight volume.mnc \n\
                   threshold +|-|0  tangent_weight out_dist in_dist\n\
                   float/nofloat oversample\n\
-                  [n_iters] [n_between]\n\
+                  [n_iters] [n_between] [max_step]\n\
                   [values_file min max]\n\n";
 
     print_error( usage_format, executable_name );
@@ -68,7 +69,7 @@ int  main(
     Real                 threshold, model_weight;
     Real                 max_outward, max_inward, tangent_weight;
     Smallest_int         *fit_this_node;
-    Real                 min_value, max_value, value;
+    Real                 min_value, max_value, value, max_step;
     BOOLEAN              floating_flag;
 
     initialize_argument_processing( argc, argv );
@@ -92,6 +93,7 @@ int  main(
 
     (void) get_int_argument( 100, &n_iters );
     (void) get_int_argument( 1, &n_iters_recompute );
+    (void) get_real_argument( -1.0, &max_step );
     (void) get_string_argument( NULL, &values_filename );
     (void) get_real_argument( 0.0, &min_value );
     (void) get_real_argument( 0.0, &max_value );
@@ -153,7 +155,8 @@ int  main(
                   model_points, model_weight, volume, threshold,
                   surface_direction[0], tangent_weight, max_outward, max_inward,
                   fit_this_node,
-                  floating_flag, oversample, n_iters, n_iters_recompute );
+                  floating_flag, oversample, max_step,
+                  n_iters, n_iters_recompute );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
                              &object_list ) != OK || n_objects != 1 ||
@@ -168,6 +171,31 @@ int  main(
 
     return( 0 );
 }
+
+private  void  display_parms(
+    int      n_equations,
+    int      n_parms_involved[],
+    int      *parm_list[],
+    ftype    constants[],
+    ftype    *node_weights[],
+    Real     parameters[] )
+{
+    int   eq, p;
+    Real  value;
+
+    for_less( eq, 0, n_equations )
+    {
+        value = (Real) constants[eq];
+        print( "%3d: %g : ", eq, constants[eq] );
+        for_less( p, 0, n_parms_involved[eq] )
+        {
+            print( " %d:%g ", parm_list[eq][p], node_weights[eq][p] );
+            value += (Real) node_weights[eq][p] * parameters[parm_list[eq][p]];
+        }
+        print( " : %g\n", value );
+    }
+}
+
 
 private  int   get_neighbours_neighbours(
     int    node,
@@ -387,7 +415,7 @@ private  void  create_image_coefficients(
     ftype                       *node_weights[] )
 {
     int        eq, node, n, n_to_do, neigh, n2, neigh2, w, parm_index;
-    int        i, n_involved, inv_index, neigh_parm_index;
+    int        i, n_involved, inv_index, neigh_parm_index, d;
     Real       dist, dx, dy, dz, value, x, y, z, alpha;
     Point      origin, p, search_point, p1, p2;
     Point      neigh_points[1000];
@@ -450,15 +478,15 @@ private  void  create_image_coefficients(
                     if( tangent_weight == 1.0 )
                     {
                         node_weights[eq][0] = (ftype) 0.0;
-                        node_weights[eq][1] = (ftype) 0.0;
-                        node_weights[eq][2] = (ftype) 0.0;
                     }
                     else
                     {
                         node_weights[eq][0] = (ftype) 0.0;
+                        node_weights[eq][1] = (ftype) 0.0;
+                        node_weights[eq][2] = (ftype) 0.0;
                     }
 
-                    constants[eq] = (ftype) (dist * dist);
+                    constants[eq] = (ftype) dist;
                     ++eq;
                 }
 
@@ -526,6 +554,28 @@ private  void  create_image_coefficients(
             }
         }
     }
+
+#ifdef DEBUG
+#define DEBUG
+#undef DEBUG
+{
+    int  e, n_parms_involved;
+    if( tangent_weight == 1.0 )
+        n_parms_involved = 1;
+    else
+        n_parms_involved = 3;
+    for_less( e, 0, eq )
+    {
+        int  p;
+        print( "%3d: %g : ", e, constants[e] );
+        for_less( p, 0, n_parms_involved )
+        {
+            print( " %d:%g ", parm_list[e][p], node_weights[e][p] );
+        }
+        print( "\n" );
+    }
+}
+#endif
 
     if( oversample <= 0 )
         return;
@@ -660,7 +710,7 @@ private  void  create_image_coefficients(
                         else
                             n_to_do = 3;
 
-                        for_less( n, 0, n_to_do )
+                        for_less( d, 0, n_to_do )
                         {
                             if( tangent_weight == 1.0 )
                             {
@@ -673,7 +723,7 @@ private  void  create_image_coefficients(
                                     node_weights[eq][i] = (ftype) 0.0;
                             }
 
-                            constants[eq] = (ftype) (dist * dist);
+                            constants[eq] = (ftype) dist;
                             ++eq;
                         }
 
@@ -748,6 +798,7 @@ private  void  create_image_coefficients(
                                               RVector_y(normal));
                         node_weights[eq][2] = (ftype)((1.0 - alpha) *
                                               RVector_z(normal));
+                        ++inv_index;
                     }
                     else
                     {
@@ -757,11 +808,11 @@ private  void  create_image_coefficients(
 
                     if( neigh_parm_index >= 0 )
                     {
-                        node_weights[eq][inv_index+0] = (ftype)( alpha  *
+                        node_weights[eq][3*inv_index+0] = (ftype)( alpha  *
                                                           RVector_x(normal));
-                        node_weights[eq][inv_index+1] = (ftype)( alpha  *
+                        node_weights[eq][3*inv_index+1] = (ftype)( alpha  *
                                                           RVector_y(normal));
-                        node_weights[eq][inv_index+2] = (ftype)( alpha  *
+                        node_weights[eq][3*inv_index+2] = (ftype)( alpha  *
                                                           RVector_z(normal));
                     }
                     else
@@ -815,18 +866,18 @@ private  void  create_image_coefficients(
 
                     if( neigh_parm_index >= 0 )
                     {
-                        node_weights[eq][inv_index+0] = (ftype) (alpha *
+                        node_weights[eq][3*inv_index+0] = (ftype) (alpha *
                                               tangent_weight * RVector_x(hor));
-                        node_weights[eq][inv_index+1] = (ftype) (alpha *
+                        node_weights[eq][3*inv_index+1] = (ftype) (alpha *
                                               tangent_weight * RVector_y(hor));
-                        node_weights[eq][inv_index+2] = (ftype) (alpha *
+                        node_weights[eq][3*inv_index+2] = (ftype) (alpha *
                                               tangent_weight * RVector_z(hor));
 
-                        node_weights[eq+1][inv_index+0] = (ftype) ( alpha *
+                        node_weights[eq+1][3*inv_index+0] = (ftype) ( alpha *
                                               tangent_weight * RVector_x(vert));
-                        node_weights[eq+1][inv_index+1] = (ftype) ( alpha *
+                        node_weights[eq+1][3*inv_index+1] = (ftype) ( alpha *
                                               tangent_weight * RVector_y(vert));
-                        node_weights[eq+1][inv_index+2] = (ftype) ( alpha *
+                        node_weights[eq+1][3*inv_index+2] = (ftype) ( alpha *
                                               tangent_weight * RVector_z(vert));
                     }
                     else
@@ -860,6 +911,7 @@ private  void   fit_polygons(
     Smallest_int       fit_this_node[],
     BOOLEAN            floating_flag,
     int                oversample,
+    Real               max_step,
     int                n_iters,
     int                n_iters_recompute )
 {
@@ -1076,9 +1128,17 @@ private  void   fit_polygons(
                                    &constants[n_model_equations],
                                    &node_weights[n_model_equations] );
 
+#ifdef DEBUG
+#define DEBUG
+#undef DEBUG
+    display_parms( n_equations, n_parms_involved, parm_list, constants,
+                   node_weights, parameters );
+#endif
+
         (void) MINIMIZE_LSQ( 3 * n_moving_points, n_equations,
                              n_parms_involved, parm_list, constants,
-                             node_weights, n_iters_recompute, parameters );
+                             node_weights, max_step, n_iters_recompute,
+                             parameters );
 
         iter += n_iters_recompute;
         print( "########### %d:\n", iter );
