@@ -8,9 +8,9 @@ int  main(
     char                 *axis_name;
     Volume               volume;
     volume_input_struct  volume_input;
-    int                  axis;
+    int                  axis, x_tess, y_tess;
     object_struct        *object;
-    Real                 world_pos;
+    Real                 world_pos, x_min, x_max, y_min, y_max;
     Real                 world[N_DIMENSIONS], voxel[MAX_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
@@ -24,6 +24,14 @@ int  main(
                argv[0] );
         return( 1 );
     }
+
+    (void) get_int_argument( 0, &x_tess );
+    (void) get_int_argument( 0, &y_tess );
+
+    (void) get_real_argument( 0.0, &x_min );
+    (void) get_real_argument( 0.0, &x_max );
+    (void) get_real_argument( 0.0, &y_min );
+    (void) get_real_argument( 0.0, &y_max );
 
     if( strcmp( axis_name, "x" ) == 0 )
         axis = X;
@@ -48,7 +56,8 @@ int  main(
     convert_world_to_voxel( volume, world[X], world[Y], world[Z], voxel );
 
     object = create_object( QUADMESH );
-    create_slice_quadmesh( volume, axis, voxel[axis],
+    create_slice_quadmesh( volume, axis, voxel[axis], x_tess, y_tess,
+                           x_min, x_max, y_min, y_max,
                            get_quadmesh_ptr(object) );
 
     if( output_graphics_file( output_filename, BINARY_FORMAT, 1, &object )
