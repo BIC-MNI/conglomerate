@@ -48,8 +48,8 @@ int  main(
     get_volume_separations( volume, separations );
     get_volume_sizes( volume, sizes );
 
-    voxel_size = MIN3( ABS(separations[0]), ABS(separations[1]),
-                       ABS(separations[2]) );
+    voxel_size = MIN3( FABS(separations[0]), FABS(separations[1]),
+                       FABS(separations[2]) );
 
     print( "Scanning object to volume.\n" );
 
@@ -82,10 +82,12 @@ int  main(
         {
             for_less( z, 0, sizes[Z] )
             {
-                GET_VOXEL_3D( label, label_volume, x, y, z );
+                label = (int) get_volume_real_value( label_volume, x, y, z,
+                                                     0, 0 );
                 if( label == 2 )
                 {
-                    SET_VOXEL_3D( volume, x, y, z, set_voxel );
+                    set_volume_real_value( volume, x, y, z, 0, 0,
+                                           (Real) set_voxel );
                 }
             }
         }
