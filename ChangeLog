@@ -1,3 +1,10 @@
+2003-11-17  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* ParseArgv.c:
+	* ParseArgv.h: Remove.  These files are now installed as part of minc.
+	
+	* Makefile.am (volume_object_evaluate_SOURCES): Remove ParseArgv.c.
+
 2003-10-14  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* ascii_binary.c: Delete.  This program was moved to package
