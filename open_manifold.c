@@ -8,29 +8,34 @@ private  int  convert_manifold_to_sheet(
     int              south_pole,
     Point            *new_points[],
     Point            *new_flat_points[],
-    int              *new_indices[] );
+    int              *new_indices[],
+    int              *n_fixed,
+    int              *fixed_list[] );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
     STRING               src_filename, dest_filename, dest_init_filename;
+    STRING               dest_fixed_filename;
     int                  p, n_objects, north_pole, south_pole, new_n_points;
+    FILE                 *file;
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
     Point                *init_points, *new_points;
-    int                  *new_indices;
+    int                  *new_indices, n_fixed, *fixed_list;
 
     initialize_argument_processing( argc, argv );
 
     if( !get_string_argument( NULL, &src_filename ) ||
         !get_string_argument( NULL, &dest_filename ) ||
-        !get_string_argument( NULL, &dest_init_filename ) )
+        !get_string_argument( NULL, &dest_init_filename ) ||
+        !get_string_argument( NULL, &dest_fixed_filename ) )
     {
         print_error( "Usage: %s  input.obj output.obj flatten_init.obj\n",
                       argv[0] );
-        print_error( "          [north_pole]  [south_pole]\n" );
+        print_error( "          fixed.txt [north_pole]  [south_pole]\n" );
         return( 1 );
     }
 
@@ -56,7 +61,8 @@ int  main(
 
     new_n_points = convert_manifold_to_sheet( polygons, north_pole,
                                               south_pole, &new_points,
-                                              &init_points, &new_indices );
+                                              &init_points, &new_indices,
+                                              &n_fixed, &fixed_list );
 
     FREE( polygons->points );
     polygons->points = new_points;
@@ -70,6 +76,20 @@ int  main(
                                  object_list);
 
     delete_object_list( n_objects, object_list );
+
+    if( open_file( dest_fixed_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK)
+        return( 1 );
+
+    for_less( p, 0, n_fixed )
+    {
+        if( output_int( file, fixed_list[p] ) != OK ||
+            output_newline( file ) != OK )
+        {
+            print_error( "Error writing file\n" );
+        }
+    }
+
+    (void) close_file( file );
 
     output_alloc_to_file( NULL );
 
@@ -364,7 +384,9 @@ private  int  convert_manifold_to_sheet(
     int              south_pole,
     Point            *new_points[],
     Point            *new_flat_points[],
-    int              *new_indices[] )
+    int              *new_indices[],
+    int              *n_fixed,
+    int              *fixed_list[] )
 {
     int               *n_neighbours, **neighbours;
     int               p, n_points, poly, new_n_points, *new_ids;
@@ -422,11 +444,6 @@ private  int  convert_manifold_to_sheet(
     ALLOC( *new_points, new_n_points );
     ALLOC( *new_flat_points, new_n_points );
 
-    for_less( p, 0, new_n_points )
-        fill_Point( (*new_flat_points)[p], 0.5, 0.5, 0.0 );
-    fill_Point( (*new_flat_points)[south_pole], 0.5, 0.0, 0.0 );
-    fill_Point( (*new_flat_points)[north_pole], 0.5, 1.0, 0.0 );
-
     ALLOC( new_ids, n_points );
     for_less( p, 0, n_points )
         new_ids[p] = -1;
@@ -439,6 +456,24 @@ private  int  convert_manifold_to_sheet(
         new_ids[path[p]] = n_points + p - 1;
         (*new_points)[n_points+p-1] = points[path[p]];
     }
+
+    *n_fixed = 6;
+    ALLOC( *fixed_list, *n_fixed );
+    (*fixed_list)[0] = north_pole;
+    (*fixed_list)[1] = path[1];
+    (*fixed_list)[2] = new_ids[path[1]];
+    (*fixed_list)[3] = south_pole;
+    (*fixed_list)[4] = path[path_size-2];
+    (*fixed_list)[5] = new_ids[path[path_size-2]];
+
+    for_less( p, 0, new_n_points )
+        fill_Point( (*new_flat_points)[p], 0.5, 0.5, 0.0 );
+    fill_Point( (*new_flat_points)[south_pole], 0.5, 0.0, 0.0 );
+    fill_Point( (*new_flat_points)[north_pole], 0.5, 1.0, 0.0 );
+    fill_Point( (*new_flat_points)[path[1]], 0.0, 0.95, 0.0 );
+    fill_Point( (*new_flat_points)[new_ids[path[1]]], 1.0, 0.95, 0.0 );
+    fill_Point( (*new_flat_points)[path[path_size-2]], 0.0, 0.05, 0.0 );
+    fill_Point( (*new_flat_points)[new_ids[path[path_size-2]]], 1.0, 0.05, 0.0);
 
     for_less( poly, 0, polygons->n_items )
     {
