@@ -5,7 +5,7 @@ int  main(
     char   *argv[] )
 {
     Status          status;
-    char            *output_filename;
+    STRING          output_filename;
     int             n_triangles;
     Point           centre;
     object_struct   *object;

@@ -17,8 +17,8 @@ Usage: transform_objects  input.obj  input.xfm  [output.obj]\n\
 }
 
 private  void  transform_object(
-    Transform      *transform,
-    object_struct  *object )
+    General_transform      *transform,
+    object_struct          *object )
 {
     int    i, n_points;
     Point  *points;
@@ -28,10 +28,10 @@ private  void  transform_object(
 
     for_less( i, 0, n_points )
     {
-        transform_point( transform,
-                         Point_x(points[i]),
-                         Point_y(points[i]),
-                         Point_z(points[i]), &x, &y, &z );
+        general_transform_point( transform,
+                                 Point_x(points[i]),
+                                 Point_y(points[i]),
+                                 Point_z(points[i]), &x, &y, &z );
 
         fill_Point( points[i], x, y, z );
     }
@@ -41,14 +41,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status         status;
-    STRING         input_filename, output_filename, transform_filename;
-    STRING         dummy;
-    int            i, n_objects;
-    BOOLEAN        invert;
-    Transform      transform, inverse;
-    File_formats   format;
-    object_struct  **object_list;
+    Status              status;
+    STRING              input_filename, output_filename, transform_filename;
+    STRING              dummy;
+    int                 i, n_objects;
+    BOOLEAN             invert;
+    General_transform   transform;
+    File_formats        format;
+    object_struct       **object_list;
 
     status = OK;
 
@@ -64,19 +64,11 @@ int  main(
     (void) get_string_argument( input_filename, &output_filename );
     invert = get_string_argument( "", &dummy );
 
-    if( read_transform_file( transform_filename, &transform ) != OK )
+    if( input_transform_file( transform_filename, &transform ) != OK )
         return( 1 );
 
     if( invert )
-    {
-        if( !compute_transform_inverse( &transform, &inverse ) )
-        {
-            print_error( "Transform not invertible.\n" );
-            return( 1 );
-        }
-
-        transform = inverse;
-    }
+        invert_general_transform( &transform );
 
     status = input_graphics_file( input_filename, &format, &n_objects,
                                   &object_list );

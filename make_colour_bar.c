@@ -9,6 +9,8 @@
 
 #define  SCALE 100.0
 
+#define  OFFSET 0.1
+
 int  main(
     int    argc,
     char   *argv[] )
@@ -17,12 +19,15 @@ int  main(
     Real                 scale;
     STRING               output_filename;
     STRING               under_colour_name, over_colour_name;
+    STRING               outline_colour_name;
+    STRING               range_tick_colour_name, limit_tick_colour_name;
     int                  p, n_steps, point_index0, point_index1;
     object_struct        **object_list;
     quadmesh_struct      *quadmesh;
     Point                point;
-    lines_struct         *lines;
-    Colour               under_colour, over_colour;
+    lines_struct         *lines, *outline;
+    Colour               under_colour, over_colour, outline_colour;
+    Colour               range_tick_colour, limit_tick_colour;
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
     STRING               coding_type_string;
@@ -40,18 +45,23 @@ int  main(
         print_error(
             "Usage: %s  output.obj gray|hot|spectral min low high max\n",
             argv[0]  );
-        print_error( "   [under_col]  [over_col]  [n_steps]  \n" );
+        print_error( "   [under_col]  [over_col]  [outline_col] [n_steps]  \n");
         print_error( "   [width] [tick_width] [scale]\n" );
+        print_error( "   [range_colour] [limit_colour]\n" );
         return( 1 );
     }
 
     (void) get_string_argument( "GREY", &under_colour_name );
     (void) get_string_argument( "WHITE", &over_colour_name );
+    (void) get_string_argument( "BLACK", &outline_colour_name );
 
     (void) get_int_argument( 1000, &n_steps );
     (void) get_real_argument( 0.03, &width );
     (void) get_real_argument( 0.01, &tick_width );
     (void) get_real_argument( SCALE, &scale );
+
+    (void) get_string_argument( "WHITE", &range_tick_colour_name );
+    (void) get_string_argument( "GREEN", &limit_tick_colour_name );
 
     if( equal_strings( coding_type_string, GRAY_STRING ) )
         coding_type = GRAY_SCALE;
@@ -72,7 +82,10 @@ int  main(
     }
 
     if( !lookup_colour( under_colour_name, &under_colour ) ||
-        !lookup_colour( over_colour_name, &over_colour ) )
+        !lookup_colour( over_colour_name, &over_colour ) ||
+        !lookup_colour( outline_colour_name, &outline_colour ) ||
+        !lookup_colour( range_tick_colour_name, &range_tick_colour ) ||
+        !lookup_colour( limit_tick_colour_name, &limit_tick_colour ) )
     {
         print_error( "Invalid colour names.\n" );
         return( 1 );
@@ -81,12 +94,14 @@ int  main(
     initialize_colour_coding( &colour_coding, coding_type,
                               under_colour, over_colour, low, high );
 
-    ALLOC( object_list, 2 );
+    ALLOC( object_list, 3 );
 
     object_list[0] = create_object( QUADMESH );
     quadmesh = get_quadmesh_ptr( object_list[0] );
     object_list[1] = create_object( LINES );
     lines = get_lines_ptr( object_list[1] );
+    object_list[2] = create_object( LINES );
+    outline = get_lines_ptr( object_list[2] );
 
     initialize_quadmesh( quadmesh, WHITE, NULL, 2, n_steps );
 
@@ -113,14 +128,14 @@ int  main(
         fill_Vector( quadmesh->normals[point_index1], 0.0, 0.0, 1.0 );
     }
 
-    initialize_lines( lines, WHITE );
+    initialize_lines( lines, range_tick_colour );
 
     REALLOC( lines->colours, 4 );
     lines->colour_flag = PER_ITEM_COLOURS;
-    lines->colours[0] = WHITE;
-    lines->colours[1] = GREEN;
-    lines->colours[2] = GREEN;
-    lines->colours[3] = WHITE;
+    lines->colours[0] = range_tick_colour;
+    lines->colours[1] = limit_tick_colour;
+    lines->colours[2] = limit_tick_colour;
+    lines->colours[3] = range_tick_colour;
 
     start_new_line( lines );
     fill_Point( point, scale * width, 0.0, 0.0 );
@@ -148,8 +163,22 @@ int  main(
     fill_Point( point, scale * (width + tick_width), scale * 1.0, 0.0 );
     add_point_to_line( lines, &point );
 
+    initialize_lines( outline, outline_colour );
+
+    start_new_line( outline );
+    fill_Point( point, 0.0, 0.0, OFFSET );
+    add_point_to_line( outline, &point );
+    fill_Point( point, scale * width, 0.0, OFFSET );
+    add_point_to_line( outline, &point );
+    fill_Point( point, scale * width, scale, OFFSET );
+    add_point_to_line( outline, &point );
+    fill_Point( point, 0.0, scale, OFFSET );
+    add_point_to_line( outline, &point );
+    fill_Point( point, 0.0, 0.0, OFFSET );
+    add_point_to_line( outline, &point );
+
     (void) output_graphics_file( output_filename, BINARY_FORMAT,
-                                 2, object_list );
+                                 3, object_list );
 
     return( 0 );
 }

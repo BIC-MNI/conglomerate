@@ -36,6 +36,9 @@ int  main(
     int                  sizes[3], degree, poly, size, ind, n_done;
     Real                 min_value, max_value, value;
     Real                 weights[1000], *curvatures;
+    Real                 separations[N_DIMENSIONS];
+    Real                 bottom_left[N_DIMENSIONS];
+    Real                 zero[N_DIMENSIONS];
     object_struct        **objects;
     BOOLEAN              use_volume;
     Point                unit_point, on_sphere_point, centre, surface_point;
@@ -168,6 +171,19 @@ int  main(
 
     set_volume_real_range( image, min_value, max_value );
 
+    separations[1] = 1.0 / (Real) ny;
+    separations[2] = 1.0 / (Real) nx;
+    separations[0] = (separations[1] + separations[2]) / 2.0;
+    set_volume_separations( image, separations );
+
+    bottom_left[0] = 0.0;
+    bottom_left[1] = -0.5;
+    bottom_left[2] = -0.5;
+    zero[0] = 0.0;
+    zero[1] = 0.0;
+    zero[2] = 0.0;
+    set_volume_translation( image, bottom_left, zero );
+
     alloc_volume_data( image );
 
     initialize_progress_report( &progress, FALSE, nx, "Mapping" );
@@ -250,8 +266,8 @@ private  void   map_2d_to_unit_sphere(
 {
     Real  angle_around, angle_up, x, y, z, r;
 
-    angle_around = (Real) i / (Real) (ni-1) * 2.0 * PI;
-    angle_up = -PI/2 + (Real) j / (Real) (nj-1) * PI;
+    angle_around = ((Real) i + 0.5)  / (Real) ni * 2.0 * PI;
+    angle_up = -PI/2 + ((Real) j + 0.5) / (Real) nj * PI;
 
     z = sin( angle_up );
 

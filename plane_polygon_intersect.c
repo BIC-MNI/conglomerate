@@ -11,8 +11,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *src_polygons_filename, *dest_lines_filename;
-    char                 *axis_name;
+    STRING               src_polygons_filename, dest_lines_filename;
+    STRING               axis_name;
     File_formats         format;
     int                  i, axis;
     Point                plane_origin;

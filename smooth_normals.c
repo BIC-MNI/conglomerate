@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s  input.obj  [output.obj] [iters] [ratio]\n\
 \n\
      Smooths the polygon normals, placing output in input.obj, or if\n\
@@ -20,7 +20,7 @@ int  main(
     char   *argv[] )
 {
     Status               status;
-    char                 *src_filename, *dest_filename;
+    STRING               src_filename, dest_filename;
     int                  i, n_iters, n_objects;
     Real                 threshold;
     File_formats         format;

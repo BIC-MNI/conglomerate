@@ -1,4 +1,5 @@
-#include  <module.h>
+#include  <bicpl.h>
+#include  <internal_volume_io.h>
 
 private  void   convert_polygons_to_lines(
     polygons_struct   *polygons,
@@ -10,7 +11,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *src_polygons_filename, *dest_lines_filename;
+    STRING               src_polygons_filename, dest_lines_filename;
     File_formats         format;
     int                  i;
     int                  n_objects, n_dest_objects;

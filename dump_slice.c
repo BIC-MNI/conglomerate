@@ -5,7 +5,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char           *input_filename, *swap_bytes_string;
+    STRING         input_filename, swap_bytes_string;
     char           one_byte, last_byte;
     int            i, offset, n_bytes;
     BOOLEAN        swap_bytes_flag;
@@ -22,7 +22,7 @@ int  main(
         return( 1 );
     }
 
-    swap_bytes_flag = strcmp( swap_bytes_string, "swap" ) == 0;
+    swap_bytes_flag = equal_strings( swap_bytes_string, "swap" );
 
     while( get_string_argument( "", &input_filename ) )
     {

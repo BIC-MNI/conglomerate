@@ -25,9 +25,9 @@ private  int  get_convex_hull_2d(
     int              hull_indices[] );
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s input.mnc output.obj [min_value] [max_value]\n\
 \n\
      Creates a polyhedron which is the convex hull of the region of the input\n\
@@ -41,7 +41,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char           *input_filename, *output_filename;
+    STRING         input_filename, output_filename;
     int            sizes[N_DIMENSIONS];
     int            n_points;
     Real           min_value, max_value;

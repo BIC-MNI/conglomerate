@@ -5,8 +5,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *input_volume_filename, *output_filename;
-    char                 *axis_name;
+    STRING               input_volume_filename, output_filename;
+    STRING               axis_name;
     Volume               volume;
     volume_input_struct  volume_input;
     int                  axis, x_tess, y_tess;
@@ -30,11 +30,11 @@ int  main(
 
     (void) get_string_argument( "", &axis_name );
 
-    if( strcmp( axis_name, "x" ) == 0 )
+    if( equal_strings( axis_name, "x" ) )
         axis = X;
-    else if( strcmp( axis_name, "y" ) == 0 )
+    else if( equal_strings( axis_name, "y" ) )
         axis = Y;
-    else if( strcmp( axis_name, "z" ) == 0 )
+    else if( equal_strings( axis_name, "z" ) )
         axis = Z;
     else
         axis = -1;

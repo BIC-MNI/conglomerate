@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: ascii_binary  input.obj  [output.obj]\n\
 \n\
      Converts ascii .obj files to binary and vice versa, placing output in\n\
@@ -18,7 +18,7 @@ int  main(
     char   *argv[] )
 {
     Status         status;
-    char           *input_filename, *output_filename;
+    STRING         input_filename, output_filename;
     int            n_objects;
     File_formats   format;
     object_struct  **object_list;

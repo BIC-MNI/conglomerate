@@ -30,6 +30,8 @@ int  main(
     Real                 separations[MAX_DIMENSIONS];
     Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
     Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
+    Real                 min_xyz_voxel[MAX_DIMENSIONS];
+    Real                 max_xyz_voxel[MAX_DIMENSIONS];
     Real                 real_v[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
     Real                 min_value, max_value;
     FILE                 *file;
@@ -50,7 +52,7 @@ int  main(
               !equal_strings( dump_filename, "none" );
     median_required = get_string_argument( NULL, &dummy );
 
-    if( input_volume( volume_filename, 3, XYZ_dimension_names,
+    if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
@@ -146,6 +148,9 @@ int  main(
 
     done = FALSE;
 
+    reorder_voxel_to_xyz( volume, min_voxel, min_xyz_voxel );
+    reorder_voxel_to_xyz( volume, max_voxel, max_xyz_voxel );
+
     initialize_statistics( &stats, min_value, max_value );
 
     while( !done )
@@ -191,11 +196,11 @@ int  main(
         print( "Std Dev  : %g\n", std_dev );
         print( "Voxel Rng:" );
         for_less( c, 0, N_DIMENSIONS )
-            print( " %g", min_voxel[c] );
+            print( " %g", min_xyz_voxel[c] );
         print( "\n" );
         print( "         :" );
         for_less( c, 0, N_DIMENSIONS )
-            print( " %g", max_voxel[c] );
+            print( " %g", max_xyz_voxel[c] );
         print( "\n" );
         print( "World Rng:" );
         for_less( c, 0, N_DIMENSIONS )

@@ -11,7 +11,7 @@ int   main(
     char                  **input_filenames, *input_filename, *example_filename;
     char                  *dim_names_2d[3], *dim_names_3d[3];
     BOOLEAN               this_is_tag_file, tag_files_present;
-    int                   n_input_files, d, i, vol, x_dim, max_voxel;
+    int                   n_input_files, d, i, vol, x_dim, max_voxel, n_dims;
     int                   sizes_3d[3], sizes_2d[3];
     int                   v[5], n_slices, n_chunk_dims;
     int                   slice, s;
@@ -23,7 +23,7 @@ int   main(
     Real                  fraction_done, value;
     BOOLEAN               this_present, opposite_present;
     int                   ind;
-    STRING                file_dim_names[N_DIMENSIONS];
+    STRING                *file_dim_names;
     STRING                output_filename;
     char                  *suffixes[] = { "not_this_not_opposite",
                                           "not_this_yes_opposite",
@@ -115,8 +115,9 @@ int   main(
     else
         n_chunk_dims = 2;
 
-    if( get_file_dimension_names( example_filename, N_DIMENSIONS,
-                                  file_dim_names ) != OK )
+    if( get_file_dimension_names( example_filename, &n_dims,
+                                  &file_dim_names ) != OK ||
+        n_dims != N_DIMENSIONS )
     {
         print_error( "Error reading dimension names from %s.\n",
                      example_filename );
@@ -126,12 +127,12 @@ int   main(
     for_less( d, 0, n_chunk_dims )
         dim_names_2d[d] = file_dim_names[d+N_DIMENSIONS-n_chunk_dims];
 
-    if( n_chunk_dims == 2 && strcmp( file_dim_names[0], MIxspace ) == 0 )
+    if( n_chunk_dims == 2 && equal_strings( file_dim_names[0], MIxspace ) )
         dim_names_2d[0] = file_dim_names[0];
 
     for_less( x_dim, 0, n_chunk_dims )
     {
-        if( strcmp( file_dim_names[x_dim], MIxspace ) == 0 )
+        if( equal_strings( file_dim_names[x_dim], MIxspace ) )
             break;
     }
 
@@ -179,7 +180,7 @@ int   main(
     for_less( i, 0, n_chunk_dims )
     {
         for_less( d, 0, N_DIMENSIONS )
-            if( strcmp( dim_names_2d[i], file_dim_names[d] ) == 0 )
+            if( equal_strings( dim_names_2d[i], file_dim_names[d] ) )
                 break;
         sizes_2d[i] = sizes_3d[d];
     }
@@ -203,8 +204,8 @@ int   main(
                                     v0, v1, v2, v3, v4, 0.0 );
         END_ALL_VOXELS
 
-        (void) sprintf( output_filename, "%s_%s.mnc", output_prefix,
-                        suffixes[i] );
+        output_filename = concat_strings( output_prefix, "_" );
+        concat_to_string( &output_filename, suffixes[i] );
 
         output_files[i] = initialize_minc_output( output_filename, N_DIMENSIONS,
                                               file_dim_names, sizes_3d,
@@ -213,6 +214,8 @@ int   main(
                                               &voxel_to_world_transform,
                                               output_volumes[i],
                                               &output_options );
+
+        delete_string( output_filename );
 
         if( output_files[i] == NULL )
             return( 1 );

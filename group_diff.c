@@ -5,6 +5,8 @@ private  void   compute_inv_variance(
     int     n_surfaces[2],
     Point   **samples[2],
     int     p,
+    Point   *avg1,
+    Point   *avg2,
     Real    **inv_s );
 
 int  main(
@@ -102,14 +104,8 @@ int  main(
 
     for_less( i, 0, n_points )
     {
-        ADD_POINTS( polygons.points[i], avg1_points[i], avg2_points[i] );
-
-        SCALE_POINT( polygons.points[i], polygons.points[i],
-                     1.0 / (Real) (n_surfaces[0] + n_surfaces[1]) );
-        SCALE_POINT( avg1_points[i], avg1_points[i],
-                     1.0 / (Real) n_surfaces[0] );
-        SCALE_POINT( avg2_points[i], avg2_points[i],
-                     1.0 / (Real) n_surfaces[1] );
+        SCALE_POINT( avg1_points[i], avg1_points[i], 1.0 / (Real)n_surfaces[0]);
+        SCALE_POINT( avg2_points[i], avg2_points[i], 1.0 / (Real)n_surfaces[1]);
     }
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
@@ -119,7 +115,8 @@ int  main(
 
     for_less( p, 0, polygons.n_points )
     {
-        compute_inv_variance( n_surfaces, samples, p, inv_s );
+        compute_inv_variance( n_surfaces, samples, p, &avg1_points[p],
+                              &avg2_points[p], inv_s );
 
         SUB_POINTS( offset, avg1_points[p], avg2_points[p] );
 
@@ -149,38 +146,13 @@ private  void   compute_inv_variance(
     int     n_surfaces[2],
     Point   **samples[2],
     int     p,
+    Point   *avg1,
+    Point   *avg2,
     Real    **inv_s )
 {
-    int     c, s, i, j;
+    int     s, i, j;
     Real    **variance;
-    Real    mean[2][3];
     Real    dx, dy, dz;
-
-    for_less( c, 0, 3 )
-    {
-        mean[0][c] = 0.0;
-        mean[1][c] = 0.0;
-    }
-
-    for_less( s, 0, n_surfaces[0] )
-    {
-        mean[0][X] += Point_x(samples[0][s][p]);
-        mean[0][Y] += Point_y(samples[0][s][p]);
-        mean[0][Z] += Point_z(samples[0][s][p]);
-    }
-
-    for_less( s, 0, n_surfaces[1] )
-    {
-        mean[1][X] += Point_x(samples[1][s][p]);
-        mean[1][Y] += Point_y(samples[1][s][p]);
-        mean[1][Z] += Point_z(samples[1][s][p]);
-    }
-
-    for_less( c, 0, 3 )
-    {
-        mean[0][c] /= (Real) n_surfaces[0];
-        mean[1][c] /= (Real) n_surfaces[1];
-    }
 
     /*--- compute the variance at each of the two nodes */
 
@@ -194,9 +166,9 @@ private  void   compute_inv_variance(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = Point_x(samples[0][s][p]) - mean[0][0];
-        dy = Point_y(samples[0][s][p]) - mean[0][1];
-        dz = Point_z(samples[0][s][p]) - mean[0][2];
+        dx = Point_x(samples[0][s][p]) - Point_x(*avg1);
+        dy = Point_y(samples[0][s][p]) - Point_y(*avg1);
+        dz = Point_z(samples[0][s][p]) - Point_z(*avg1);
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -208,9 +180,9 @@ private  void   compute_inv_variance(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = Point_x(samples[1][s][p]) - mean[1][0];
-        dy = Point_y(samples[1][s][p]) - mean[1][1];
-        dz = Point_z(samples[1][s][p]) - mean[1][2];
+        dx = Point_x(samples[1][s][p]) - Point_x(*avg2);
+        dy = Point_y(samples[1][s][p]) - Point_y(*avg2);
+        dz = Point_z(samples[1][s][p]) - Point_z(*avg2);
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;

@@ -15,6 +15,7 @@ private  void  compute_transforms(
 
 private  void  create_average_polygons(
     int                   n_surfaces,
+    int                   n_groups,
     int                   n_points,
     Point                 **points,
     Transform             transforms[],
@@ -33,7 +34,7 @@ int  main(
     FILE             *rms_file, *variance_file;
     STRING           filename, output_filename;
     STRING           rms_filename, variance_filename;
-    int              i, n_objects, n_surfaces;
+    int              i, n_objects, n_surfaces, n_groups;
     File_formats     format;
     object_struct    *out_object;
     object_struct    **object_list;
@@ -47,10 +48,11 @@ int  main(
 
     if( !get_string_argument( NULL, &output_filename ) ||
         !get_string_argument( NULL, &rms_filename ) ||
-        !get_string_argument( NULL, &variance_filename ) )
+        !get_string_argument( NULL, &variance_filename ) ||
+        !get_int_argument( 1, &n_groups ) )
     {
         print_error(
-          "Usage: %s output.obj  none|rms_file  none|variance_file\n",
+          "Usage: %s output.obj  none|rms_file  none|variance_file n_groups\n",
                   argv[0] );
         print_error( "         [input1.obj] [input2.obj] ...\n" );
         return( 1 );
@@ -133,7 +135,7 @@ int  main(
     else
         variance_file = NULL;
 
-    create_average_polygons( n_surfaces, average_polygons->n_points,
+    create_average_polygons( n_surfaces, n_groups, average_polygons->n_points,
                              points_list, transforms,
                              rms_file, variance_file,
                              average_polygons );
@@ -297,6 +299,7 @@ private  void  compute_transforms(
 
 private  Real  get_rms_points(
     int                   n_surfaces,
+    int                   n_groups,
     Point                 samples[],
     Point                 *centroid,
     Real                  inv_variance[3][3] )
@@ -336,7 +339,7 @@ private  Real  get_rms_points(
 
     for_less( i, 0, 3 )
     for_less( j, 0, 3 )
-        variance[i][j] /= (Real) (n_surfaces-1);
+        variance[i][j] /= (Real) (n_surfaces-n_groups);
 
     if( !invert_square_matrix( 3, variance, inverse ) )
         print_error( "Error getting inverse of variance\n" );
@@ -357,6 +360,7 @@ private  Real  get_rms_points(
 
 private  void  create_average_polygons(
     int                   n_surfaces,
+    int                   n_groups,
     int                   n_points,
     Point                 **points,
     Transform             transforms[],
@@ -385,8 +389,8 @@ private  void  create_average_polygons(
 
         get_points_centroid( n_surfaces, samples, &polygons->points[p] );
 
-        rms = get_rms_points( n_surfaces, samples, &polygons->points[p],
-                              inv_variance );
+        rms = get_rms_points( n_surfaces, n_groups,
+                              samples, &polygons->points[p], inv_variance );
 
         if( rms_file != NULL )
         {

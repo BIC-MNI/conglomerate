@@ -63,8 +63,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                    *input_volume_filename, *input_surface_filename;
-    char                    *output_volume_filename;
+    STRING                  input_volume_filename, input_surface_filename;
+    STRING                  output_volume_filename;
     int                     i, b, n_objects, n_convex_boundaries;
     int                     close_threshold, n_to_strip, max_region_size;
     int                     x_error, y_error, z_error, label_to_set;
@@ -265,7 +265,7 @@ int  main(
         set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
     }
 
-    (void) strcpy( history, "Inside surface labeled." );
+    history = create_string( "Inside surface labeled." );
 
     (void) output_volume( output_volume_filename, NC_UNSPECIFIED,
                           FALSE, 0.0, 0.0, volume, history,

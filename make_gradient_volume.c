@@ -21,11 +21,6 @@ private  Volume  create_gradient_volume(
     int             continuity,
     int             deriv_number );
 
-private  Volume  create_gradient_volume(
-    Volume          volume,
-    int             continuity,
-    int             deriv_number );
-
 int  main(
     int    argc,
     char   *argv[] )
@@ -67,7 +62,7 @@ int  main(
 
     history = create_string( "make_gradient_volume\n" );
 
-    (void) output_modified_volume( output_filename, NC_SHORT, FALSE,
+    (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
                            0.0, 0.0, gradient_volume, input_filename,
                            history, (minc_output_options *) NULL );
 

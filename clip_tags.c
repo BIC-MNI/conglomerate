@@ -46,9 +46,9 @@ int  main(
     BOOLEAN              create_plane, volume_desired, segment;
     Real                 sum_x, sum_y, sum_z, sum_yy, sum_yz, sum_zz;
     Real                 separations[MAX_DIMENSIONS], angle;
-    char                 *three_tags_filename, *input_tags_filename;
-    char                 *output_tags_filename, *plane_filename;
-    char                 *volume_filename;
+    STRING               three_tags_filename, input_tags_filename;
+    STRING               output_tags_filename, plane_filename;
+    STRING               volume_filename;
     Real                 min_dist, max_dist, dist, voxel_volume;
     Real                 angle_increment, angle_offset;
     int                  i, n_objects, plane_status;
@@ -61,10 +61,10 @@ int  main(
     Real                 plane_constants[4];
     int                  n_volumes, n_tag_points, *structure_ids, *patient_ids;
     Real                 **tags1, **tags2, *weights, volume;
-    char                 **labels;
+    STRING               *labels;
     int                  n_new_tags, *new_structure_ids, *new_patient_ids;
     Real                 **new_tags1, **new_tags2, *new_weights;
-    char                 **new_labels;
+    STRING               *new_labels;
 #ifdef PROGRESS
     progress_struct      progress;
 #endif
@@ -184,7 +184,6 @@ int  main(
             SET_ARRAY_SIZE( new_patient_ids, n_new_tags, n_new_tags+1, 10 );
 
             SET_ARRAY_SIZE( new_labels, n_new_tags, n_new_tags+1, 10 );
-            ALLOC( new_labels[n_new_tags], strlen(labels[i])+1 );
 
             /*--- copy from the input tags to the new tags */
 
@@ -205,7 +204,7 @@ int  main(
             new_weights[n_new_tags] = weights[i];
             new_structure_ids[n_new_tags] = structure_ids[i];
             new_patient_ids[n_new_tags] = patient_ids[i];
-            (void) strcpy( new_labels[n_new_tags], labels[i] );
+            new_labels[n_new_tags] = create_string( labels[i] );
 
             /*--- increment the number of new tags */
 

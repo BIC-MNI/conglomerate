@@ -9,8 +9,8 @@ private  void  contour_volume_slice(
     lines_struct  *lines );
 
 private  int  get_axis_index(
-    char   name[],
-    int    *axis_index )
+    STRING   name,
+    int      *axis_index )
 {
     *axis_index = -1;
 
@@ -28,9 +28,9 @@ private  int  get_axis_index(
 }
 
 private  void  usage(
-    char  executable[] )
+    STRING  executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s  volume_file  output_file  x|y|z slice_pos\n\
        [contour_value1] [contour_value2] ... \n\
 \n\
@@ -43,8 +43,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *input_volume_filename, *output_filename;
-    char                 *axis_name;
+    STRING               input_volume_filename, output_filename;
+    STRING               axis_name;
     Volume               volume;
     int                  n_objects, slice_index, axis_index;
     object_struct        **objects, *object;

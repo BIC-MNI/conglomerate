@@ -11,7 +11,7 @@ Usage: %s  volume  output.tag\n\
 \n\
      Creates a tag file from a volume.  The three forms create tags from:\n\
            all non-zero voxels,\n\
-           all voxels with values equal to id, and\n\
+           all voxels with values exactly equal to id, and\n\
            all voxels with values from min_id to max_id, respectively.\n\n";
 
     print_error( usage_str, executable, executable, executable );
@@ -23,11 +23,12 @@ int  main(
 {
     STRING               volume_filename, tag_filename;
     Volume               volume;
-    Real                 min_id, max_id, value, xw, yw, zw;
+    FILE                 *file;
+    Real                 min_id, max_id, value;
     int                  x, y, z;
     int                  sizes[N_DIMENSIONS];
-    int                  n_tags, *structure_ids, *patient_ids;
-    Real                 **tags, *weights;
+    int                  n_tags, structure_id;
+    Real                 tag[N_DIMENSIONS];
     progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
@@ -46,7 +47,7 @@ int  main(
     else
     {
         min_id = 0.0;
-        max_id = 0.0;
+        max_id = -1.0;
     }
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
@@ -54,43 +55,45 @@ int  main(
                       TRUE, &volume, (minc_input_options *) NULL ) != OK )
         return( 1 );
 
-    n_tags = 0;
-
     /* --- create the output tags */
 
     get_volume_sizes( volume, sizes );
 
+    if( open_file_with_default_suffix( tag_filename,
+                                       get_default_tag_file_suffix(),
+                                       WRITE_FILE, ASCII_FORMAT,
+                                       &file ) != OK ||
+        initialize_tag_file_output( file,
+                "Created by converting volume to tags (minctotag).", 1 ) != OK )
+    {
+        return( 1 );
+    }
+
     initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
                                 "Creating tags" );
 
+    n_tags = 0;
     for_less( x, 0, sizes[X] )
     {
         for_less( y, 0, sizes[Y] )
         {
             for_less( z, 0, sizes[Z] )
             {
-                GET_VALUE_3D( value, volume, x, y, z );
-                if( min_id >= max_id || min_id <= value && value <= max_id )
+                value = get_volume_real_value( volume, x, y, z, 0, 0 );
+                if( min_id > max_id && value != 0.0 ||
+                    min_id <= value && value <= max_id )
                 {
-                    /*--- increase the memory allocation of the tag points */
-
-                    SET_ARRAY_SIZE( tags, n_tags, n_tags+1, 10 );
-                    ALLOC( tags[n_tags], 3 );
-
-                    SET_ARRAY_SIZE( weights, n_tags, n_tags+1, 10 );
-                    SET_ARRAY_SIZE( structure_ids, n_tags, n_tags+1, 10 );
-                    SET_ARRAY_SIZE( patient_ids, n_tags, n_tags+1, 10 );
-
                     convert_3D_voxel_to_world( volume,
-                            (Real) x, (Real) y, (Real) z, &xw, &yw, &zw );
+                                               (Real) x, (Real) y, (Real) z,
+                                               &tag[X], &tag[Y], &tag[Z] );
 
-                    tags[n_tags][0] = xw;
-                    tags[n_tags][1] = yw;
-                    tags[n_tags][2] = zw;
+                    structure_id = ROUND( value );
 
-                    weights[n_tags] = 1.0;
-                    structure_ids[n_tags] = ROUND( value );
-                    patient_ids[n_tags] = 1;
+                    if( output_one_tag( file, 1, tag, NULL, NULL,
+                                        &structure_id, NULL, NULL ) != OK )
+                    {
+                        return( 1 );
+                    }
 
                     ++n_tags;
                 }
@@ -102,13 +105,9 @@ int  main(
 
     terminate_progress_report( &progress );
 
-    if( output_tag_file( tag_filename, "Created by converting volume to tags.",
-                         1, n_tags, tags, NULL, weights, structure_ids,
-                         patient_ids, NULL ) != OK )
-        return( 1 );
+    terminate_tag_file_output( file );
 
-    free_tag_points( 1, n_tags, tags, NULL, weights, structure_ids, patient_ids,
-                     NULL );
+    print( "Created %d tags.\n", n_tags );
 
     delete_volume( volume );
 

@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s  input.mnc  mask_volume.mnc  output.mnc\n\
          [min] [max] [correct_label_range]\n\
 \n\
@@ -20,8 +20,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *volume_filename, *mask_volume_filename;
-    char                 *output_filename, *dummy;
+    STRING               volume_filename, mask_volume_filename;
+    STRING               output_filename, dummy;
     Real                 mask_value, set_voxel, min_mask, max_mask;
     int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed;
     progress_struct      progress;

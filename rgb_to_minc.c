@@ -11,7 +11,7 @@ int  main(
     char  *argv[] )
 {
     Volume         volume;
-    char           *input_filename, *output_filename;
+    STRING         input_filename, output_filename;
     int            n_slices;
     pixels_struct  *pixels;
 

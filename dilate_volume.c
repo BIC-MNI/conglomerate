@@ -21,6 +21,7 @@ int  main(
     char  *argv[] )
 {
     STRING               input_filename, output_filename, mask_filename;
+    STRING               *dim_names;
     Real                 min_mask, max_mask, value_to_dilate;
     BOOLEAN              mask_volume_present;
     Volume               volume, mask_volume;
@@ -57,17 +58,21 @@ int  main(
     default:  print_error( "# neighs must be 6 or 26.\n" );  return( 1 );
     }
 
-    if( input_volume( input_filename, 3, XYZ_dimension_names,
+    if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
                       (minc_input_options *) NULL ) != OK )
         return( 1 );
 
     if( mask_volume_present )
     {
-        if( input_volume( mask_filename, 3, XYZ_dimension_names,
+        dim_names = get_volume_dimension_names( volume );
+
+        if( input_volume( mask_filename, 3, dim_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &mask_volume,
                           (minc_input_options *) NULL ) != OK )
             return( 1 );
+
+        delete_dimension_names( volume, dim_names );
 
         if( !volumes_are_same_grid( mask_volume, volume ) )
         {
@@ -93,7 +98,8 @@ int  main(
     }
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
-                                   0.0, 0.0, volume, input_filename, "Dilated",
+                                   0.0, 0.0, volume, input_filename,
+                                   "Dilated\n",
                                    (minc_output_options *) NULL );
 
     return( 0 );

@@ -63,7 +63,7 @@ int  main(
     char   *argv[] )
 {
     Status           status;
-    char             *filename, *output_filename;
+    STRING           filename, output_filename;
     Real             weight, new_weight;
     int              i, n_objects, n_polygons, n_colours;
     Real             scale_colours;
@@ -99,7 +99,7 @@ int  main(
             weight = new_weight;
         else if( !get_string_argument( "", &filename ) )
             done = TRUE;
-        else if( strcmp( filename, "-scale_colours" ) == 0 )
+        else if( equal_strings( filename, "-scale_colours" ) )
         {
             if( !get_real_argument( 0.0, &scale_colours ) )
             {

@@ -25,7 +25,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *input_filename, *output_filename;
+    STRING               input_filename, output_filename;
     Volume               volume;
     Real                 min_threshold, max_threshold;
     Real                 min_voxel, max_voxel;

@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s  input.mnc  output.mnc  min_threshold  max_threshold\n\
            [6|26]\n\
 \n\
@@ -23,7 +23,7 @@ int  main(
     Real             min_threshold, max_threshold;
     int              sizes[N_DIMENSIONS], v[MAX_DIMENSIONS], n_dims;
     int              current_label, num_labels, n_neighbours;
-    char             *volume_filename, *output_filename;
+    STRING           volume_filename, output_filename;
     Volume           volume, label_volume;
     progress_struct  progress;
     Neighbour_types  connectivity;

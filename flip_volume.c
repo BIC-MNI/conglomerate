@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char  executable[] )
+    STRING  executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s input.mnc output.mnc\n\
 \n\
      Interchanges voxel values with their left-right opposites, thereby\n\
@@ -17,7 +17,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *input_filename, *output_filename;
+    STRING               input_filename, output_filename;
     Volume               volume;
     Real                 voxel_left, voxel_right;
     int                  x, y, z, sizes[N_DIMENSIONS];

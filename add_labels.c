@@ -35,9 +35,9 @@
 ---------------------------------------------------------------------------- */
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s [-clobber] input.mnc output.mnc  -label val1 str1 [val2 str2 ...]\n\
 \n\
    or: %s [-clobber] input.mnc output.mnc lookup_file\n\
@@ -68,15 +68,15 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char       *input_filename, *output_filename, *label_filename;
-    char       *argument;
+    STRING     input_filename, output_filename, label_filename;
+    STRING     argument;
     int        clobber_mode, a, in_minc_id, out_minc_id, value;
     int        i, n_excluded, label_lookup_var;
     BOOLEAN    label_specified;
     STRING     label_string;
     int        n_labels;
     int        *values;
-    char       **labels;
+    STRING     *labels;
     FILE       *file;
 
     /* --- initialize the information that will be in the arguments */
@@ -95,9 +95,9 @@ int  main(
     {
         argument = argv[a];
 
-        if( strcmp( argument, "-clobber" ) == 0 )
+        if( equal_strings( argument, "-clobber" ) )
             clobber_mode = NC_CLOBBER;
-        else if( strcmp( argument, "-label" ) == 0 )
+        else if( equal_strings( argument, "-label" ) )
         {
             label_specified = TRUE;   /* --- remaining args are pairs */
             break;
@@ -125,7 +125,7 @@ int  main(
 
     /* --- check that we are not trying to write the same minc file as reading*/
 
-    if( strcmp( input_filename, output_filename ) == 0 )
+    if( equal_strings( input_filename, output_filename ) )
     {
         print_error( "Cannot output to same file as input.\n" );
         return( 1 );
@@ -173,7 +173,7 @@ int  main(
 
             /* --- add value-label pair to list */
 
-            if( strlen( argv[a+1] ) >0 )
+            if( string_length( argv[a+1] ) > 0 )
             {
                 add_label_to_list( &n_labels, &values, &labels,
                                    value, argv[a+1] );
@@ -203,12 +203,11 @@ int  main(
         /* --- read an int and a string */
 
         while( input_int( file, &value ) == OK &&
-               input_possibly_quoted_string( file, label_string,
-                                             MAX_STRING_LENGTH ) == OK)
+               input_possibly_quoted_string( file, &label_string ) == OK)
         {
             /* --- add value-label pair to list */
 
-            if( strlen( label_string ) > 0 )
+            if( string_length( label_string ) > 0 )
             {
                 add_label_to_list( &n_labels, &values, &labels,
                                    value, label_string );

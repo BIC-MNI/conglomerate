@@ -11,14 +11,14 @@ int  main(
     Status               status;
     Real                 low_threshold, smoothing_distance;
     Real                 *curvatures;
-    char                 *src_filename, *dest_filename;
+    STRING               src_filename, dest_filename;
     int                  i, p, n_src_objects, n_dest_objects;
     File_formats         format;
     object_struct        **src_object_list, **dest_object_list;
     polygons_struct      *polygons1, *polygons2;
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
-    char                 *coding_type_string;
+    STRING               coding_type_string;
     Real                 low, high, min_curvature, max_curvature;
     BOOLEAN              low_present, high_present;
 
@@ -27,7 +27,9 @@ int  main(
     if( !get_string_argument( "", &src_filename ) ||
         !get_string_argument( "", &dest_filename ) )
     {
-        (void) fprintf( stderr, "Must have two filename arguments.\n" );
+        print_error( "Usage: %s  in.obj out.obj [dist] [gray|hot] [lo] [hi]\n",
+                     argv[0] );
+        print_error( "      [low_threshold]\n" );
         return( 1 );
     }
 
@@ -37,11 +39,11 @@ int  main(
     low_present = get_real_argument( -0.2, &low );
     high_present = get_real_argument( 0.2, &high );
 
-    if( strcmp( coding_type_string, GRAY_STRING ) == 0 )
+    if( equal_strings( coding_type_string, GRAY_STRING ) )
         coding_type = GRAY_SCALE;
-    else if( strcmp( coding_type_string, HOT_STRING ) == 0 )
+    else if( equal_strings( coding_type_string, HOT_STRING ) )
         coding_type = HOT_METAL;
-    else if( strcmp( coding_type_string, SPECTRAL_STRING ) == 0 )
+    else if( equal_strings( coding_type_string, SPECTRAL_STRING ) )
         coding_type = SPECTRAL;
     else
     {

@@ -4,20 +4,20 @@
 private  void  usage(
     STRING  executable )
 {
-    (void) fprintf( stderr, "%s  volume_filename\n", executable );
-    (void) fprintf( stderr, "   activity_filename|none   nx ny nz\n" );
-    (void) fprintf( stderr, "   input_polygons output_polygons\n");
-    (void) fprintf( stderr, "   original_positions|none max_distance\n" );
-    (void) fprintf( stderr, "   n_models\n");
-    (void) fprintf( stderr, "   up_to_n_points model_weight model_filename|avg|none\n" );
-    (void) fprintf( stderr, "   min_curvature max_curvature\n" );
-    (void) fprintf( stderr, "   [up_to_n_points model_weight model_filename|avg|none\n" );
-    (void) fprintf( stderr, "   min_curvature max_curvature]\n" );
-    (void) fprintf( stderr, "   fract_step max_step\n" );
-    (void) fprintf( stderr, "   max_search_distance degrees_continuity\n" );
-    (void) fprintf( stderr, "   min_isovalue max_isovalue +/-/n\n" );
-    (void) fprintf( stderr, "   gradient_threshold angle tolerance\n" );
-    (void) fprintf( stderr, "   max_iterations  movement_threshold stop_threshold\n" );
+    print_error( "%s  volume_filename\n", executable );
+    print_error( "   activity_filename|none   nx ny nz\n" );
+    print_error( "   input_polygons output_polygons\n");
+    print_error( "   original_positions|none max_distance\n" );
+    print_error( "   n_models\n");
+    print_error( "   up_to_n_points model_weight model_filename|avg|none\n" );
+    print_error( "   min_curvature max_curvature\n" );
+    print_error( "   [up_to_n_points model_weight model_filename|avg|none\n" );
+    print_error( "   min_curvature max_curvature]\n" );
+    print_error( "   fract_step max_step\n" );
+    print_error( "   max_search_distance degrees_continuity\n" );
+    print_error( "   min_isovalue max_isovalue +/-/n\n" );
+    print_error( "   gradient_threshold angle tolerance\n" );
+    print_error( "   max_iterations  movement_threshold stop_threshold\n" );
 }
 
 int  main( argc, argv )
@@ -28,7 +28,7 @@ int  main( argc, argv )
     Real              start_time, end_time;
     STRING            volume_filename, activity_filename;
     STRING            input_filename, output_filename;
-    STRING            model_filename, normal_direction, *original_filename;
+    STRING            model_filename, normal_direction, original_filename;
     Real              min_isovalue, max_isovalue, gradient_threshold;
     Real              model_weight, min_curvature_offset, max_curvature_offset;
     Real              angle, tolerance, max_distance;

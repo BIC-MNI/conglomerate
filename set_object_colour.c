@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s  input.obj  output.obj colour_name\n\
 \n\
      Copies the input objects to the output objects, with the colour set\n\
@@ -18,7 +18,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *src_filename, *dest_filename, *colour_name;
+    STRING               src_filename, dest_filename, colour_name;
     File_formats         format;
     Real                 line_thickness;
     int                  i;

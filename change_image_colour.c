@@ -1,11 +1,11 @@
-#include  <bicpl.h>
-#include  <rgb_files.h>
+#include  <internal_volume_io.h>
+#include  <images.h>
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    char           *input_filename, *output_filename;
+    STRING         input_filename, output_filename;
     int            r_src_min, g_src_min, b_src_min;
     int            r_src_max, g_src_max, b_src_max;
     int            r_dest, g_dest, b_dest;

@@ -18,14 +18,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
+    int        c;
     Volume     volume, new_volume;
     Status     status;
-    Real       x_width, y_width, z_width, separations[MAX_DIMENSIONS];
+    Real       voxel_filter_widths[N_DIMENSIONS];
+    Real       filter_widths[N_DIMENSIONS];
+    Real       separations[MAX_DIMENSIONS];
     nc_type    data_type;
     BOOLEAN    world_space, byte_flag;
     STRING     input_filename, output_filename, history, dummy;
     STRING     space_text;
-    static     int  axis_ordering[] = { X, Y, Z };
 
     initialize_argument_processing( argc, argv );
 
@@ -36,9 +38,9 @@ int  main(
         return( 1 );
     }
 
-    (void) get_real_argument( 3.0, &x_width );
-    (void) get_real_argument( 3.0, &y_width );
-    (void) get_real_argument( 3.0, &z_width );
+    (void) get_real_argument( 3.0, &filter_widths[X] );
+    (void) get_real_argument( 3.0, &filter_widths[Y] );
+    (void) get_real_argument( 3.0, &filter_widths[Z] );
 
     world_space = get_string_argument( "", &space_text ) &&
                   equal_strings( space_text, "world" );
@@ -49,34 +51,33 @@ int  main(
     else
         data_type = NC_UNSPECIFIED;
 
-    status = input_volume( input_filename, 3, XYZ_dimension_names,
+    status = input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) ;
 
     if( status != OK )
         return( 1 );
 
+    reorder_xyz_to_voxel( volume, filter_widths, voxel_filter_widths );
+
     if( world_space )
     {
         get_volume_separations( volume, separations );
-        x_width /= ABS( separations[X] );
-        y_width /= ABS( separations[Y] );
-        z_width /= ABS( separations[Z] );
+        for_less( c, 0, N_DIMENSIONS )
+            voxel_filter_widths[c] /= ABS( separations[c] );
     }
 
     new_volume = create_box_filtered_volume( volume, data_type, FALSE,
                                              0.0, 0.0,
-                                             x_width, y_width, z_width );
+                                             voxel_filter_widths[0],
+                                             voxel_filter_widths[1],
+                                             voxel_filter_widths[2] );
 
-    history = "box filtered";
+    history = "Box filtered\n";
 
-    if( filename_extension_matches( output_filename, "mnc" ) )
-        status = output_volume( output_filename, NC_UNSPECIFIED, FALSE,
-                           0.0, 0.0,
-                           new_volume, history, (minc_output_options *) NULL );
-    else
-        status =  output_volume_free_format( output_filename,
-                                        new_volume, axis_ordering );
+    (void) output_volume( output_filename, NC_UNSPECIFIED, FALSE,
+                          0.0, 0.0,
+                          new_volume, history, (minc_output_options *) NULL );
 
 
     return( 0 );

@@ -4,7 +4,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *volume_filename, *mask_volume_filename;
+    STRING               volume_filename, mask_volume_filename;
     Real                 mask_value, value;
     Real                 mask_voxel[MAX_DIMENSIONS];
     Real                 xw, yw, zw;

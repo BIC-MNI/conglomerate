@@ -9,15 +9,17 @@ int  main(
     char   *argv[] )
 {
     char                 comment[EXTREMELY_LARGE_STRING_SIZE];
-    STRING               src_filename, output_filename;
+    STRING               src_filename, output_filename, tag_filename;
     int                  n_points, dim, delta[N_DIMENSIONS];
     int                  n_objects, ind, i, initial_seed;
     Point                *points, centroid, min_corner, max_corner, point;
     Vector               offset;
     File_formats         format;
-    object_struct        **object_list;
+    object_struct        **object_list, **tag_objects;
+    marker_struct        *marker;
     Real                 domain_factor, warp_distance;
     Real                 **tags1, **tags2;
+    BOOLEAN              dump_tags;
     General_transform    transform;
 
     initialize_argument_processing( argc, argv );
@@ -35,6 +37,8 @@ int  main(
 
     if( get_int_argument( 0, &initial_seed ) )
         set_random_seed( initial_seed );
+
+    dump_tags = get_string_argument( NULL, &tag_filename );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
                              &object_list ) != OK )
@@ -98,6 +102,39 @@ int  main(
                     tags2[27][X], tags2[27][Y], tags2[27][Z] );
 
     (void) output_transform_file( output_filename, comment, &transform );
+
+    if( dump_tags )
+    {
+        ALLOC( tag_objects, 56 );
+        for_less( i, 0, 56 )
+            tag_objects[i] = create_object( MARKER );
+
+        for_less( i, 0, 28 )
+        {
+            marker = get_marker_ptr(tag_objects[i]);
+            initialize_marker( marker, SPHERE_MARKER, WHITE );
+            marker->size = 1.0;
+            marker->label = create_string( "Source" );
+            marker->structure_id = 0;
+            marker->patient_id = 0;
+            Point_x(marker->position) = tags1[i][X];
+            Point_y(marker->position) = tags1[i][Y];
+            Point_z(marker->position) = tags1[i][Z];
+
+            marker = get_marker_ptr(tag_objects[i+28]);
+            initialize_marker( marker, SPHERE_MARKER, WHITE );
+            marker->size = 1.0;
+            marker->label = create_string( "Dest" );
+            marker->structure_id = 0;
+            marker->patient_id = 0;
+            Point_x(marker->position) = tags2[i][X];
+            Point_y(marker->position) = tags2[i][Y];
+            Point_z(marker->position) = tags2[i][Z];
+        }
+
+        (void) output_graphics_file( tag_filename, ASCII_FORMAT,
+                                     56, tag_objects );
+    }
 
 #ifdef DEBUG
 

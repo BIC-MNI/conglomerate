@@ -1,4 +1,4 @@
-#include  <module.h>
+#include  <bicpl.h>
 
 #define  BINTREE_FACTOR  0.5
 
@@ -6,8 +6,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *src_polygons_filename, *dest_polygons_filename;
-    char                 *input_filename, *output_filename;
+    STRING               src_polygons_filename, dest_polygons_filename;
+    STRING               input_filename, output_filename;
     File_formats         format;
     int                  i, n_points;
     int                  n_src_objects, n_dest_objects, n_objects;

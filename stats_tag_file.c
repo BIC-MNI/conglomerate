@@ -24,7 +24,7 @@ int  main(
 {
     Real                 x_min, x_max, y_min, y_max, z_min, z_max;
     Real                 x_mean, y_mean, z_mean;
-    char                 *filename;
+    STRING               filename;
     int                  n_objects, total_in_file;
     object_struct        **object_list;
 

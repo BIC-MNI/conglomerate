@@ -37,9 +37,9 @@
 ---------------------------------------------------------------------------- */
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s input.mnc\n\
 \n\
      Lists all value-label pairs in the minc file.\n\
@@ -73,11 +73,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char       *input_filename, *label;
+    STRING     input_filename, label;
     int        i, a, in_minc_id, value;
     int        n_labels;
     int        *values;
-    char       **labels;
+    STRING     *labels;
     BOOLEAN    list_all, by_value, found;
 
     /* --- check for enough arguments */

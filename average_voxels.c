@@ -5,8 +5,8 @@ int  main(
     char  *argv[] )
 {
     Volume     volume;
-    char       *input_filename, *output_filename;
-    STRING     history;
+    STRING     input_filename, output_filename;
+    char       history[EXTREMELY_LARGE_STRING_SIZE];
     int        x_size, y_size, z_size, sizes[MAX_DIMENSIONS];
     int        n_voxels, x, y, z, i, j, k;
     int        end_x, end_y, end_z;

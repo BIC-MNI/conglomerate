@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char   executable[] )
+    STRING   executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: %s  input_lines.obj  output_lines.obj [thickness]\n\
 \n\
      Copies the input lines to the output lines, with the line thickness set\n\
@@ -17,7 +17,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *src_filename, *dest_filename;
+    STRING               src_filename, dest_filename;
     File_formats         format;
     Real                 line_thickness;
     int                  i;

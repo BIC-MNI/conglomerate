@@ -6,8 +6,8 @@ int  main(
     char  *argv[] )
 {
     Status               status;
-    char                 *input_volume_filename, *input_surface_filename;
-    char                 *output_volume_filename;
+    STRING               input_volume_filename, input_surface_filename;
+    STRING               output_volume_filename;
     Real                 set_voxel, separations[MAX_DIMENSIONS];
     Real                 voxel_size;
     STRING               history;
@@ -56,15 +56,15 @@ int  main(
     scan_object_to_volume( objects[0], volume, label_volume, 1,
                            voxel_size / 2.0 );
 
-    dilate_labeled_voxels_3d( volume, label_volume,
-                              1, 1, 0.0, -1.0, 
-                              0, 0, 0.0, -1.0,
-                              1, EIGHT_NEIGHBOURS );
+    dilate_voxels_3d( volume, label_volume,
+                      1.0, 1.0, 0.0, -1.0, 
+                      0.0, 0.0, 0.0, -1.0,
+                      1.0, EIGHT_NEIGHBOURS );
 
-    dilate_labeled_voxels_3d( volume, label_volume,
-                              0, 0, 0.0, -1.0,
-                              1, 1, 0.0, -1.0, 
-                              0, EIGHT_NEIGHBOURS );
+    dilate_voxels_3d( volume, label_volume,
+                      0.0, 0.0, 0.0, -1.0,
+                      1.0, 1.0, 0.0, -1.0, 
+                      0.0, EIGHT_NEIGHBOURS );
 
     voxel[0] = 0;
     voxel[1] = 0;
@@ -94,11 +94,13 @@ int  main(
     delete_object_list( n_objects, objects );
     delete_volume( label_volume );
 
-    (void) strcpy( history, "Surface masked." );
+    history = create_string( "Surface masked." );
 
     status = output_volume( output_volume_filename, NC_UNSPECIFIED,
                             FALSE, 0.0, 0.0, volume, history,
                             (minc_output_options *) NULL );
+
+    delete_string( history );
 
     delete_volume( volume );
 

@@ -59,7 +59,7 @@ int  main(
     Real                 max_value;
     Real                 radius, radius_squared;
     Real                 delta, dx2, dy2, dz2;
-    char                 history[10000];
+    STRING               history;
     STRING               *filenames;
     bitlist_3d_struct    bitlist;
     Volume               volume, new_volume;
@@ -214,7 +214,7 @@ int  main(
         !is_left_id(structure_id) && !is_right_id(structure_id) )
         n_patients /= 2;
 
-    if( n > 0 && n >= n_patients )
+    if( n > 0 )
         n_patients = n;
 
     print( "Number subjects: %d\n", n_patients );
@@ -228,12 +228,12 @@ int  main(
 
     print( "Writing %s\n", output_filename );
 
-    (void) strcpy( history, "Created by:  " );
+    history = create_string( "Created by:  " );
 
     for_less( i, 0, argc )
     {
-        (void) strcat( history, " " );
-        (void) strcat( history, argv[i] );
+        concat_to_string( &history, " " );
+        concat_to_string( &history, argv[i] );
     }
 
     status = output_volume( output_filename, NC_BYTE, FALSE,

@@ -5,12 +5,13 @@ private  void  usage(
     STRING   executable )
 {
     STRING  usage_str = "\n\
-Usage: tagtominc  example_volume.mnc  input.tag  output.mnc  [structure_id]\n\
+Usage: tagtominc  example_volume.mnc  input.tag  output.mnc  [structure_id|-1] [crop]\n\
 \n\
      Converts a tag file to a MINC volume with values equal the tags'\n\
      structure ids, given an example MINC volume.\n\
      If structure_id is specified, then only tags with this id are used.\n\
-     Otherwise all tags are used.\n\n";
+     Otherwise all tags are used.  If crop is specified, then the minc\n\
+     file is cropped to the smallest possible size.\n\n";
 
     print_error( usage_str, executable );
 }
@@ -24,11 +25,14 @@ int  main(
     STRING               volume_filename, tag_filename;
     STRING               output_filename;
     Real                 voxel[MAX_DIMENSIONS];
-    STRING               history;
-    Volume               volume, new_volume;
+    BOOLEAN              crop_flag;
+    STRING               history, dummy;
+    Volume               volume, new_volume, used_volume;
     volume_input_struct  volume_input;
+    int                  limits[2][MAX_DIMENSIONS];
     int                  structure_id, n_tag_points, n_volumes, tag_id;
     int                  n_used_tag_points;
+    int                  n_inside_tag_points;
     Real                 tags1[N_DIMENSIONS];
     int                  i, x, y, z;
     int                  sizes[N_DIMENSIONS];
@@ -44,6 +48,7 @@ int  main(
     }
 
     (void) get_int_argument( -1, &structure_id );
+    crop_flag = get_string_argument( NULL, &dummy );
 
     if( start_volume_input( volume_filename, 3, XYZ_dimension_names,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -81,6 +86,9 @@ int  main(
 
     n_tag_points = 0;
     n_used_tag_points = 0;
+    n_inside_tag_points = 0;
+
+    limits[0][0] = 0;
 
     while( input_one_tag( file, n_volumes, tags1, NULL, NULL, &tag_id,
                           NULL, NULL, NULL ) )
@@ -97,6 +105,35 @@ int  main(
                 z = ROUND( voxel[Z] );
                 set_volume_voxel_value( new_volume, x, y, z, 0, 0,
                                         (Real) tag_id );
+
+                if( n_inside_tag_points == 0 )
+                {
+                    limits[0][X] = x;
+                    limits[0][Y] = y;
+                    limits[0][Z] = z;
+                    limits[1][X] = x;
+                    limits[1][Y] = y;
+                    limits[1][Z] = z;
+                }
+                else
+                {
+                    if( x < limits[0][X] )
+                        limits[0][X] = x;
+                    else if( x > limits[1][X] )
+                        limits[1][X] = x;
+
+                    if( y < limits[0][Y] )
+                        limits[0][Y] = y;
+                    else if( y > limits[1][Y] )
+                        limits[1][Y] = y;
+
+                    if( z < limits[0][Z] )
+                        limits[0][Z] = z;
+                    else if( z > limits[1][Z] )
+                        limits[1][Z] = z;
+                }
+
+                ++n_inside_tag_points;
             }
 
             ++n_used_tag_points;
@@ -106,12 +143,17 @@ int  main(
 
     if( n_tag_points == 0 )
         print( "File %s contains no tag points.\n", tag_filename );
-    else if( n_used_tag_points == n_tag_points )
+    else if( n_inside_tag_points == n_tag_points )
         print( "Converted all %d tags to volume.\n", n_tag_points );
     else
     {
         print( "Converted %d out of %d tags to volume.\n", n_used_tag_points,
                n_tag_points );
+        if( n_inside_tag_points != n_used_tag_points )
+        {
+            print( "          discarded %d of these because they were outside the range of the volume.\n",
+                   n_used_tag_points - n_inside_tag_points, n_used_tag_points );
+        }
     }
 
     history = create_string( "Created by:  " );
@@ -123,8 +165,13 @@ int  main(
     }
     concat_to_string( &history, "\n" );
 
+    used_volume = new_volume;
+
+    if( crop_flag )
+        used_volume = create_cropped_volume( new_volume, limits );
+
     status = output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
-                            0.0, 0.0, new_volume, volume_filename, history,
+                            0.0, 0.0, used_volume, volume_filename, history,
                             (minc_output_options *) NULL );
 
     return( status != OK );
