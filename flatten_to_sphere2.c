@@ -526,6 +526,8 @@ private  void  minimize_along_line(
 
 #define TOLERANCE   1.0e-10
 
+typedef  float  dtype;
+
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Point            init_points[],
@@ -535,11 +537,12 @@ private  void  flatten_polygons(
 {
     int              p, n, point, *n_neighbours, **neighbours;
     int              n_parameters, total_neighbours;
-    Real             gg, dgg, gam, current_time, last_update_time, prev_fit;
-    Real             *parameters, *g, *h, *xi, fit, *unit_dir;
+    Real             gg, dgg, gam, current_time, last_update_time;
+    Real             *parameters, fit, *unit_dir;
     Real             *distances, len, radius;
     Point            centroid;
     int              iter, ind, update_rate;
+    dtype            *g, *h, *xi;
 
     if( sphere_weight > 0.0 )
     {
@@ -608,10 +611,11 @@ private  void  flatten_polygons(
 
     evaluate_fit_derivative( n_parameters, parameters, distances,
                              n_neighbours, neighbours, centroid_weight,
-                             sphere_weight, xi );
+                             sphere_weight, unit_dir );
 
     for_less( p, 0, n_parameters )
     {
+        xi[p] = (dtype) unit_dir[p];
         g[p] = -xi[p];
         h[p] = g[p];
         xi[p] = g[p];
@@ -619,17 +623,16 @@ private  void  flatten_polygons(
 
     update_rate = 1;
     last_update_time = current_cpu_seconds();
-    prev_fit = fit;
 
     for_less( iter, 0, n_iters )
     {
         len = 0.0;
         for_less( p, 0, n_parameters )
-            len += xi[p] * xi[p];
+            len += (Real) xi[p] * (Real) xi[p];
 
         len = sqrt( len );
         for_less( p, 0, n_parameters )
-            unit_dir[p] = xi[p] / len;
+            unit_dir[p] = (Real) xi[p] / len;
 
         minimize_along_line( n_parameters, parameters, unit_dir, distances,
                              n_neighbours, neighbours,
@@ -650,27 +653,23 @@ private  void  flatten_polygons(
             current_time = current_cpu_seconds();
             if( current_time - last_update_time < 1.0 )
                 update_rate *= 10;
-/*
-            else if( iter > 100 && prev_fit - fit < TOLERANCE )
-                break;
-*/
-            prev_fit = fit;
 
             last_update_time = current_time;
         }
 
         evaluate_fit_derivative( n_parameters, parameters, distances,
                                  n_neighbours, neighbours, centroid_weight,
-                                 sphere_weight, xi );
+                                 sphere_weight, unit_dir );
 
         gg = 0.0;
         dgg = 0.0;
         for_less( p, 0, n_parameters )
         {
-            gg += g[p] * g[p];
-            dgg += (xi[p] + g[p]) * xi[p];
+            xi[p] = (dtype) unit_dir[p];
+            gg += (Real) g[p] * (Real) g[p];
+            dgg += (unit_dir[p] + (Real) g[p]) * unit_dir[p];
 /*
-            dgg += xi[p] * xi[p];
+            dgg += (unit_dir[p] * unit_dir[p];
 */
         }
 
@@ -682,7 +681,7 @@ private  void  flatten_polygons(
         for_less( p, 0, n_parameters )
         {
             g[p] = -xi[p];
-            h[p] = g[p] + gam * h[p];
+            h[p] = (dtype) ((Real) g[p] + gam * (Real) h[p]);
             xi[p] = h[p];
         }
     }
