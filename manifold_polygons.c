@@ -108,10 +108,11 @@ private  void   manifold_polygons(
     int                point, poly, size, neigh, neigh_size, v, edge, p;
     int                current, n_points_included, n_polys_included;
     int                ind, *new_point_ids, n;
-    int                n_done;
+    int                n_done, current_dist;
+    Real               dist;
     BOOLEAN            add;
     Smallest_int       *point_included, *poly_included;
-    QUEUE_STRUCT(int)  queue;
+    PRIORITY_QUEUE_STRUCT(int)  queue;
 
     for_less( poly, 0, polygons->n_items )
     {
@@ -130,7 +131,7 @@ private  void   manifold_polygons(
     for_less( point, 0, polygons->n_points )
         point_included[point] = FALSE;
     
-    INITIALIZE_QUEUE( queue );
+    INITIALIZE_PRIORITY_QUEUE( queue );
 
     poly_included[start_poly] = TRUE;
     size = GET_OBJECT_SIZE( *polygons, start_poly );
@@ -140,13 +141,14 @@ private  void   manifold_polygons(
                                    start_poly,p)]] = TRUE;
     }
 
-    INSERT_IN_QUEUE( queue, start_poly );
+    INSERT_IN_PRIORITY_QUEUE( queue, start_poly, 0 );
     n_done = 1;
 
-    while( !IS_QUEUE_EMPTY(queue) &&
+    while( !IS_PRIORITY_QUEUE_EMPTY(queue) &&
            (max_polygons <= 0 || n_done < max_polygons) )
     {
-        REMOVE_FROM_QUEUE( queue, current );
+        REMOVE_FROM_PRIORITY_QUEUE( queue, current, dist );
+        current_dist = (int) (-dist);
 
         size = GET_OBJECT_SIZE( *polygons, current );
         for_less( edge, 0, size )
@@ -207,13 +209,14 @@ private  void   manifold_polygons(
                                      polygons->end_indices,neigh,p)]] = TRUE;
                 }
 
-                INSERT_IN_QUEUE( queue, neigh );
+                INSERT_IN_PRIORITY_QUEUE( queue, neigh,
+                                          (Real) -(current_dist + 1) );
                 ++n_done;
             }
         }
     }
 
-    DELETE_QUEUE( queue );
+    DELETE_PRIORITY_QUEUE( queue );
 
     n_points_included = 0;
     for_less( p, 0, polygons->n_points )
