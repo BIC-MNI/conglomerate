@@ -1,5 +1,5 @@
-#include  <internal_volume_io.h>
-#include  <marching.h>
+#include  <volume_io/internal_volume_io.h>
+#include  <bicpl/marching.h>
 
 #define  CHUNK_SIZE   1000000
 
@@ -120,7 +120,8 @@ int  main(
                             &volume_input ) != OK )
         return( 0 );
 
-    copy_general_transform( &volume->voxel_to_world_transform,
+
+    copy_general_transform( &volume_input.minc_file->voxel_to_world_transform,
                             &voxel_to_world_transform );
 
     for_less( c, 0, N_DIMENSIONS )

@@ -1,5 +1,12 @@
 2002-04-06  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
+	* marching_cubes: Get the voxel_to_world_transform from
+	volume_input structure.  Patch from John Sled.
+
+	* Makefile.am (bin_PROGRAMS): Add marching_cubes.
+
+2002-04-06  Steve M. Robbins  <stever@bic.mni.mcgill.ca>
+
 	* marching_cubes.c: Copied the RCS file
 	~david/Source/Marching_cubes/RCS/marching_cubes.c,v to the CVS
 	repository.  After checkout, copied the (unchecked-in)

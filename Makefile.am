@@ -108,6 +108,7 @@ bin_PROGRAMS = \
 	map_colours_to_sphere \
 	map_surface_to_sheet \
 	map_sheets \
+	marching_cubes \
 	mask_values \
 	mask_volume \
 	measure_surface_area \
