@@ -93,3 +93,18 @@ in the file.
 
 Prints the colour of each object in the file.
 
+
+
+		subdivide_polygons
+		------------------
+
+  subdivide_polygons  input.obj  [output.obj]  [n_polygons]
+
+Subdivides any polygons in the file.  If the output file is not
+specified, the input file is overwritten with the newly subdivided
+objects.  
+
+If n_polygons is specified, the polygons will be resampled to that
+size.  Otherwise, the number of polygons in the output will be four
+times the input size.
+

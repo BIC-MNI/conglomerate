@@ -162,7 +162,6 @@ bin_PROGRAMS = \
 	trimesh_resample \
 	trimesh_set_points \
 	trimesh_to_polygons \
-	ascii_binary \
 	tags_to_spheres \
 	transform_volume \
 	transform_tags \
@@ -212,7 +211,6 @@ add_surfaces_SOURCES =  add_surfaces.c
 #analyze_grid_SOURCES =  analyze_grid.c
 apply_sphere_transform_SOURCES =  apply_sphere_transform.c
 #arbitrary_subdivide_SOURCES =  arbitrary_subdivide.c
-ascii_binary_SOURCES =  ascii_binary.c
 autocrop_volume_SOURCES =  autocrop_volume.c
 average_objects_SOURCES =  average_objects.c
 average_surfaces_SOURCES =  average_surfaces.c

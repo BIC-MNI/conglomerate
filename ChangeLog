@@ -1,3 +1,11 @@
+2003-10-14  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* ascii_binary.c: Delete.  This program was moved to package
+	bicpl on 2001-04-02 and the former is a prerequisite of this
+	package.
+
+	* Makefile.am (bin_PROGRAMS): Remove ascii_binary.
+
 2003-09-08  Jason Lerch    <jason@bic.mni.mcgill.ca>
 
 	* added a -output_binary_mask option to surface_mask2
