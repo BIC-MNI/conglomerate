@@ -25,12 +25,13 @@ int  main(
     STRING               output_filename, filename, *filenames;
     STRING               surface1_filename, surface2_filename;
     File_formats         format;
-    int                  n_tags, n_tags_per_line, n_objects;
-    int                  i, t, n_pairs, n_files;
+    int                  n_tags, n_tags_per_line, n_objects, poly;
+    int                  i, t, n_pairs, n_files, obj_index;
     Real                 **tags1, **tags2;
     object_struct        **objects1, **objects2, **objects;
     lines_struct         *lines1, *lines2;
     polygons_struct      *surface1, *surface2;
+    Point                point, point_on_sulcus;
 
     initialize_argument_processing( argc, argv );
 
@@ -116,6 +117,8 @@ int  main(
         lines1 = get_lines_ptr( objects1[0] );
         lines2 = get_lines_ptr( objects2[0] );
 
+        create_lines_bintree( lines2, ROUND( (Real) lines2->n_points * 3.0 ) );
+
         SET_ARRAY_SIZE( tags1, n_tags, n_tags + n_tags_per_line,
                         DEFAULT_CHUNK_SIZE );
         SET_ARRAY_SIZE( tags2, n_tags, n_tags + n_tags_per_line,
@@ -128,7 +131,23 @@ int  main(
         }
 
         get_n_tags( surface1, NULL, lines1, n_tags_per_line, &tags1[n_tags] );
-        get_n_tags(surface2, surface1, lines2, n_tags_per_line, &tags2[n_tags]);
+
+        for_less( t, n_tags, n_tags + n_tags_per_line )
+        {
+            fill_Point( point, tags1[t][X], tags1[t][Y], tags1[t][Z] );
+            (void) find_closest_point_on_object( &point, objects2[0],
+                                                 &obj_index, &point_on_sulcus );
+
+            poly = find_closest_polygon_point( &point_on_sulcus, surface2,
+                                               &point );
+
+            map_point_between_polygons( surface2, poly, &point,
+                                        surface1, &point );
+
+            tags2[t][X] = RPoint_x(point);
+            tags2[t][Y] = RPoint_y(point);
+            tags2[t][Z] = RPoint_z(point);
+        }
 
         n_tags += n_tags_per_line;
 
