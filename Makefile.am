@@ -111,6 +111,7 @@ bin_PROGRAMS = \
 	marching_cubes \
 	mask_values \
 	mask_volume \
+	match_tags \
 	measure_surface_area \
 	merge_polygons \
 	minctotag \
@@ -400,6 +401,7 @@ map_surface_to_sheet_SOURCES =  map_surface_to_sheet.c
 mask_values_SOURCES =  mask_values.c
 #mask_volume_4d_SOURCES =  mask_volume_4d.c
 mask_volume_SOURCES =  mask_volume.c
+match_tags_SOURCES = match_tags.c
 #match_histograms_SOURCES =  match_histograms.c
 #matrix1_SOURCES =  matrix1.c
 measure_surface_area_SOURCES =  measure_surface_area.c
