@@ -1,3 +1,10 @@
+2004-04-22  Bert Vincent   <bert@bic.mni.mcgill.ca>
+	* Added find_peaks
+	* Update version to 1.4
+	
+2004-04-07  Bert Vincent   <bert@bic.mni.mcgill.ca>
+	* Added match_tags
+	
 2004-02-05  Jason Lerch	   <jason@bic.mni.mcgill.ca>
 
 	* surface_mask2 now outputs volumes in the same dimension order as
