@@ -345,8 +345,8 @@ private  Real   create_surface_interpolation(
     delete_object( object );
 
     fit = minimize_lsq_float( n_points, n_equations, n_nodes_per_equation,
-                              node_list, constants, node_weights, n_iters,
-                              node_values );
+                              node_list, constants, node_weights, -1.0,
+                              n_iters, node_values );
 
     for_less( point, 0, n_equations )
     {
