@@ -148,10 +148,12 @@ int  main(
     }
 
     print( 
-"       Subject                10   11   12   13   30   30y    20   21   22   23   40   40y\n" );
+"  Subject      10   11   12   13   30   32     20   21   22   23   40   42\n" );
+/*
     print( 
-"---------------------------  ---- ---- ---- ---- ---- ----   ---- ---- ---- ---- ---- ----\n" );
+"----------  ---- ---- ---- ---- ---- ----   ---- ---- ---- ---- ---- ----\n" );
     print( "\n" );
+*/
 
     for_less( p, 0, n_pairs )
     {
@@ -180,21 +182,21 @@ int  main(
         while( s > 0 && dir[s] != '/' )
             --s;
         dir[s] = (char) 0;
+        s -= 10;
+        if( s < 0 )  s = 0;
  
-        for_inclusive( divide, FALSE, TRUE )
+        for_inclusive( divide, FALSE, FALSE )
         {
             if( !divide )
             {
-                print( "%s", dir );
-                n_printed = strlen( dir );
+                print( "%s ", &dir[s] );
+                n_printed = strlen( &dir[s] );
             }
             else
                 n_printed = 0;
 
-            for_less( i, n_printed, longest )
+            for_less( i, n_printed, 11 )
                 print( " " );
-
-            print( ": " );
 
             print_stats( n_left_objects, left_object_list, 10, 0.0, 0.0,
                          divide );

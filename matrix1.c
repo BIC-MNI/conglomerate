@@ -1,10 +1,13 @@
 #include  <mni.h>
 
+#define  COMBINED
+
 private  void  print_stats(
     char            name[],
     int             n_objects,
     object_struct   *object_list[],
-    int             structure_id,
+    int             min_structure_id,
+    int             max_structure_id,
     Real            y_min_range,
     Real            y_max_range );
 
@@ -136,22 +139,30 @@ int  main(
             {
                 if( !left_found )
                 {
-                    print_stats( &prev_name[prev_s], 0, 0, 10, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 11, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 12, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 13, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 30, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 30, 12.0, 30.0 );
+#ifdef  COMBINED
+                    print_stats( &prev_name[prev_s], 0, 0, 10, 13, 1.0, -1.0 );
+#else
+                    print_stats( &prev_name[prev_s], 0, 0, 10, 10, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 11, 11, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 12, 12, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 13, 13, 1.0, -1.0 );
+#endif
+                    print_stats( &prev_name[prev_s], 0, 0, 30, 30, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 30, 30, 12.0, 30.0 );
                 }
 
                 if( !right_found )
                 {
-                    print_stats( &prev_name[prev_s], 0, 0, 20, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 21, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 22, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 23, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 40, 1.0, -1.0 );
-                    print_stats( &prev_name[prev_s], 0, 0, 40, 12.0, 30.0 );
+#ifdef  COMBINED
+                    print_stats( &prev_name[prev_s], 0, 0, 20, 23, 1.0, -1.0 );
+#else
+                    print_stats( &prev_name[prev_s], 0, 0, 20, 20, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 21, 21, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 22, 22, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 23, 23, 1.0, -1.0 );
+#endif
+                    print_stats( &prev_name[prev_s], 0, 0, 40, 40, 1.0, -1.0 );
+                    print_stats( &prev_name[prev_s], 0, 0, 40, 40, 12.0, 30.0 );
                 }
             }
             (void) strcpy( prev_name, name );
@@ -162,22 +173,30 @@ int  main(
 
         if( left )
         {
-            print_stats( &name[s], n_objects, object_list, 10, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 11, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 12, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 13, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 30, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 30, 12.0, 30.0 );
+#ifdef  COMBINED
+            print_stats( &name[s], n_objects, object_list, 10, 13, 1.0, -1.0 );
+#else
+            print_stats( &name[s], n_objects, object_list, 10, 10, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 11, 11, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 12, 12, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 13, 13, 1.0, -1.0 );
+#endif
+            print_stats( &name[s], n_objects, object_list, 30, 30, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 30, 30, 12.0, 30.0 );
             left_found = TRUE;
         }
         else
         {
-            print_stats( &name[s], n_objects, object_list, 20, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 21, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 22, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 23, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 40, 1.0, -1.0 );
-            print_stats( &name[s], n_objects, object_list, 40, 12.0, 30.0 );
+#ifdef COMBINED
+            print_stats( &name[s], n_objects, object_list, 20, 23, 1.0, -1.0 );
+#else
+            print_stats( &name[s], n_objects, object_list, 20, 20, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 21, 21, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 22, 22, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 23, 23, 1.0, -1.0 );
+#endif
+            print_stats( &name[s], n_objects, object_list, 40, 40, 1.0, -1.0 );
+            print_stats( &name[s], n_objects, object_list, 40, 40, 12.0, 30.0 );
             right_found = TRUE;
         }
 
@@ -194,11 +213,12 @@ private  void  print_stats(
     char            name[],
     int             n_objects,
     object_struct   *object_list[],
-    int             structure_id,
+    int             min_structure_id,
+    int             max_structure_id,
     Real            y_min_range,
     Real            y_max_range )
 {
-    int             i, n_samples;
+    int             i, n_samples, id;
     marker_struct   *marker;
 
     n_samples = 0;
@@ -208,9 +228,10 @@ private  void  print_stats(
         if( object_list[i]->object_type == MARKER )
         {
             marker = get_marker_ptr( object_list[i] );
+            id = marker->structure_id;
+            if( id >= 1000 )  id -= 1000;
 
-            if( (marker->structure_id == structure_id ||
-                 marker->structure_id == structure_id + 1000) &&
+            if( (min_structure_id <= id && id <= max_structure_id) &&
                 (y_min_range >= y_max_range ||
                  Point_y(marker->position) >= y_min_range &&
                  Point_y(marker->position) <= y_max_range ) )
@@ -222,11 +243,19 @@ private  void  print_stats(
 
     if( y_min_range < y_max_range )
     {
-        if( structure_id == 30 )
-            structure_id = 32;
-        if( structure_id == 40 )
-            structure_id = 42;
+        if( min_structure_id == 30 )
+            min_structure_id = 32;
+        else if( min_structure_id == 40 )
+            min_structure_id = 42;
+        if( max_structure_id == 30 )
+            max_structure_id = 32;
+        else if( max_structure_id == 40 )
+            max_structure_id = 42;
     }
 
-    print( "%15s %3d %10d\n", name, structure_id, n_samples );
+    if( min_structure_id == max_structure_id )
+        print( "%15s %7d %10d\n", name, min_structure_id, n_samples );
+    else
+        print( "%15s %3d-%3d %10d\n", name, min_structure_id, max_structure_id,
+               n_samples );
 }
