@@ -323,6 +323,7 @@ private  void  create_2d_coordinates(
     int               *path;
     float             *vertical, *horizontal;
     progress_struct   progress;
+    Real              x, y, z;
 
     ALLOC( vertical, polygons->n_points );
     ALLOC( horizontal, polygons->n_points );
@@ -368,14 +369,23 @@ private  void  create_2d_coordinates(
 
     terminate_progress_report( &progress );
 
-    write_values_to_file( "vertical.txt", polygons->n_points, vertical );
-    write_values_to_file( "horizontal.txt", polygons->n_points, horizontal );
-
     for_less( point, 0, polygons->n_points )
         FREE( neighbours[point] );
-
     FREE( n_neighbours );
     FREE( neighbours );
+
+/*
+    write_values_to_file( "vertical.txt", polygons->n_points, vertical );
+    write_values_to_file( "horizontal.txt", polygons->n_points, horizontal );
+*/
+
+    for_less( point, 0, polygons->n_points )
+    {
+        map_uv_to_sphere( (Real) horizontal[point], (Real) vertical[point],
+                          &x, &y, &z );
+        fill_Point( polygons->points[point], x, y, z );
+    }
+
     FREE( vertical );
     FREE( horizontal );
 }
