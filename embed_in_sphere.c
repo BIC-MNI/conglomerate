@@ -2,8 +2,6 @@
 #include  <bicpl.h>
 #include  <priority_queue.h>
 
-#define FLAT
-
 private  void  convert_to_lines(
     polygons_struct  *polygons,
     Point            sphere_points[],
@@ -71,6 +69,7 @@ int  main(
 
     embed_in_sphere( polygons, radius, sphere_points );
 
+#ifdef DEBUG
     {
         object_struct  *lines;
 
@@ -86,6 +85,7 @@ int  main(
         (void) output_graphics_file( "lines2.obj", ASCII_FORMAT, 1, &lines );
         delete_object( lines );
     }
+#endif
 
     FREE( polygons->points );
     polygons->points = sphere_points;
@@ -1229,6 +1229,110 @@ private  void  embed_in_sphere(
     corner_flags[0] = TRUE;
     corner_flags[long_path_size-equator_index-1] = TRUE;
     corner_flags[long_path_size-equator_index-1 + left_south_size-1] = TRUE;
+
+    position_patch( n_points, loop_size, loop, corner_flags,
+                    n_neighbours, neighbours, used_flags, distances,
+                    points, sphere_points, &n_done, &progress );
+
+    FREE( loop );
+    FREE( corner_flags );
+
+    /*--- create loop from other_equator to right_point to north */
+
+    loop_size = 0;
+    loop = NULL;
+
+    add_to_loop( &loop_size, &loop, right_point_index+1, right_path,
+                 FALSE, FALSE);
+    add_to_loop( &loop_size, &loop, right_north_size, right_north_path,
+                 FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, size1, equator1_path, TRUE, TRUE );
+
+    ALLOC( corner_flags, loop_size );
+    for_less( point, 0, loop_size )
+        corner_flags[point] = FALSE;
+
+    corner_flags[0] = TRUE;
+    corner_flags[right_point_index+1-1] = TRUE;
+    corner_flags[right_point_index+1-1 + right_north_size -1] = TRUE;
+
+    position_patch( n_points, loop_size, loop, corner_flags,
+                    n_neighbours, neighbours, used_flags, distances,
+                    points, sphere_points, &n_done, &progress );
+
+    FREE( loop );
+    FREE( corner_flags );
+
+    /*--- create loop from right_point to equator_point to north */
+
+    loop_size = 0;
+    loop = NULL;
+
+    add_to_loop( &loop_size, &loop, right_size - right_point_index,
+                 &right_path[right_point_index], FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, equator_index+1, long_path, TRUE, FALSE );
+    add_to_loop( &loop_size, &loop, right_north_size, right_north_path,
+                 TRUE, TRUE );
+
+    ALLOC( corner_flags, loop_size );
+    for_less( point, 0, loop_size )
+        corner_flags[point] = FALSE;
+
+    corner_flags[0] = TRUE;
+    corner_flags[right_size-right_point_index-1] = TRUE;
+    corner_flags[right_size-right_point_index-1 + equator_index+1 -1] = TRUE;
+
+    position_patch( n_points, loop_size, loop, corner_flags,
+                    n_neighbours, neighbours, used_flags, distances,
+                    points, sphere_points, &n_done, &progress );
+
+    FREE( loop );
+    FREE( corner_flags );
+
+    /*--- create loop from right_point to other_equator_point to south */
+
+    loop_size = 0;
+    loop = NULL;
+
+    add_to_loop( &loop_size, &loop, right_point_index+1, right_path, TRUE, FALSE);
+    add_to_loop( &loop_size, &loop, size2, equator2_path, FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, right_south_size, right_south_path,
+                 TRUE, TRUE );
+
+    ALLOC( corner_flags, loop_size );
+    for_less( point, 0, loop_size )
+        corner_flags[point] = FALSE;
+
+    corner_flags[0] = TRUE;
+    corner_flags[right_point_index+1-1] = TRUE;
+    corner_flags[right_point_index+1-1 + size2 -1] = TRUE;
+
+    position_patch( n_points, loop_size, loop, corner_flags,
+                    n_neighbours, neighbours, used_flags, distances,
+                    points, sphere_points, &n_done, &progress );
+
+    FREE( loop );
+    FREE( corner_flags );
+
+    /*--- create loop from right_point to south to equator_point */
+
+    loop_size = 0;
+    loop = NULL;
+
+    add_to_loop( &loop_size, &loop, right_south_size, right_south_path,
+                 FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, long_path_size-equator_index,
+                 &long_path[equator_index], TRUE, FALSE );
+    add_to_loop( &loop_size, &loop, right_size-right_point_index,
+                 &right_path[right_point_index], TRUE, TRUE );
+
+    ALLOC( corner_flags, loop_size );
+    for_less( point, 0, loop_size )
+        corner_flags[point] = FALSE;
+
+    corner_flags[0] = TRUE;
+    corner_flags[right_south_size-1] = TRUE;
+    corner_flags[right_south_size-1 + long_path_size-equator_index -1] = TRUE;
 
     position_patch( n_points, loop_size, loop, corner_flags,
                     n_neighbours, neighbours, used_flags, distances,
