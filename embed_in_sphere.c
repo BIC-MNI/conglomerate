@@ -23,6 +23,7 @@ int  main(
     object_struct        **object_list;
     polygons_struct      *polygons;
     Point                *sphere_points;
+    Real                 radius;
 
     initialize_argument_processing( argc, argv );
 
@@ -32,6 +33,8 @@ int  main(
         print_error( "Usage: %s  input.obj output.obj\n", argv[0] );
         return( 1 );
     }
+
+    (void) get_real_argument( 1.0, &radius );
 
     set_random_seed( 933482171 );
 
@@ -54,7 +57,7 @@ int  main(
 
     ALLOC( sphere_points, polygons->n_points );
 
-    embed_in_sphere( polygons, 1.0, sphere_points );
+    embed_in_sphere( polygons, radius, sphere_points );
 
     {
         object_struct  *lines;
@@ -331,7 +334,11 @@ private  int  create_path_between_points(
         }
 
         if( best_dist < 0.0f )
+        {
+            if( n_path > 1 )
+                handle_internal_error( "n_path > 1 " );
             break;
+        }
 
         current = best_neigh;
         ADD_ELEMENT_TO_ARRAY( path, n_path, current, DEFAULT_CHUNK_SIZE );
@@ -669,11 +676,16 @@ print( "\n" );
     for_less( attempt, 0, n_attempts )
     {
         ind1 = get_random_int( loop_length );
-        do
+        if( attempt == 0 )
+            ind2 = (ind1 + loop_length / 2) % loop_length;
+        else
         {
-            ind2 = get_random_int( loop_length );
+            do
+            {
+                ind2 = get_random_int( loop_length );
+            }
+            while( ind2 == ind1 );
         }
-        while( ind2 == ind1 );
 
         if( ind1 > ind2 )
         {
@@ -810,6 +822,12 @@ private  void  embed_in_sphere(
     int               *long_path, long_path_size, equator_point;
     int               other_equator_point, size1, size2;
     int               *equator1_path, *equator2_path, equator_index, size;
+    int               left_point, left_point_index;
+    int               right_point, right_point_index;
+    int               left_north_size, left_south_size;
+    int               right_north_size, right_south_size;
+    int               *left_north_path, *left_south_path;
+    int               *right_north_path, *right_south_path;
     Real              d;
     Point             *points, centroid, triangle_points[3];
     Vector            normal, pos;
@@ -860,6 +878,9 @@ private  void  embed_in_sphere(
     long_path_size = create_path_between_points( n_points, points,
                                n_neighbours, neighbours, north_pole,
                                south_pole, -1, -1, distances, &long_path );
+
+    if( long_path_size == 1 )
+        handle_internal_error( "long_path_size" );
 
     equator_point = get_vertex_on_path( long_path_size, long_path, points,
                                         0.5, &equator_index );
@@ -912,10 +933,16 @@ private  void  embed_in_sphere(
                                north_pole, -1, -1, equator_distances,
                                &equator1_path );
 
+    if( size1 == 1 )
+        handle_internal_error( "size1" );
+
     size2 = create_path_between_points( n_points, points,
                                n_neighbours, neighbours, other_equator_point,
                                south_pole, -1, -1, equator_distances,
                                &equator2_path );
+
+    if( size2 == 1 )
+        handle_internal_error( "size2" );
 
     while( size1 >= 2 && size2 >= 2 &&
            equator1_path[1] == equator2_path[1] )
@@ -949,8 +976,8 @@ private  void  embed_in_sphere(
                                long_path[equator_index+1], equator_distances,
                                &left_path );
 
-    if( left_size < 2 )
-        handle_internal_error( "left_size < 2" );
+    if( left_size == 1 )
+        handle_internal_error( "left_size == 1" );
 
     right_size = create_path_between_points( n_points, points,
                                n_neighbours, neighbours, other_equator_point,
@@ -958,31 +985,144 @@ private  void  embed_in_sphere(
                                long_path[equator_index-1], equator_distances,
                                &right_path );
 
-    FREE( equator_distances[0] );
-    FREE( equator_distances );
+    if( right_size == 1 )
+        handle_internal_error( "right_size == 1" );
 
-    if( right_size < 2 )
-        handle_internal_error( "right_size < 2" );
+    /*--- get left and right quarter points */
+
+    left_point = get_vertex_on_path( left_size, left_path, points,
+                                     0.5, &left_point_index );
+    right_point = get_vertex_on_path( right_size, right_path, points,
+                                     0.5, &right_point_index );
+
+    fill_Point( sphere_points[left_point], 0.0, 1.0, 0.0 );
+    fill_Point( sphere_points[right_point], 0.0, -1.0, 0.0 );
+
+#ifdef FLAT
+    fill_Point( sphere_points[left_point], 0.0, 0.001, 0.0 );
+    fill_Point( sphere_points[right_point], 0.0, 0.001, 0.0 );
+#endif
 
     fill_Vector( normal, 0.0, 0.0, -1.0 );
-    assign_used_flags( left_size, left_path, used_flags, &normal,
+
+    assign_used_flags( left_point_index+1, left_path, used_flags, &normal,
+                       points, sphere_points);
+    assign_used_flags( left_size - left_point_index,
+                       &left_path[left_point_index], used_flags, &normal,
                        points, sphere_points);
 
+#ifndef FLAT
     fill_Vector( normal, 0.0, 0.0, 1.0 );
-    assign_used_flags( right_size, right_path, used_flags, &normal,
+    assign_used_flags( right_point_index+1, right_path, used_flags, &normal,
                        points, sphere_points );
+    assign_used_flags( right_size - right_point_index,
+                       &right_path[right_point_index], used_flags, &normal,
+                       points, sphere_points );
+#endif
 
     print( "OEQ: %g %g %g\n", RPoint_x(sphere_points[other_equator_point]),
                               RPoint_y(sphere_points[other_equator_point]),
                               RPoint_z(sphere_points[other_equator_point]) );
 
-    /*--- create loop from other_equator to north pole to equator_point */
+    calc_distances_from_point( n_points, points, n_neighbours, neighbours,
+                               used_flags, left_point, -1, -1,
+                               equator_distances );
+
+    left_north_size = create_path_between_points( n_points, points,
+                               n_neighbours, neighbours, left_point,
+                               north_pole, -1, -1, equator_distances,
+                               &left_north_path );
+
+    if( left_north_size == 1 )
+        handle_internal_error( "left_north_size == 1" );
+
+    fill_Vector( normal, 1.0, 0.0, 0.0 );
+    assign_used_flags( left_north_size, left_north_path, used_flags, &normal,
+                       points, sphere_points );
+
+    left_south_size = create_path_between_points( n_points, points,
+                               n_neighbours, neighbours, left_point,
+                               south_pole, -1, -1, equator_distances,
+                               &left_south_path );
+
+    if( left_south_size == 1 )
+        handle_internal_error( "left_south_size == 1" );
+
+    fill_Vector( normal, -1.0, 0.0, 0.0 );
+    assign_used_flags( left_south_size, left_south_path, used_flags, &normal,
+                       points, sphere_points );
+
+    calc_distances_from_point( n_points, points, n_neighbours, neighbours,
+                               used_flags, right_point, -1, -1,
+                               equator_distances );
+
+    right_north_size = create_path_between_points( n_points, points,
+                               n_neighbours, neighbours, right_point,
+                               north_pole, -1, -1,
+                               equator_distances, &right_north_path );
+
+    if( right_north_size == 1 )
+        handle_internal_error( "right_north_size == 1" );
+
+#ifndef FLAT
+    fill_Vector( normal, -1.0, 0.0, 0.0 );
+    assign_used_flags( right_north_size, right_north_path, used_flags, &normal,
+                       points, sphere_points );
+#endif
+
+    right_south_size = create_path_between_points( n_points, points,
+                               n_neighbours, neighbours, right_point,
+                               south_pole, -1, -1,
+                               equator_distances, &right_south_path );
+
+    if( right_south_size == 1 )
+        handle_internal_error( "right_south_size == 1" );
+
+#ifndef FLAT
+    fill_Vector( normal, 1.0, 0.0, 0.0 );
+    assign_used_flags( right_south_size, right_south_path, used_flags, &normal,
+                       points, sphere_points );
+#endif
+
+    FREE( equator_distances[0] );
+    FREE( equator_distances );
+
+    /*--- create loop from other_equator to north pole to left_point */
 
     loop_size = 0;
     loop = NULL;
 
-    add_to_loop( &loop_size, &loop, left_size, left_path, TRUE, FALSE );
     add_to_loop( &loop_size, &loop, size1, equator1_path, FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, left_north_size, left_north_path,
+                 TRUE, FALSE );
+    add_to_loop( &loop_size, &loop, left_point_index+1, left_path, TRUE, TRUE );
+
+    ALLOC( corner_flags, loop_size );
+    for_less( point, 0, loop_size )
+        corner_flags[point] = FALSE;
+
+    corner_flags[0] = TRUE;
+    corner_flags[size1-1] = TRUE;
+    corner_flags[size1-1 + left_north_size-1] = TRUE;
+
+    position_patch( n_points, loop_size, loop, corner_flags,
+                    n_neighbours, neighbours, used_flags, distances,
+                    points, sphere_points );
+
+    FREE( loop );
+    FREE( corner_flags );
+
+    print( "Done 1/8\n" );
+
+    /*--- create loop from equator_point to left_point to north_pole */
+
+    loop_size = 0;
+    loop = NULL;
+
+    add_to_loop( &loop_size, &loop, left_size-left_point_index,
+                 &left_path[left_point_index], TRUE, FALSE );
+    add_to_loop( &loop_size, &loop, left_north_size, left_north_path, FALSE,
+                 FALSE );
     add_to_loop( &loop_size, &loop, equator_index+1, long_path, FALSE, TRUE );
 
     ALLOC( corner_flags, loop_size );
@@ -990,8 +1130,8 @@ private  void  embed_in_sphere(
         corner_flags[point] = FALSE;
 
     corner_flags[0] = TRUE;
-    corner_flags[left_size-1] = TRUE;
-    corner_flags[left_size-1 + size1-1] = TRUE;
+    corner_flags[left_size-left_point_index-1] = TRUE;
+    corner_flags[left_size-left_point_index-1 + left_north_size-1] = TRUE;
 
     position_patch( n_points, loop_size, loop, corner_flags,
                     n_neighbours, neighbours, used_flags, distances,
@@ -1000,16 +1140,16 @@ private  void  embed_in_sphere(
     FREE( loop );
     FREE( corner_flags );
 
-    print( "Done 1/4\n" );
+    print( "Done 2/8\n" );
 
-    /*--- create loop from other_equator to equator_point to south_pole */
+    /*--- create loop from other_equator to left_point to south */
 
     loop_size = 0;
     loop = NULL;
 
-    add_to_loop( &loop_size, &loop, left_size, left_path, FALSE, FALSE );
-    add_to_loop( &loop_size, &loop, long_path_size - equator_index,
-                 &long_path[equator_index], FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, left_point_index+1, left_path, FALSE,FALSE);
+    add_to_loop( &loop_size, &loop, left_south_size, left_south_path,
+                 FALSE, FALSE );
     add_to_loop( &loop_size, &loop, size2, equator2_path, TRUE, TRUE );
 
     ALLOC( corner_flags, loop_size );
@@ -1017,8 +1157,8 @@ private  void  embed_in_sphere(
         corner_flags[point] = FALSE;
 
     corner_flags[0] = TRUE;
-    corner_flags[left_size-1] = TRUE;
-    corner_flags[left_size-1 + long_path_size-equator_index-1] = TRUE;
+    corner_flags[left_point_index+1-1] = TRUE;
+    corner_flags[left_point_index+1-1 + left_south_size -1] = TRUE;
 
     position_patch( n_points, loop_size, loop, corner_flags,
                     n_neighbours, neighbours, used_flags, distances,
@@ -1027,24 +1167,28 @@ private  void  embed_in_sphere(
     FREE( loop );
     FREE( corner_flags );
 
-    print( "Done 2/4\n" );
+    print( "Done 3/8\n" );
 
-    /*--- create loop from other_equator to equator_point to north */
+    /*--- create loop from equator to south_pole to left_point */
 
     loop_size = 0;
     loop = NULL;
 
-    add_to_loop( &loop_size, &loop, right_size, right_path, FALSE, FALSE );
-    add_to_loop( &loop_size, &loop, equator_index+1, long_path, TRUE, FALSE );
-    add_to_loop( &loop_size, &loop, size1, equator1_path, TRUE, TRUE );
+    add_to_loop( &loop_size, &loop, long_path_size-equator_index,
+                 &long_path[equator_index], FALSE, FALSE );
+    add_to_loop( &loop_size, &loop, left_south_size, left_south_path,
+                 TRUE, FALSE );
+    add_to_loop( &loop_size, &loop, left_size-left_point_index,
+                 &left_path[left_point_index],
+                 FALSE, TRUE );
 
     ALLOC( corner_flags, loop_size );
     for_less( point, 0, loop_size )
         corner_flags[point] = FALSE;
 
     corner_flags[0] = TRUE;
-    corner_flags[right_size-1] = TRUE;
-    corner_flags[right_size-1 + equator_index+1 -1] = TRUE;
+    corner_flags[long_path_size-equator_index-1] = TRUE;
+    corner_flags[long_path_size-equator_index-1 + left_south_size-1] = TRUE;
 
     position_patch( n_points, loop_size, loop, corner_flags,
                     n_neighbours, neighbours, used_flags, distances,
@@ -1053,34 +1197,7 @@ private  void  embed_in_sphere(
     FREE( loop );
     FREE( corner_flags );
 
-    print( "Done 3/4\n" );
-
-    /*--- create loop from other_equator to south_pole to equator_point */
-
-    loop_size = 0;
-    loop = NULL;
-
-    add_to_loop( &loop_size, &loop, size2, equator2_path, FALSE, FALSE );
-    add_to_loop( &loop_size, &loop, long_path_size - equator_index,
-                 &long_path[equator_index], TRUE, FALSE );
-    add_to_loop( &loop_size, &loop, right_size, right_path, TRUE, TRUE );
-
-    ALLOC( corner_flags, loop_size );
-    for_less( point, 0, loop_size )
-        corner_flags[point] = FALSE;
-
-    corner_flags[0] = TRUE;
-    corner_flags[size2-1] = TRUE;
-    corner_flags[size2-1 + long_path_size-equator_index -1] = TRUE;
-
-    position_patch( n_points, loop_size, loop, corner_flags,
-                    n_neighbours, neighbours, used_flags, distances,
-                    points, sphere_points );
-
-    FREE( loop );
-    FREE( corner_flags );
-
-    print( "Done 4/4\n" );
+    print( "Done 4/8\n" );
 
     /*--- free up memory */
 
@@ -1118,7 +1235,7 @@ private  void  embed_in_sphere(
         fill_Vector( pos, 0.0, 1.0, 0.0 );
 
         d = DOT_VECTORS( pos, normal );
-        if( d > -0.99 )
+        if( d < 0.99 )
         {
             print( "Error in dot_product: %g\n", d );
             for_less( p, 0, size )
@@ -1133,4 +1250,9 @@ private  void  embed_in_sphere(
                                      neighbours, NULL, NULL );
 
     FREE( used_flags );
+
+    for_less( p, 0, n_points )
+    {
+        SCALE_POINT( sphere_points[p], sphere_points[p], radius );
+    }
 }
