@@ -1,5 +1,7 @@
 #include  <module.h>
 
+#define  CHUNK_SIZE   1000000
+
 private  void  extract_isosurface(
     Minc_file         minc_file,
     Volume            volume,
@@ -109,6 +111,14 @@ int  main(
         return( 1 );
 
     delete_object( object );
+
+    delete_volume( volume );
+
+    delete_marching_cubes_table();
+
+    delete_general_transform( &voxel_to_world_transform );
+
+    output_alloc_to_file( ".alloc_stats" );
 
     return( 0 );
 }
@@ -330,7 +340,7 @@ private  int   get_point_index(
 
         point_index = polygons->n_points;
         ADD_ELEMENT_TO_ARRAY( polygons->points, polygons->n_points,
-                              world_point, DEFAULT_CHUNK_SIZE );
+                              world_point, CHUNK_SIZE );
 
         point_ids[voxel[Z]][voxel[X]][voxel[Y]][edge] = point_index;
     }
@@ -419,7 +429,7 @@ private  void  extract_surface(
 
                     ADD_ELEMENT_TO_ARRAY( polygons->indices,
                              polygons->end_indices[polygons->n_items-1],
-                             point_index, DEFAULT_CHUNK_SIZE );
+                             point_index, CHUNK_SIZE );
                 }
 
                 if( right_handed )
