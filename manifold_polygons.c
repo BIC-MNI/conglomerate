@@ -102,6 +102,48 @@ int  main(
     return( 0 );
 }
 
+private  void   assign_distances(
+    polygons_struct    *polygons,
+    int                poly_dist[],
+    int                start_poly )
+{
+    int                         poly, size, neigh, edge, current, current_dist;
+    Real                        dist;
+    PRIORITY_QUEUE_STRUCT(int)  queue;
+
+    for_less( poly, 0, polygons->n_items )
+        poly_dist[poly] = -1;
+
+    INITIALIZE_PRIORITY_QUEUE( queue );
+
+    poly_dist[start_poly] = 0;
+
+    INSERT_IN_PRIORITY_QUEUE( queue, start_poly, 0.0 );
+
+    while( !IS_PRIORITY_QUEUE_EMPTY(queue) )
+    {
+        REMOVE_FROM_PRIORITY_QUEUE( queue, current, dist );
+        current_dist = poly_dist[current];
+
+        size = GET_OBJECT_SIZE( *polygons, current );
+        for_less( edge, 0, size )
+        {
+            neigh = polygons->neighbours[POINT_INDEX(polygons->end_indices,
+                                                     current,edge)];
+
+            if( neigh >= 0 &&
+                (poly_dist[neigh] < 0 || poly_dist[neigh] > current_dist + 1) )
+            {
+                poly_dist[neigh] = current_dist + 1;
+                INSERT_IN_PRIORITY_QUEUE( queue, neigh,
+                                          (Real) -poly_dist[neigh] );
+            }
+        }
+    }
+
+    DELETE_PRIORITY_QUEUE( queue );
+}
+
 private  void   manifold_polygons(
     polygons_struct    *polygons,
     int                start_poly,
@@ -112,7 +154,8 @@ private  void   manifold_polygons(
     int                point, poly, size, neigh, neigh_size, v, edge, p;
     int                current, n_points_included, n_polys_included;
     int                ind, *new_point_ids, n;
-    int                n_done, current_dist;
+    int                n_done;
+    int                *poly_dist;
     Real               dist;
     BOOLEAN            add;
     Smallest_int       *point_included, *poly_included;
@@ -126,6 +169,9 @@ private  void   manifold_polygons(
             return;
         }
     }
+
+    ALLOC( poly_dist, polygons->n_items );
+    assign_distances( polygons, poly_dist, start_poly );
 
     ALLOC( poly_included, polygons->n_items );
     for_less( poly, 0, polygons->n_items )
@@ -145,14 +191,13 @@ private  void   manifold_polygons(
                                    start_poly,p)]] = TRUE;
     }
 
-    INSERT_IN_PRIORITY_QUEUE( queue, start_poly, 0 );
+    INSERT_IN_PRIORITY_QUEUE( queue, start_poly, 0.0 );
     n_done = 1;
 
     while( !IS_PRIORITY_QUEUE_EMPTY(queue) &&
            (max_polygons <= 0 || n_done < max_polygons) )
     {
         REMOVE_FROM_PRIORITY_QUEUE( queue, current, dist );
-        current_dist = (int) (-dist);
 
         size = GET_OBJECT_SIZE( *polygons, current );
         for_less( edge, 0, size )
@@ -175,8 +220,6 @@ private  void   manifold_polygons(
                     p = polygons->indices[POINT_INDEX(polygons->end_indices,
                                                   neigh,v)];
 
-if( p == 39417 )
-    print( "poly: %d\n", neigh );
                     if( point_included[p] )
                         ++n_points_included;
                 }
@@ -223,13 +266,15 @@ if( p == 39417 )
                 }
 
                 INSERT_IN_PRIORITY_QUEUE( queue, neigh,
-                                          (Real) -(current_dist + 1) );
+                                          (Real) -poly_dist[neigh] );
                 ++n_done;
             }
         }
     }
 
     DELETE_PRIORITY_QUEUE( queue );
+
+    FREE( poly_dist );
 
     n_points_included = 0;
     for_less( p, 0, polygons->n_points )
