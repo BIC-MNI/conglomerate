@@ -17,6 +17,7 @@ int  main(
     char  *argv[] )
 {
     STRING               labels_filename, like_filename, output_filename;
+    int                  *counts, i;
     int                  sizes[MAX_DIMENSIONS], int_label;
     int                  n_voxels, n_super_voxels, x, y, z;
     int                  label_sizes[MAX_DIMENSIONS];
@@ -82,6 +83,11 @@ int  main(
     n_voxels = 0;
     n_super_voxels = 0;
 
+    ALLOC( counts, super_sample * super_sample * super_sample+1 );
+
+    for_less( i, 0, super_sample * super_sample * super_sample +1) 
+        counts[i] = 0;
+
     initialize_progress_report( &progress, FALSE, sizes[X], "Transforming" );
 
     for_less( x, 0, sizes[X] )
@@ -130,6 +136,7 @@ int  main(
             }
 
             n_super_voxels += n_non_zero;
+            ++counts[n_non_zero];
 
             if( n_non_zero >= decider )
             {
@@ -158,6 +165,14 @@ int  main(
         print( "Super sampled Volume  : %g\n", (Real) n_super_voxels /
               (Real) super_sample / (Real) super_sample / (Real) super_sample *
                separations[0] * separations[1] * separations[2] );
+
+        for_less( i, 0, super_sample*super_sample*super_sample+1 )
+        {
+             print( "  %g   Volume: %g\n", (Real) i / (Real)
+                        (super_sample*super_sample*super_sample),
+                       (Real) counts[i] *
+                       separations[0] * separations[1] * separations[2] );
+        }
     }
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED,
