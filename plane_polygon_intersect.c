@@ -13,6 +13,7 @@ int  main(
     Vector               plane_normal;
     Real                 position, nx, ny, nz, x, y, z;
     int                  n_objects, n_dest_objects;
+    Colour               colour;
     object_struct        **objects, **dest_objects, *object;
 
     initialize_argument_processing( argc, argv );
@@ -72,6 +73,9 @@ int  main(
             intersect_planes_with_polygons( get_polygons_ptr(objects[i]),
                                             &plane_origin, &plane_normal,
                                             get_lines_ptr(object) );
+
+            (void) get_object_colour( objects[i], &colour );
+            set_object_colour( object, colour );
 
             add_object_to_list( &n_dest_objects, &dest_objects, object );
         }
