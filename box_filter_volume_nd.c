@@ -70,6 +70,37 @@ int  main(
     return( 0 );
 }
 
+private  void  box_filter_1d_simple(
+    int   size,
+    Real  values[],
+    Real  output[],
+    Real  width )
+{
+    int   start, end, v;
+    Real  half_width, current;
+
+    half_width = width / 2.0;
+
+    start = FLOOR( -half_width + 0.5 );
+    end = FLOOR( half_width + 0.5 );
+
+    current = 0.0;
+    for_less( v, 0, MIN(end,size) )
+        current += values[v];
+
+    for_less( v, 0, size )
+    {
+        output[v] = current / width;
+        if( end < size )
+            current += values[end];
+        ++end;
+
+        if( start >= 0 )
+            current -= values[start];
+        ++start;
+    }
+}
+
 private  void  box_filter_1d(
     int   size,
     Real  values[],
@@ -93,7 +124,7 @@ private  void  box_filter_1d(
     end = FLOOR( half_width + 0.5 );
 
     for_less( v, 0, MIN(end,size) )
-        current += values[v];
+        current += values[v] / width;
     if( end <= size-1 )
         current += left_weight * values[end];
 
@@ -128,6 +159,7 @@ private  void  box_filter_volume(
     int   start0, start1, start2, start3, start4;
     int   end0, end1, end2, end3, end4;
     Real  *values, *output, volume_min, volume_max, value;
+    BOOLEAN  simple_case;
 
     n_dims = get_volume_n_dimensions( volume );
     get_volume_sizes( volume, sizes );
@@ -182,6 +214,10 @@ private  void  box_filter_volume(
         end3 = end[3];
         end4 = end[4];
 
+        simple_case = numerically_close(
+                        FRACTION( filter_widths[blurring_dim] / 2.0 ), 0.5,
+                        1.0e-6 );
+
         for_inclusive( v0, start0, end0 )
         for_inclusive( v1, start1, end1 )
         for_inclusive( v2, start2, end2 )
@@ -192,7 +228,11 @@ private  void  box_filter_volume(
                                         count0, count1, count2, count3, count4,
                                         values );
 
-            box_filter_1d( n, values, output, filter_widths[blurring_dim] );
+            if( simple_case )
+                box_filter_1d_simple( n, values, output,
+                                      filter_widths[blurring_dim] );
+            else
+                box_filter_1d( n, values, output, filter_widths[blurring_dim] );
 
             for_less( v, 0, n )
             {
