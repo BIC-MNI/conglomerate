@@ -46,6 +46,8 @@ private  void  usage(
 
    (void) fprintf( stderr,
      "on the command line or in a file, to the set in the input minc file.\n" );
+   (void) fprintf( stderr,
+     "If the label added, e.g. str1, is empty, then it deletes the value from the list.\n" );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
