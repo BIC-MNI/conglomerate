@@ -16,7 +16,7 @@ int   main(
     int                   v[5], n_slices, n_chunk_dims;
     int                   slice, s;
     int                   n_tag_volumes, n_tag_points, n_tag_files;
-    int                   v0, v1, v2, v3, v4, offset;
+    int                   v0, v1, v2, v3, v4, offset, unique_index;
     nc_type               nc_data_type;          
     Volume                example_volume;
     Real                  **tags1, **tags2, voxel_pos[N_DIMENSIONS];
@@ -152,7 +152,12 @@ int   main(
     delete_volume_input( &input_info );
 
     if( tag_files_present )
+    {
         alloc_volume_data( example_volume );
+        BEGIN_ALL_VOXELS( example_volume, v0, v1, v2, v3, v4)
+            set_volume_voxel_value( example_volume, v0, v1, v2, v3, v4, 0.0 );
+        END_ALL_VOXELS
+    }
     else
         delete_volume( example_volume );
 
@@ -191,6 +196,11 @@ int   main(
         set_volume_sizes( output_volumes[i], sizes_2d );
         alloc_volume_data( output_volumes[i] );
 
+        BEGIN_ALL_VOXELS( output_volumes[i], v0, v1, v2, v3, v4)
+            set_volume_voxel_value( output_volumes[i],
+                                    v0, v1, v2, v3, v4, 0.0 );
+        END_ALL_VOXELS
+
         (void) sprintf( output_filename, "%s_%s.mnc", output_prefix,
                         suffixes[i] );
 
@@ -223,15 +233,8 @@ int   main(
 
     for_less( slice, 0, n_slices )
     {
-        /*--- initialize output volumes to 0 */
-
-        BEGIN_ALL_VOXELS( output_volumes[0], v0, v1, v2, v3, v4)
-            for_less( i, 0, N_OUTPUT )
-                set_volume_voxel_value( output_volumes[i],
-                                        v0, v1, v2, v3, v4, 0.0 );
-        END_ALL_VOXELS
-
         vol = 0;
+        unique_index = 1;
         while( vol < n_input_files )
         {
             this_is_tag_file = filename_extension_matches( input_filenames[vol],
@@ -239,12 +242,6 @@ int   main(
 
             if( this_is_tag_file )
             {
-                BEGIN_ALL_VOXELS( example_volume, v0, v1, v2, v3, v4)
-                    for_less( i, 0, N_OUTPUT )
-                        set_volume_voxel_value( example_volume,
-                                                v0, v1, v2, v3, v4, 0.0 );
-                END_ALL_VOXELS
-
                 for_less( offset, 0, 2 )
                 {
                     if( vol >= n_input_files )
@@ -270,7 +267,8 @@ int   main(
                         if( int_voxel_is_within_volume( example_volume, v ))
                         {
                             set_volume_voxel_value( example_volume,
-                                            v[0], v[1], v[2], v[3], v[4], 1.0 );
+                                            v[0], v[1], v[2], v[3], v[4],
+                                            unique_index );
                         }
                     }
 
@@ -280,6 +278,7 @@ int   main(
                 }
 
                 used_volume = example_volume;
+                ++unique_index;
             }
             else
             {
@@ -307,18 +306,34 @@ int   main(
             }
 
             BEGIN_ALL_VOXELS( output_volumes[0], v[0], v[1], v[2],v[3],v[4])
-                for_less( i, 0, N_OUTPUT )
+                if( this_is_tag_file )
+                {
+                    this_value = get_volume_voxel_value( used_volume,
+                           v[0], v[1], v[2], v[3], v[4]) == unique_index;
+                }
+                else
                 {
                     this_value = get_volume_real_value( used_volume,
                                             v[0], v[1], v[2], v[3], v[4]);
+                }
 
-                    v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
+                v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
 
+                if( this_is_tag_file )
+                {
+                    opposite_value = get_volume_voxel_value( used_volume,
+                           v[0], v[1], v[2], v[3], v[4]) == unique_index;
+                }
+                else
+                {
                     opposite_value = get_volume_real_value( used_volume,
-                                                v[0], v[1], v[2], v[3], v[4]);
+                                            v[0], v[1], v[2], v[3], v[4]);
+                }
 
-                    v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
+                v[x_dim] = sizes_2d[x_dim] - 1 - v[x_dim];
 
+                for_less( i, 0, N_OUTPUT )
+                {
                     if( (this_value > 0.0) == ((i & 2) != 0) &&
                         (opposite_value > 0.0) == ((i & 1) != 0) )
                     {
