@@ -42,6 +42,11 @@ int  main(
         ADD_ELEMENT_TO_ARRAY( y_poses, n_images, y_pos, DEFAULT_CHUNK_SIZE );
     }
 
+    image_x_min = 0;
+    image_x_max = 0;
+    image_y_min = 0;
+    image_y_max = 0;
+
     for_less( i, 0, n_images )
     {
         x_min = x_poses[i];
@@ -49,24 +54,14 @@ int  main(
         y_min = y_poses[i];
         y_max = y_poses[i] + images[i].y_size - 1;
 
-        if( i == 0 )
-        {
+        if( x_min < image_x_min )
             image_x_min = x_min;
+        if( x_max > image_x_max )
             image_x_max = x_max;
+        if( y_min < image_y_min )
             image_y_min = y_min;
+        if( y_max > image_y_max )
             image_y_max = y_max;
-        }
-        else
-        {
-            if( x_min < image_x_min )
-                image_x_min = x_min;
-            if( x_max > image_x_max )
-                image_x_max = x_max;
-            if( y_min < image_y_min )
-                image_y_min = y_min;
-            if( y_max > image_y_max )
-                image_y_max = y_max;
-        }
     }
 
     x_size = image_x_max - image_x_min + 1;
