@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    char  executable[] )
+    STRING  executable )
 {
-    char  usage_str[] = "\n\
+    STRING  usage_str = "\n\
 Usage: dilate_volume input.mnc output.mnc  dilation_value\n\
             [6|26]  [n_dilations]  [mask.mnc min_mask max_mask]\n\
 \n\
@@ -20,7 +20,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    char                 *input_filename, *output_filename, *mask_filename;
+    STRING               input_filename, output_filename, mask_filename;
     Real                 min_mask, max_mask, value_to_dilate;
     BOOLEAN              mask_volume_present;
     Volume               volume, mask_volume;
