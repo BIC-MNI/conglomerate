@@ -1,3 +1,9 @@
+    New in Release 1.4
+	------------------
+
+* Added epm-header
+* compatibility changes for OSX (sqrtf())
+
 	New in Release 1.3
 	------------------
 
