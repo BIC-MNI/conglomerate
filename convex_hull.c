@@ -2,7 +2,7 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
-#define  TOLERANCE   2.0e-4
+#define  TOLERANCE_DISTANCE   2.0e-4
 
 private  int  get_points_of_region(
     Volume  volume,
@@ -57,6 +57,8 @@ int  main(
     object = create_object( POLYGONS );
 
     get_convex_hull( n_points, points, get_polygons_ptr(object) );
+
+    check_polygons_neighbours_computed( get_polygons_ptr(object) );
 
     (void) output_graphics_file( output_filename, BINARY_FORMAT, 1, &object );
 
@@ -121,16 +123,16 @@ private  Real  compute_clockwise_degrees( Real x, Real y )
 {
     Real   degrees;
 
-    if( x >= -TOLERANCE && x <= TOLERANCE )
+    if( x >= -TOLERANCE_DISTANCE && x <= TOLERANCE_DISTANCE )
     {
-        if( y < -TOLERANCE )
+        if( y < -TOLERANCE_DISTANCE )
             return( 90.0 );
-        else if( y > TOLERANCE )
+        else if( y > TOLERANCE_DISTANCE )
             return( 270.0 );
         else
             return( 0.0 );
     }
-    else if( y >= -TOLERANCE && y <= TOLERANCE)
+    else if( y >= -TOLERANCE_DISTANCE && y <= TOLERANCE_DISTANCE)
     {
         if( x > 0.0 )
             return( 0.0 );
@@ -151,6 +153,7 @@ private  Real  compute_clockwise_degrees( Real x, Real y )
 private  int  find_limit_plane(
     int              n_points,
     Point            points[],
+    Smallest_int     point_used[],
     Point            *centre,
     Vector           *hinge,
     Vector           *normal )
@@ -171,12 +174,15 @@ private  int  find_limit_plane(
 
     for_less( i, 0, n_points )
     {
+        if( point_used[i] )
+            continue;
+
         SUB_VECTORS( offset, points[i], *centre );
         x = -DOT_VECTORS( horizontal, offset );
         y = DOT_VECTORS( vertical, offset );
 
-        if( x >= -TOLERANCE && x <= TOLERANCE &&
-            y >= -TOLERANCE && y <= TOLERANCE )
+        if( x >= -TOLERANCE_DISTANCE && x <= TOLERANCE_DISTANCE &&
+            y >= -TOLERANCE_DISTANCE && y <= TOLERANCE_DISTANCE )
             continue;
 
         angle = compute_clockwise_degrees( x, y ) - 180.0;
@@ -314,6 +320,7 @@ private  int   get_plane_polygon_vertices(
     int              n_points,
     Point            points[],
     int              new_indices[],
+    Smallest_int     point_used[],
     polygons_struct  *polygons,
     int              p0,
     int              p1,
@@ -336,8 +343,11 @@ private  int   get_plane_polygon_vertices(
 
     for_less( i, 0, n_points )
     {
+        if( point_used[i] )
+            continue;
+
         dist = distance_from_plane( &points[i], &normal, plane_constant );
-        if( dist >= -TOLERANCE || new_indices[i] == p0 ||
+        if( dist >= -TOLERANCE_DISTANCE || new_indices[i] == p0 ||
             new_indices[i] == p1 || new_indices[i] == p2 )
         {
             ADD_ELEMENT_TO_ARRAY( plane_points, n_in_plane, i, 10 );
@@ -360,12 +370,14 @@ private  int   get_plane_polygon_vertices(
         SUB_POINTS( offset, points[plane_points[i]], points[p0] );
         x[i] = DOT_VECTORS( offset, horizontal );
         y[i] = DOT_VECTORS( offset, vertical );
+        point_used[plane_points[i]] = TRUE;
     }
 
     n_in_hull = get_convex_hull_2d( n_in_plane, x, y, hull_points );
 
     for_less( i, 0, n_in_hull )
     {
+        point_used[plane_points[hull_points[i]]] = FALSE;
         vertices[i] = get_polygon_point_index( polygons, points, new_indices,
                                                plane_points[hull_points[i]] );
     }
@@ -385,11 +397,13 @@ private  void  get_convex_hull(
 {
 
     int                          i, min_ind, ind, second_ind, size;
+    int                          n_bad_ref_count, n_edges;
     Vector                       hinge, new_hinge, normal, new_normal;
     int                          *new_indices, other_index, keys[2];
     int                          poly, edge, new_poly;
     int                          n_vertices, *vertices;
     int                          *poly_vertices;
+    Smallest_int                 *point_used;
     queue_entry                  entry;
     queue_struct                 queue;
     edge_struct                  *edge_ptr;
@@ -415,13 +429,17 @@ private  void  get_convex_hull(
     fill_Vector( hinge, 0.0, 0.0, 1.0 );
     fill_Vector( normal, -1.0, 0.0, 0.0 );
 
-    ind = find_limit_plane( n_points, points,
+    ALLOC( point_used, n_points );
+    for_less( i, 0, n_points )
+        point_used[i] = FALSE;
+
+    ind = find_limit_plane( n_points, points, point_used,
                             &points[min_ind], &hinge, &normal );
 
     SUB_POINTS( new_hinge, points[ind], points[min_ind] );
     CROSS_VECTORS( new_normal, hinge, new_hinge );
 
-    second_ind = find_limit_plane( n_points, points,
+    second_ind = find_limit_plane( n_points, points, point_used,
                                    &points[ind], &new_hinge, &new_normal );
 
     if( min_ind == ind || min_ind == second_ind || ind == second_ind )
@@ -435,7 +453,7 @@ private  void  get_convex_hull(
         new_indices[i] = -1;
 
     n_vertices = get_plane_polygon_vertices( n_points, points, new_indices,
-                 polygons,
+                 point_used, polygons,
                  get_polygon_point_index(polygons,points,new_indices,min_ind),
                  get_polygon_point_index(polygons,points,new_indices,ind),
                  get_polygon_point_index(polygons,points,new_indices,
@@ -478,14 +496,14 @@ private  void  get_convex_hull(
                            polygons->points[poly_vertices[(edge+1)%size]] );
         compute_polygon_normal( polygons, poly, &normal );
 
-        ind = find_limit_plane( n_points, points,
+        ind = find_limit_plane( n_points, points, point_used,
                                 &polygons->points[poly_vertices[edge]],
                                 &hinge, &normal );
 
         other_index = get_polygon_point_index(polygons,points,new_indices,ind);
 
         n_vertices = get_plane_polygon_vertices( n_points, points, new_indices,
-                 polygons, poly_vertices[edge], other_index,
+                 point_used, polygons, poly_vertices[edge], other_index,
                  poly_vertices[(edge+1)%size], vertices );
 
         new_poly = add_polygon( polygons, n_vertices, vertices );
@@ -498,21 +516,27 @@ private  void  get_convex_hull(
 
     initialize_hash_pointer( &hash_ptr );
 
+    n_bad_ref_count = 0;
+    n_edges = 0;
     while( get_next_hash_entry( &edge_table, &hash_ptr, (void **) &edge_ptr ) )
     {
         if( edge_ptr->ref_count != 2 )
         {
-            print( "Ref count: %d\n", edge_ptr->ref_count );
-            handle_internal_error( "edge ref count" );
+            ++n_bad_ref_count;
         }
+        ++n_edges;
         FREE( edge_ptr );
     }
 
     delete_hash_table( &edge_table );
 
+    if( n_bad_ref_count > 0 )
+        print( "N ref counts != 2: %d/%d\n", n_bad_ref_count, n_edges );
+
     FREE( new_indices );
     FREE( vertices );
     FREE( poly_vertices );
+    FREE( point_used );
 
     if( polygons->n_points > 0 )
     {
@@ -560,7 +584,8 @@ private  int  get_convex_hull_2d(
             dx = x[i] - x[current_ind];
             dy = y[i] - y[current_ind];
 
-            if( dx == 0.0 && dy == 0.0 )
+            if( dx >= -TOLERANCE_DISTANCE && dx <= TOLERANCE_DISTANCE &&
+                dy >= -TOLERANCE_DISTANCE && dy <= TOLERANCE_DISTANCE )
                 continue;
 
             angle = compute_clockwise_degrees( dx, dy ) - current_angle;
