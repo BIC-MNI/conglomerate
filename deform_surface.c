@@ -1,5 +1,5 @@
-#include  <def_mni.h>
-#include  <def_module.h>
+#include  <mni.h>
+#include  <module.h>
 
 private  void  usage(
     char  executable[] )
@@ -91,15 +91,17 @@ int  main( argc, argv )
                            &volume, (minc_input_options *) NULL );
 
     get_volume_sizes( volume, sizes );
-    label_volume = create_label_volume( 3, sizes );
+    label_volume = (Volume) NULL;
 
     if( strcmp( activity_filename, "none" ) != 0 )
     {
+        label_volume = create_label_volume( 3, sizes );
+
         status = open_file_with_default_suffix( activity_filename, "act",
                                         READ_FILE, BINARY_FORMAT, &file );
 
         if( status == OK )
-            status = io_volume_activity_bit( file, READ_FILE, volume );
+            status = io_volume_activity_bit( file, READ_FILE, label_volume );
 
         status = close_file( file );
     }
