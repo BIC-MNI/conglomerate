@@ -388,10 +388,11 @@ private  int  convert_manifold_to_sheet(
     int              *n_fixed,
     int              *fixed_list[] )
 {
-    int               *n_neighbours, **neighbours;
-    int               p, n_points, poly, new_n_points, *new_ids;
+    int               *n_neighbours, **neighbours, ind;
+    int               p, n_points, poly, new_n_points, *new_ids, neigh_index;
     float             **distances;
-    Real              y, total_length, current_length;
+    Real              y, total_length, current_length, north_length;
+    Real              south_length;
     int               total_neighbours;
     int               *path, path_size;
     int               size, vertex, p1;
@@ -458,15 +459,40 @@ private  int  convert_manifold_to_sheet(
         (*new_points)[n_points+p-1] = points[path[p]];
     }
 
-    *n_fixed = 2 + 2 * (path_size-2);
+    *n_fixed = 2 + 2 * (path_size-2) + n_neighbours[north_pole] - 1 +
+                                       n_neighbours[south_pole] - 1;
     ALLOC( *fixed_list, *n_fixed );
     (*fixed_list)[0] = north_pole;
     (*fixed_list)[1] = south_pole;
+    ind = 2;
     for_less( p, 1, path_size-1 )
     {
-        (*fixed_list)[2*p] = path[p];
-        (*fixed_list)[2*p+1] = new_ids[path[p]];
+        (*fixed_list)[ind] = path[p];
+        ++ind;
+        (*fixed_list)[ind] = new_ids[path[p]];
+        ++ind;
     }
+
+    neigh_index = get_neigh_index( north_pole, n_neighbours, neighbours,
+                                   path[1] );
+    for_less( p, 1, n_neighbours[north_pole] )
+    {
+        (*fixed_list)[ind] = neighbours[north_pole][(neigh_index+p)%
+                                               n_neighbours[north_pole]];
+        ++ind;
+    }
+
+    neigh_index = get_neigh_index( south_pole, n_neighbours, neighbours,
+                                   path[path_size-2] );
+    for_less( p, 1, n_neighbours[south_pole] )
+    {
+        (*fixed_list)[ind] = neighbours[south_pole][(neigh_index+p)%
+                                               n_neighbours[south_pole]];
+        ++ind;
+    }
+
+    if( ind != *n_fixed )
+        handle_internal_error( "n_fixed" );
 
     for_less( p, 0, new_n_points )
         fill_Point( (*new_flat_points)[p], 0.5, 0.5, 0.0 );
@@ -486,6 +512,68 @@ private  int  convert_manifold_to_sheet(
         y = 1.0 - current_length / total_length;
         fill_Point( (*new_flat_points)[path[p]], 0.0, y, 0.0 );
         fill_Point( (*new_flat_points)[new_ids[path[p]]], 1.0, y, 0.0 );
+    }
+
+    /*--- around north pole */
+
+    neigh_index = get_neigh_index( north_pole, n_neighbours, neighbours,
+                                   path[1] );
+    north_length = 0.0;
+    for_less( p, 0, n_neighbours[north_pole] )
+    {
+        north_length += distance_between_points(
+                        &polygons->points[neighbours[north_pole]
+                                [(neigh_index+p)%n_neighbours[north_pole]]],
+                        &polygons->points[neighbours[north_pole]
+                                [(neigh_index+p+1)%n_neighbours[north_pole]]] );
+    }
+
+    current_length = 0.0;
+    for_less( p, 1, n_neighbours[north_pole] )
+    {
+        current_length += distance_between_points(
+                        &polygons->points[neighbours[north_pole]
+                                [(neigh_index+p-1+n_neighbours[north_pole])%
+                                  n_neighbours[north_pole]]],
+                        &polygons->points[neighbours[north_pole]
+                                [(neigh_index+p)%n_neighbours[north_pole]]] );
+
+        INTERPOLATE_POINTS( (*new_flat_points)[neighbours[north_pole]
+                                [(neigh_index+p)%n_neighbours[north_pole]]],
+                            (*new_flat_points)[path[1]],
+                            (*new_flat_points)[new_ids[path[1]]],
+                            current_length / north_length );
+    }
+
+    /*--- around south pole */
+
+    neigh_index = get_neigh_index( south_pole, n_neighbours, neighbours,
+                                   path[path_size-2] );
+    south_length = 0.0;
+    for_less( p, 0, n_neighbours[south_pole] )
+    {
+        south_length += distance_between_points(
+                        &polygons->points[neighbours[south_pole]
+                                [(neigh_index+p)%n_neighbours[south_pole]]],
+                        &polygons->points[neighbours[south_pole]
+                                [(neigh_index+p+1)%n_neighbours[south_pole]]] );
+    }
+
+    current_length = 0.0;
+    for_less( p, 1, n_neighbours[south_pole] )
+    {
+        current_length += distance_between_points(
+                        &polygons->points[neighbours[south_pole]
+                                [(neigh_index+p-1+n_neighbours[south_pole])%
+                                  n_neighbours[south_pole]]],
+                        &polygons->points[neighbours[south_pole]
+                                [(neigh_index+p)%n_neighbours[south_pole]]] );
+
+        INTERPOLATE_POINTS( (*new_flat_points)[neighbours[south_pole]
+                                [(neigh_index+p)%n_neighbours[south_pole]]],
+                            (*new_flat_points)[new_ids[path[path_size-2]]],
+                            (*new_flat_points)[path[path_size-2]],
+                            current_length / south_length );
     }
 
     for_less( poly, 0, polygons->n_items )
