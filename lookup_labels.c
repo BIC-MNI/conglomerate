@@ -21,46 +21,7 @@
 ---------------------------------------------------------------------------- */
 
 #include  <internal_volume_io.h>
-#include  <minc.h>
-
-/* -------- external declarations from label file -------- */
-
-public  BOOLEAN  read_label_lookup(
-    int    minc_id,
-    int    *n_labels,
-    int    *values[],
-    char   **labels[] );
-
-public  BOOLEAN  write_label_lookup(
-    int    minc_id,
-    int    n_labels,
-    int    values[],
-    char   *labels[] );
-
-public  void  add_label_to_list(
-    int    *n_labels,
-    int    *values[],
-    char   **labels[],
-    int    value_to_add,
-    char   label_to_add[] );
-
-public  BOOLEAN  lookup_value_for_label(
-    int    n_labels,
-    int    values[],
-    char   *labels[],
-    char   label[],
-    int    *value );
-
-public  BOOLEAN  lookup_label_for_value(
-    int    n_labels,
-    int    values[],
-    char   *labels[],
-    int    value,
-    char   *label[] );
-
-public  void  print_label(
-    int    value,
-    char   label[] );
+#include  <minc_labels.h>
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : usage
@@ -78,9 +39,12 @@ public  void  print_label(
 private  void  usage(
     char   executable[] )
 {
-    (void) fprintf( stderr, "Usage: %s input.mnc\n\n", executable );
-    (void) fprintf( stderr, "   or: %s input.mnc -value val1 val2 ...\n\n", executable );
-    (void) fprintf( stderr, "   or: %s input.mnc -label label1 val2 label\n\n", executable );
+    (void) fprintf( stderr, "\nUsage: %s input.mnc\n", executable );
+    (void) fprintf( stderr, "  Lists all value-label pairs in the minc file.\n\n" );
+    (void) fprintf( stderr, "   or: %s input.mnc -value val1 val2 ...\n", executable );
+    (void) fprintf( stderr, "  Lists value-label pairs in the minc file, specified by value\n\n" );
+    (void) fprintf( stderr, "   or: %s input.mnc -label label1 label2 ...\n", executable );
+    (void) fprintf( stderr, "  Lists value-label pairs in the minc file, specified by label\n\n" );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -168,20 +132,15 @@ int  main(
                 }
                 found = lookup_label_for_value( n_labels, values, labels,
                                                 value, &label );
-                if( !found )
-                    print( "No label found for: %d\n", value );
             }
             else
             {
                 label = argv[a];
                 found = lookup_value_for_label( n_labels, values, labels,
                                                 label, &value );
-                if( !found )
-                    print( "No value found for: %s\n", label );
             }
 
-            if( found )
-                print_label( value, label );
+            print_label( value, label );
         }
     }
 

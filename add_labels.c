@@ -19,32 +19,7 @@
 ---------------------------------------------------------------------------- */
 
 #include  <internal_volume_io.h>
-#include  <minc.h>
-
-/* -------- external declarations from label file -------- */
-
-public  BOOLEAN  read_label_lookup(
-    int    minc_id,
-    int    *n_labels,
-    int    *values[],
-    char   **labels[] );
-
-public  BOOLEAN  write_label_lookup(
-    int    minc_id,
-    int    n_labels,
-    int    values[],
-    char   *labels[] );
-
-public  void  add_label_to_list(
-    int    *n_labels,
-    int    *values[],
-    char   **labels[],
-    int    value_to_add,
-    char   label_to_add[] );
-
-public  BOOLEAN  get_label_lookup_var(
-    int   minc_id,
-    int   *label_var );
+#include  <minc_labels.h>
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : usage
@@ -62,9 +37,15 @@ public  BOOLEAN  get_label_lookup_var(
 private  void  usage(
     char   executable[] )
 {
-    (void) fprintf( stderr, "Usage: %s [-clobber] input.mnc output.mnc  -label val1 str1 [val2 str2 ...]\n\n", executable );
+    (void) fprintf( stderr, "\nUsage: %s [-clobber] input.mnc output.mnc  -label val1 str1 [val2 str2 ...]\n\n", executable );
 
     (void) fprintf( stderr, "   or: %s [-clobber] input.mnc output.mnc lookup_file\n\n", executable );
+
+   (void) fprintf( stderr,
+     "Creates a new minc file, adding a set of value-label pairs, specified\n" );
+
+   (void) fprintf( stderr,
+     "on the command line or in a file, to the set in the input minc file.\n" );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -181,7 +162,8 @@ int  main(
         /* --- read an int and a string */
 
         while( input_int( file, &value ) == OK &&
-               input_string( file, label_string, MAX_STRING_LENGTH, ' ' ) == OK)
+               input_possibly_quoted_string( file, label_string,
+                                             MAX_STRING_LENGTH ) == OK)
         {
             /* --- add value-label pair to list */
 
