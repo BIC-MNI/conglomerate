@@ -1,6 +1,8 @@
 #include  <internal_volume_io.h>
 #include  <bicpl.h>
 
+#define  NORMALIZE_EVERY 30
+
 private  void  flatten_polygons(
     polygons_struct  *polygons,
     Real             step_ratio,
@@ -43,19 +45,50 @@ int  main(
     return( 0 );
 }
 
-private  Real  flatten(
+private  void  normalize_size(
     polygons_struct  *polygons,
     Point            *original_centroid,
     Real             original_size,
+    int              n_neighbours[],
+    int              *neighbours[] )
+{
+    int      point, neigh;
+    Real     current_size, scale;
+    Point    centroid;
+    Vector   offset, diff;
+
+    current_size = 0.0;
+    for_less( point, 0, polygons->n_points )
+    {
+        for_less( neigh, 0, n_neighbours[point] )
+            current_size += distance_between_points( &polygons->points[point],
+                             &polygons->points[neighbours[point][neigh]] );
+    }
+
+    scale = original_size / current_size;
+
+    get_points_centroid( polygons->n_points, polygons->points, &centroid );
+    
+    SUB_POINTS( offset, centroid, *original_centroid );
+
+    for_less( point, 0, polygons->n_points )
+    {
+        SUB_POINTS( diff, polygons->points[point], centroid );
+        SCALE_VECTOR( diff, diff, scale );
+        ADD_POINT_VECTOR( polygons->points[point], *original_centroid, diff );
+    }
+}
+
+private  Real  flatten(
+    polygons_struct  *polygons,
     int              n_neighbours[],
     int              *neighbours[],
     Point            buffer[],
     Real             step_size )
 {
     int      point, neigh, n;
-    Real     cx, cy, cz, current_size, movement, scale;
-    Point    centroid, new_point;
-    Vector   offset, diff;
+    Vector   diff;
+    Real     cx, cy, cz, movement;
 
     for_less( point, 0, polygons->n_points )
     {
@@ -79,32 +112,15 @@ private  Real  flatten(
                            step_size  * cz / (Real) n_neighbours[point] );
     }
 
-    current_size = 0.0;
-    for_less( point, 0, polygons->n_points )
-    {
-        for_less( neigh, 0, n_neighbours[point] )
-            current_size += distance_between_points( &buffer[point],
-                             &buffer[neighbours[point][neigh]] );
-    }
-
-    scale = original_size / current_size;
-
-    get_points_centroid( polygons->n_points, buffer, &centroid );
-    
-    SUB_POINTS( offset, centroid, *original_centroid );
-
     movement = 0.0;
     for_less( point, 0, polygons->n_points )
     {
-        SUB_POINTS( diff, buffer[point], centroid );
-        SCALE_VECTOR( diff, diff, scale );
-        ADD_POINT_VECTOR( new_point, *original_centroid, diff );
-        movement += distance_between_points( &new_point,
-                                             &polygons->points[point] );
-        polygons->points[point] = new_point;
+        SUB_POINTS( diff, buffer[point], polygons->points[point] );
+        movement += DOT_VECTORS( diff, diff );
+        polygons->points[point] = buffer[point];
     }
 
-    return( movement / (Real) polygons->n_points );
+    return( sqrt( movement / (Real) polygons->n_points ) );
 }
 
 private  void  flatten_polygons(
@@ -132,8 +148,15 @@ private  void  flatten_polygons(
                
     for_less( iter, 0, n_iters )
     {
-        movement = flatten( polygons, &centroid, total_size,
+        movement = flatten( polygons,
                             n_neighbours, neighbours, buffer, step_ratio );
+
+        if( ((iter+1) % NORMALIZE_EVERY) == 0 || iter == n_iters - 1 )
+        {
+            normalize_size( polygons, &centroid, total_size,
+                            n_neighbours, neighbours );
+        }
+
         print( "Iter %4d: %g\n", iter+1, movement );
 
     }
