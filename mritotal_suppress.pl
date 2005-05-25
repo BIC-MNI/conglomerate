@@ -14,9 +14,9 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: mritotal_suppress.pl,v $
-#$Revision: 1.2 $
+#$Revision: 1.3 $
 #$Author: bert $
-#$Date: 2005-05-25 22:04:01 $
+#$Date: 2005-05-25 22:05:00 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
@@ -49,12 +49,12 @@ if ($ForceSuppress) {
     if (!defined($InitialXfm)) {
 	$InitialXfm = "${TmpDir}/${filebase}_bright.xfm";
 
-	&Spawn ("$MriToTal $inputfile $InitialXfm -modeldir $ModelDir ".
-		"-model $ModelBase -nocrop");
+	&Spawn ("$MriToTal $inputfile $InitialXfm -modeldir $PreModelDir ".
+		"-model $PreModelBase -nocrop");
     }
 				# 2nd - suppress fat in $inputfile volume
     if (-e $InitialXfm) {
-	$MriToTal .= " -transformation $InitialXfm";
+	$MriToTal2 .= " -transformation $InitialXfm";
 
 	my($tmpmnc) = "${TmpDir}/${filebase}_lowfat.mnc";
 
@@ -65,7 +65,7 @@ if ($ForceSuppress) {
 		print "Storing the fat_suppressed file to $Suppressed_file" if $Debug;
 		&Spawn("cp $tmpmnc $Suppressed_file");
 	    }
-	    &Spawn ("$MriToTal -nocrop $tmpmnc $xfmfile");
+	    &Spawn ("$MriToTal2 -nocrop $tmpmnc $xfmfile");
 	}
 	else {
 	    &Fatal("I can't find $tmpmnc,\neven though I just tried to create it.");	
@@ -82,12 +82,12 @@ if ($ForceSuppress) {
 }
 else {
     if (defined($InitialXfm)) {
-	$MriToTal .= " -transformation $InitialXfm";
+	$MriToTal2 .= " -transformation $InitialXfm";
     }
 			       
-    $MriToTal .= " -nocrop $inputfile $xfmfile";
+    $MriToTal2 .= " -nocrop $inputfile $xfmfile";
 
-    &Spawn ("$MriToTal");
+    &Spawn ("$MriToTal2");
 }
 
 
@@ -150,8 +150,10 @@ HELP
    $Suppressed_file = undef;
    $InitialXfm      = undef;
    $SaveXfm         = undef;
-   $ModelDir        = 'bright_scalp_model';
-   $ModelBase       = 'stx_bright_scalp2';
+   $PreModelDir     = 'bright_scalp_model';
+   $PreModelBase    = 'stx_bright_scalp2';
+   $ModelDir       = undef;
+   $ModelBase      = undef;
 
    @ArgInfo =
       (@DefaultArgs,
@@ -164,10 +166,15 @@ HELP
 	"force two-stage registration with fat suppression only if the TE of the source volume is less than <TE> (overrides -force_suppress flag)", "<TE>"],
        ["-native_volume", "string", 1, \$NativeVolume,
 	"volume to extract TE from [default: use <orig_t1.mnc>]", "<volume.mnc>"],
+       ["-premodeldir", "string", 1, \$PreModelDir,
+	"directory containing the model for the first fitting stage. If this directory does not exist as such, the supplied string is assumed to be the name of a standard MNI data directory [default: $PreModelDir]", "<premodeldir>"],
+       ["-premodel", "string", 1, \$PreModelBase,
+	"base name of the model found in <modeldir> [default: $PreModelBase]", 
+	"<basename>"],
        ["-modeldir", "string", 1, \$ModelDir,
-	"directory containing the model for the first fitting stage. If this directory does not exist as such, the supplied string is assumed to be the name of a standard MNI data directory [default: $ModelDir]", "<modeldir>"],
+	"directory containing the model for the second fitting stage. If this directory does not exist as such, the supplied string is assumed to be the name of a standard MNI data directory", "<modeldir>"],
        ["-model", "string", 1, \$ModelBase,
-	"base name of the model found in <modeldir> [default: $ModelBase]", 
+	"base name of the second-stage model found in <modeldir>", 
 	"<basename>"],
        ["-keep_suppressed", "string", 1, \$Suppressed_file,
 	"store the fat-suppressed volume in <lite.mnc>", "<lite.mnc>"],
@@ -190,6 +197,7 @@ HELP
 
    # Look for required programs
    $MriToTal     = &FindProgram ("mritotal");
+   $MriToTal2    = &FindProgram ("mritotal");
    $SuppressFat  = &FindProgram ("suppress_fat");
 
    exit 1 unless ($MriToTal && $SuppressFat );
@@ -203,9 +211,21 @@ HELP
    $clobber = ($Clobber) ? " -clobber" : "";
 
    $MriToTal     .= "$debug$verbose$clobber";
+   $MriToTal2    .= "$debug$verbose$clobber";
 
-   if (! -d $ModelDir) {
-       $ModelDir = MNI::DataDir::dir($ModelDir);
+   if (! -d $PreModelDir) {
+       $PreModelDir = MNI::DataDir::dir($PreModelDir);
+   }
+
+   if ($ModelDir) {
+       if (! -d $ModelDir) {
+           $ModelDir = MNI::DataDir::dir($ModelDir);
+       }
+       $MriToTal2 .= " -modeldir $ModelDir";
+   }
+
+   if ($ModelBase) {
+       $MriToTal2 .= " -model $ModelBase";
    }
 
    ($inputfile, $xfmfile) = @argv;
