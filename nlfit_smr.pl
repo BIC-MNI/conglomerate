@@ -1,0 +1,127 @@
+#!/usr/local/bin/perl5 -w
+
+# an abbreviated version of mritotal (less options), fitting
+# nonlinearly up to and including level 4b, and using the minctracc
+# parameters optimised by Steve Robbins. Assumes a volume that starts
+# in talairach space.
+
+# Author: Jason Lerch <jason@bic.mni.mcgill.ca>
+# Date: August 2003
+
+use strict;
+use MNI::Startup;
+use Getopt::Tabular;
+use MNI::Spawn;
+use MNI::DataDir;
+use MNI::FileUtilities qw(test_file check_output_dirs);
+
+# ======= Global variables =======
+my $modelDir = MNI::DataDir::dir("mni_autoreg");
+my $model = "icbm_avg_152_t1_tal_lin_symmetric";
+my ($input, $output, $basename, $initTransform);
+my ($help, $usage);
+my @transformArgs;
+
+#intermediate outputs
+my ($blur8, $blur8_tmp, $blur4, $blur4_tmp);
+my ($out16, $out8);
+
+# default minctracc parameters
+my $weight = 1;
+my $stiffness = 1;
+my $similarity = 0.3;
+
+# ======= Argument processing ====
+
+$usage = "$ProgramName [options] input.mnc output.xfm";
+$help = "Help still to be written";
+
+my @leftOverArgs;
+my @argTbl = 
+    (
+     @DefaultArgs,
+     ["Model Options", "section"],
+     ["-modeldir", "string", 1, \$modelDir,
+      "set the directory to search for model files."],
+     ["-model", "string", 1, \$model,
+      "set the base name of the fit model files."],
+     ["-transform", "string", 1, \$initTransform,
+      "initial transform to use. [Default: identity]."],
+     );
+GetOptions(\@argTbl, \@ARGV, \@leftOverArgs) or die "\n";
+
+$input = shift @leftOverArgs or die "$usage\n";
+$output = shift @leftOverArgs or die "$usage\n";
+
+# create a basename from the input file
+$basename = $input;
+$basename =~ s|.+/(.+).mnc.*|$1|;
+
+# register the programmes
+RegisterPrograms(["minctracc", "mincblur"]);
+
+if ($Clobber) {
+    AddDefaultArgs("minctracc", ["-clobber"]);
+    AddDefaultArgs("mincblur", ["-clobber"]);
+}
+
+AddDefaultArgs("minctracc", ["-nonlinear", "corrcoeff",
+                             "-debug", "-weight", $weight,
+                             "-stiffness", $stiffness,
+                             "-similarity", $similarity]);
+
+# create necessary tmp directory
+check_output_dirs($TmpDir);
+
+# intermediate files
+$blur8 = "$TmpDir/${basename}_8_blur.mnc";
+$blur8_tmp = "$TmpDir/${basename}_8";
+$blur4 = "$TmpDir/${basename}_4_blur.mnc";
+$blur4_tmp = "$TmpDir/${basename}_4";
+$out16 = "$TmpDir/${basename}_16.xfm";
+$out8  = "$TmpDir/${basename}_8.xfm";
+
+# ensure that the model files actually exist
+my @modelFiles = ("${model}_8_blur.mnc",
+                  "${model}_4_blur.mnc");
+MNI::DataDir::check_data($modelDir, \@modelFiles);
+
+# ======= The real work starts here ===
+
+# blur the target files
+Spawn(["mincblur", "-fwhm", 8, $input, $blur8_tmp]);
+Spawn(["mincblur", "-fwhm", 4, $input, $blur4_tmp]);
+
+# level 16 registration
+if ($initTransform) {
+    push @transformArgs , "-transform";
+    push @transformArgs , $initTransform;
+}
+else {
+    push @transformArgs , "-identity";
+}
+Spawn(["minctracc",
+       "-iterations", 30,
+       "-step", 8, 8, 8,
+       "-sub_lattice", 6,
+       "-lattice_diam", 24, 24, 24,
+       @transformArgs,
+       $blur8, "$modelDir/$modelFiles[0]", $out16]);
+
+# level 8 registration
+Spawn(["minctracc",
+       "-iterations", 30,
+       "-step", 4, 4, 4,
+       "-sub_lattice", 6,
+       "-lattice_diam", 12, 12, 12,
+       "-transformation", $out16,
+       $blur8, "$modelDir/$modelFiles[0]", $out8]);
+
+# level 4 registration
+Spawn(["minctracc",
+       "-iterations", 10,
+       "-step", 2, 2, 2,
+       "-sub_lattice", 6,
+       "-lattice_diam", 6, 6, 6,
+       "-transformation", $out8,
+       $blur4, "$modelDir/$modelFiles[1]", $output]);
