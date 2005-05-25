@@ -10,6 +10,7 @@ use Getopt::Tabular;
 # global variables
 my $model = undef;
 my $modelDir = undef;
+my $threshold = 1;
 
 # argument handling
 my @leftOverArgs;
@@ -20,6 +21,8 @@ my @argTbl =
     "set the base name of the fit model files"],
    ["-modeldir", "string", 1, \$modelDir,
     "set the default directory to search for model files"],
+   ["-threshold", "boolean", undef, \$threshold,
+    "Enable thresholding in mritoself"],
   );
 GetOptions(\@argTbl, \@ARGV, \@leftOverArgs) or die "\n";
 
@@ -42,6 +45,10 @@ RegisterPrograms([qw/mritotal
 if ($Clobber) {
   AddDefaultArgs("mritotal", ["-clobber"]);
   AddDefaultArgs("mritoself", ["-clobber"]);
+}
+
+if (! $threshold) { 
+    AddDefaultArgs("mritoself", ["-nothreshold"]);
 }
 
 # step 1: T1 registration to talairach space
