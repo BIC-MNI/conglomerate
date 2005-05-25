@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl5 -w
+#! /usr/bin/env perl
 
 # an abbreviated version of mritotal (less options), fitting
 # nonlinearly up to and including level 4b, and using the minctracc

@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl5 -w
+#! /usr/bin/env perl
  
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : compute_icbm_vols
@@ -13,7 +13,7 @@
 #@CALLS      : /nil/david/public_bin/print_all_labels
 #@CREATED    : Mon, April 14, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: compute_icbm_vols.pl,v 1.1 2005-05-25 21:23:14 bert Exp $
+#@VERSION    : $Id: compute_icbm_vols.pl,v 1.2 2005-05-25 22:04:00 bert Exp $
 #-----------------------------------------------------------------------------
 use MNI::Startup;
 use MNI::Spawn;

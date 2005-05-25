@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#! /usr/bin/env perl
 
 # stereotaxic registration for the VU Amsterdam protocol images
 

@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl5 -w
+#! /usr/bin/env perl
  
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : stx_segment 
@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.pl,v 1.1 2005-05-25 20:54:29 bert Exp $
+#@VERSION    : $Id: stx_segment.pl,v 1.2 2005-05-25 22:04:01 bert Exp $
 #-----------------------------------------------------------------------------
 
 use Startup;

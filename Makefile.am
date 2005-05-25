@@ -172,11 +172,63 @@ bin_PROGRAMS = \
 	two_surface_resample \
 	volume_object_evaluate
 
+bin_SCRIPTS = \
+	nlfit_smr \
+	stx_segment \
+	mritotal_suppress \
+	stx_segment2 \
+	smooth_mask \
+	compute_icbm_vols \
+	multispectral_stx_registration
+
+do_subst = sed -e 's,[@]datadir[@],$(datadir),g' \
+	-e 's,[@]PERL[@],$(PERL),g' \
+	-e 's,[@]PACKAGE[@],$(PACKAGE),g' \
+	-e 's,[@]VERSION[@],$(VERSION),g'
+
+nlfit_smr: nlfit_smr.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+stx_segment: stx_segment.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+stx_segment2: stx_segment2.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+mritotal_suppress: mritotal_suppress.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+compute_icbm_vols: compute_icbm_vols.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+smooth_mask: smooth_mask.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+multispectral_stx_registration: multispectral_stx_registration.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+
 AUTOMAKE_OPTIONS = check-news
 ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = $(m4_files) \
-	epm-header.in
+	epm-header.in \
+	nlfit_smr.pl \
+	stx_segment.pl \
+	stx_segment2.pl \
+	mritotal_suppress.pl \
+	smooth_mask.pl \
+	compute_icbm_vols.pl \
+	multispectral_stx_registration.pl
+
+CLEANFILES = $(bin_SCRIPTS)
 
 # These headers are used in one or more of the source files.
 # Eventually the relevant _SOURCES lines should contain the header
