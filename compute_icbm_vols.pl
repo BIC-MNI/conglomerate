@@ -1,0 +1,314 @@
+#!/usr/local/bin/perl5 -w
+ 
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : compute_icbm_vols
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: compute the volume of all structures in native space,
+#              for a single volume based on the stereotaxic segmentation and
+#              the stereotaxic transformation
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : /nil/david/public_bin/print_all_labels
+#@CREATED    : Mon, April 14, Louis Collins
+#@MODIFIED   : not yet!
+#@VERSION    : $Id: compute_icbm_vols.pl,v 1.1 2005-05-25 21:23:14 bert Exp $
+#-----------------------------------------------------------------------------
+use MNI::Startup;
+use MNI::Spawn;
+use MNI::FileUtilities qw(check_files check_output_dirs);
+use MNI::PathUtilities qw(split_path replace_dir);
+use MNI::DataDir;
+use Getopt::Tabular;
+
+use strict;
+
+my($Version)     = "0.2";
+my($LongVersion) = "version ${Version}: untested perl code. Beware!";
+    
+# User-modifyable globals
+my($SurfaceObj)  = undef;
+my($Labels)      = undef;
+my($Xfm)         = undef;
+my($InvertXfm)   = 0;
+my($Outfile)     = undef;
+my($LobeVolumes) = undef;
+my($LobeMap);
+
+# Other globals
+my($Usage, $Help);
+
+# --------------------------------------- start here
+
+&Initialize;
+
+if (defined ($SurfaceObj)) {
+   print ("Creating mask...\n");
+   $Labels = MaskBrainVoxels($SurfaceObj, $Labels);
+}
+
+my($Volumes) = GetStructsAndVols($Labels);
+
+if (defined($Xfm)) {
+    CorrectVols($Volumes, $Xfm, $InvertXfm);
+}
+
+OutputList($Volumes, $Outfile );
+
+if (defined($LobeVolumes)) {
+    OutputLobeVolumes($Volumes, $LobeMap, $LobeVolumes);
+}
+
+# --------------------------------------------------
+
+# --------------------------------------------------
+#@NAME       : MaskBrainVoxels
+#@INPUT      : name of extracted cortical surface
+#@OUTPUT     : masked label volume 
+#@RETURNS    : the name of the masked label volume
+#@CREATED    : originally: 5.21.97 Louis
+#@MODIFIED   : 
+
+
+sub MaskBrainVoxels {
+    my ($surf, $template) = @_ ;
+    my $filebase = (split_path($surf))[1];
+    
+    my $mask = "${TmpDir}/masked_${filebase}.mnc";
+    
+    if (-e $mask) {
+	print "$mask exists already, skipping this build..\n";
+    }
+    else {
+	Spawn(['surface_mask2', $template, $surf, $mask]);
+    }
+    
+    $mask;
+}
+
+sub CorrectVols {
+   my ($volumes, $xfm, $invertflag) = @_;
+
+   if (defined($invertflag) && $invertflag) {
+       my($ixfm) = replace_dir($TmpDir, $xfm);
+       $ixfm .= '_inv';
+       if (-e $ixfm) {
+	   carp("$ixfm exists already; not regenerating");
+       }
+       else {
+	   Spawn(['xfminvert', $xfm, $ixfm]);
+       }
+
+       $xfm = $ixfm;
+   }
+       
+   my($output);
+   Spawn("xfm2param $xfm | grep scale", stdout => \$output);
+
+   my(@scales) = (split(" ",$output))[1..3];
+
+   my($scale) = $scales[0]*$scales[1]*$scales[2];
+            
+   foreach (keys %$volumes) {
+      $volumes->{$_} *= $scale;
+   }
+}
+
+sub OutputList {
+   my ($volumes, $file) = @_;
+
+   open (OUT, ">$file") || die "Can't open $file: $!\n";
+
+   foreach (sort {$a<=>$b} keys %$volumes) {
+      printf OUT "%5d %11.2f\n", $_,  $volumes->{$_};
+   }
+
+   close (OUT);
+}
+
+sub OutputLobeVolumes {
+   my ($volumes, $mapfile, $file) = @_;
+   my($struct, $lobe);
+
+   # Read mapping file
+   my(%mapping);
+   open (MAP, $mapfile) || die;
+   while (<MAP>) {
+       chop;
+       ($struct, $lobe) = (split)[0,1];
+       if (!defined($mapping{$struct})) {
+	   $mapping{$struct} = [ $lobe ];
+       }
+       else {
+	   push(@{$mapping{$struct}}, $lobe);
+       }
+   }
+   close MAP;
+
+   # Collect lobe volumes
+   my(%lobevols);
+   foreach $struct (keys %$volumes) {
+       if (defined($mapping{$struct})) {
+	   my($lobes) = $mapping{$struct};
+	   foreach $lobe (@$lobes) {
+	       print "Adding struct $struct to lobe $lobe\n" if ($Verbose);
+	       $lobevols{$lobe} = 0 if (!defined($lobevols{$lobe}));
+	       $lobevols{$lobe} += $volumes->{$struct};
+	   }
+       }
+   }
+
+   open (OUT, ">$file") || die "Can't open $file: $!\n";
+
+   foreach (sort {$a<=>$b} keys %lobevols) {
+      printf OUT "%5d %11.2f\n", $_,  $lobevols{$_};
+   }
+
+   close (OUT);
+}
+
+sub GetStructsAndVols {
+    my ($file) = @_;
+    
+    my($output);
+    Spawn("print_all_labels $file | grep Label", stdout => \$output);
+    
+    my(@output) = split ("\n", $output);
+    
+    my($volume);
+    foreach (@output) {
+	my(@tokens) = split ;
+	$volume -> {$tokens[1]} = $tokens[2];
+    }
+
+    ($volume);
+}
+
+# --------------------------------------------
+sub Initialize
+{
+    # First, announce ourselves to stdout (for ease in later dissection
+    # of log files) -- unless STDOUT is a tty.
+    self_announce if $Verbose && ! -t "STDOUT";
+    
+    # Set defaults for the global variables.
+    $Verbose      = 1;
+    $Execute      = 1;
+    $Clobber      = 0;
+    $Debug        = 0;
+    $KeepTmp      = 0;
+
+    $LobeMap = MNI::DataDir::dir('jacob') . 'seg/jacob_atlas_brain_fine_remap_to_lobes.dat';
+    
+    &CreateInfoText;
+    
+    my(@argTbl) =
+	(@DefaultArgs,
+	 ["Specific options", "section"],
+	 ["-transformation", "string", 1, \$Xfm,
+	  "transform to extract scaling factors from, which wil be used to correct structure volumes", "<transform.xfm>"],
+	 ["-invert", "boolean", undef, \$InvertXfm,
+	  "invert <transform.xfm> prior to using it"],
+	 ["-surface_mask", "string", 1, \$SurfaceObj,
+	  "mask label volume with this surface object prior to volume calculation",
+	  "<surface.obj>"],
+	 ["-lobe_volumes", "string", 1, \$LobeVolumes,
+	  "save lobe volumes in this file", "<lobes.dat>"],
+	 ["-lobe_mapping", "string", 1, \$LobeMap,
+	  "file which contains structure to lobe mapping [default: $LobeMap]", 
+	  "<structure_to_lobe_map.dat>"],
+	 ["-version", "call", undef, \&PrintVersion,
+	  "print version and quit"]
+	 );
+    
+    my(@leftOverArgs);
+    GetOptions (\@argTbl, \@ARGV, \@leftOverArgs) || die "\n";
+    if (@leftOverArgs != 2) {
+	warn $Usage;
+	die "Incorrect number of arguments\n";
+    }
+
+    ($Labels, $Outfile) = @leftOverArgs;
+
+    if ($InvertXfm && !defined($Xfm)) {
+	carp("-invert specified without -transformation: ignored");
+    }
+
+    # Check input files
+    check_files($Labels) || die;
+    if (defined($Xfm)) {
+	check_files($Xfm) || die;
+    }
+    if (defined($LobeVolumes)) {
+	check_files($LobeMap) || die;
+    }
+
+    # Check output files
+    if (-e $Outfile && !$Clobber) {
+	die "$Outfile already exists (use -clobber to overwrite)";
+    }
+    if (defined($LobeVolumes) && -e $LobeVolumes && !$Clobber) {
+	die "$LobeVolumes already exists (use -clobber to overwrite)";
+    }
+
+    # Register programs
+    RegisterPrograms([qw(print_all_labels
+			 surface_mask2 
+			 xfm2param 
+			 xfminvert)]) || die;
+    
+    check_output_dirs($TmpDir) if $Execute;
+
+    # Be strict about executing stuff
+    MNI::Spawn::SetOptions (strict => 2);
+}
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : CreateInfoText
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: 
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 98/04/29, Alex Zijdenbos
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub CreateInfoText
+{
+   my $usage = <<USAGE;
+Usage: $ProgramName [options] <labels.mnc> <out.dat>
+       $ProgramName -help for details
+USAGE
+
+   my $help = <<HELP;
+
+$ProgramName 
+is used to compute the volume of all structures (ie all labels) in native
+space, based on a stereotaxic labelling of the volume and the linear 
+stereotaxic transformation.
+
+Input:
+    <labels.mnc> the stereotaxic segmentation label volume
+
+Output: 
+    <out.dat>    a list of structure_id, structure_volume pairs
+
+Steps involved:
+
+   1- call print_all_labels to extract the volume of each label
+   2- correct the volumes by applying the scaling factors extracted
+      from the xfm file (if supplied)
+
+HELP
+
+   Getopt::Tabular::SetHelp ($help, $usage);
+}
+
+sub PrintVersion  {
+  print "Program $ProgramName, built from:\n$LongVersion\n";
+  exit;
+}
+
