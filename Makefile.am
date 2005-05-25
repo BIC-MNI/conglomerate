@@ -172,18 +172,16 @@ bin_PROGRAMS = \
 	two_surface_resample \
 	volume_object_evaluate
 
-
 AUTOMAKE_OPTIONS = check-news
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = $(extra_headers) \
-	$(m4_files) \
+EXTRA_DIST = $(m4_files) \
 	epm-header.in
 
 # These headers are used in one or more of the source files.
 # Eventually the relevant _SOURCES lines should contain the header
 # files.  Until then, this explicit list allows us to build a distribution.
-extra_headers = \
+noinst_HEADERS = \
 	conjugate_grad.h \
 	conjugate_grad_prototypes.h \
 	conjugate_min.h \
@@ -202,14 +200,7 @@ extra_headers = \
 m4_files = \
 	m4/mni_REQUIRE_LIB.m4 \
 	m4/mni_REQUIRE_MNILIBS.m4 \
-	m4/mni_REQUIRE_OPENINVENTOR.m4 \
-	m4/mni_cxx_have_koenig_lookup.m4 \
-	m4/smr_CGAL_MAKEFILE.m4 \
-	m4/smr_OPTIONAL_LIB.m4 \
-	m4/smr_REQUIRED_LIB.m4 \
 	m4/smr_WITH_BUILD_PATH.m4
-
-
 
 add_labels_SOURCES =  add_labels.c minc_labels.c
 add_surfaces_SOURCES =  add_surfaces.c

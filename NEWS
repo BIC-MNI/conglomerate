@@ -1,8 +1,12 @@
-    New in Release 1.4
+        New in Release 1.4
 	------------------
 
 * Added epm-header
 * compatibility changes for OSX (sqrtf())
+* Added normalize_pet to the package
+* Added find_peaks
+* Added match_tags
+* Build fixes
 
 	New in Release 1.3
 	------------------
