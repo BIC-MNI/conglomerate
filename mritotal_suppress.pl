@@ -14,15 +14,15 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: mritotal_suppress.pl,v $
-#$Revision: 1.3 $
+#$Revision: 1.4 $
 #$Author: bert $
-#$Date: 2005-05-25 22:05:00 $
+#$Date: 2005-05-26 20:13:29 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
 use Startup;
 use JobControl;
-use ParseArgs;
+use Getopt::Tabular;
 use MNI::DataDir;
 
 require "file_utilities.pl";
@@ -111,7 +111,7 @@ sub get_volume_echo_time{
 # --------------------------------------------
 sub Initialize
 {
-    $Version = "0.1";
+    $Version = "@VERSION@";
     $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
     $Verbose = 1;
     $Execute = 1;
@@ -184,10 +184,10 @@ HELP
 	"save the intermediate transformation", "<transform.xfm>"]
        );
 
-   &ParseArgs::SetHelpText ($help, $usage);
+   &Getopt::Tabular::SetHelp ($help, $usage);
 
    my (@argv) = @ARGV;
-   &ParseArgs::Parse (\@ArgInfo, \@argv) || &Fatal ();
+   &GetOptions(\@ArgInfo, \@argv) || &Fatal ();
 
    if (@argv != 2)
    {

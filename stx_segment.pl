@@ -13,12 +13,12 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.pl,v 1.2 2005-05-25 22:04:01 bert Exp $
+#@VERSION    : $Id: stx_segment.pl,v 1.3 2005-05-26 20:13:29 bert Exp $
 #-----------------------------------------------------------------------------
 
 use Startup;
 use JobControl;
-use ParseArgs;
+use Getopt::Tabular;
 use MNI::DataDir;
 
 require "file_utilities.pl";
@@ -698,7 +698,7 @@ sub is_there_a_grid_transform {
 # --------------------------------------------
 sub Initialize
 {
-   $Version = "1.1.2.1";
+   $Version = "@VERSION@";
    $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
 
    &SelfAnnounce ("STDOUT") if $Verbose && ! -t "STDOUT";
@@ -780,10 +780,10 @@ HELP
         "list of indices for grey white csf and background (no commas)"]     
     );
    
-   &ParseArgs::SetHelpText ($help, $usage);
+   &Getopt::Tabular::SetHelp($help, $usage);
    
    my (@argv) = @ARGV;
-   &ParseArgs::Parse (\@ArgInfo, \@argv) || &Fatal ();
+   &GetOptions(\@ArgInfo, \@argv) || &Fatal ();
 
 				# do not specify an output file if there is a skull file
                                 # defined, and only the skull file is requested.
@@ -893,6 +893,5 @@ HELP
 }
 
 sub print_version  {
-  print "Program $ProgramName, built from:\n$LongVersion\n";
-  exit;
+    die "Program $ProgramName, built from:\n$LongVersion\n";
 }

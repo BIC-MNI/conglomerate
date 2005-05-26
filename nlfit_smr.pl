@@ -15,6 +15,9 @@ use MNI::Spawn;
 use MNI::DataDir;
 use MNI::FileUtilities qw(test_file check_output_dirs);
 
+my $Version = "@VERSION@";
+my $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
+
 # ======= Global variables =======
 my $modelDir = MNI::DataDir::dir("mni_autoreg");
 my $model = "icbm_avg_152_t1_tal_lin_symmetric";
@@ -47,6 +50,8 @@ my @argTbl =
       "set the base name of the fit model files."],
      ["-transform", "string", 1, \$initTransform,
       "initial transform to use. [Default: identity]."],
+     ["-version", "call", undef, \&print_version,
+          "print version and quit"]
      );
 GetOptions(\@argTbl, \@ARGV, \@leftOverArgs) or die "\n";
 
@@ -125,3 +130,7 @@ Spawn(["minctracc",
        "-lattice_diam", 6, 6, 6,
        "-transformation", $out8,
        $blur4, "$modelDir/$modelFiles[1]", $output]);
+
+sub print_version  {
+    die "Program $ProgramName, built from:\n$LongVersion\n";
+}

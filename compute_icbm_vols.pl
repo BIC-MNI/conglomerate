@@ -13,7 +13,7 @@
 #@CALLS      : /nil/david/public_bin/print_all_labels
 #@CREATED    : Mon, April 14, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: compute_icbm_vols.pl,v 1.2 2005-05-25 22:04:00 bert Exp $
+#@VERSION    : $Id: compute_icbm_vols.pl,v 1.3 2005-05-26 20:13:29 bert Exp $
 #-----------------------------------------------------------------------------
 use MNI::Startup;
 use MNI::Spawn;
@@ -24,7 +24,7 @@ use Getopt::Tabular;
 
 use strict;
 
-my($Version)     = "0.2";
+my($Version)     = "@VERSION@";
 my($LongVersion) = "version ${Version}: untested perl code. Beware!";
     
 # User-modifyable globals
@@ -308,7 +308,6 @@ HELP
 }
 
 sub PrintVersion  {
-  print "Program $ProgramName, built from:\n$LongVersion\n";
-  exit;
+    die "Program $ProgramName, built from:\n$LongVersion\n";
 }
 

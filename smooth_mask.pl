@@ -14,9 +14,9 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: smooth_mask.pl,v $
-#$Revision: 1.2 $
+#$Revision: 1.3 $
 #$Author: bert $
-#$Date: 2005-05-25 22:04:01 $
+#$Date: 2005-05-26 20:13:29 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
@@ -25,11 +25,10 @@ require "file_utilities.pl";
 require "path_utilities.pl";
 require "minc_utilities.pl";
 require "misc_utilities.pl";
-require ParseArgs;
+use Getopt::Tabular;
 use Startup;
 use JobControl;
 use MNI::DataDir;
-
 &Startup();
 
 &Initialize();
@@ -134,8 +133,8 @@ else {
 #@OUTPUT     : none
 #@RETURNS    : nothing
 #@DESCRIPTION: Sets the $Help and $Usage globals, and registers them
-#              with ParseArgs so that user gets useful error and help
-#              messages.
+#              with Getopt::Tabular so that user gets useful error and
+#              help messages.
 #@METHOD     : 
 #@GLOBALS    : $Help, $Usage
 #@CALLS      : 
@@ -155,7 +154,7 @@ $ProgramName
    produces a smoothed tissue mask, given a label volume.
 HELP
 
-   &ParseArgs::SetHelpText ($Help, $Usage);
+  &Getopt::Tabular::SetHelp($Help, $Usage);
 }
 
 # ------------------------------ MNI Header ----------------------------------
@@ -169,13 +168,16 @@ HELP
 #@GLOBALS    : general: $Verbose, $Execute, $Clobber, $KeepTmp
 #              mask:    $Mask
 #@CALLS      : &SetupArgTables
-#              &ParseArgs::Parse
+#              &GetOptions
 #              
 #@CREATED    : 96/01/20, Alex Zijdenbos
 #@MODIFIED   : 
 #-----------------------------------------------------------------------------
 sub Initialize
 {
+   $Version = "@VERSION@";
+   $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
+
     chop ($ctime = &ctime(time));
     $HistoryLine = "$ctime>>> $0 @ARGV\n";
 
@@ -224,7 +226,7 @@ sub Initialize
     # Setup arg tables and parse args
     ($argsTbl) = &SetupArgTables;
 
-    &ParseArgs::Parse ([@DefaultArgs, @$argsTbl], \@ARGV) || &Fatal();
+    &GetOptions (\@$argsTbl, \@ARGV) || &Fatal ();
 
     # Check source arguments
     my($nArgs) = $#ARGV + 1;
@@ -260,7 +262,7 @@ sub Initialize
 #                @generalArgs
 #                @maskArgs
 #@DESCRIPTION: Defines the tables of command line (and config file) 
-#              options that we pass to ParseArgs.  There are four
+#              options that we pass to Getopt.  There are four
 #              separate groups of options, because not all of them
 #              are valid in all places.  See comments in the routine
 #              for details.
@@ -306,8 +308,9 @@ sub SetupArgTables
 	 ["-like", "string", 1, \$OutputSpace,
 	  "Model volume for resampling of output volume [default: use input volume sampling]"],
 	 ["-target_value", "float", 1, \$TargetValue,
-	  "Target value for normalization. If no normalization is requested, the output volume will be multiplied by this factor [default: $TargetValue]"]);
-    
+	  "Target value for normalization. If no normalization is requested, the output volume will be multiplied by this factor [default: $TargetValue]"],    
+         ["-version", "call", undef, \&print_version,
+          "print version and quit"]);
     (\@args);
 }
 
@@ -407,4 +410,8 @@ sub Compress {
 	    &Spawn("gzip -f $file");
 	}
     }
+}
+
+sub print_version  {
+    die "Program $ProgramName, built from:\n$LongVersion\n";
 }
