@@ -1,3 +1,11 @@
+        New in Release 1.5
+        ------------------
+* Added various homeless, orphan, perl scripts: stx_segment,
+  smooth_mask, mritotal_suppress, compute_icbm_vols, nlfit_smr,
+  multispectral_stx_registration
+* Added mincmask
+* Still more build tweaks
+
         New in Release 1.4
 	------------------
 

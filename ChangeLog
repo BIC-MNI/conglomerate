@@ -1,3 +1,7 @@
+2005-05-26  Bert Vincent <bert@bic.mni.mcgill.ca>
+	* Add mincmask
+	* More minor build tweaks
+
 2005-05-25  Bert Vincent <bert@bic.mni.mcgill.ca>
 	* Build fixes
 	* Added orphan perl scripts
