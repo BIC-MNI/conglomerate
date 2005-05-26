@@ -13,17 +13,24 @@
 ---------------------------------------------------------------------------- */
 
 				/* include list */
-#include <volume_io.h>
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif /* HAVE_CONFIG_H */
+
 #include <limits.h>
+
+#if HAVE_FLOAT_H
+#include <float.h>
+#endif /* HAVE_FLOAT_H */
+
+#include <volume_io.h>
+#include <time_stamp.h>
 #include <ParseArgv.h>
 #include <bicpl.h>
 
+#ifndef DBL_MAX
 #define DBL_MAX 99999999
-
-/*
-#include <Proglib.h>
-#include <config.h>
-*/
+#endif /* DBL_MAX not defined */
 
 int point_not_masked(Volume volume, 
                             Real wx, Real wy, Real wz)
@@ -42,10 +49,8 @@ int point_not_masked(Volume volume,
     if (result>0.0) { 
       return(TRUE);
     }
-    else {
-      return(FALSE);
-    }
   }
+  return(FALSE);
 }
 				/* globals */
 
@@ -81,7 +86,7 @@ static ArgvInfo argTable[] = {
 };
 
 
-
+int 
 main ( argc, argv )
      int argc;
      char *argv[];
@@ -107,7 +112,7 @@ main ( argc, argv )
   int
     data_size[3],
     mask_size[3],
-    i,j,k,val;
+    i,j,k;
   
   progress_struct 
     progress;
@@ -199,13 +204,15 @@ main ( argc, argv )
 
 	if (!invert_mask)
 	{
-	    if (!point_not_masked(mask, wx,wy,wz) )
+	    if (!point_not_masked(mask, wx,wy,wz) ) {
 		SET_VOXEL_3D(data, i,j,k, zero);
+            }
 	}
 	else 
 	{
-	    if (point_not_masked(mask, wx,wy,wz) )
+	    if (point_not_masked(mask, wx,wy,wz) ) {
 		SET_VOXEL_3D(data, i,j,k, zero);
+            }
 	}
 	
 		
