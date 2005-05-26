@@ -115,6 +115,7 @@ bin_PROGRAMS = \
 	match_tags \
 	measure_surface_area \
 	merge_polygons \
+	mincmask \
 	minctotag \
 	minc_to_rgb \
 	normalize_pet \
@@ -455,6 +456,7 @@ match_tags_SOURCES = match_tags.c
 measure_surface_area_SOURCES =  measure_surface_area.c
 merge_polygons_SOURCES =  merge_polygons.c
 minc_to_rgb_SOURCES =  minc_to_rgb.c
+mincmask_SOURCES = mincmask.c
 minctotag_SOURCES =  minctotag.c
 #normalize_intensity_SOURCES =  normalize_intensity.c
 normalize_pet_SOURCES = normalize_pet.c
