@@ -180,7 +180,8 @@ bin_SCRIPTS = \
 	stx_segment2 \
 	smooth_mask \
 	compute_icbm_vols \
-	multispectral_stx_registration
+	multispectral_stx_registration \
+	suppress_fat
 
 do_subst = sed -e 's,[@]datadir[@],$(datadir),g' \
 	-e 's,[@]PERL[@],$(PERL),g' \
@@ -215,6 +216,9 @@ multispectral_stx_registration: multispectral_stx_registration.pl Makefile
 	$(do_subst) < $(srcdir)/$< > $@
 	chmod +x $@
 
+suppress_fat: suppress_fat.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
 
 AUTOMAKE_OPTIONS = check-news
 ACLOCAL_AMFLAGS = -I m4
@@ -227,7 +231,8 @@ EXTRA_DIST = $(m4_files) \
 	mritotal_suppress.pl \
 	smooth_mask.pl \
 	compute_icbm_vols.pl \
-	multispectral_stx_registration.pl
+	multispectral_stx_registration.pl \
+	suppress_fat.pl
 
 CLEANFILES = $(bin_SCRIPTS)
 
