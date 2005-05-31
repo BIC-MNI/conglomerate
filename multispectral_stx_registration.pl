@@ -17,7 +17,7 @@ use MNI::Startup;
 use MNI::DataDir;
 use Getopt::Tabular;
 
-my $version = 0.1.5;
+my $version = "@VERSION@";
 # version date: May 27, 2005
 # last person to modify: Yasser Ad-Dab'bagh
 
@@ -27,8 +27,8 @@ my $version = 0.1.5;
 
 my $twoStage= 0;
 my $modelDir = MNI::DataDir::dir("mni_autoreg");
-my $kiddieModel = "${modelDir}/nih_chp_avg";
-my $model = "${modelDir}/icbm_template_1.00mm.mnc";
+my $kiddieModel = "nih_chp_avg";
+my $model = "icbm_avg_152_t1_tal_lin";
 my $t1suppressed= undef;
 my $threshold = 1;
 my $premodel= 0;
@@ -79,11 +79,9 @@ to the standard model (two-stage registration).
 HELP
 Getopt::Tabular::SetHelp($help, $usage);
 
-print "Hello, World $twoStage\n";
-
 if ($twoStage) {
     $premodel= "${kiddieModel}";
-    $premodelDir= MNI::DataDir::dir("mni_autoreg");
+    $premodelDir= MNI::DataDir::dir("kiddie_models");
 }
 
 ##############################################################
