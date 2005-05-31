@@ -14,9 +14,9 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: smooth_mask.pl,v $
-#$Revision: 1.3 $
+#$Revision: 1.4 $
 #$Author: bert $
-#$Date: 2005-05-26 20:13:29 $
+#$Date: 2005-05-31 16:18:50 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
@@ -282,7 +282,8 @@ sub SetupArgTables
     # or the command line
 
     @args = 
-	(["Mincblur options", "section"],
+	(@DefaultArgs,
+         ["Mincblur options", "section"],
 	 ["-fwhm", "float", 1, \$FWHM,
 	  "FWHM of kernel used to blur the tissue volume with [default: $FWHM]"],
 	 ["-dimensions", "integer", 1, \$BlurDimensions,
