@@ -28,6 +28,7 @@ my $version = "@VERSION@";
 my $twoStage= 0;
 my $modelDir = MNI::DataDir::dir("mni_autoreg");
 my $kiddieModel = "nih_chp_avg";
+my $kiddieModelDir = MNI::DataDir::dir("mni_autoreg");
 my $model = "icbm_avg_152_t1_tal_lin";
 my $t1suppressed= undef;
 my $threshold = 1;
@@ -80,8 +81,8 @@ HELP
 Getopt::Tabular::SetHelp($help, $usage);
 
 if ($twoStage) {
-    $premodel= "${kiddieModel}";
-    $premodelDir= MNI::DataDir::dir("kiddie_models");
+    $premodel = "${kiddieModel}";
+    $premodelDir = "${kiddieModelDir}";
 }
 
 ##############################################################
