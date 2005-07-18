@@ -177,7 +177,6 @@ bin_SCRIPTS = \
 	nlfit_smr \
 	stx_segment \
 	mritotal_suppress \
-	stx_segment2 \
 	smooth_mask \
 	compute_icbm_vols \
 	multispectral_stx_registration \
@@ -193,10 +192,6 @@ nlfit_smr: nlfit_smr.pl Makefile
 	chmod +x $@
 
 stx_segment: stx_segment.pl Makefile
-	$(do_subst) < $(srcdir)/$< > $@
-	chmod +x $@
-
-stx_segment2: stx_segment2.pl Makefile
 	$(do_subst) < $(srcdir)/$< > $@
 	chmod +x $@
 
