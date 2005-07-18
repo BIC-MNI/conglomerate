@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.pl,v 1.3 2005-05-26 20:13:29 bert Exp $
+#@VERSION    : $Id: stx_segment.pl,v 1.4 2005-07-18 19:16:47 bert Exp $
 #-----------------------------------------------------------------------------
 
 use Startup;
@@ -853,14 +853,13 @@ HELP
    $AutoCrop     = &FindProgram ("autocrop");
    $Mincmath     = &FindProgram ("mincmath");
    $XfmTool      = &FindProgram ("xfmtool");
-   $ReverseDef   = &FindProgram ("reversedef");
    $MincInfo     = &FindProgram ("mincinfo");
    $MincResample = &FindProgram ("mincresample");
    $MincReshape  = &FindProgram ("mincreshape");
    $MincLookup   = &FindProgram ("minclookup");
    $MincMask     = &FindProgram ("mincmask");
    exit 1 unless ($AutoCrop && $MincInfo && $MincResample && $MincLookup &&
-                  $Mincmath && $MincMask && $MincReshape && $ReverseDef &&
+                  $Mincmath && $MincMask && $MincReshape &&
                   $XfmTool && $Dilate && $SurfaceMask);
    
    # They were found, so add options according to
