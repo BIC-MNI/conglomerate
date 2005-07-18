@@ -222,7 +222,6 @@ EXTRA_DIST = $(m4_files) \
 	epm-header.in \
 	nlfit_smr.pl \
 	stx_segment.pl \
-	stx_segment2.pl \
 	mritotal_suppress.pl \
 	smooth_mask.pl \
 	compute_icbm_vols.pl \
