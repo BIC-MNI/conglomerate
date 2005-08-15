@@ -1,0 +1,40 @@
+#! /usr/bin/env perl
+
+# remap a surface intersection file to volumes.
+# Assumes ANIMAL labels, etc.
+
+use MNI::DataDir;
+
+my $usage = "$0 segmentation.txt lobes.txt\n";
+
+my $input = shift @ARGV or die $usage;
+my $output = shift @ARGV or die $usage;
+
+my $LobeMap = MNI::DataDir::dir('jacob') . 'seg/jacob_atlas_brain_fine_remap_to_just_lobes.dat';
+
+
+open MAP, $LobeMap or die "Error opening $LobeMap: $!\n";
+
+my %lobeMapping;
+while (<MAP>) {
+    chomp $_;
+    $_ =~ s/^\s+//;
+    my @vals = split /\s/, $_;
+    $lobeMapping{$vals[0]} = $vals[1];
+}
+
+open IN, $input or die "Error opening $input: $!\n";
+open OUT, ">$output" or die "Error opening $output for writing: $!\n";
+
+while (<IN>) {
+    chomp $_;
+    my $remapped = $lobeMapping{int($_)};
+    if ($remapped) {
+        print OUT "$remapped\n";
+    }
+    else {
+        print OUT "0\n";
+    }
+}
+    
+    

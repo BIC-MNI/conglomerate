@@ -180,7 +180,9 @@ bin_SCRIPTS = \
 	smooth_mask \
 	compute_icbm_vols \
 	multispectral_stx_registration \
-	suppress_fat
+	suppress_fat \
+	regional_thickness \
+	remap_to_lobes
 
 do_subst = sed -e 's,[@]datadir[@],$(datadir),g' \
 	-e 's,[@]PERL[@],$(PERL),g' \
@@ -215,6 +217,14 @@ suppress_fat: suppress_fat.pl Makefile
 	$(do_subst) < $(srcdir)/$< > $@
 	chmod +x $@
 
+regional_thickness: regional_thickness.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+remap_to_lobes: remap_to_lobes.pl Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
 AUTOMAKE_OPTIONS = check-news
 ACLOCAL_AMFLAGS = -I m4
 
@@ -226,7 +236,9 @@ EXTRA_DIST = $(m4_files) \
 	smooth_mask.pl \
 	compute_icbm_vols.pl \
 	multispectral_stx_registration.pl \
-	suppress_fat.pl
+	suppress_fat.pl \
+	regional_thickness.pl \
+	remap_to_lobes.pl
 
 CLEANFILES = $(bin_SCRIPTS)
 
