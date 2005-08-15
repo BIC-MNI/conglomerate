@@ -1,3 +1,6 @@
+2005-08-15  Bert Vincent <bert@bic.mni.mcgill.ca>
+	* Add regional_thickness and remap_to_lobes
+	
 2005-05-31  Bert Vincent <bert@bic.mni.mcgill.ca>
 	* Fix smooth_mask to use DefaultArgs as it used to.
 	
