@@ -311,12 +311,9 @@ private  Real  get_rms_points(
 {
     int    i, j, s;
     Real   rms, dx, dy, dz;
-    Real   **variance, **inverse;
+    Real   variance[3][3], inverse[3][3];
 
     rms = 0.0;
-
-    ALLOC2D( variance, 3, 3 );
-    ALLOC2D( inverse, 3, 3 );
 
     for_less( i, 0, 3 )
     for_less( j, 0, 3 )
@@ -346,8 +343,9 @@ private  Real  get_rms_points(
     for_less( j, 0, 3 )
         variance[i][j] /= (Real) (n_surfaces-n_groups);
 
-    if( !invert_square_matrix( 3, variance, inverse ) )
+    if( !invert_square_matrix( 3, (Real**)variance, (Real**)inverse ) ) {
         print_error( "Error getting inverse of variance\n" );
+    }
 
     for_less( i, 0, 3 )
     for_less( j, 0, 3 )
@@ -356,9 +354,6 @@ private  Real  get_rms_points(
     rms /= (Real) n_surfaces;
 
     rms = sqrt( rms );
-
-    FREE2D( variance );
-    FREE2D( inverse );
 
     return( rms );
 }
@@ -394,21 +389,20 @@ private  void  create_average_polygons(
 
         get_points_centroid( n_surfaces, samples, &polygons->points[p] );
 
-        rms = get_rms_points( n_surfaces, n_groups,
-                              samples, &polygons->points[p], inv_variance );
+        if( rms_file != NULL || variance_file != NULL ) {
+          rms = get_rms_points( n_surfaces, n_groups,
+                                samples, &polygons->points[p], inv_variance );
 
-        if( rms_file != NULL )
-        {
+          if( rms_file != NULL ) {
             (void) output_real( rms_file, rms );
             (void) output_newline( rms_file );
-        }
-
-        if( variance_file != NULL )
-        {
+          } 
+          if( variance_file != NULL ) {
             for_less( i, 0, 3 )
             for_less( j, 0, 3 )
                 (void) output_real( variance_file, inv_variance[i][j] );
             (void) output_newline( variance_file );
+          }
         }
     }
 
