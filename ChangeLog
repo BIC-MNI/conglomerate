@@ -1,3 +1,6 @@
+2005-10-27  Andrew Janke  <a.janke@gmail.com>
+	* updated smooth_mask.pl to use mni_perllib
+
 2005-08-15  Bert Vincent <bert@bic.mni.mcgill.ca>
 	* Add regional_thickness and remap_to_lobes
 	

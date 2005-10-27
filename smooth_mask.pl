@@ -14,22 +14,29 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: smooth_mask.pl,v $
-#$Revision: 1.4 $
-#$Author: bert $
-#$Date: 2005-05-31 16:18:50 $
+#$Revision: 1.5 $
+#$Author: rotor $
+#$Date: 2005-10-27 15:25:15 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
+use warnings "all";
+
 require "ctime.pl";
-require "file_utilities.pl";
-require "path_utilities.pl";
-require "minc_utilities.pl";
-require "misc_utilities.pl";
+#require "file_utilities.pl";
+#require "path_utilities.pl";
+#require "minc_utilities.pl";
+#require "misc_utilities.pl";
+
 use Getopt::Tabular;
-use Startup;
-use JobControl;
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
+use MNI::FileUtilities qw(check_output_dirs check_files); # qw(search_directories);
+use MNI::PathUtilities qw(replace_dir); # qw(replace_ext split_path);
+use MNI::MincUtilities qw(volume_params get_history put_history); # qw(:history volume_cog);
+use MNI::NumericUtilities; # qw(labs round);
+
 use MNI::DataDir;
-&Startup();
 
 &Initialize();
 
@@ -125,7 +132,6 @@ else {
 
 &Compress($OutFile);
 
-&Cleanup(1);
 
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : &SetHelp
@@ -203,7 +209,7 @@ sub Initialize
     $Mask        = "${ModelDir}${Mask}";
 
     if ($Execute) {
-	&CheckOutputDirs($TmpDir);
+	&check_output_dirs($TmpDir);
 	if (!$ENV{'TMPDIR'}) {
 	    $ENV{'TMPDIR'} = $TmpDir;
 	}
@@ -211,44 +217,49 @@ sub Initialize
 
     &SetHelp;
 
-    &JobControl::SetOptions("Verbose", $Verbose, 
-		     "Execute", $Execute,
- 		     "ErrorAction", "fatal",
-		     "MergeErrors", 2);
+    &MNI::Spawn::SetOptions(
+           verbose => $Verbose, 
+		     execute => $Execute,
+ 		     err_action => "fatal",
+		     stderr => MERGE);
     
-    # Locate programs
-    ($MincBlur       = &FindProgram ("mincblur"))        || &Fatal();
-    ($MincMath       = &FindProgram ("mincmath"))        || &Fatal();
-    ($MincResample   = &FindProgram ("mincresample"))    || &Fatal();
-    ($ResampleLabels = &FindProgram ("resample_labels")) || &Fatal();
-    ($VolumeStats    = &FindProgram ("volume_stats"))    || &Fatal();
+    # register programs
+    $MincBlur       = "mincblur";
+    $MincMath       = "mincmath";
+    $MincResample   = "mincresample";
+    $ResampleLabels = "resample_labels";
+    $VolumeStats    = "volume_stats";
+    my @programs = qw/mincblur mincmath mincresample 
+                      resample_labels volume_stats
+                      mv/;
+    RegisterPrograms(\@programs);
 
     # Setup arg tables and parse args
     ($argsTbl) = &SetupArgTables;
 
-    &GetOptions (\@$argsTbl, \@ARGV) || &Fatal ();
+    &GetOptions (\@$argsTbl, \@ARGV) || die ();
 
     # Check source arguments
     my($nArgs) = $#ARGV + 1;
     if ($nArgs != 2) {
-	&Fatal("Incorrect number of arguments\n");
+	die("Incorrect number of arguments\n");
     }	
 	
     $ClassFile = shift(@ARGV);
-    &CheckFiles($ClassFile) || &Fatal();
+    &check_files($ClassFile) || die;
 
     $OutFile = shift(@ARGV);
     
     $OutFile =~ s/\.(Z|gz|z)$//;
     if (!$Clobber && -e $OutFile) {
-	&Fatal("Output file $OutFile exists; use -clobber to overwrite");
+	die "Output file $OutFile exists; use -clobber to overwrite";
     }
 
     if ($NormTotalVolume && $NormBlurredMean) {
-	&Fatal("Please use only one of -norm_total_volume and -norm_blurred_mean");
+	die "Please use only one of -norm_total_volume and -norm_blurred_mean";
     }
 
-    ($Mask = &CheckSampling($Mask, $ClassFile, 1)) || &Fatal();
+    ($Mask = &CheckSampling($Mask, $ClassFile, 1)) || die();
 
     $MincBlur .= " -fwhm $FWHM $Apodize";
     $MincBlur .= " -dimensions $BlurDimensions" if defined($BlurDimensions);
@@ -353,7 +364,7 @@ sub CheckSampling {
 	if ($Verbose) {
 	    print "Resampling $file like $model\n";
 	}
-	my($resampledFile) = &UniqueOutputFile(&ReplaceDir($TmpDir, $file));
+	my($resampledFile) = &UniqueOutputFile(&replace_dir($TmpDir, $file));
 
 	if (defined($isLabelVolume) && $isLabelVolume) {
 	    &Spawn(&AddOptions("$ResampleLabels -resample \'-like $model\' $file $resampledFile", $Verbose, 1));
@@ -411,6 +422,19 @@ sub Compress {
 	    &Spawn("gzip -f $file");
 	}
     }
+}
+
+sub comp_num_lists
+{
+   die "comp_num_lists: wrong number of arguments" unless (@_ == 2);
+   local ($a1, $a2) = @_;
+
+   return 0 unless (@$a1 == @$a2);
+   for $i (0 .. $#$a1)
+   {
+      return 0 unless ($a1->[$i] == $a2->[$i]);
+   }
+   return 1;
 }
 
 sub print_version  {
