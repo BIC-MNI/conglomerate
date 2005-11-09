@@ -12,9 +12,9 @@
 *             software for any purpose.  It is provided "as is" without
 *             express or implied warranty.
 *---------------------------------------------------------------------------- 
-*$Revision: 1.1 $
+*$Revision: 1.2 $
 *$Author: jharlap $
-*$Date: 2005-11-09 14:44:20 $
+*$Date: 2005-11-09 14:47:34 $
 *---------------------------------------------------------------------------
 *
 * print_world_values <minclist> <coordlist> <outputfile>
@@ -113,6 +113,8 @@ int  main(
 				return( 1 );
 			}
 			
+			fprintf(outputfile, "%s\t", cur_minc);
+
 			for(i = 0; i < n_coords ; ++i) {
 
 				get_volume_sizes( volume, sizes );
