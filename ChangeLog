@@ -1,3 +1,6 @@
+2005-11-09  Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
+	* Add print_world_values
+	
 2005-10-27  Andrew Janke  <a.janke@gmail.com>
 	* updated smooth_mask.pl to use mni_perllib
 

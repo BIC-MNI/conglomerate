@@ -63,6 +63,7 @@ bin_PROGRAMS = \
 	dump_rms \
 	dump_transform \
 	dump_uv \
+	dump_vertex_normal_diffs \
 	evaluate \
 	extract_tag_slice \
 	extract_largest_line \
@@ -134,6 +135,7 @@ bin_PROGRAMS = \
 	print_object_limits \
 	print_volume_value \
 	print_world_value \
+	print_world_values \
 	random_warp \
 	reconstitute_points \
 	refine_mesh \
@@ -358,6 +360,7 @@ dump_rms_SOURCES =  dump_rms.c
 dump_transform_SOURCES =  dump_transform.c
 dump_uv_SOURCES =  dump_uv.c
 #dump_vertex_SOURCES =  dump_vertex.c
+dump_vertex_normal_diffs_SOURCES =  dump_vertex_normal_diffs.c
 #embed_in_sphere_SOURCES =  embed_in_sphere.c
 #equalize_distance2_SOURCES =  equalize_distance2.c
 #equalize_distance3_SOURCES =  equalize_distance3.c
@@ -494,6 +497,7 @@ print_object_centroid_SOURCES =  print_object_centroid.c
 print_object_limits_SOURCES =  print_object_limits.c
 print_volume_value_SOURCES =  print_volume_value.c
 print_world_value_SOURCES =  print_world_value.c
+print_world_values_SOURCES =  print_world_values.c
 random_warp_SOURCES =  random_warp.c
 reconstitute_points_SOURCES =  reconstitute_points.c
 refine_mesh_SOURCES =  refine_mesh.c
