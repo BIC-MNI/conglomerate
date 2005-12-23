@@ -14,19 +14,15 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: smooth_mask.pl,v $
-#$Revision: 1.5 $
+#$Revision: 1.6 $
 #$Author: rotor $
-#$Date: 2005-10-27 15:25:15 $
+#$Date: 2005-12-23 16:43:07 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
 use warnings "all";
 
 require "ctime.pl";
-#require "file_utilities.pl";
-#require "path_utilities.pl";
-#require "minc_utilities.pl";
-#require "misc_utilities.pl";
 
 use Getopt::Tabular;
 use MNI::Startup qw(nocputimes);
