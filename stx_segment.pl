@@ -13,30 +13,30 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.pl,v 1.4 2005-07-18 19:16:47 bert Exp $
+#@VERSION    : $Id: stx_segment.pl,v 1.5 2005-12-23 16:41:45 rotor Exp $
 #-----------------------------------------------------------------------------
 
-use Startup;
-use JobControl;
+use warnings "all";
+
 use Getopt::Tabular;
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
 use MNI::DataDir;
 
-require "file_utilities.pl";
-require "path_utilities.pl";
-require "minc_utilities.pl";
-require "volume_heuristics.pl";
+use MNI::FileUtilities qw(check_output_dirs check_files); # qw(search_directories);
+use MNI::PathUtilities qw(replace_dir split_path); # qw(replace_ext split_path);
+use MNI::MincUtilities qw(volume_params get_history put_history); # qw(:history volume_cog);
+
 
 # ------------------------------ start here
-&Startup;
-
-&Initialize;
+&Initialize();
 
 if (defined($outputfile) && -e $outputfile) {
     if ($Clobber) {
 	unlink($outputfile);
     }
     else {
-	&Fatal("$outputfile already exists (use -clobber to overwrite)");
+	    die "$outputfile already exists (use -clobber to overwrite)";
     }
 }
 
@@ -45,7 +45,7 @@ if (defined($Skull_file) && -e $Skull_file) {
 	unlink($Skull_file);
     }
     else {
-	&Fatal("$Skull_file already exists (use -clobber to overwrite)");
+       die "$Skull_file already exists (use -clobber to overwrite)";
     }
 }
                                 # prepare the transforms - forward and backward.
@@ -69,8 +69,7 @@ if (defined ($Skull_file)) {
    &Spawn("cp $skull $Skull_file");
                                 # stop here if required
    if (defined ($Only_skull_file)) {
-      &Shutdown(1) ;
-      exit;
+      exit(1);
    }
 }
 
@@ -151,7 +150,7 @@ else {
    &Spawn("cp $custom_atlas5 $outputfile");
 }
 
-&Shutdown (1);
+exit(1);
 
 # ------------------------------ end here!
 # ------------------------------
@@ -165,7 +164,7 @@ else {
 
 sub build_cerebellar_and_bs_atlas {
    my ($atlas, $str) = @_ ;
-   my $filebase = (&SplitPath ($atlas))[1];
+   my $filebase = (&split_path($atlas))[1];
 
    my $mask = "${TmpDir}/${filebase}_${str}.mnc";
 
@@ -190,7 +189,7 @@ sub build_cerebellar_and_bs_atlas {
 
 sub build_brain_mask {
    my ($surf, $template) = @_ ;
-   my $filebase = (&SplitPath ($surf))[1];
+   my $filebase = (&split_path($surf))[1];
 
    my $mask = "${TmpDir}/brainmask_${filebase}.mnc";
 
@@ -291,7 +290,7 @@ sub build_template {
 
   my ($tags, $result, $output);
 
-  my $filebase = (&SplitPath ($limits))[1];
+  my $filebase = (&split_path($limits))[1];
   my $custom = "${TmpDir}/${filebase}_custom_template.mnc";
   if (-e $custom) {
     print "file $custom exists already\n";
@@ -323,7 +322,7 @@ sub build_smallest_template {
 
   my ($tags, $result, $output);
 
-  my $filebase = (&SplitPath ($limits))[1];
+  my $filebase = (&split_path($limits))[1];
   my $custom = "${TmpDir}/${filebase}_custom_template.mnc";
   if (-e $custom) {
     print "file $custom exists already\n";
@@ -343,7 +342,7 @@ sub build_smallest_template {
      &Spawn("$MincResample -clob $custom2 $custom3 -like $custom1 -fillvalue 0");
      &Spawn("$Mincmath -clob -zero -and $custom1 $custom3 $custom2");
 
-     &Spawn("$AutoCrop -clob -bbox  $custom2 $custom2 $custom");
+     &Spawn("$AutoCrop -clob $custom2 $custom");
 
      unlink $custom1, $custom2, $custom3;
   }
@@ -353,7 +352,7 @@ sub build_smallest_template {
 
 sub build_minimax_tags {
    my ($tags) = @_;
-   my $filebase = (&SplitPath ($tags))[1];
+   my $filebase = (&split_path($tags))[1];
    my $custom = "${TmpDir}/${filebase}_minmax.tag";
    
    my ( $minx, $maxx, $miny, $maxy, $minz, $maxz );
@@ -502,7 +501,7 @@ sub separate_classes  {
     my ($grey, $white, $csf );
     my ($llimit, $ulimit);
 				# get the file basename, without directory
-    $filebase = (&SplitPath ($file))[1];
+    $filebase = (&split_path($file))[1];
 
     $temp  = "${TmpDir}/${filebase}_like_template.mnc";
     $grey  = "${TmpDir}/${filebase}_grey.mnc";
@@ -575,7 +574,7 @@ sub preprocess {
     my ($result);
 
 				# get the file basename, without directory
-    $filebase = (&SplitPath ($file))[1];
+    $filebase = (&split_path($file))[1];
 
     $result = "${TmpDir}/${filebase}_iso2.mnc";
 
@@ -599,7 +598,7 @@ sub prepare_transforms {
       $def, $def_inv,
       $filebase);
 
-  $filebase = (&SplitPath ($xfm))[1];
+  $filebase = (&split_path($xfm))[1];
 
   $forward         = $xfm;
   $forward_rev     = "${TmpDir}/${filebase}_rev.xfm";
@@ -612,7 +611,7 @@ sub prepare_transforms {
     print "file $forward_rev already exists.\n";
   }
   else {
-    &Spawn("$ReverseDef $xfm $forward_rev");
+    &Spawn("reversedef $xfm $forward_rev");
   }
 
   if (-e $inverse) {
@@ -662,7 +661,7 @@ sub prepare_concatenated_transform {
       $def, $def_inv,
       $filebase);
 
-  $filebase = (&SplitPath ($xfm))[1];
+  $filebase = (&split_path($xfm))[1];
 
   $inverse_stx     = "${TmpDir}/${filebase}_inv_stx.xfm";
   
@@ -701,12 +700,13 @@ sub Initialize
    $Version = "@VERSION@";
    $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
 
-   &SelfAnnounce ("STDOUT") if $Verbose && ! -t "STDOUT";
-   &JobControl::SetOptions ("ErrorAction", "fatal");
+   &self_announce if $Verbose && ! -t "STDOUT";
+   MNI::Spawn::SetOptions (err_action => "fatal");
 
    my $usage = <<USAGE;
 Usage: $ProgramName [options] to_model_nl.xfm to_tal.xfm  class.mnc out_labels.mnc
        $ProgramName -help for details
+
 USAGE
    my $usage3 = <<USAGE3;
 When the '-only_skull' flag is used, you cannot specify the label file
@@ -715,7 +715,9 @@ specified with the '-skull_labels' option. See the example below:
 
 Usage: $ProgramName [options] -skull_file skull_labels.mnc -only_skull to_model_nl.xfm to_tal.xfm  class.mnc
        $ProgramName -help for details
+
 USAGE3
+
    my $help = <<HELP;
 Help text:
 
@@ -783,7 +785,7 @@ HELP
    &Getopt::Tabular::SetHelp($help, $usage);
    
    my (@argv) = @ARGV;
-   &GetOptions(\@ArgInfo, \@argv) || &Fatal ();
+   &GetOptions(\@ArgInfo, \@argv) || exit;
 
 				# do not specify an output file if there is a skull file
                                 # defined, and only the skull file is requested.
@@ -818,8 +820,7 @@ HELP
    
 
 
-                                # atlas volumes used to drive segmentation
-
+   # atlas volumes used to drive segmentation
    $Modeldir         = MNI::DataDir::dir('ANIMAL_INSECT') . $Atlas_source . "/";
    $GreyAtlas        = "${Modeldir}atlas_grey.mnc";
    $WhiteAtlas       = "${Modeldir}atlas_white.mnc";
@@ -834,33 +835,34 @@ HELP
    @model_files = ($GreyAtlas,$WhiteAtlas, $VenAtlas, $Atlas_level50_BG, 
                    $GreyLimits, $VenLimits, $BG_Limits);
 
-   &CheckFiles(@model_files) || &Fatal('Missing model files');       
+   &check_files(@model_files) || die 'Missing model files';       
 
                                 # (spatial definition) template files
 
    if (! $Template) {
       $Template         =  MNI::DataDir::dir('ICBM') . "icbm_template_1.00mm.mnc";
    }
-   &CheckFiles( $Template ) || &Fatal('Missing template file');
+   &check_files( $Template ) || die 'Missing template file';
 
 
 
-   # Look for required programs
+   # Look for required programs    
+   $Dilate       = "dilate_volume";
+   $SurfaceMask  = "surface_mask2";
+   $AutoCrop     = "autocrop";
+   $Mincmath     = "mincmath";
+   $XfmTool      = "xfmtool";
+   $MincResample = "mincresample";
+   $MincReshape  = "mincreshape";
+   $MincLookup   = "minclookup";
+   $MincMask     = "mincmask";
+   $Stats_tag_file = "stats_tag_file";
    
-   $Dilate       = &FindProgram ("dilate_volume");
-   $SurfaceMask  = &FindProgram ("surface_mask2");
-   $Stats_tag_file  = &FindProgram ("stats_tag_file");
-   $AutoCrop     = &FindProgram ("autocrop");
-   $Mincmath     = &FindProgram ("mincmath");
-   $XfmTool      = &FindProgram ("xfmtool");
-   $MincInfo     = &FindProgram ("mincinfo");
-   $MincResample = &FindProgram ("mincresample");
-   $MincReshape  = &FindProgram ("mincreshape");
-   $MincLookup   = &FindProgram ("minclookup");
-   $MincMask     = &FindProgram ("mincmask");
-   exit 1 unless ($AutoCrop && $MincInfo && $MincResample && $MincLookup &&
-                  $Mincmath && $MincMask && $MincReshape &&
-                  $XfmTool && $Dilate && $SurfaceMask);
+   my @programs = 
+      qw/cp dilate_volume surface_mask2 autocrop 
+         mincmath xfmtool mincinfo mincresample 
+         mincreshape minclookup mincmask stats_tag_file/;
+   RegisterPrograms(\@programs);
    
    # They were found, so add options according to
    # $Debug, $Verbose, $Clobber flags
@@ -888,7 +890,7 @@ HELP
    die "$classified does not exist.\n" unless (-e $classified || -e "${classified}.gz");
  
 
-   &CheckOutputDirs ($TmpDir);
+   &check_output_dirs($TmpDir);
 }
 
 sub print_version  {
