@@ -12,9 +12,9 @@
 *             software for any purpose.  It is provided "as is" without
 *             express or implied warranty.
 *---------------------------------------------------------------------------- 
-*$Revision: 1.2 $
+*$Revision: 1.3 $
 *$Author: jharlap $
-*$Date: 2005-11-09 14:47:34 $
+*$Date: 2006-02-26 13:33:46 $
 *---------------------------------------------------------------------------
 *
 * print_world_values <minclist> <coordlist> <outputfile>
@@ -103,8 +103,21 @@ int  main(
 	keep_looping = 1;
 	glimfile = fopen(glim_filename, "r");
 	outputfile = fopen(output_filename, "w");
+
+	/* print out the x,y,z of each coordinate */
+	fprintf(outputfile, "x\t");
+	for(i = 0; i < n_coords; ++i)
+	  fprintf(outputfile, "%f\t", x[i]);
+	fprintf(outputfile, "\ny\t");
+	for(i = 0; i < n_coords; ++i)
+	  fprintf(outputfile, "%f\t", y[i]);
+	fprintf(outputfile, "\nz\t");
+	for(i = 0; i < n_coords; ++i)
+	  fprintf(outputfile, "%f\t", z[i]);
+	fprintf(outputfile, "\n");
+	  
 	while(keep_looping) {
-		if(fscanf(glimfile, "%[^ ] %*[^\n] %*1[\n]", &cur_minc) > 0) {
+		if(fscanf(glimfile, "%[^ \t] %*[^\n] %*1[\n]", &cur_minc) > 0) {
 
 			if( input_volume( cur_minc, 3, XYZ_dimension_names,
 									NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -140,7 +153,7 @@ int  main(
 			}
 			fprintf(outputfile, "\n");
 
-			//delete_volume(volume);
+			delete_volume(volume);
 			
 		} else {
 			keep_looping = 0;
