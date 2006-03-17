@@ -1,3 +1,7 @@
+        New in Release 1.6
+        ------------------
+* Added mincdefrag and mincskel.
+
         New in Release 1.5
         ------------------
 * Added various homeless, orphan, perl scripts: stx_segment,
