@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.pl,v 1.5 2005-12-23 16:41:45 rotor Exp $
+#@VERSION    : $Id: stx_segment.pl,v 1.6 2006-03-20 18:13:37 claude Exp $
 #-----------------------------------------------------------------------------
 
 use warnings "all";
@@ -69,7 +69,7 @@ if (defined ($Skull_file)) {
    &Spawn("cp $skull $Skull_file");
                                 # stop here if required
    if (defined ($Only_skull_file)) {
-      exit(1);
+      exit;
    }
 }
 
@@ -150,7 +150,7 @@ else {
    &Spawn("cp $custom_atlas5 $outputfile");
 }
 
-exit(1);
+exit;
 
 # ------------------------------ end here!
 # ------------------------------
