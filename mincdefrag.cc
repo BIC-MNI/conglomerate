@@ -64,8 +64,12 @@ int clean_color( int sizes[MAX_DIMENSIONS], short * val, short color,
           k = jj - i * sizes[1] * sizes[2] - j * sizes[2];
 
           for( di = -1; di <= 1; di++ ) {
+            if( i + di < 0 || i + di >= sizes[0] ) continue;
             for( dj = -1; dj <= 1; dj++ ) {
+              if( j + dj < 0 || j + dj >= sizes[1] ) continue;
               for( dk = -1; dk <= 1; dk++ ) {
+                if( k + dk < 0 || k + dk >= sizes[2] ) continue;
+
                 if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
                   jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                   if( val[jj] == color && vflag[jj] == -1 ) {
@@ -117,8 +121,11 @@ int clean_color( int sizes[MAX_DIMENSIONS], short * val, short color,
         short min_color = ngh_color[vflag[ii]];
 
         for( di = -1; di <= 1; di++ ) {
+          if( i + di < 0 || i + di >= sizes[0] ) continue;
           for( dj = -1; dj <= 1; dj++ ) {
+            if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
+              if( k + dk < 0 || k + dk >= sizes[2] ) continue;
               if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( val[jj] != color ) min_color = min( min_color, val[jj] );

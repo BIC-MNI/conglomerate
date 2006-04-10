@@ -1,6 +1,10 @@
+        New in Release 1.6.1
+        --------------------
+* Fix the same small bug in mincdefrag and mincskel for image bounds checking.
+
         New in Release 1.6
         ------------------
-* Added mincdefrag
+* Added mincdefrag and mincskel.
 
         New in Release 1.5
         ------------------

@@ -46,8 +46,11 @@ int make_skel( int sizes[MAX_DIMENSIONS], short * val ) {
           k = ii - i * sizes[1] * sizes[2] - j * sizes[2];
 
           for( di = -1; di <= 1; di++ ) {
+            if( i + di < 0 || i + di >= sizes[0] ) continue;
             for( dj = -1; dj <= 1; dj++ ) {
+              if( j + dj < 0 || j + dj >= sizes[1] ) continue;
               for( dk = -1; dk <= 1; dk++ ) {
+                if( k + dk < 0 || k + dk >= sizes[2] ) continue;
                 if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
                   jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                   if( val[jj] == nlevel ) found++;
@@ -81,8 +84,11 @@ int make_skel( int sizes[MAX_DIMENSIONS], short * val ) {
         k = ii - i * sizes[1] * sizes[2] - j * sizes[2];
 
         for( di = -1; di <= 1; di++ ) {
+          if( i + di < 0 || i + di >= sizes[0] ) continue;
           for( dj = -1; dj <= 1; dj++ ) {
+            if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
+              if( k + dk < 0 || k + dk >= sizes[2] ) continue;
               if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( val[jj] > val[ii] ) found++;
@@ -105,8 +111,11 @@ int make_skel( int sizes[MAX_DIMENSIONS], short * val ) {
         k = ii - i * sizes[1] * sizes[2] - j * sizes[2];
 
         for( di = -1; di <= 1; di++ ) {
+          if( i + di < 0 || i + di >= sizes[0] ) continue;
           for( dj = -1; dj <= 1; dj++ ) {
+            if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
+              if( k + dk < 0 || k + dk >= sizes[2] ) continue;
               if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( val[jj] > 0 && flag[jj] == 0 ) flag[jj] = 1;
@@ -128,8 +137,11 @@ int make_skel( int sizes[MAX_DIMENSIONS], short * val ) {
         k = ii - i * sizes[1] * sizes[2] - j * sizes[2];
 
         for( di = -1; di <= 1; di++ ) {
+          if( i + di < 0 || i + di >= sizes[0] ) continue;
           for( dj = -1; dj <= 1; dj++ ) {
+            if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
+              if( k + dk < 0 || k + dk >= sizes[2] ) continue;
               if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( flag[jj] > 0 ) count++;
