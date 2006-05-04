@@ -13,16 +13,19 @@
 #@CALLS      : /nil/david/public_bin/print_all_labels
 #@CREATED    : Mon, April 14, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: compute_icbm_vols.pl,v 1.3 2005-05-26 20:13:29 bert Exp $
+#@VERSION    : $Id: compute_icbm_vols.in,v 1.1 2006-05-04 19:40:03 claude Exp $
 #-----------------------------------------------------------------------------
 use MNI::Startup;
 use MNI::Spawn;
 use MNI::FileUtilities qw(check_files check_output_dirs);
 use MNI::PathUtilities qw(split_path replace_dir);
-use MNI::DataDir;
+#use MNI::DataDir;
 use Getopt::Tabular;
 
 use strict;
+use warnings "all";
+
+use FindBin;
 
 my($Version)     = "@VERSION@";
 my($LongVersion) = "version ${Version}: untested perl code. Beware!";
@@ -199,7 +202,8 @@ sub Initialize
     $Debug        = 0;
     $KeepTmp      = 0;
 
-    $LobeMap = MNI::DataDir::dir('jacob') . 'seg/jacob_atlas_brain_fine_remap_to_lobes.dat';
+    $LobeMap = "$FindBin::Bin/../share/jacob/" . 'seg/jacob_atlas_brain_fine_remap_to_lobes.dat';
+#   $LobeMap = MNI::DataDir::dir('jacob') . 'seg/jacob_atlas_brain_fine_remap_to_lobes.dat';
     
     &CreateInfoText;
     

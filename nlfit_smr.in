@@ -9,6 +9,8 @@
 # Date: August 2003
 
 use strict;
+use FindBin;
+
 use MNI::Startup;
 use Getopt::Tabular;
 use MNI::Spawn;
@@ -19,7 +21,8 @@ my $Version = "@VERSION@";
 my $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
 
 # ======= Global variables =======
-my $modelDir = MNI::DataDir::dir("mni_autoreg");
+my $modelDir = "$FindBin::Bin/../share/mni_autoreg";
+#my $modelDir = MNI::DataDir::dir("mni_autoreg");
 my $model = "icbm_avg_152_t1_tal_lin_symmetric";
 my ($input, $output, $basename, $initTransform);
 my ($help, $usage);
@@ -89,6 +92,7 @@ $out8  = "$TmpDir/${basename}_8.xfm";
 # ensure that the model files actually exist
 my @modelFiles = ("${model}_8_blur.mnc",
                   "${model}_4_blur.mnc");
+
 MNI::DataDir::check_data($modelDir, \@modelFiles);
 
 # ======= The real work starts here ===

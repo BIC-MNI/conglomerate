@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(conglomerate, 1.6.1, bert@bic.mni.mcgill.ca)
+AC_INIT(conglomerate, 1.6.2, bert@bic.mni.mcgill.ca)
 AC_CONFIG_SRCDIR([surface_mask2.c])
 AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS([config.h])
@@ -22,5 +22,13 @@ mni_REQUIRE_BICPL
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT(epm-header
+nlfit_smr
+stx_segment
+mritotal_suppress
+smooth_mask
+compute_icbm_vols
+multispectral_stx_registration
+suppress_fat
+regional_thickness
+remap_to_lobes
 )
-

@@ -13,15 +13,16 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.pl,v 1.6 2006-03-20 18:13:37 claude Exp $
+#@VERSION    : $Id: stx_segment.in,v 1.1 2006-05-04 19:40:03 claude Exp $
 #-----------------------------------------------------------------------------
 
 use warnings "all";
+use FindBin;
 
 use Getopt::Tabular;
 use MNI::Startup qw(nocputimes);
 use MNI::Spawn;
-use MNI::DataDir;
+#use MNI::DataDir;
 
 use MNI::FileUtilities qw(check_output_dirs check_files); # qw(search_directories);
 use MNI::PathUtilities qw(replace_dir split_path); # qw(replace_ext split_path);
@@ -821,7 +822,8 @@ HELP
 
 
    # atlas volumes used to drive segmentation
-   $Modeldir         = MNI::DataDir::dir('ANIMAL_INSECT') . $Atlas_source . "/";
+   $Modeldir         = "$FindBin::Bin/../share/ANIMAL_INSECT/" . $Atlas_source . "/";
+   #$Modeldir         = MNI::DataDir::dir('ANIMAL_INSECT') . $Atlas_source . "/";
    $GreyAtlas        = "${Modeldir}atlas_grey.mnc";
    $WhiteAtlas       = "${Modeldir}atlas_white.mnc";
    $CSFAtlas         = "${Modeldir}atlas_csf.mnc";
@@ -840,7 +842,8 @@ HELP
                                 # (spatial definition) template files
 
    if (! $Template) {
-      $Template         =  MNI::DataDir::dir('ICBM') . "icbm_template_1.00mm.mnc";
+      $Template         =  "$FindBin::Bin/../share/ICBM/" . "icbm_template_1.00mm.mnc";
+      #$Template         =  MNI::DataDir::dir('ICBM') . "icbm_template_1.00mm.mnc";
    }
    &check_files( $Template ) || die 'Missing template file';
 

@@ -12,9 +12,11 @@
 ######################################################################################################
 
 use strict;
+use FindBin;
+
 use MNI::Spawn;
 use MNI::Startup;
-use MNI::DataDir;
+#use MNI::DataDir;
 use Getopt::Tabular;
 
 my $version = "@VERSION@";
@@ -26,9 +28,11 @@ my $version = "@VERSION@";
 ##############################################################
 
 my $twoStage= 0;
-my $modelDir = MNI::DataDir::dir("mni_autoreg");
+my $modelDir = "$FindBin::Bin/../share/mni_autoreg";
+#my $modelDir = MNI::DataDir::dir("mni_autoreg");
 my $kiddieModel = "nih_chp_avg";
-my $kiddieModelDir = MNI::DataDir::dir("mni_autoreg");
+my $kiddieModelDir = "$FindBin::Bin/../share/mni_autoreg";
+#my $kiddieModelDir = MNI::DataDir::dir("mni_autoreg");
 my $model = "icbm_avg_152_t1_tal_lin";
 my $t1suppressed= undef;
 my $threshold = 1;

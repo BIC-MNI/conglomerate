@@ -1,3 +1,7 @@
+2006-05-04  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* Change perl scripts from .pl to .in and remove path dependencies
+	* Bump version to 1-6-2.
+
 2006-04-10  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* Fix the same small bug in mincdefrag and mincskel for image
           bounds checking

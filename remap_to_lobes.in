@@ -3,14 +3,16 @@
 # remap a surface intersection file to volumes.
 # Assumes ANIMAL labels, etc.
 
-use MNI::DataDir;
+use FindBin;
+# use MNI::DataDir;
 
 my $usage = "$0 segmentation.txt lobes.txt\n";
 
 my $input = shift @ARGV or die $usage;
 my $output = shift @ARGV or die $usage;
 
-my $LobeMap = MNI::DataDir::dir('jacob') . 'seg/jacob_atlas_brain_fine_remap_to_just_lobes.dat';
+my $LobeMap = "$FindBin::Bin/../share/jacob/" . 'seg/jacob_atlas_brain_fine_remap_to_just_lobes.dat';
+#my $LobeMap = MNI::DataDir::dir('jacob') . 'seg/jacob_atlas_brain_fine_remap_to_just_lobes.dat';
 
 
 open MAP, $LobeMap or die "Error opening $LobeMap: $!\n";

@@ -13,17 +13,18 @@
 #             software for any purpose.  It is provided "as is" without
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
-#$RCSfile: mritotal_suppress.pl,v $
-#$Revision: 1.4 $
-#$Author: bert $
-#$Date: 2005-05-26 20:13:29 $
+#$RCSfile: mritotal_suppress.in,v $
+#$Revision: 1.1 $
+#$Author: claude $
+#$Date: 2006-05-04 19:40:03 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
 use Startup;
 use JobControl;
 use Getopt::Tabular;
-use MNI::DataDir;
+#use MNI::DataDir;
+use FindBin;
 
 require "file_utilities.pl";
 require "path_utilities.pl";
@@ -214,12 +215,14 @@ HELP
    $MriToTal2    .= "$debug$verbose$clobber";
 
    if (! -d $PreModelDir) {
-       $PreModelDir = MNI::DataDir::dir($PreModelDir);
+       $PreModelDir = "$FindBin::Bin/../share/$PreModelDir";
+       #$PreModelDir = MNI::DataDir::dir($PreModelDir);
    }
 
    if ($ModelDir) {
        if (! -d $ModelDir) {
-           $ModelDir = MNI::DataDir::dir($ModelDir);
+           $ModelDir = "$FindBin::Bin/../share/$ModelDir";
+           #$ModelDir = MNI::DataDir::dir($ModelDir);
        }
        $MriToTal2 .= " -modeldir $ModelDir";
    }

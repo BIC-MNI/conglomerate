@@ -13,17 +13,18 @@
 #             software for any purpose.  It is provided "as is" without
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
-#$RCSfile: suppress_fat.pl,v $
+#$RCSfile: suppress_fat.in,v $
 #$Revision: 1.1 $
-#$Author: bert $
-#$Date: 2005-05-30 17:01:06 $
+#$Author: claude $
+#$Date: 2006-05-04 19:40:04 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
+use FindBin;
 use Startup;
 use JobControl;
 use Getopt::Tabular;
-use MNI::DataDir;
+#use MNI::DataDir;
 
 require "file_utilities.pl";
 require "path_utilities.pl";
@@ -83,7 +84,8 @@ sub Initialize
     $Transform = undef;
     $ModelDir  = 'avg305';
     $ModelBase = undef;
-    $BrainMask = MNI::DataDir::dir($ModelDir) . "average_305_mask_1mm.mnc";
+    $BrainMask = "$FindBin::Bin/../share/$ModelDir/" . "average_305_mask_1mm.mnc";
+    #$BrainMask = MNI::DataDir::dir($ModelDir) . "average_305_mask_1mm.mnc";
     
     my $usage = <<USAGE;
 Usage: $ProgramName [options] <fat.mnc> <lite.mnc>
@@ -158,7 +160,8 @@ HELP
     $MincMath     .= "$debug$verbose$clobber";
 
     if (! -d $ModelDir) {
-	$ModelDir  = MNI::DataDir::dir($ModelDir);
+	$ModelDir  = "$FindBin::Bin/../share/$ModelDir/";
+	#$ModelDir  = MNI::DataDir::dir($ModelDir);
     }
 
     if (defined($ModelBase)) {
