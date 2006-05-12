@@ -1,3 +1,7 @@
+        New in Release 1.6.3
+        --------------------
+* Creation of convert_object.c.
+
         New in Release 1.6.2
         --------------------
 * Clean-up MNI::DataDir in perl scripts.

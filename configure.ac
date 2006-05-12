@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(conglomerate, 1.6.2, bert@bic.mni.mcgill.ca)
+AC_INIT(conglomerate, 1.6.3, bert@bic.mni.mcgill.ca)
 AC_CONFIG_SRCDIR([surface_mask2.c])
 AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS([config.h])

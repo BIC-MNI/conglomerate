@@ -34,6 +34,7 @@ bin_PROGRAMS = \
 	compute_resels \
 	concat_images \
 	contour_slice \
+	convert_object \
 	copy_colours \
 	count_thresholded_volume \
 	create_2d_sheet \
@@ -262,6 +263,7 @@ compute_bounding_view_SOURCES =  compute_bounding_view.c
 compute_resels_SOURCES =  compute_resels.c
 concat_images_SOURCES =  concat_images.c
 contour_slice_SOURCES =  contour_slice.c
+convert_object_SOURCES =  convert_object.c
 copy_colours_SOURCES =  copy_colours.c
 count_thresholded_volume_SOURCES =  count_thresholded_volume.c
 create_2d_sheet_SOURCES =  create_2d_sheet.c
