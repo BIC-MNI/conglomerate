@@ -1,3 +1,6 @@
+2006-06-01  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* fix a cast in dump_vertex_normal_diffs.c
+
 2006-05-12  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* create new convert_object to toggle file format between ascii/binary
 	for surface .obj files.

@@ -53,7 +53,7 @@ int  main(
 	 
 	 for_less( n, 0, n_normals1 )
 		 {
-			 dist = distance_between_points( &normals1[n], &normals2[n] );
+			 dist = distance_between_points( (Point*)&normals1[n], (Point*)&normals2[n] );
 			 
 			 (void) output_real( file, dist );
 			 (void) output_newline( file );
