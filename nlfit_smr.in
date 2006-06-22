@@ -23,7 +23,7 @@ my $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
 # ======= Global variables =======
 my $modelDir = "$FindBin::Bin/../share/mni_autoreg";
 #my $modelDir = MNI::DataDir::dir("mni_autoreg");
-my $model = "icbm_avg_152_t1_tal_lin_symmetric";
+my $model = "icbm_avg_152_t1_tal_nlin_symmetric_VI";
 my ($input, $output, $basename, $initTransform);
 my ($help, $usage);
 my @transformArgs;

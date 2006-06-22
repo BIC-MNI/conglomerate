@@ -1,5 +1,7 @@
         New in Release 1.6.3
         --------------------
+* Modification of multispectral_stx_registration for new pipeline
+* Use model icbm_avg_152_t1_tal_nlin_symmetric_VI in nlfit_smr
 * Creation of convert_object.c.
 
         New in Release 1.6.2

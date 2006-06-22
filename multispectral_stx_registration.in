@@ -38,6 +38,7 @@ my $t1suppressed= undef;
 my $threshold = 1;
 my $premodel= 0;
 my $premodelDir= 0;
+my $t1_tal_manual = undef;
 
 ##############################################################
 ### argument handling
@@ -60,6 +61,8 @@ my @argTbl =
 		"set the suppressed file name in two-stage registration"],
 		["-threshold|-nothreshold", "boolean", undef, \$threshold,
 		"Enable thresholding in mritoself"],
+		["-transform", "string", 1, \$t1_tal_manual,
+		"Impose a manual transform for t1 in mritotal"],
 	);
 GetOptions(\@argTbl, \@ARGV, \@leftOverArgs) or die "\n";
 
@@ -69,7 +72,7 @@ my $nativeT1 = shift @leftOverArgs or die $usage;
 my $nativeT2 = shift @leftOverArgs or die $usage;
 my $nativePD = shift @leftOverArgs or die $usage;
 my $T1total = shift @leftOverArgs or die $usage;
-my $T2total = shift @leftOverArgs or die $usage;
+my $T2PDtotal = shift @leftOverArgs or die $usage;
 
 my $help = <<HELP;
 
@@ -138,20 +141,31 @@ else {
 	my @mritotalOptions;
 	push @mritotalOptions, ("-modeldir", $modelDir) if $model;
 	push @mritotalOptions, ("-model", $model) if $model;
+        # add manual t1 transformation here, if any.
+        if( $t1_tal_manual ) {
+          if( -f $t1_tal_manual ) {
+	    push @mritotalOptions, ("-transform", $t1_tal_manual );
+          }
+        }
 	Spawn(["mritotal", @mritotalOptions, $nativeT1, $T1total]);
 }
 
 ##############################################################	
-### step 2: registration of T2/PD to native T1
+### step 2: registration of T2/PD to native T1.
+###         favour the use of T2 over PD to compute the
+###         transformation (if we only have PD then we have
+###         no choice but to use PD).
 ##############################################################
-my $T2toT1 = "${TmpDir}/t2_to_t1.xfm";
-Spawn(["mritoself", "-mi", "-lsq6", $nativeT2, $nativeT1, $T2toT1]);
+if( -e $nativeT2 or -e $nativePD ) {
+  my $T2toT1 = "${TmpDir}/t2_to_t1.xfm";
+  if( -e $nativeT2 ) {
+    Spawn(["mritoself", "-mi", "-lsq6", $nativeT2, $nativeT1, $T2toT1]);
+  } else {
+    Spawn(["mritoself", "-mi", "-lsq6", $nativePD, $nativeT1, $T2toT1]);
+  }
 
-##############################################################
-###step 3: concatenate transforms to get T2 to tal transform
-##############################################################
-Spawn(["xfmconcat", $T2toT1, $T1total, $T2total]);
-
-
+  # concatenate transforms to get T2/PD to tal transform
+  Spawn(["xfmconcat", $T2toT1, $T1total, $T2PDtotal]);
+}
 
 ########################### done! ############################

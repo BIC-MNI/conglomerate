@@ -1,3 +1,7 @@
+2006-06-22  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* modify multispectral_stx_registration for new pipeline
+        * use model icbm_avg_152_t1_tal_nlin_symmetric_VI in nlfit_smr
+
 2006-06-01  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* fix a cast in dump_vertex_normal_diffs.c
 
