@@ -14,26 +14,20 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: mritotal_suppress.in,v $
-#$Revision: 1.1 $
-#$Author: claude $
-#$Date: 2006-05-04 19:40:03 $
+#$Revision: 1.2 $
+#$Author: rotor $
+#$Date: 2006-07-27 03:45:32 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
-use Startup;
-use JobControl;
 use Getopt::Tabular;
-#use MNI::DataDir;
 use FindBin;
 
-require "file_utilities.pl";
-require "path_utilities.pl";
-require "minc_utilities.pl";
-require "numeric_utilities.pl";
-require "volume_heuristics.pl";
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
+use MNI::FileUtilities qw(check_output_dirs);
 
 # ------------------------------ start here
-&Startup;
 &Initialize;
 
 if (defined($MaxTE)) {
@@ -44,7 +38,7 @@ if (defined($MaxTE)) {
 if ($ForceSuppress) {
     my ($filebase);
 
-    $filebase = (&SplitPath ($inputfile))[1];
+    $filebase = (&split_path ($inputfile))[1];
 
 				# 1st step: get .xfm to bright model
     if (!defined($InitialXfm)) {
@@ -69,7 +63,7 @@ if ($ForceSuppress) {
 	    &Spawn ("$MriToTal2 -nocrop $tmpmnc $xfmfile");
 	}
 	else {
-	    &Fatal("I can't find $tmpmnc,\neven though I just tried to create it.");	
+	    die("I can't find $tmpmnc,\neven though I just tried to create it.");	
 	}
 
 	if (defined($SaveXfm) && ($SaveXfm ne $InitialXfm)) {
@@ -77,7 +71,7 @@ if ($ForceSuppress) {
 	}
     }
     else {
-	&Fatal("I can't find $InitialXfm,\neven though I just tried to create it.");	
+	die("I can't find $InitialXfm,\neven though I just tried to create it.");	
     }
 
 }
@@ -92,8 +86,6 @@ else {
 }
 
 
-&Shutdown (1);
-
 # ------------------------------ end here!
 
 sub get_volume_echo_time{
@@ -101,7 +93,7 @@ sub get_volume_echo_time{
     
     my ($echo_time, $result);
     
-    ($result, $echo_time) = Spawn("mincinfo -attval acquisition:echo_time ${file}","-");
+    ($result, $echo_time) = &Spawn("mincinfo -attval acquisition:echo_time ${file}","-");
 
 				# since ErrorAction is probably set to FATAL, I 
                                 # don't have to worry about checking the value of $result
@@ -125,9 +117,9 @@ sub Initialize
 	exit;
     }
 
-    &SelfAnnounce ("STDOUT") if $Verbose && ! -t "STDOUT";
+    &self_announce if $Verbose;
 
-    &JobControl::SetOptions ("ErrorAction", "fatal");
+    &MNI::Spawn::SetOptions (err_action => 'fatal');
 
     my $usage = <<USAGE;
 Usage: $ProgramName [options] <orig_t1.mnc> <stx_total.xfm> 
@@ -152,7 +144,7 @@ HELP
    $InitialXfm      = undef;
    $SaveXfm         = undef;
    $PreModelDir     = 'bright_scalp_model';
-   $PreModelBase    = 'stx_bright_scalp2';
+   $PreModelBase    = 'bright_scalp_avg';
    $ModelDir       = undef;
    $ModelBase      = undef;
 
@@ -188,7 +180,7 @@ HELP
    &Getopt::Tabular::SetHelp ($help, $usage);
 
    my (@argv) = @ARGV;
-   &GetOptions(\@ArgInfo, \@argv) || &Fatal ();
+   &GetOptions(\@ArgInfo, \@argv) || die ();
 
    if (@argv != 2)
    {
@@ -197,9 +189,9 @@ HELP
    }
 
    # Look for required programs
-   $MriToTal     = &FindProgram ("mritotal");
-   $MriToTal2    = &FindProgram ("mritotal");
-   $SuppressFat  = &FindProgram ("suppress_fat");
+   $MriToTal     = "mritotal";
+   $MriToTal2    = "mritotal";
+   $SuppressFat  = "suppress_fat";
 
    exit 1 unless ($MriToTal && $SuppressFat );
 
@@ -233,5 +225,5 @@ HELP
 
    ($inputfile, $xfmfile) = @argv;
 
-   &CheckOutputDirs ($TmpDir);
+   &check_output_dirs ($TmpDir);
 }
