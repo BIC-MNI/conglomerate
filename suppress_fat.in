@@ -14,32 +14,28 @@
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
 #$RCSfile: suppress_fat.in,v $
-#$Revision: 1.1 $
-#$Author: claude $
-#$Date: 2006-05-04 19:40:04 $
+#$Revision: 1.2 $
+#$Author: rotor $
+#$Date: 2006-07-27 06:13:28 $
 #$State: Exp $
 #---------------------------------------------------------------------------
 
-use FindBin;
-use Startup;
-use JobControl;
 use Getopt::Tabular;
-#use MNI::DataDir;
+use FindBin;
 
-require "file_utilities.pl";
-require "path_utilities.pl";
-require "minc_utilities.pl";
-require "numeric_utilities.pl";
-require "volume_heuristics.pl";
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
+use MNI::FileUtilities qw(check_output_dirs check_files);
+use MNI::PathUtilities qw(split_path replace_dir);
+use MNI::MincUtilities qw(volume_minmax);
 
 # ------------------------------ start here
-&Startup;
 
 &Initialize;
   
 # ------------------------------ get the input file
 
-($originputfile) = &uncompress ($TmpDir, $inputfile);
+$originputfile = $inputfile;
 
 # ------------------------------ build a brain mask on the native data volume
 
@@ -71,7 +67,7 @@ sub Initialize
     $Version = "@VERSION@";
     $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
     
-    &SelfAnnounce ("STDOUT") if $Verbose && ! -t "STDOUT";
+    &self_announce() if $Verbose;
 
     $Verbose = 1;
     $Execute = 1;
@@ -79,13 +75,12 @@ sub Initialize
     $Debug = 0;
     
     $KeepTmp = 0;
-    &JobControl::SetOptions ("ErrorAction", "fatal");
+    &MNI::Spawn::SetOptions (err_action => 'fatal' );
     
     $Transform = undef;
-    $ModelDir  = 'avg305';
+    $ModelDir  = 'mni_autoreg';
     $ModelBase = undef;
-    $BrainMask = "$FindBin::Bin/../share/$ModelDir/" . "average_305_mask_1mm.mnc";
-    #$BrainMask = MNI::DataDir::dir($ModelDir) . "average_305_mask_1mm.mnc";
+    $BrainMask = "$FindBin::Bin/../share/$ModelDir/icbm_avg_152_t1_tal_lin_mask.mnc";
     
     my $usage = <<USAGE;
 Usage: $ProgramName [options] <fat.mnc> <lite.mnc>
@@ -125,7 +120,7 @@ HELP
     &Getopt::Tabular::SetHelp ($help, $usage);
     
     my (@argv) = @ARGV;
-    &GetOptions (\@ArgInfo, \@argv) || &Fatal ();
+    &GetOptions (\@ArgInfo, \@argv) || exit();
 
     if (@argv == 2) {
 	($inputfile, $outputfile) = @argv;
@@ -138,15 +133,12 @@ HELP
     }
     
     # Look for required programs
-    $MincMath     = &FindProgram ("mincmath");
-    $XfmInvert    = &FindProgram ("xfminvert");
-    $MincResample = &FindProgram ("mincresample");
-    $MincLookup   = &FindProgram ("minclookup");
-    $VolumeStats  = &FindProgram ("volume_stats");
-    $VolumeHist   = &FindProgram ("volume_hist");
-    
-    die unless ($MincMath && $XfmInvert && $MincResample && $VolumeStats && 
-		$VolumeHist && $MincLookup);
+    $MincMath     = "mincmath";
+    $XfmInvert    = "xfminvert";
+    $MincResample = "mincresample";
+    $MincLookup   = "minclookup";
+    $VolumeStats  = "volume_stats";
+    $VolumeHist   = "volume_hist";
     
     # They were found, so add options according to
     # $Debug, $Verbose, $Clobber flags
@@ -161,7 +153,6 @@ HELP
 
     if (! -d $ModelDir) {
 	$ModelDir  = "$FindBin::Bin/../share/$ModelDir/";
-	#$ModelDir  = MNI::DataDir::dir($ModelDir);
     }
 
     if (defined($ModelBase)) {
@@ -172,10 +163,10 @@ HELP
 	die "$outputfile already exists (use -clobber to overwrite)\n";
     }
 
-    die if (defined($Transform) && !CheckFiles($Transform));
-    die if (!CheckFiles($inputfile, $BrainMask));
+    die if (defined($Transform) && !check_files($Transform));
+    die if (!check_files($inputfile, $BrainMask));
 
-    &CheckOutputDirs ($TmpDir) if $Execute;
+    &check_output_dirs ($TmpDir) if $Execute;
 }
 
 # ------------------------------
@@ -201,9 +192,9 @@ sub remap_intensities {
 	$f_min, $f_max, $f_mean, $f_std, $f1, $t1, $t2,
 	$lut, $lower, $upper, $min_range, $max_range);
 
-    $filebase   = (&SplitPath ($brain))[1];
+    $filebase   = (&split_path ($brain))[1];
     $new_brain  = "${TmpDir}/${filebase}_remapped.mnc";
-    $filebase   = (&SplitPath ($nonbrain))[1];
+    $filebase   = (&split_path ($nonbrain))[1];
     $new_nonbrain  = "${TmpDir}/${filebase}_remapped.mnc";
 
 				# Get brain and nonbrain intensity stats
@@ -212,9 +203,6 @@ sub remap_intensities {
     ($min, $max, $mean, $std) = get_masked_volume_stats( $brain, $mask );
     print "Brain:     min = $min,  max = $max, mean = $mean, std = $std\n" if ($Debug) ;
     print "Brain:   range  min = $min_range,  max = $max_range\n" if ($Debug);
-
-#    ($nb_min, $nb_max, $nb_mean, $nb_std) = get_masked_volume_stats( $nonbrain, $mask );
-#    print "Non-Brain: min = $min,  max = $max, mean = $mean, std = $std\n" if ($Debug) ;
 
     $f_mean = $mean / $max_range ;
     $f1 = ($mean + 5 * $std) / $max_range;
@@ -266,8 +254,8 @@ sub get_masked_volume_stats{
 
     my($output, $result);
 
-    ($result, $output) = &Spawn ("$VolumeStats -min -max -mean -stddev -quiet -mask $mask ${file}","-");
-
+    $output  = `$VolumeStats -min -max -mean -stddev -quiet -mask $mask $file`;      
+    
     split("\n",$output);
 }
 
@@ -293,7 +281,7 @@ sub compute_thresholds{
     my ($file, $mask, $low_lim, $up_lim) = @_;
     my ($filebase, $upper, $lower, $out_histo, $int, $cnt, $s_int, $s_cnt, $i, $s);
 
-    $filebase = (&SplitPath ($file))[1];
+    $filebase = (&split_path ($file))[1];
 
     $out_histo = "${TmpDir}/${filebase}.histo.txt";
     
@@ -364,7 +352,7 @@ sub build_native_brain_mask {
 
     my ($result, $inverse);
 				# get the file basename, without directory
-    $filebase = (&SplitPath ($native_mnc))[1];
+    $filebase = (&split_path ($native_mnc))[1];
 
     $result  = "${TmpDir}/${filebase}_native_brain_mask.mnc";
     $inverse = "${TmpDir}/${filebase}_inv.xfm";
@@ -397,7 +385,7 @@ sub build_native_brain_mask {
 sub mask_data {
     my ($file, $mask, $invert_flag, $label) = @_;
 
-    my($filebase) = (&SplitPath ($file))[1];
+    my($filebase) = (&split_path ($file))[1];
     my($result)   = "${TmpDir}/${filebase}_${label}.mnc";
 
     if (-e "$result") {
@@ -405,7 +393,7 @@ sub mask_data {
     }				
     else {
 	if ($invert_flag) {
-	    my($inverted_mask) = &ReplaceDir($TmpDir, $mask);
+	    my($inverted_mask) = &replace_dir($TmpDir, $mask);
 	    $inverted_mask .= "_inv";
 
 	    if (-e $inverted_mask) {
