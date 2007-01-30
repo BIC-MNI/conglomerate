@@ -1,3 +1,8 @@
+        New in Release 1.6.4
+        --------------------
+* Add icbm_make_templates.pl
+  (not yet packaged as of Jan-30-2007)
+
         New in Release 1.6.3
         --------------------
 * Modification of multispectral_stx_registration for new pipeline

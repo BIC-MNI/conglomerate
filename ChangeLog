@@ -1,3 +1,6 @@
+2007-01-30  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* add icbm_make_templates.pl 
+
 2006-06-22  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* modify multispectral_stx_registration for new pipeline
         * use model icbm_avg_152_t1_tal_nlin_symmetric_VI in nlfit_smr
