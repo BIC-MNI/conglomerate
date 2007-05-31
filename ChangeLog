@@ -1,5 +1,13 @@
+2007-05-31  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* fixed convex_hull.c
+        * fixed surface_mask.c and surface_mask2.c to save output with same dimensions
+          order as original image (was always z, y, x before)
+        * added -mask_binvalue to mincmask.c
+        * fixed stx_segment to use mincmask with -mask_binvalue
+        * created clean_surface_labels.c
+
 2007-01-30  Claude Lepage <claude@bic.mni.mcgill.ca>
-	* add icbm_make_templates.pl 
+        * add icbm_make_templates.pl
 
 2006-06-22  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* modify multispectral_stx_registration for new pipeline

@@ -42,6 +42,10 @@ int  main(
 
     label_volume = create_label_volume( volume, NC_BYTE );
 
+    STRING * original_dimnames = create_output_dim_names( volume, 
+                                                          input_volume_filename,
+                                                          NULL, sizes );
+
     if( input_graphics_file( input_surface_filename,
                              &format, &n_objects, &objects ) != OK )
         return( 1 );
@@ -110,9 +114,14 @@ int  main(
 
     history = create_string( "Surface masked.\n" );
 
+    /* use the original dimension order rather than the XYZ that we loade */
+    minc_output_options  output_options;
+    set_default_minc_output_options( &output_options );
+    set_minc_output_dimensions_order( &output_options, 3, original_dimnames );
+
     (void) output_volume( output_volume_filename, NC_UNSPECIFIED,
-                            FALSE, 0.0, 0.0, volume, history,
-                            NULL );
+                          FALSE, 0.0, 0.0, volume, history,
+                          &output_options );
 
     delete_string( history );
 

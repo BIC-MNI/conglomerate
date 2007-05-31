@@ -32,26 +32,6 @@
 #define DBL_MAX 99999999
 #endif /* DBL_MAX not defined */
 
-int point_not_masked(Volume volume, 
-                            Real wx, Real wy, Real wz)
-
-{
-
-  double result;
-
-  //printf("in point not masked\n");
-
-  if (volume!=(Volume)NULL) {
-    evaluate_volume_in_world(volume, wx, wy, wz, 0, TRUE, 0, &result,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL);
-       
-    if (result>0.0) { 
-      return(TRUE);
-    }
-  }
-  return(FALSE);
-}
 				/* globals */
 
 char *default_dim_names[3] = { MIxspace, MIyspace, MIzspace };
@@ -64,6 +44,7 @@ int
   debug,
   verbose;
 int clobber_flag = FALSE;
+static double mask_binvalue = 1.0;
 
 static ArgvInfo argTable[] = {
   {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
@@ -72,6 +53,8 @@ static ArgvInfo argTable[] = {
      "Overwrite output file."},
   {"-invert_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &invert_mask,
      "Erase where mask==1."},
+  {"-mask_binvalue", ARGV_FLOAT, (char *)1, (char *)&mask_binvalue,
+    "Include mask voxels within 0.5 of this value"},
   {"-normalize", ARGV_CONSTANT, (char *) TRUE, (char *) &normalize,
      "Intensity normalize the resulting volume."},
   {NULL, ARGV_HELP, NULL, NULL,
@@ -84,6 +67,25 @@ static ArgvInfo argTable[] = {
      "Print out debug info."},
   {NULL, ARGV_END, NULL, NULL, NULL}
 };
+
+
+int point_not_masked(Volume volume, Real wx, Real wy, Real wz) {
+
+  double result;
+
+  //printf("in point not masked\n");
+
+  if (volume!=(Volume)NULL) {
+    evaluate_volume_in_world(volume, wx, wy, wz, 0, TRUE, 0, &result,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL);
+       
+    if (result>mask_binvalue-0.5 && result<mask_binvalue+0.5 ) {
+      return(TRUE);
+    }
+  }
+  return(FALSE);
+}
 
 
 int 

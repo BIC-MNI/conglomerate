@@ -1,7 +1,11 @@
         New in Release 1.6.4
         --------------------
 * Add icbm_make_templates.pl
-  (not yet packaged as of Jan-30-2007)
+* fixed convex_hull.c
+* fixed surface_mask.c and surface_mask2.c to save output with same dimensions
+  order as original image (was always z, y, x before)
+* fixed stx_segment to apply mask correctly (use sensible threshold instead
+  of zero which is prone to rounding errors)
 
         New in Release 1.6.3
         --------------------

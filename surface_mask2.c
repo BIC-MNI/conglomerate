@@ -286,9 +286,11 @@ int main ( int argc, char *argv[] )
   start_volume_input( input_volume_filename, 3, NULL,
 		      MI_ORIGINAL_TYPE, FALSE, 0.0, 0.0, TRUE,
 		      &binary_volume, NULL, &input_struct );
-  original_dimnames = get_volume_dimension_names( binary_volume );
-  delete_volume_input( &input_struct );
 
+  original_dimnames = create_output_dim_names( binary_volume, input_volume_filename,
+                                               NULL, sizes );
+
+  delete_volume_input( &input_struct );
   /*
    * create two copies of the volume - one to use for the binary mask,
    * the other to store the original volume in.

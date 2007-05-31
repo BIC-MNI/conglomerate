@@ -19,6 +19,7 @@ bin_PROGRAMS = \
 	chop_tags \
 	clamp_volume \
 	classify_sulcus \
+	clean_surface_labels \
 	clip_tags \
 	close_surface \
 	cluster_volume \
@@ -35,6 +36,7 @@ bin_PROGRAMS = \
 	concat_images \
 	contour_slice \
 	convert_object \
+	convex_hull \
 	copy_colours \
 	count_thresholded_volume \
 	create_2d_sheet \
@@ -248,6 +250,7 @@ check_polygons_SOURCES =  check_polygons.c
 chop_tags_SOURCES =  chop_tags.c
 clamp_volume_SOURCES =  clamp_volume.c
 classify_sulcus_SOURCES =  classify_sulcus.c
+clean_surface_labels_SOURCES = clean_surface_labels.c
 clip_tags_SOURCES =  clip_tags.c
 close_surface_SOURCES =  close_surface.c
 cluster_volume_SOURCES =  cluster_volume.c
@@ -264,6 +267,7 @@ compute_resels_SOURCES =  compute_resels.c
 concat_images_SOURCES =  concat_images.c
 contour_slice_SOURCES =  contour_slice.c
 convert_object_SOURCES =  convert_object.c
+convex_hull_SOURCES = convex_hull.c
 copy_colours_SOURCES =  copy_colours.c
 count_thresholded_volume_SOURCES =  count_thresholded_volume.c
 create_2d_sheet_SOURCES =  create_2d_sheet.c

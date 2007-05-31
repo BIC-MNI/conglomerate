@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.in,v 1.1 2006-05-04 19:40:03 claude Exp $
+#@VERSION    : $Id: stx_segment.in,v 1.2 2007-05-31 22:16:49 claude Exp $
 #-----------------------------------------------------------------------------
 
 use warnings "all";
@@ -241,10 +241,10 @@ sub merge_atlas {
       &Spawn("$AutoCrop  $first -from $second $tmp");      
     }
     elsif ($operation eq "invert mask") {
-      &Spawn("$MincMask -invert_mask $first $second $tmp");      
+      &Spawn("$MincMask -mask_binvalue 1 -invert_mask $first $second $tmp");
     }
     elsif ($operation eq "mask") {
-      &Spawn("$MincMask $first $second $tmp");      
+      &Spawn("$MincMask -mask_binvalue 1 $first $second $tmp");      
     }
     elsif ($operation eq "add") {
       &Spawn("$Mincmath -add $first $second $tmp");      
@@ -471,17 +471,6 @@ sub segment  {
 
     ($labelled_struct);
     
-}
-
-sub discrete_segment  {
-    my ($atlas,$mask,$output) = @_;
-
-    if (-e $output) {
-      print "file $output already exists\n";
-    }
-    else {
-      &Spawn("$MincMask $atlas $mask $output");
-    }
 }
 
 # ------------------------------
@@ -864,7 +853,7 @@ HELP
    my @programs = 
       qw/cp dilate_volume surface_mask2 autocrop 
          mincmath xfmtool mincinfo mincresample 
-         mincreshape minclookup mincmask stats_tag_file/;
+         mincreshape minclookup minccalc stats_tag_file/;
    RegisterPrograms(\@programs);
    
    # They were found, so add options according to
