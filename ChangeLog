@@ -1,3 +1,6 @@
+2007-10-15  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* move all obj tools to bicpl/tools where they should belong
+
 2007-05-31  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* fixed convex_hull.c
         * fixed surface_mask.c and surface_mask2.c to save output with same dimensions
