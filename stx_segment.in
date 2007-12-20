@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : Wed Feb 19, 1997, Louis Collins
 #@MODIFIED   : see the RCS log
-#@VERSION    : $Id: stx_segment.in,v 1.2 2007-05-31 22:16:49 claude Exp $
+#@VERSION    : $Id: stx_segment.in,v 1.3 2007-12-20 19:50:26 claude Exp $
 #-----------------------------------------------------------------------------
 
 use warnings "all";
@@ -241,10 +241,10 @@ sub merge_atlas {
       &Spawn("$AutoCrop  $first -from $second $tmp");      
     }
     elsif ($operation eq "invert mask") {
-      &Spawn("$MincMask -mask_binvalue 1 -invert_mask $first $second $tmp");
+      &Spawn("$MincMask -invert_mask $first $second $tmp");
     }
     elsif ($operation eq "mask") {
-      &Spawn("$MincMask -mask_binvalue 1 $first $second $tmp");      
+      &Spawn("$MincMask $first $second $tmp");      
     }
     elsif ($operation eq "add") {
       &Spawn("$Mincmath -add $first $second $tmp");      
@@ -850,10 +850,9 @@ HELP
    $MincMask     = "mincmask";
    $Stats_tag_file = "stats_tag_file";
    
-   my @programs = 
-      qw/cp dilate_volume surface_mask2 autocrop 
-         mincmath xfmtool mincinfo mincresample 
-         mincreshape minclookup minccalc stats_tag_file/;
+   my @programs = ( 'cp', $Dilate, $SurfaceMask, $AutoCrop,
+                    $Mincmath, $XfmTool, $MincResample,
+                    $MincReshape, $MincLookup, $MincMask, $Stats_tag_file );
    RegisterPrograms(\@programs);
    
    # They were found, so add options according to

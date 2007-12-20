@@ -1,3 +1,9 @@
+        New in Release 1.6.6
+        --------------------
+* removed -mask_binvalue from mincmask.c and fixed the old way of
+  thresholding for the mask
+*
+
         New in Release 1.6.5
         --------------------
 * move all obj tools to bicpl/tools where they should belong

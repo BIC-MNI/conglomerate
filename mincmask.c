@@ -34,17 +34,15 @@
 
 				/* globals */
 
-char *default_dim_names[3] = { MIxspace, MIyspace, MIzspace };
+static char *default_dim_names[3] = { MIxspace, MIyspace, MIzspace };
 
-char 
-  *prog_name;
-int
-  invert_mask,
-  normalize,
-  debug,
-  verbose;
-int clobber_flag = FALSE;
-static double mask_binvalue = 1.0;
+static char *prog_name;
+static int invert_mask,
+           normalize,
+           debug,
+           verbose;
+static int clobber_flag = FALSE;
+static double MaskZeroThresh = 0.0;
 
 static ArgvInfo argTable[] = {
   {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
@@ -53,8 +51,6 @@ static ArgvInfo argTable[] = {
      "Overwrite output file."},
   {"-invert_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &invert_mask,
      "Erase where mask==1."},
-  {"-mask_binvalue", ARGV_FLOAT, (char *)1, (char *)&mask_binvalue,
-    "Include mask voxels within 0.5 of this value"},
   {"-normalize", ARGV_CONSTANT, (char *) TRUE, (char *) &normalize,
      "Intensity normalize the resulting volume."},
   {NULL, ARGV_HELP, NULL, NULL,
@@ -69,7 +65,7 @@ static ArgvInfo argTable[] = {
 };
 
 
-int point_not_masked(Volume volume, Real wx, Real wy, Real wz) {
+static int point_not_masked(Volume volume, Real wx, Real wy, Real wz) {
 
   double result;
 
@@ -80,7 +76,7 @@ int point_not_masked(Volume volume, Real wx, Real wy, Real wz) {
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL);
        
-    if (result>mask_binvalue-0.5 && result<mask_binvalue+0.5 ) {
+    if (result > MaskZeroThresh ) {
       return(TRUE);
     }
   }
@@ -197,6 +193,20 @@ main ( argc, argv )
 				/* mask the data volume */
   zero = CONVERT_VALUE_TO_VOXEL(data, 0.0);
 
+  // Evaluate a zero threshold for the mask (to protect against the possibility
+  // of having small values like 1.0e-12 in the background, due to the way minc
+  // stores values by ranges.
+  if( mask->real_range_set ) {
+    // Mask uses an integer data type of some sort.
+    int v0 = convert_value_to_voxel( mask, 0.0 );
+    double r0 = convert_voxel_to_value( mask, v0 );
+    double r1 = convert_voxel_to_value( mask, v0+1 );
+    MaskZeroThresh = 0.50 * ( r0 + r1 );
+  } else {
+    // Cannot do better than this if mask is float or double.
+    MaskZeroThresh = 0.0;
+  }
+
   if (verbose) initialize_progress_report( &progress, TRUE, data_size[0], "Masking volume");
   for_less(i, 0, data_size[0]) {
     for_less(j, 0, data_size[1]) {
@@ -300,8 +310,4 @@ main ( argc, argv )
 
   return(OK);
 }
-
-
-
-
 
