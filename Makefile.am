@@ -139,11 +139,11 @@ bin_PROGRAMS = \
 
 bin_SCRIPTS = \
 	nlfit_smr \
-	stx_segment \
 	mritotal_suppress \
 	smooth_mask \
 	compute_icbm_vols \
 	multispectral_stx_registration \
+        sphere_resample_obj \
 	suppress_fat \
 	regional_thickness \
 	remap_to_lobes
@@ -154,11 +154,11 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = $(m4_files) \
 	epm-header.in \
 	nlfit_smr.in \
-	stx_segment.in \
 	mritotal_suppress.in \
 	smooth_mask.in \
 	compute_icbm_vols.in \
 	multispectral_stx_registration.in \
+        sphere_resample_obj.in \
 	suppress_fat.in \
 	regional_thickness.in \
 	remap_to_lobes.in

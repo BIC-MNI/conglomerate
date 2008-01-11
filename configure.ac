@@ -23,11 +23,11 @@ mni_REQUIRE_BICPL
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT(epm-header
 nlfit_smr
-stx_segment
 mritotal_suppress
 smooth_mask
 compute_icbm_vols
 multispectral_stx_registration
+sphere_resample_obj
 suppress_fat
 regional_thickness
 remap_to_lobes

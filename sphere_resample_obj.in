@@ -1,0 +1,184 @@
+#! /usr/bin/env perl
+#
+# Resample an object file by moving the locations of the
+# vertices in the mesh according to a sm transformation file.
+#
+# Note: This script should logically be moved to mni_surfreg/tools.
+#
+# Oliver Lyttelton oliver@bic.mni.mcgill.ca
+#
+
+use strict;
+use warnings "all";
+use Getopt::Tabular;
+use File::Basename;
+use File::Temp qw/ tempdir /;
+
+my($Help, $Usage, $me);
+my(@opt_table, %opt, @args, $tmpdir);
+
+$me = &basename($0);
+%opt = (
+   'verbose'   => 0,
+   'clobber'   => 0
+   );
+
+$Help = <<HELP;
+|   $me resamples a object file by moving the locations of 
+|   the vertices in the mesh according to a sm transformation file 
+|
+| Problems or comments should be sent to: oliver\@bic.mni.mcgill.ca
+HELP
+
+$Usage = "Usage: $me [options] source.obj source_to_target.sm resample.obj\n".
+         "       $me -help to list options\n\n";
+
+@opt_table = (
+   ["-verbose", "boolean", 0, \$opt{verbose},
+      "be verbose" ],
+   ["-clobber", "boolean", 0, \$opt{clobber},
+      "clobber existing check files" ],
+   );
+
+# Check arguments
+&Getopt::Tabular::SetHelp($Help, $Usage);
+&GetOptions (\@opt_table, \@ARGV) || exit 1;
+die $Usage if($#ARGV != 2);
+my $targetobj = shift(@ARGV);
+my $source_to_target_sm = shift(@ARGV);
+my $target_on_source_obj = shift(@ARGV);
+
+# check for files
+die "$me: Couldn't find input file: $targetobj\n" if (!-e $targetobj);
+die "$me: Couldn't find input file: $source_to_target_sm\n" if (!-e $source_to_target_sm);
+if(-e $target_on_source_obj && !$opt{clobber}){
+   die "$me: $target_on_source_obj exists, -clobber to overwrite\n";
+}
+
+# Read the transformation file to get size of mapping mesh.
+
+open INSM, $source_to_target_sm;
+my @insmarray = <INSM>;
+chomp( $insmarray[2] );
+chomp( $insmarray[3] );
+my $control_mesh_size = $insmarray[2]*2-4;
+my $target_mesh_size = $insmarray[3]*2-4;
+close(INSM);
+
+# make tmpdir
+$tmpdir = &tempdir( "$me-XXXXXXXX", TMPDIR => 1, CLEANUP => 1 );
+
+my $tmpx = "${tmpdir}/x.txt";
+my $tmpy = "${tmpdir}/y.txt";
+my $tmpz = "${tmpdir}/z.txt";
+my $remapx = "${tmpdir}/new_x.txt";
+my $remapy = "${tmpdir}/new_y.txt";
+my $remapz = "${tmpdir}/new_z.txt";
+my $tempoutobj = "${tmpdir}/new_out.txt";
+my $control_mesh = "${tmpdir}/control_mesh.obj";
+my $target_mesh = "${tmpdir}/target_mesh.obj";
+my $old_mapping = "${tmpdir}/old_mapping.sm";;
+my $refined_mapping = "${tmpdir}/refined_mapping.sm";
+
+#cut out the vertices (x,y,z) from the surface file.
+
+open INOBJ,$targetobj;
+open(OUTX,">${tmpx}");
+open(OUTY,">${tmpy}");
+open(OUTZ,">${tmpz}");
+my $num_vert;
+my @inobjarray = <INOBJ>;
+my $counter = 0;
+my $line;
+
+foreach $line(@inobjarray) {
+  if( $counter == 0 ) {
+    open(OUT,">${tempoutobj}");
+    print OUT $line;
+    my @vals = split/\s+/,$line;
+    $num_vert = $vals[6];
+    chomp( $num_vert );
+
+    # Make sure mapping mesh size is the same as the source mesh size.
+
+    if( $insmarray[3] != $num_vert ) {
+      die "$me: mapping mesh ($insmarray[3] vertices) and source mesh " .
+          "($num_vert vertices) have different sizes\n";
+    }
+
+    # Create control and target meshes of appropriate sizes.
+
+    &do_cmd( 'cp', $source_to_target_sm, $refined_mapping );
+    &do_cmd( 'create_tetra', $control_mesh, 0, 0, 0, 1, 1, 1, $control_mesh_size );
+    &do_cmd( 'create_tetra', $target_mesh, 0, 0, 0, 1, 1, 1, $target_mesh_size );
+
+    while( $control_mesh_size != $target_mesh_size ) {
+      $control_mesh_size = $control_mesh_size*4;
+      if ($control_mesh_size > $target_mesh_size) {
+        die "$me: control mesh is not a subsampling of target mesh\n";
+      }
+      &do_cmd( 'create_tetra', $control_mesh, 0, 0, 0, 1, 1, 1, $control_mesh_size );
+      &do_cmd( 'cp', $refined_mapping, $old_mapping );
+      &do_cmd( 'refine-surface-map', $old_mapping, $control_mesh,
+               $target_mesh, $refined_mapping );
+    }
+
+  } elsif( $counter > $num_vert ) {
+    print OUT $line;
+  } else {
+    my @vals = split/\s+/,$line;
+    print OUTX "${vals[1]}\n";
+    print OUTY "${vals[2]}\n";
+    print OUTZ "${vals[3]}\n";
+    if( $counter == $num_vert ) {
+      close(OUTX);
+      close(OUTY);
+      close(OUTZ);
+
+      # resample the coordinates of the source mesh.
+
+      &do_cmd( "surface-resample", $target_mesh, $target_mesh, $tmpx,
+               $refined_mapping, $remapx );
+      &do_cmd( "surface-resample", $target_mesh, $target_mesh, $tmpy,
+               $refined_mapping, $remapy );
+      &do_cmd( "surface-resample", $target_mesh, $target_mesh, $tmpz,
+               $refined_mapping, $remapz );
+
+      # copy the resampled coordinates in surface mesh.
+
+      open NEWX,$remapx;
+      open NEWY,$remapy;
+      open NEWZ,$remapz;
+
+      my @newxarray = <NEWX>;
+      my @newyarray = <NEWY>;
+      my @newzarray = <NEWZ>;
+      my $linex;
+      foreach $linex(@newxarray) {
+        my $liney = shift(@newyarray);
+        my $linez = shift(@newzarray);
+        my @outx = split/\n/,$linex;
+        my @outy = split/\n/,$liney;
+        my @outz = split/\n/,$linez;
+        print OUT "${outx[0]} ${outy[0]} ${outz[0]}\n";
+      }
+      close(NEWX);
+      close(NEWY);
+      close(NEWZ);
+
+    }
+  }
+  $counter=$counter+1;
+}
+
+# This will effectively recompute the normal vectors and the
+# connectivity.
+&do_cmd( "average_surfaces", $target_on_source_obj, "none", "none", 1,
+         $tempoutobj, $tempoutobj );         
+
+
+sub do_cmd { 
+   print STDOUT "@_\n" if $opt{verbose};
+   system(@_) == 0 or die;
+}
+

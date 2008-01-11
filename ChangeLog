@@ -1,6 +1,10 @@
+2008-01-08  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* added sphere_resample_obj.in for resampling an object
+
 2007-12-20  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* removed -mask_binvalue from mincmask.c and fixed the old way of
           thresholding for the mask
+	* removed stx_segment and moved it to registration package
 
 2007-10-15  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* move all obj tools to bicpl/tools where they should belong

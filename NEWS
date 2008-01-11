@@ -2,7 +2,8 @@
         --------------------
 * removed -mask_binvalue from mincmask.c and fixed the old way of
   thresholding for the mask
-*
+* removed stx_segment and moved it to registration package
+* added sphere_resample_obj.in for resampling an object
 
         New in Release 1.6.5
         --------------------
