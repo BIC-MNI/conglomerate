@@ -1,3 +1,6 @@
+2008-12-19  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* added rgb to volume_object_evaluate for DTI maps
+
 2008-01-08  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* added sphere_resample_obj.in for resampling an object
 
