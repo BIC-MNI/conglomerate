@@ -1,3 +1,6 @@
+2009-11-20  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* extended mincdefrag for large volumes
+
 2008-12-19  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* added rgb to volume_object_evaluate for DTI maps
 

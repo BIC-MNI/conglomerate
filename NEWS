@@ -1,6 +1,7 @@
         New in Release 1.6.7 (not tagged yet, still on-going)
         --------------------
 * added rgb to volume_object_evaluate for DTI maps
+* extended mincdefrag for large volumes
 
         New in Release 1.6.6
         --------------------

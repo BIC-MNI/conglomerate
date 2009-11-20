@@ -42,7 +42,7 @@ int clean_color( int sizes[MAX_DIMENSIONS], short * val, short color,
 
     // Try to propagate color voxels to eliminate disjoint pieces.
 
-    short * vflag = new short[n_voxels];
+    int * vflag = new int[n_voxels];
     int * vstack = new int[n_voxels];
 
     for( ii = 0; ii < n_voxels; ii++ ) {
