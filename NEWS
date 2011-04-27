@@ -1,5 +1,6 @@
         New in Release 1.6.7 (not tagged yet, still on-going)
         --------------------
+* fixed bug in sphere_resample_obj for parsing of lines with leading spaces
 * added rgb to volume_object_evaluate for DTI maps
 * extended mincdefrag for large volumes
 

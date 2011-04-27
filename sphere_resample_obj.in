@@ -96,7 +96,7 @@ foreach $line(@inobjarray) {
     open(OUT,">${tempoutobj}");
     print OUT $line;
     my @vals = split/\s+/,$line;
-    $num_vert = $vals[6];
+    $num_vert = $vals[$#vals];
     chomp( $num_vert );
 
     # Make sure mapping mesh size is the same as the source mesh size.
@@ -127,9 +127,9 @@ foreach $line(@inobjarray) {
     print OUT $line;
   } else {
     my @vals = split/\s+/,$line;
-    print OUTX "${vals[1]}\n";
-    print OUTY "${vals[2]}\n";
-    print OUTZ "${vals[3]}\n";
+    print OUTX "${vals[$#vals-2]}\n";
+    print OUTY "${vals[$#vals-1]}\n";
+    print OUTZ "${vals[$#vals]}\n";
     if( $counter == $num_vert ) {
       close(OUTX);
       close(OUTY);
