@@ -11,7 +11,7 @@
  * Last changed: Sep 2003.
  */
 
-#include  <volume_io/internal_volume_io.h>
+#include  <volume_io.h>
 #include  <bicpl.h>
 #include  <ParseArgv.h>
 

@@ -1,5 +1,5 @@
 #include  <bicpl.h>
-#include  <volume_io/internal_volume_io.h>
+#include  <volume_io.h>
 
 
 /*! \brief Look up volume value for each point of object.

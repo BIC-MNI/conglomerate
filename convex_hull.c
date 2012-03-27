@@ -2,7 +2,7 @@
 static int dbg = 0;
 static int dbg2 = 0;
 
-#include  <volume_io/internal_volume_io.h>
+#include  <volume_io.h>
 #include  <bicpl.h>
 
 #define  TOLERANCE_2D   1.0e-3

@@ -1,4 +1,4 @@
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 #include <bicpl.h>
 
 public  Status  get_image_file_size(

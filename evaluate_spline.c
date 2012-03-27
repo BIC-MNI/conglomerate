@@ -1,5 +1,5 @@
 #include  <bicpl.h>
-#include  <volume_io/internal_volume_io.h>
+#include  <volume_io.h>
 
 extern  void   set_cubic_basis_function_vals(
                       float kf_frame_id[], int i, int  num_intervals, float t );

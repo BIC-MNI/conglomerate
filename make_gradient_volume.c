@@ -1,6 +1,6 @@
 #include  <math.h>
 #include  <bicpl.h>
-#include  <volume_io/internal_volume_io.h>
+#include  <volume_io.h>
 
 private  void  usage(
     STRING   executable_name )

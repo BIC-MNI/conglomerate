@@ -1,4 +1,4 @@
-#include  <volume_io/internal_volume_io.h>
+#include  <volume_io.h>
 #include  <deform.h>
 
 private  BOOLEAN  voxel_might_contain_boundary(

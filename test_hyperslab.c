@@ -1,4 +1,4 @@
-#include  <volume_io/internal_volume_io.h>
+#include  <volume_io.h>
 #include  <alloc.h>
 
 static  int  get_random_int(
