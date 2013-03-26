@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.tag  input.xfm  [output.tag]  [invert]\n\
 \n\
      Transforms the input tags by the input transform.  If a fourth\n\
@@ -19,16 +19,16 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status              status;
-    STRING              input_filename, output_filename, transform_filename;
-    STRING              dummy;
+    VIO_Status              status;
+    VIO_STR              input_filename, output_filename, transform_filename;
+    VIO_STR              dummy;
     int                 i;
     BOOLEAN             invert;
-    General_transform   transform;
+    VIO_General_transform   transform;
     int                 n_volumes, n_tag_points;
-    Real                **tags_volume1, **tags_volume2, *weights;
+    VIO_Real                **tags_volume1, **tags_volume2, *weights;
     int                 *structure_ids, *patient_ids;
-    STRING              *labels;
+    VIO_STR              *labels;
 
     status = OK;
 

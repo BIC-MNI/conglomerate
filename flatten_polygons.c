@@ -3,21 +3,21 @@
 
 #define  NORMALIZE_EVERY 30
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     polygons_struct  *polygons,
-    Real             step_ratio,
+    VIO_Real             step_ratio,
     int              n_iters );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename;
+    VIO_STR               src_filename, dest_filename;
     int                  n_objects, n_iters;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
-    Real                 step_ratio;
+    VIO_Real                 step_ratio;
 
     initialize_argument_processing( argc, argv );
 
@@ -46,17 +46,17 @@ int  main(
     return( 0 );
 }
 
-private  void  normalize_size(
+static  void  normalize_size(
     polygons_struct  *polygons,
-    Point            *original_centroid,
-    Real             original_size,
+    VIO_Point            *original_centroid,
+    VIO_Real             original_size,
     int              n_neighbours[],
     int              *neighbours[] )
 {
     int      point, neigh;
-    Real     current_size, scale;
-    Point    centroid;
-    Vector   offset, diff;
+    VIO_Real     current_size, scale;
+    VIO_Point    centroid;
+    VIO_Vector   offset, diff;
 
     current_size = 0.0;
     for_less( point, 0, polygons->n_points )
@@ -81,13 +81,13 @@ private  void  normalize_size(
     }
 }
 
-private  Real  get_points_rms(
+static  VIO_Real  get_points_rms(
     int        n_points,
-    Point      points1[],
-    Point      points2[] )
+    VIO_Point      points1[],
+    VIO_Point      points2[] )
 {
     int      point;
-    Vector   diff;
+    VIO_Vector   diff;
     float    movement;
 
     movement = 0.0f;
@@ -99,15 +99,15 @@ private  Real  get_points_rms(
                     Vector_z(diff) * Vector_z(diff);
     }
 
-    return( sqrt( (Real) movement / (Real) n_points ) );
+    return( sqrt( (VIO_Real) movement / (VIO_Real) n_points ) );
 }
 
-private  void  flatten(
+static  void  flatten(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              *neighbours[],
-    Point            buffer[],
-    Real             step_size )
+    VIO_Point            buffer[],
+    VIO_Real             step_size )
 {
     int      point, neigh, n, n_neighs;
     float    cx, cy, cz, fstep, a, b;
@@ -141,14 +141,14 @@ private  void  flatten(
         polygons->points[point] = buffer[point];
 }
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     polygons_struct  *polygons,
-    Real             step_ratio,
+    VIO_Real             step_ratio,
     int              n_iters )
 {
     int    point, *n_neighbours, **neighbours, iter, neigh;
-    Real   total_size, rms;
-    Point  *buffer, centroid, *save_points;
+    VIO_Real   total_size, rms;
+    VIO_Point  *buffer, centroid, *save_points;
 
     ALLOC( buffer, polygons->n_points );
     ALLOC( save_points, polygons->n_points );

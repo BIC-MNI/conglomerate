@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  labels.mnc|labels.tag  min_value  max_value  label_value\n\
          [out.mnc] | [min_value2 max_value2] | [min_value...] | [-crop] ...\n\
 \n\
@@ -20,15 +20,15 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, arg;
-    STRING               labels_filename, output_filename;
+    VIO_STR               volume_filename, arg;
+    VIO_STR               labels_filename, output_filename;
     BOOLEAN              modifying_flag;
     Real                 min_value, max_value;
     Real                 *min_values, *max_values, value;
     BOOLEAN              crop_flag, in_range;
-    int                  v[MAX_DIMENSIONS], label_value_to_set;
+    int                  v[VIO_MAX_DIMENSIONS], label_value_to_set;
     int                  i, n_ranges;
-    Volume               volume, label_volume, out_volume;
+    VIO_Volume               volume, label_volume, out_volume;
 
     initialize_argument_processing( argc, argv );
 

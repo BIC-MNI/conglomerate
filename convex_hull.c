@@ -11,37 +11,37 @@ static int dbg2 = 0;
 #define  POINT_USED_IN_CONVEX_HULL  1
 #define  POINT_DISCARDED            2
 
-private  int  get_points_of_region(
+static  int  get_points_of_region(
     char *  input_filename,
-    Real    min_value,
-    Real    max_value,
-    Point   *points[] );
+    VIO_Real    min_value,
+    VIO_Real    max_value,
+    VIO_Point   *points[] );
 
-private  void  get_convex_hull(
+static  void  get_convex_hull(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     polygons_struct  *polygons );
 
-private  int  get_convex_hull_2d(
+static  int  get_convex_hull_2d(
     int              n_points,
-    Real             x[],
-    Real             y[],
+    VIO_Real             x[],
+    VIO_Real             y[],
     int              hull_indices[],
     int              start,
     int              end );
 
-private int read_surface_obj( STRING, int *, Point *[],
-                              Vector *[], int *[], int **[] );
+static int read_surface_obj( VIO_STR, int *, VIO_Point *[],
+                              VIO_Vector *[], int *[], int **[] );
 
-private int get_surface_neighbours( polygons_struct *, int *[],
+static int get_surface_neighbours( polygons_struct *, int *[],
                                     int ** [] );
 
 static int KeyFactor = 100000;
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.[mnc|obj] output_hull.obj [min_value] [max_value]\n\
 \n\
        Creates a polyhedron which is the convex hull of the input surface \n\
@@ -55,10 +55,10 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING         input_filename, output_filename;
+    VIO_STR         input_filename, output_filename;
     int            n_points;
-    Real           min_value, max_value;
-    Point          *points;
+    VIO_Real           min_value, max_value;
+    VIO_Point          *points;
     object_struct  *object;
 
     initialize_argument_processing( argc, argv );
@@ -88,16 +88,16 @@ int  main(
     return( 0 );
 }
 
-private  int  get_points_of_region(
+static  int  get_points_of_region(
     char *  input_filename,
-    Real    min_value,
-    Real    max_value,
-    Point   *points[] ) {
+    VIO_Real    min_value,
+    VIO_Real    max_value,
+    VIO_Point   *points[] ) {
 
     int     n_points;
 
-    Point  * coords;             // coordinates
-    Vector * normals;            // normal vectors
+    VIO_Point  * coords;             // coordinates
+    VIO_Vector * normals;            // normal vectors
     int    * n_ngh = NULL;       // node neighbours (inverse connectivity)
     int   ** ngh = NULL;
 
@@ -133,7 +133,7 @@ private  int  get_points_of_region(
 
     } else {
 
-      Volume  volume;
+      VIO_Volume  volume;
 
       if( input_volume( input_filename, 3, XYZ_dimension_names,
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
@@ -141,10 +141,10 @@ private  int  get_points_of_region(
 
         // Find the convex points for a volume .mnc file.
 
-        int        x, y, z, sizes[N_DIMENSIONS], n_inside;
+        int        x, y, z, sizes[VIO_N_DIMENSIONS], n_inside;
         int        dx, dy, dz, tx, ty, tz;
-        Real       value, xw, yw, zw, voxel[N_DIMENSIONS];
-        Point      point;
+        VIO_Real       value, xw, yw, zw, voxel[VIO_N_DIMENSIONS];
+        VIO_Point      point;
 
         get_volume_sizes( volume, sizes );
 
@@ -173,9 +173,9 @@ private  int  get_points_of_region(
               }
 
               if( n_inside == 1 ) {
-                voxel[X] = (Real) x - 0.5;
-                voxel[Y] = (Real) y - 0.5;
-                voxel[Z] = (Real) z - 0.5;
+                voxel[X] = (VIO_Real) x - 0.5;
+                voxel[Y] = (VIO_Real) y - 0.5;
+                voxel[Z] = (VIO_Real) z - 0.5;
                 convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
                 fill_Point( point, xw, yw, zw );
                 ADD_ELEMENT_TO_ARRAY( *points, n_points, point, DEFAULT_CHUNK_SIZE);
@@ -193,9 +193,9 @@ private  int  get_points_of_region(
 
 }
 
-private  Real  compute_clockwise_degrees( Real x, Real y )
+static  VIO_Real  compute_clockwise_degrees( VIO_Real x, VIO_Real y )
 {
-    Real   degrees;
+    VIO_Real   degrees;
 
     if( x >= -TOLERANCE_DISTANCE && x <= TOLERANCE_DISTANCE )
     {
@@ -215,7 +215,7 @@ private  Real  compute_clockwise_degrees( Real x, Real y )
     }
     else
     {
-        degrees = - RAD_TO_DEG * (Real) atan2( (double) y, (double) x );
+        degrees = - RAD_TO_DEG * (VIO_Real) atan2( (double) y, (double) x );
 
         if( degrees < 0.0 )
             degrees += 360.0;
@@ -224,17 +224,17 @@ private  Real  compute_clockwise_degrees( Real x, Real y )
     }
 }
 
-private  int  find_limit_plane(
+static  int  find_limit_plane(
     int              n_points,
-    Point            points[],
-    Smallest_int     point_flags[],
-    Point            *centre,
-    Vector           *hinge,
-    Vector           *normal )
+    VIO_Point            points[],
+    VIO_SCHAR     point_flags[],
+    VIO_Point            *centre,
+    VIO_Vector           *hinge,
+    VIO_Vector           *normal )
 {
     int      i, best_ind;
-    Vector   horizontal, vertical, offset;
-    Real     angle, best_angle, x, y;
+    VIO_Vector   horizontal, vertical, offset;
+    VIO_Real     angle, best_angle, x, y;
     BOOLEAN  first;
 
     best_angle = 0.0;
@@ -299,9 +299,9 @@ if(dbg)printf( "  keep i = %d\n", best_ind );
     return( best_ind );
 }
 
-private  int  get_polygon_point_index(
+static  int  get_polygon_point_index(
     polygons_struct  *polygons,
-    Point            points[],
+    VIO_Point            points[],
     int              new_indices[],
     int              v )
 {
@@ -315,7 +315,7 @@ private  int  get_polygon_point_index(
     return( new_indices[v] );
 }
 
-private  int  add_polygon(
+static  int  add_polygon(
     polygons_struct  *polygons,
     int              n_vertices,
     int              vertices[] )
@@ -347,7 +347,7 @@ typedef  struct
 
 typedef struct
 {
-    Smallest_int  ref_count;
+    VIO_SCHAR  ref_count;
 } edge_struct;
 
 typedef  QUEUE_STRUCT( queue_entry )  queue_struct;
@@ -356,7 +356,7 @@ typedef  QUEUE_STRUCT( queue_entry )  queue_struct;
 #define  NEW_DENSITY               0.125
 #define  KEY_FACTOR                1000000
 
-private  int get_edge_key(
+static  int get_edge_key(
     polygons_struct              *polygons,
     int                          poly,
     int                          edge ) {
@@ -373,7 +373,7 @@ private  int get_edge_key(
 }
 
 
-private  void  add_edge_to_list(
+static  void  add_edge_to_list(
     queue_struct                 *queue,
     hash_table_struct            *edge_table,
     polygons_struct              *polygons,
@@ -406,10 +406,10 @@ if( edge_ptr.ref_count == 2 ) {
 
 }
 
-private  int   get_plane_polygon_vertices(
+static  int   get_plane_polygon_vertices(
     int              n_points,
-    Point            points[],
-    Smallest_int     point_flags[],
+    VIO_Point            points[],
+    VIO_SCHAR     point_flags[],
     int              p0,
     int              p1,
     int              p2,
@@ -418,8 +418,8 @@ private  int   get_plane_polygon_vertices(
     int              vertices[] )
 {
     int      i, n_in_hull, n_in_plane, *plane_points, *hull_points;
-    Real     plane_constant, horiz_constant, *x, *y, dist;
-    Vector   v01, v02, normal, offset, horizontal, vertical;
+    VIO_Real     plane_constant, horiz_constant, *x, *y, dist;
+    VIO_Vector   v01, v02, normal, offset, horizontal, vertical;
 
     SUB_POINTS( v01, points[p1], points[p0] );
     SUB_POINTS( v02, points[p2], points[p0] );
@@ -506,21 +506,21 @@ if(dbg) printf( "  %d  %g %g %g d = %g\n", i, points[i].coords[0], points[i].coo
     return( n_in_hull );
 }
 
-private  void  get_convex_hull(
+static  void  get_convex_hull(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     polygons_struct  *polygons )
 {
 
     int                          i, min_ind, ind, second_ind, size;
     int                          n_bad_ref_count, n_edges;
-    Vector                       hinge, new_hinge, normal, new_normal;
+    VIO_Vector                       hinge, new_hinge, normal, new_normal;
     int                          *new_indices, other_index, key;
     int                          poly, edge, new_poly;
     int                          n_vertices, *vertices;
     int                          *poly_vertices;
-    Point                        *poly_points;
-    Smallest_int                 *point_flags;
+    VIO_Point                        *poly_points;
+    VIO_SCHAR                 *point_flags;
     queue_entry                  entry;
     queue_struct                 queue;
     edge_struct                  edge_ptr;
@@ -686,16 +686,16 @@ if(dbg) {
     }
 }
 
-private  int  get_convex_hull_2d(
+static  int  get_convex_hull_2d(
     int              n_points,
-    Real             x[],
-    Real             y[],
+    VIO_Real             x[],
+    VIO_Real             y[],
     int              hull_indices[],
     int              e0,
     int              e1 ) {
 
     int      i, j, min_ind, n_in_hull, current_ind, best_ind;
-    Real     dx, dy, best_len, cross;
+    VIO_Real     dx, dy, best_len, cross;
 
     n_in_hull = 0;
     if( e0 < 0 && e1 < 0 ) {
@@ -768,18 +768,18 @@ private  int  get_convex_hull_2d(
 // n_neighbours: number of vertices around each node
 // neighbours: the set of ordered triangle consisting of the vertices
 //
-private int read_surface_obj( STRING filename,
+static int read_surface_obj( VIO_STR filename,
                               int * n_points,
-                              Point * points[],
-                              Vector * normals[],
+                              VIO_Point * points[],
+                              VIO_Vector * normals[],
                               int * n_neighbours[],
                               int ** neighbours[] ) {
 
   int               i, n_objects;
   object_struct  ** object_list;
   polygons_struct * surface;
-  File_formats      format;
-  STRING            expanded;
+  VIO_File_formats      format;
+  VIO_STR            expanded;
 
   expanded = expand_filename( filename );   // why?????
 
@@ -827,7 +827,7 @@ private int read_surface_obj( STRING filename,
 // Construct the edges around each node. The edges are sorted to
 // make an ordered closed loop.
 //
-private int get_surface_neighbours( polygons_struct * surface,
+static int get_surface_neighbours( polygons_struct * surface,
                                     int * n_neighbours_return[],
                                     int ** neighbours_return[] ) {
 

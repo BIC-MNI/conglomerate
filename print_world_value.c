@@ -6,9 +6,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename;
-    Real       x, y, z, value;
-    Volume     volume;
+    VIO_STR     input_filename;
+    VIO_Real       x, y, z, value;
+    VIO_Volume     volume;
 
     initialize_argument_processing( argc, argv );
 

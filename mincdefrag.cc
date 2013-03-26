@@ -15,7 +15,7 @@ using namespace std;
 //
 // Try to remove dangling pieces of matter of this color.
 //
-int clean_color( int sizes[MAX_DIMENSIONS], short * val, short color,
+int clean_color( int sizes[VIO_MAX_DIMENSIONS], short * val, short color,
                  short stencil, int max_connect ) {
 
     int     i, j, k, ii, jj;
@@ -153,8 +153,8 @@ int clean_color( int sizes[MAX_DIMENSIONS], short * val, short color,
     return( OK );
 }
 
-int extract_color( int sizes[MAX_DIMENSIONS], short color,
-                   short stencil, int max_connect, Volume volume ) {
+int extract_color( int sizes[VIO_MAX_DIMENSIONS], short color,
+                   short stencil, int max_connect, VIO_Volume volume ) {
 
     int    i, j, k, ii;
     float  fval;
@@ -219,7 +219,7 @@ int  main( int ac, char* av[] ) {
     }
 
     // Read the volume. 
-    Volume in_volume;
+    VIO_Volume in_volume;
     if ( input_volume( av[1], 3, NULL, 
                        MI_ORIGINAL_TYPE, 0, 0, 0,
                        TRUE, &in_volume, NULL ) != OK ) {
@@ -233,7 +233,7 @@ int  main( int ac, char* av[] ) {
       return 1;
     }
 
-    int sizes[MAX_DIMENSIONS];
+    int sizes[VIO_MAX_DIMENSIONS];
     get_volume_sizes( in_volume, sizes );
 
     short color = (short)atoi( av[3] );

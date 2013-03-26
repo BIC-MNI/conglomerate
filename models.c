@@ -1,14 +1,14 @@
 #include  <volume_io.h>
 #include  <deform.h>
 
-public  void  get_model_shape_point(
-    Point    *origin,
-    Vector   *pos_model_dir,
-    Vector   *neg_model_dir,
-    Real     dist,
-    Point    *point )
+  void  get_model_shape_point(
+    VIO_Point    *origin,
+    VIO_Vector   *pos_model_dir,
+    VIO_Vector   *neg_model_dir,
+    VIO_Real     dist,
+    VIO_Point    *point )
 {
-    Vector   offset;
+    VIO_Vector   offset;
 
     if( dist < 0.0 )
     {
@@ -22,19 +22,19 @@ public  void  get_model_shape_point(
     ADD_POINT_VECTOR( *point, *origin, offset );
 }
 
-public  void  compute_equilibrium_point(
+  void  compute_equilibrium_point(
     int                       point_index,
     BOOLEAN                   boundary_exists,
-    Real                      boundary_dist,
-    Real                      base_length,
-    Real                      model_dist,
-    Vector                    *pos_model_dir,
-    Vector                    *neg_model_dir,
-    Point                     *centroid,
+    VIO_Real                      boundary_dist,
+    VIO_Real                      base_length,
+    VIO_Real                      model_dist,
+    VIO_Vector                    *pos_model_dir,
+    VIO_Vector                    *neg_model_dir,
+    VIO_Point                     *centroid,
     deformation_model_struct  *deformation_model,
-    Point                     *equilibrium_point )
+    VIO_Point                     *equilibrium_point )
 {
-    Real                  curvature_offset, equil_dist;
+    VIO_Real                  curvature_offset, equil_dist;
     deform_model_struct   *model;
 
     model = find_relevent_model( deformation_model, point_index );
@@ -66,19 +66,19 @@ public  void  compute_equilibrium_point(
                            equil_dist, equilibrium_point );
 }
 
-public  void  compute_model_dirs(
-    Point      *centroid,
-    Vector     *normal,
-    Real       base_length,
-    Point      *model_point,
-    Real       *model_dist,
-    Point      *search_origin,
-    Vector     *pos_model_dir,
-    Vector     *neg_model_dir )
+  void  compute_model_dirs(
+    VIO_Point      *centroid,
+    VIO_Vector     *normal,
+    VIO_Real       base_length,
+    VIO_Point      *model_point,
+    VIO_Real       *model_dist,
+    VIO_Point      *search_origin,
+    VIO_Vector     *pos_model_dir,
+    VIO_Vector     *neg_model_dir )
 {
-    Real     to_model_dot_normal, normal_dot_normal, len;
-    Real     ratio, left_length, right_length, offset;
-    Vector   centroid_to_model, offset_vec, tmp, base_vector, perp;
+    VIO_Real     to_model_dot_normal, normal_dot_normal, len;
+    VIO_Real     ratio, left_length, right_length, offset;
+    VIO_Vector   centroid_to_model, offset_vec, tmp, base_vector, perp;
 
     if( EQUAL_POINTS( *centroid, *model_point ) )
     {
@@ -160,17 +160,17 @@ public  void  compute_model_dirs(
     SCALE_VECTOR( *neg_model_dir, *neg_model_dir, -1.0 );
 }
 
-private  void  get_coords_in_nonortho_system(
-    Vector   *v,
-    Vector   *v1,
-    Vector   *v2,
-    Vector   *normalized_v3,
-    Real     *d1,
-    Real     *d2,
-    Real     *d3 )
+static  void  get_coords_in_nonortho_system(
+    VIO_Vector   *v,
+    VIO_Vector   *v1,
+    VIO_Vector   *v2,
+    VIO_Vector   *normalized_v3,
+    VIO_Real     *d1,
+    VIO_Real     *d2,
+    VIO_Real     *d3 )
 {
-    Real      mag_v1, mag_c, fact;
-    Vector    offset, v2d, c;
+    VIO_Real      mag_v1, mag_c, fact;
+    VIO_Vector    offset, v2d, c;
 
     *d3 = DOT_VECTORS( *v, *normalized_v3 );
 
@@ -212,25 +212,25 @@ private  void  get_coords_in_nonortho_system(
 
 #define  MAX_MODEL_NEIGHS   2000
 
-private  void  compute_model_point(
-    Point   points[],
+static  void  compute_model_point(
+    VIO_Point   points[],
     int     point_index,
     int     n_neighbours,
     int     neighbours[],
-    Point   *centroid,
-    Vector  *normal,
-    Point   model_points[],
-    Point   model_centroids[],
-    Vector  model_normals[],
-    Point   *model_point )
+    VIO_Point   *centroid,
+    VIO_Vector  *normal,
+    VIO_Point   model_points[],
+    VIO_Point   model_centroids[],
+    VIO_Vector  model_normals[],
+    VIO_Point   *model_point )
 {
     int      i;
-    Real     model_len_to_neighbour, len_to_neighbour, scale_factor;
-    Real     d1, d2, d3;
-    Vector   to_model_neighbour;
-    Vector   to_neighbour, model_offset;
-    Vector   to_model_point, third_model_vector, third_vector;
-    Vector   offset;
+    VIO_Real     model_len_to_neighbour, len_to_neighbour, scale_factor;
+    VIO_Real     d1, d2, d3;
+    VIO_Vector   to_model_neighbour;
+    VIO_Vector   to_neighbour, model_offset;
+    VIO_Vector   to_model_point, third_model_vector, third_vector;
+    VIO_Vector   offset;
 
     fill_Point( model_offset, 0.0, 0.0, 0.0 );
 
@@ -273,7 +273,7 @@ private  void  compute_model_point(
         ADD_VECTORS( model_offset, model_offset, offset );
     }
 
-    SCALE_VECTOR( model_offset, model_offset, 1.0 / (Real) n_neighbours );
+    SCALE_VECTOR( model_offset, model_offset, 1.0 / (VIO_Real) n_neighbours );
 
     ADD_POINT_VECTOR( *model_point, *centroid, model_offset );
 
@@ -292,21 +292,21 @@ private  void  compute_model_point(
 #endif
 }
 
-public  void  get_model_point(
+  void  get_model_point(
     deformation_model_struct  *deformation_model,
-    Point                     points[],
+    VIO_Point                     points[],
     int                       point_index,
     int                       n_neighbours,
     int                       neighbours[],
-    Real                      curvatures[],
-    Point                     *centroid,
-    Vector                    *normal,
-    Real                      base_length,
-    Point                     *model_point )
+    VIO_Real                      curvatures[],
+    VIO_Point                     *centroid,
+    VIO_Vector                    *normal,
+    VIO_Real                      base_length,
+    VIO_Point                     *model_point )
 {
     int                       i;
-    Real                      curvature, dist_from_centroid, normal_mag;
-    Vector                    offset;
+    VIO_Real                      curvature, dist_from_centroid, normal_mag;
+    VIO_Vector                    offset;
     deform_model_struct       *model;
     Deformation_model_types   model_type;
 
@@ -327,7 +327,7 @@ public  void  get_model_point(
         curvature = 0.0;
         for_less( i, 0, n_neighbours )
             curvature += curvatures[neighbours[i]];
-        curvature /= (Real) n_neighbours;
+        curvature /= (VIO_Real) n_neighbours;
 
         dist_from_centroid = curvature * base_length;
         normal_mag = MAGNITUDE( *normal );
@@ -354,7 +354,7 @@ public  void  get_model_point(
     }
 }
 
-public  void  get_neighbours_of_line_vertex(
+  void  get_neighbours_of_line_vertex(
     lines_struct    *lines,
     int             vertex_index,
     int             neighbours[2] )
@@ -373,7 +373,7 @@ public  void  get_neighbours_of_line_vertex(
     neighbours[1] = lines->indices[next_index];
 }
 
-public  BOOLEAN  deformation_model_includes_average(
+  BOOLEAN  deformation_model_includes_average(
     deformation_model_struct   *model )
 {
     int   i;
@@ -385,16 +385,16 @@ public  BOOLEAN  deformation_model_includes_average(
     return( FALSE );
 }
 
-public  Real  compute_line_curvature(
+  VIO_Real  compute_line_curvature(
     lines_struct    *lines,
     int             axis,
     int             point_index,
     int             prev_point_index,
     int             next_point_index )
 {
-    Real             base_length, curvature;
-    Point            centroid;
-    Vector           normal, dir_to_point;
+    VIO_Real             base_length, curvature;
+    VIO_Point            centroid;
+    VIO_Vector           normal, dir_to_point;
 
     compute_line_centroid_and_normal( lines, axis, prev_point_index,
                                       next_point_index, &centroid, &normal,
@@ -410,21 +410,21 @@ public  Real  compute_line_curvature(
     return( curvature );
 }
 
-public  Real  deform_point(
+  VIO_Real  deform_point(
     int                        point_index,
-    Point                      points[],
-    Point                      *equilibrium_point,
-    Real                       fractional_step,
-    Real                       max_step,
+    VIO_Point                      points[],
+    VIO_Point                      *equilibrium_point,
+    VIO_Real                       fractional_step,
+    VIO_Real                       max_step,
     BOOLEAN                    position_constrained,
-    Real                       max_position_offset,
-    Point                      original_positions[],
-    Point                      *new_point )
+    VIO_Real                       max_position_offset,
+    VIO_Point                      original_positions[],
+    VIO_Point                      *new_point )
 {
-    Vector    toward_equil;
-    Real      dist_to_equil, dist;
-    Vector    diff;
-    Real      factor;
+    VIO_Vector    toward_equil;
+    VIO_Real      dist_to_equil, dist;
+    VIO_Vector    diff;
+    VIO_Real      factor;
 
     SUB_POINTS( toward_equil, *equilibrium_point, points[point_index] );
     dist_to_equil = MAGNITUDE( toward_equil );
@@ -452,17 +452,17 @@ public  Real  deform_point(
     return( dist_to_equil );
 }
 
-public  void  compute_line_centroid_and_normal(
+  void  compute_line_centroid_and_normal(
     lines_struct     *lines,
     int              axis,
     int              prev_point_index,
     int              next_point_index,
-    Point            *centroid,
-    Vector           *normal,
-    Real             *base_length )
+    VIO_Point            *centroid,
+    VIO_Vector           *normal,
+    VIO_Real             *base_length )
 {
     int       a1, a2;
-    Vector    dir;
+    VIO_Vector    dir;
 
     SUB_POINTS( dir, lines->points[next_point_index],
                      lines->points[prev_point_index] );
@@ -484,7 +484,7 @@ public  void  compute_line_centroid_and_normal(
                         lines->points[prev_point_index], 0.5 );
 }
 
-public  int  get_subsampled_neighbours_of_point(
+  int  get_subsampled_neighbours_of_point(
     deformation_model_struct  *deformation_model,
     polygons_struct           *polygons,
     int                       poly,

@@ -32,28 +32,28 @@ ArgvInfo argTable[] = {
   { NULL, ARGV_END, NULL, NULL, NULL }
 };
 
-int binary_object_mask( STRING input_surface_filename,
+int binary_object_mask( VIO_STR input_surface_filename,
                         Real set_value,
                         Real inside_value,
-                        Volume volume ) 
+                        VIO_Volume volume ) 
 {
 
-    Real                 separations[MAX_DIMENSIONS];
+    Real                 separations[VIO_MAX_DIMENSIONS];
     Real                 xw, yw, zw, value_to_set;
     Real                 sign_before, sign_after;
-    Point                origin, dest;
+    VIO_Point                origin, dest;
     Real                 min_real_value, max_real_value;
     Real                 *directions;
-    Vector               direction;
-    File_formats         format;
+    VIO_Vector               direction;
+    VIO_File_formats         format;
     int                  x, y, z, n_objects, k;
-    int                  sizes[MAX_DIMENSIONS];
+    int                  sizes[VIO_MAX_DIMENSIONS];
     int                  obj_index;
     int                  i, j, best, n_intersections, ind;
-    Real                 dist, *distances, tmp, voxel[MAX_DIMENSIONS];
+    Real                 dist, *distances, tmp, voxel[VIO_MAX_DIMENSIONS];
     object_struct        **objects;
     BOOLEAN              inside, erase_flag;
-    progress_struct      progress;
+    VIO_progress_struct      progress;
 
     if( input_graphics_file( input_surface_filename,
                              &format, &n_objects, &objects ) != OK )
@@ -74,7 +74,7 @@ int binary_object_mask( STRING input_surface_filename,
     if( BINTREE_FACTOR > 0.0 )
     {
         create_polygons_bintree( get_polygons_ptr(objects[0]),
-                     ROUND( (Real) get_polygons_ptr(objects[0])->n_items *
+                     VIO_ROUND( (Real) get_polygons_ptr(objects[0])->n_items *
                                                    BINTREE_FACTOR ) );
     }
 
@@ -107,7 +107,7 @@ int binary_object_mask( STRING input_surface_filename,
             directions = get_intersect_directions();
 
             for_less( i, 0, n_intersections )
-                distances[i] = distances[i] / FABS( separations[Z] ) - OFFSET;
+                distances[i] = distances[i] / VIO_FABS( separations[Z] ) - OFFSET;
 
             for_less( i, 0, n_intersections-1 )
             {
@@ -245,16 +245,16 @@ int binary_object_mask( STRING input_surface_filename,
 
 int main ( int argc, char *argv[] )
 {
-  STRING               input_volume_filename, output_file_name;
-  STRING               surface_filename;
+  VIO_STR               input_volume_filename, output_file_name;
+  VIO_STR               surface_filename;
   Real                 outside_value, inside_value;
-  Volume               binary_volume, out_volume;
-  int                  sizes[MAX_DIMENSIONS];
+  VIO_Volume               binary_volume, out_volume;
+  int                  sizes[VIO_MAX_DIMENSIONS];
   int                  x,y,z;
   Real                 original_value, binary_value;
   minc_output_options  output_options;
   volume_input_struct  input_struct;
-  STRING               *original_dimnames;
+  VIO_STR               *original_dimnames;
 
 
   outside_value = 0;

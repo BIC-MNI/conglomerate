@@ -9,25 +9,25 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    int                  x, y, z, sizes[N_DIMENSIONS];
-    int                  start[N_DIMENSIONS], end[N_DIMENSIONS];
+    int                  x, y, z, sizes[VIO_N_DIMENSIONS];
+    int                  start[VIO_N_DIMENSIONS], end[VIO_N_DIMENSIONS];
     int                  slice, axis, xyz_axis;
-    Real                 value, min_voxel, max_voxel, window_width;
-    Real                 min_value, max_value, filter_ratio;
-    Real                 min_nonzero, max_nonzero, y_scale;
-    STRING               input_volume_filename, output_filename;
-    STRING               axis_name;
+    VIO_Real                 value, min_voxel, max_voxel, window_width;
+    VIO_Real                 min_value, max_value, filter_ratio;
+    VIO_Real                 min_nonzero, max_nonzero, y_scale;
+    VIO_STR               input_volume_filename, output_filename;
+    VIO_STR               axis_name;
     lines_struct         *lines;
     histogram_struct     histogram;
-    Real                 grad, max_grad, delta;
-    Real                 xyz[N_DIMENSIONS], voxel[N_DIMENSIONS];
-    Real                 *counts, pos_low, pos_max_grad, pos_high;
-    Real                 scale, trans;
+    VIO_Real                 grad, max_grad, delta;
+    VIO_Real                 xyz[VIO_N_DIMENSIONS], voxel[VIO_N_DIMENSIONS];
+    VIO_Real                 *counts, pos_low, pos_max_grad, pos_high;
+    VIO_Real                 scale, trans;
     int                  n, i, min_index, max_index, max_index2;
     int                  n_objects;
     object_struct        **objects;
-    Volume               volume;
-    Real                 x_pos, y_height, pos, min_pos, max_pos;
+    VIO_Volume               volume;
+    VIO_Real                 x_pos, y_height, pos, min_pos, max_pos;
     BOOLEAN              put_x_pos;
 
     initialize_argument_processing( argc, argv );
@@ -84,7 +84,7 @@ int  main(
     start[Z] = 0;
     end[Z] = sizes[Z];
 
-    if( axis >= 0 && axis < N_DIMENSIONS )
+    if( axis >= 0 && axis < VIO_N_DIMENSIONS )
     {
         xyz_axis = axis;
         xyz[0] = 0.0;
@@ -92,7 +92,7 @@ int  main(
         xyz[2] = 0.0;
         xyz[axis] = 1.0;
         reorder_xyz_to_voxel( volume, xyz, voxel );
-        for_less( axis, 0, N_DIMENSIONS )
+        for_less( axis, 0, VIO_N_DIMENSIONS )
         {
             if( voxel[axis] == 1.0 )
                 break;
@@ -126,7 +126,7 @@ int  main(
                               &scale, &trans );
 
     min_nonzero = scale * (-0.5) + trans;
-    max_nonzero = scale * ((Real) n + 0.5) + trans;
+    max_nonzero = scale * ((VIO_Real) n + 0.5) + trans;
 
     FREE( counts );
 
@@ -173,13 +173,13 @@ int  main(
         grad = counts[i+1] - counts[i];
         if( i == min_index || grad > max_grad )
         {
-            pos_max_grad = scale * ((Real) i + 0.5) + trans;
+            pos_max_grad = scale * ((VIO_Real) i + 0.5) + trans;
             max_grad = grad;
         }
     }
 
-    pos_low = scale * (Real) min_index + trans;
-    pos_high = scale * (Real) max_index2 + trans;
+    pos_low = scale * (VIO_Real) min_index + trans;
+    pos_high = scale * (VIO_Real) max_index2 + trans;
 
     n_objects = 1;
     ALLOC( objects, 4 );
@@ -187,15 +187,15 @@ int  main(
     objects[0] = create_object( LINES );
     lines = get_lines_ptr( objects[0] );
     create_histogram_line( &histogram, 1000,
-                           ROUND( y_scale * (max_nonzero-min_nonzero) ),
+                           VIO_ROUND( y_scale * (max_nonzero-min_nonzero) ),
                            window_width, lines );
 
     print( "Positions %g %g %g\n", pos_low, pos_max_grad, pos_high );
 
     if( put_x_pos )
     {
-        min_pos = (Real) Point_x(lines->points[0]);
-        max_pos = (Real) Point_x(lines->points[lines->n_points-1]);
+        min_pos = (VIO_Real) Point_x(lines->points[0]);
+        max_pos = (VIO_Real) Point_x(lines->points[lines->n_points-1]);
 
         objects[n_objects] = create_object( LINES );
         lines = get_lines_ptr( objects[n_objects] );

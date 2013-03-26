@@ -6,20 +6,20 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               surface_filename, filename, *filenames;
-    STRING               lines_filename;
+    VIO_STR               surface_filename, filename, *filenames;
+    VIO_STR               lines_filename;
     int                  n_objects, max_size;
     int                  n_values, n_to_do;
     int                  v, poly_size, poly, step, n_steps, line, size;
     int                  p1, p2, vertex;
-    Real                 *weights, ratio, *probabilities, scan_step;
-    Real                 interval;
-    Point                *poly_points, polygon_point, p;
-    File_formats         format;
+    VIO_Real                 *weights, ratio, *probabilities, scan_step;
+    VIO_Real                 interval;
+    VIO_Point                *poly_points, polygon_point, p;
+    VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
     lines_struct         *lines;
-    Real                 *values, **components;
+    VIO_Real                 *values, **components;
     int                  comp, max_index, n_components;
 
     initialize_argument_processing( argc, argv );
@@ -34,7 +34,7 @@ int  main(
     }
 
     if( input_graphics_file( surface_filename, &format, &n_objects,
-                             &object_list ) != OK ||
+                             &object_list ) != VIO_OK ||
         n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
     {
         print_error( "Error in file: %s\n", surface_filename );
@@ -44,7 +44,7 @@ int  main(
     polygons = get_polygons_ptr( object_list[0] );
 
     if( input_graphics_file( lines_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
     {
         print_error( "Error in file: %s\n", lines_filename );
         return( 1 );
@@ -59,7 +59,7 @@ int  main(
         lines = get_lines_ptr( object_list[0] );
 
     create_polygons_bintree( polygons,
-                             ROUND((Real) polygons->n_items * BINTREE_FACTOR ));
+                             VIO_ROUND((VIO_Real) polygons->n_items * BINTREE_FACTOR ));
 
     n_components = 0;
     components = NULL;
@@ -67,7 +67,7 @@ int  main(
 
     while( get_string_argument( NULL, &filename ) )
     {
-        if( input_texture_values( filename, &n_values, &values ) != OK ||
+        if( input_texture_values( filename, &n_values, &values ) != VIO_OK ||
             n_values != polygons->n_points )
         {
             print_error( "Error in values file: %s\n", filename );
@@ -104,7 +104,7 @@ int  main(
             interval = distance_between_points( &lines->points[p1],
                                                 &lines->points[p2] );
 
-            n_steps = ROUND( interval / scan_step );
+            n_steps = VIO_ROUND( interval / scan_step );
             if( v < size-2 )
                 n_to_do = n_steps;
             else
@@ -112,7 +112,7 @@ int  main(
 
             for_less( step, 0, n_to_do )
             {
-                ratio = (Real) step / (Real) n_steps;
+                ratio = (VIO_Real) step / (VIO_Real) n_steps;
                 INTERPOLATE_POINTS( p, lines->points[p1], lines->points[p2],
                                     ratio );
 

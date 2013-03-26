@@ -2,10 +2,10 @@
 #include  <bicpl.h>
 #include  <volume_io.h>
 
-private  void  usage(
-    STRING   executable_name )
+static  void  usage(
+    VIO_STR   executable_name )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  output.mnc [1|2] [1|3]\n\
 \n\
      Creates a magnitude of gradient or second derivative of the volume,\n\
@@ -17,8 +17,8 @@ Usage: %s  input.mnc  output.mnc [1|2] [1|3]\n\
 
 }
 
-private  Volume  create_gradient_volume(
-    Volume          volume,
+static  VIO_Volume  create_gradient_volume(
+    VIO_Volume          volume,
     int             continuity,
     int             deriv_number );
 
@@ -27,10 +27,10 @@ int  main(
     char   *argv[] )
 {
     int                  deriv_number, order;
-    STRING               input_filename;
-    STRING               output_filename;
-    STRING               history;
-    Volume               volume, gradient_volume;
+    VIO_STR               input_filename;
+    VIO_STR               output_filename;
+    VIO_STR               history;
+    VIO_Volume               volume, gradient_volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -71,20 +71,20 @@ int  main(
     return( 0 );
 }
 
-private  Volume  create_gradient_volume(
-    Volume          volume,
+static  VIO_Volume  create_gradient_volume(
+    VIO_Volume          volume,
     int             continuity,
     int             deriv_number )
 {
-    Volume           gradient_volume;
-    int              volume_sizes[N_DIMENSIONS];
+    VIO_Volume           gradient_volume;
+    int              volume_sizes[VIO_N_DIMENSIONS];
     int              x, y, z;
     Real             dx, dy, dz;
-    Real             voxel[MAX_DIMENSIONS];
+    Real             voxel[VIO_MAX_DIMENSIONS];
     Real             grad, value;
     Real             **first_deriv, ***second_deriv;
     Real             min_value, max_value;
-    progress_struct  progress;
+    VIO_progress_struct  progress;
 
     gradient_volume = copy_volume_definition( volume, NC_FLOAT, FALSE,
                                               0.0, 0.0 );
@@ -98,7 +98,7 @@ private  Volume  create_gradient_volume(
     {
 	printf( "Computing first derivative with continuity = %d\n", 
 		continuity );
-        ALLOC2D( first_deriv, 1, N_DIMENSIONS );
+        VIO_ALLOC2D( first_deriv, 1, VIO_N_DIMENSIONS );
         second_deriv = NULL;
     }
     else
@@ -106,7 +106,7 @@ private  Volume  create_gradient_volume(
 	printf( "Computing second derivative with continuity = %d\n", 
 		continuity );
         first_deriv = NULL;
-        ALLOC3D( second_deriv, 1, N_DIMENSIONS, N_DIMENSIONS );
+        VIO_ALLOC3D( second_deriv, 1, VIO_N_DIMENSIONS, VIO_N_DIMENSIONS );
     }
 
     min_value = 0.0;
@@ -168,11 +168,11 @@ private  Volume  create_gradient_volume(
 
     if( deriv_number == 1 )
     {
-        FREE2D( first_deriv );
+        VIO_FREE2D( first_deriv );
     }
     else
     {
-        FREE3D( second_deriv );
+        VIO_FREE3D( second_deriv );
     }
 
     return( gradient_volume );

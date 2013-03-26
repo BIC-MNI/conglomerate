@@ -1,13 +1,13 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-public  Status  process_object(
+  VIO_Status  process_object(
     object_struct  *object );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.obj  xview yview zview xup yup zup\n\
 \n\
      Computes the world limits of the object in the orthogonal view \n\
@@ -20,17 +20,17 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING              input_filename, transform_filename;
-    Real                xview, yview, zview, xup, yup, zup, x, y, z;
+    VIO_STR              input_filename, transform_filename;
+    VIO_Real                xview, yview, zview, xup, yup, zup, x, y, z;
     int                 point, n_points, n_objects, dim, i;
-    Real                min_position[N_DIMENSIONS];
-    Real                max_position[N_DIMENSIONS];
-    Real                min_pos, max_pos;
-    Point               *points, trans_point;
-    Vector              x_axis, y_axis, z_axis;
-    Vector              axis[N_DIMENSIONS];
-    General_transform   transform;
-    File_formats        format;
+    VIO_Real                min_position[VIO_N_DIMENSIONS];
+    VIO_Real                max_position[VIO_N_DIMENSIONS];
+    VIO_Real                min_pos, max_pos;
+    VIO_Point               *points, trans_point;
+    VIO_Vector              x_axis, y_axis, z_axis;
+    VIO_Vector              axis[VIO_N_DIMENSIONS];
+    VIO_General_transform   transform;
+    VIO_File_formats        format;
     object_struct       **object_list;
     BOOLEAN             first, have_transform;
 
@@ -71,7 +71,7 @@ int  main(
     axis[1] = y_axis;
     axis[2] = z_axis;
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         min_position[dim] = 0.0;
         max_position[dim] = 0.0;
@@ -96,7 +96,7 @@ int  main(
             else
                 trans_point = points[point];
 
-            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
             {
                 min_pos = DOT_VECTORS( axis[dim], trans_point );
                 max_pos = min_pos;
@@ -127,7 +127,7 @@ int  main(
 
         if( get_object_type(object_list[i]) == LINES )
         {
-            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
             {
                 min_position[dim] -= get_lines_ptr(object_list[i])->
                                            line_thickness / 2.0;

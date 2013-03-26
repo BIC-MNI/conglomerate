@@ -6,13 +6,13 @@ int  main(
     char   *argv[] )
 {
     FILE             *file;
-    STRING           input1_filename, input2_filename, output_filename;
+    VIO_STR           input1_filename, input2_filename, output_filename;
     int              i, n_objects, n_points1, n_points2;
-    Real             dx, dy, dz, dist_sq, rms, dist;
-    Real             sum_x, sum_xx, std_dev, avg_dist, min_dist, max_dist;
-    File_formats     format;
+    VIO_Real             dx, dy, dz, dist_sq, rms, dist;
+    VIO_Real             sum_x, sum_xx, std_dev, avg_dist, min_dist, max_dist;
+    VIO_File_formats     format;
     object_struct    **object_list;
-    Point            *points1, *points2;
+    VIO_Point            *points1, *points2;
     BOOLEAN          output_flag;
 
     initialize_argument_processing( argc, argv );
@@ -63,9 +63,9 @@ int  main(
 
     for_less( i, 0, n_points1 )
     {
-        dx = (Real) Point_x(points1[i]) - (Real) Point_x(points2[i]);
-        dy = (Real) Point_y(points1[i]) - (Real) Point_y(points2[i]);
-        dz = (Real) Point_z(points1[i]) - (Real) Point_z(points2[i]);
+        dx = (VIO_Real) Point_x(points1[i]) - (VIO_Real) Point_x(points2[i]);
+        dy = (VIO_Real) Point_y(points1[i]) - (VIO_Real) Point_y(points2[i]);
+        dz = (VIO_Real) Point_z(points1[i]) - (VIO_Real) Point_z(points2[i]);
 
         dist_sq = dx * dx + dy * dy + dz * dz;
 
@@ -101,10 +101,10 @@ int  main(
     if( max_dist > 0.0 )
         max_dist = sqrt( max_dist );
 
-    rms = sqrt( sum_xx / (Real) n_points1 );
-    avg_dist = sum_x / (Real) n_points1;
-    std_dev = (sum_xx - sum_x * sum_x / (Real) n_points1) /
-              (Real) (n_points1-1);
+    rms = sqrt( sum_xx / (VIO_Real) n_points1 );
+    avg_dist = sum_x / (VIO_Real) n_points1;
+    std_dev = (sum_xx - sum_x * sum_x / (VIO_Real) n_points1) /
+              (VIO_Real) (n_points1-1);
     if( std_dev > 0.0 )
         std_dev = sqrt( std_dev );
 

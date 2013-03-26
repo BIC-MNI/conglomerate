@@ -55,7 +55,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/libraries/conglomerate/find_peaks.c,v 1.1 2004-04-22 13:15:01 bert Exp $";
+static char rcsid[]="$Header: /static-cvsroot/libraries/conglomerate/find_peaks.c,v 1.1 2004-04-22 13:15:01 bert Exp $";
 #endif
 
 #include <stdlib.h>
@@ -93,8 +93,8 @@ typedef enum {NO_LOGGING, LOW_LOGGING, HIGH_LOGGING} LogLevelType;
 typedef enum {SLC, ROW, COL, VOXEL_NDIMS} Voxel_Index;
 typedef enum {XW, YW, ZW, WORLD_NDIMS} World_Index;
 typedef struct {
-   Real coord[WORLD_NDIMS];
-   Real value;
+   VIO_Real coord[WORLD_NDIMS];
+   VIO_Real value;
    int valid;
 } Tag;
 typedef enum {MAXIMUM, MINIMUM, NEXTREMES, NOT_A_PEAK} Extreme_Index;
@@ -154,23 +154,23 @@ typedef struct {
 /* Functions */
 int sort_ascending(const void *val1, const void *val2);
 int sort_descending(const void *val1, const void *val2);
-void find_peaks(Volume volume, PeakParams *peak_params,
+void find_peaks(VIO_Volume volume, PeakParams *peak_params,
                 int *nmin, Tag **min_peaks, 
                 int *nmax, Tag **max_peaks);
 int setup_neighbours(int offsets[][VOXEL_NDIMS]);
-Extreme_Index check_for_peak(Volume volume, int index[], int sizes[],
+Extreme_Index check_for_peak(VIO_Volume volume, int index[], int sizes[],
                              int noffsets, int offsets[][VOXEL_NDIMS],
                              PeakParams *peak_params, int include_plateau, 
-                             Real *value, 
+                             VIO_Real *value, 
                              int *num_equal_neighbours, int *equal_neighbours);
-Extreme_Index find_peak_centroid(Volume volume, 
-                                 Volume flag_volume, int *flags_alloced,
+Extreme_Index find_peak_centroid(VIO_Volume volume, 
+                                 VIO_Volume flag_volume, int *flags_alloced,
                                  int index[], int sizes[],
                                  int noffsets, int offsets[][VOXEL_NDIMS],
                                  PeakParams *peak_params, 
-                                 Real *value, Real centroid[]);
-int check_and_mark_flag(Volume flag_volume, int *index);
-void allocate_flag_volume(Volume flag_volume, int *current);
+                                 VIO_Real *value, VIO_Real centroid[]);
+int check_and_mark_flag(VIO_Volume flag_volume, int *index);
+void allocate_flag_volume(VIO_Volume flag_volume, int *current);
 void reset_vqueue(VoxelQueue *voxel_queue);
 void delete_vqueue(VoxelQueue queue);
 void add_vqueue_tail(VoxelQueue queue, int coord[]);
@@ -180,7 +180,7 @@ void reset_peak_counters(PeakParams *peak_params);
 void increment_peak_counter(PeakParams *peak_params, 
                             int have_a_peak, int is_a_plateau);
 void print_peak_counters(PeakParams *peak_params);
-void log_peak_info(Volume volume, char *type, Real value, Real centroid[],
+void log_peak_info(VIO_Volume volume, char *type, VIO_Real value, VIO_Real centroid[],
                    int num_centroid_voxels);
 
 /* Globals for argument parsing */
@@ -233,14 +233,14 @@ int main(int argc, char *argv[])
 {
    char *pname;
    char *infile, *outfile;
-   Volume volume;
+   VIO_Volume volume;
    char *history;
    minc_input_options options;
    int nmax_peaks, nmin_peaks;
    Tag *max_peaks, *min_peaks, *this_tag;
    int total_ntags, itag;
-   Real volume_min, volume_max;
-   Real **output_tags;
+   VIO_Real volume_min, volume_max;
+   VIO_Real **output_tags;
    char **output_labels;
    char string[20];
 
@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
 @CREATED    : October 13, 2000
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void find_peaks(Volume volume, PeakParams *peak_params,
+void find_peaks(VIO_Volume volume, PeakParams *peak_params,
                 int *nmin, Tag **min_peaks, 
                 int *nmax, Tag **max_peaks)
 {
@@ -374,12 +374,12 @@ void find_peaks(Volume volume, PeakParams *peak_params,
    int ntags_alloc[NEXTREMES];
    int ntags_increm[NEXTREMES];
    int itag, jtag;
-   Real x_world, y_world, z_world;
-   Real value;
-   Volume flag_volume;
+   VIO_Real x_world, y_world, z_world;
+   VIO_Real value;
+   VIO_Volume flag_volume;
    int flags_alloced;
-   Real centroid[VOXEL_NDIMS];
-   progress_struct progress;
+   VIO_Real centroid[VOXEL_NDIMS];
+   VIO_progress_struct progress;
    double distance2, diff, mindist2;
 
    /* Reset peak counters */
@@ -429,7 +429,7 @@ void find_peaks(Volume volume, PeakParams *peak_params,
    /* Create but do not allocate the flag volume */
    flag_volume = copy_volume_definition_no_alloc(volume, NC_BYTE, FALSE, 
                                                  0.0, 255.0);
-   set_volume_real_range(flag_volume, (Real) 0.0, (Real) 255.0);
+   set_volume_real_range(flag_volume, (VIO_Real) 0.0, (VIO_Real) 255.0);
    flags_alloced = FALSE;
 
    /* Look for peaks, looping over all voxels */
@@ -647,15 +647,15 @@ int setup_neighbours(int offsets[][VOXEL_NDIMS])
 @CREATED    : October 13, 2000
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-Extreme_Index check_for_peak(Volume volume, int index[], int sizes[],
+Extreme_Index check_for_peak(VIO_Volume volume, int index[], int sizes[],
                              int noffsets, int offsets[][VOXEL_NDIMS],
                              PeakParams *peak_params, int include_plateau, 
-                             Real *value, 
+                             VIO_Real *value, 
                              int *num_equal_neighbours, int *equal_neighbours)
 {
    Extreme_Index extreme;
-   Real voxel_min, voxel_max;
-   Real diff, neighbour_value;
+   VIO_Real voxel_min, voxel_max;
+   VIO_Real diff, neighbour_value;
    Voxel_Index idim;
    int ioffset;
    int neighbour[VOXEL_NDIMS];
@@ -803,12 +803,12 @@ Extreme_Index check_for_peak(Volume volume, int index[], int sizes[],
 @CREATED    : October 15, 2000
 @MODIFIED   : 
 --------------------------------------------------------------------------- */
-Extreme_Index find_peak_centroid(Volume volume, 
-                                 Volume flag_volume, int *flags_alloced,
+Extreme_Index find_peak_centroid(VIO_Volume volume, 
+                                 VIO_Volume flag_volume, int *flags_alloced,
                                  int index[], int sizes[],
                                  int noffsets, int offsets[][VOXEL_NDIMS],
                                  PeakParams *peak_params, 
-                                 Real *value, Real centroid[])
+                                 VIO_Real *value, VIO_Real centroid[])
 {
    Extreme_Index extreme, this_extreme;
    int this_index[VOXEL_NDIMS];
@@ -817,7 +817,7 @@ Extreme_Index find_peak_centroid(Volume volume,
    int new_index[VOXEL_NDIMS];
    Voxel_Index idim;
    int ioffset;
-   Real this_value;
+   VIO_Real this_value;
    int num_centroid_voxels;
    int have_a_peak;
    int first_voxel;
@@ -848,13 +848,13 @@ Extreme_Index find_peak_centroid(Volume volume,
       increment counters. */
    else if (num_equal_neighbours == 0) {
       for (idim=0; idim < VOXEL_NDIMS; idim++) {
-         centroid[idim] = (Real) index[idim];
+         centroid[idim] = (VIO_Real) index[idim];
       }
       is_a_plateau = FALSE;
       increment_peak_counter(peak_params, have_a_peak, is_a_plateau);
       if (LogLevel >= HIGH_LOGGING) {
          log_peak_info(volume, 
-                       (have_a_peak ? "Point" : "False plateau"),
+                       (have_a_peak ? "VIO_Point" : "False plateau"),
                        *value, centroid, -1);
       }
       return extreme;
@@ -928,7 +928,7 @@ Extreme_Index find_peak_centroid(Volume volume,
    /* Calculate centroid */
    if (num_centroid_voxels > 0) {
       for (idim=0; idim < VOXEL_NDIMS; idim++) {
-         centroid[idim] /= (Real) num_centroid_voxels;
+         centroid[idim] /= (VIO_Real) num_centroid_voxels;
       }
    }
 
@@ -959,7 +959,7 @@ Extreme_Index find_peak_centroid(Volume volume,
 @CREATED    : October 19, 2000
 @MODIFIED   : 
 --------------------------------------------------------------------------- */
-int check_and_mark_flag(Volume flag_volume, int *index)
+int check_and_mark_flag(VIO_Volume flag_volume, int *index)
 {
    int flag;
 
@@ -978,7 +978,7 @@ int check_and_mark_flag(Volume flag_volume, int *index)
                           index[SLC], 
                           index[ROW], 
                           index[COL], 
-                          0, 0, (Real) flag);
+                          0, 0, (VIO_Real) flag);
 
    /* If we are here, then the flag was not set */
    return FALSE;
@@ -1000,10 +1000,10 @@ int check_and_mark_flag(Volume flag_volume, int *index)
 @CREATED    : October 15, 2000
 @MODIFIED   : 
 --------------------------------------------------------------------------- */
-void allocate_flag_volume(Volume flag_volume, int *current)
+void allocate_flag_volume(VIO_Volume flag_volume, int *current)
 {
-   Real *flagbuf;
-   Real flag;
+   VIO_Real *flagbuf;
+   VIO_Real flag;
    int sizes[VOXEL_NDIMS];
    int index[VOXEL_NDIMS];
    int ivox;
@@ -1021,7 +1021,7 @@ void allocate_flag_volume(Volume flag_volume, int *current)
 
    /* Get a buffer for each line and initialize it */
    flagbuf = malloc(sizeof(*flagbuf) * sizes[COL]);
-   flag = (Real) CHECKED_FLAG;
+   flag = (VIO_Real) CHECKED_FLAG;
    for (ivox=0; ivox < sizes[COL]; ivox++) 
       flagbuf[ivox] = flag;
 
@@ -1403,11 +1403,11 @@ void print_peak_counters(PeakParams *peak_params)
 @CREATED    : October 18, 2000
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void log_peak_info(Volume volume, char *type, Real value, Real centroid[],
+void log_peak_info(VIO_Volume volume, char *type, VIO_Real value, VIO_Real centroid[],
                    int num_centroid_voxels)
 {
-   Real real_value;
-   Real x_world, y_world, z_world;
+   VIO_Real real_value;
+   VIO_Real x_world, y_world, z_world;
 
    real_value = convert_voxel_to_value(volume, value);
    convert_3D_voxel_to_world(volume, 

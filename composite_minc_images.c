@@ -8,13 +8,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume             volume1, volume2;
-    STRING             input_filename1, input_filename2, output_filename;
-    STRING             method;
+    VIO_Volume             volume1, volume2;
+    VIO_STR             input_filename1, input_filename2, output_filename;
+    VIO_STR             method;
     int                x, y;
-    int                sizes[MAX_DIMENSIONS];
-    int                sizes2[MAX_DIMENSIONS];
-    STRING             dim_names4d[] = {
+    int                sizes[VIO_MAX_DIMENSIONS];
+    int                sizes2[VIO_MAX_DIMENSIONS];
+    VIO_STR             dim_names4d[] = {
                                          MIzspace,
                                          MIxspace,
                                          MIyspace,

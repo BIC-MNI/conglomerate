@@ -1,18 +1,18 @@
 #include  <volume_io.h>
 #include  <deform.h>
 
-private  BOOLEAN  voxel_might_contain_boundary(
-    Volume                      volume,
+static  BOOLEAN  voxel_might_contain_boundary(
+    VIO_Volume                      volume,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
     int                         degrees_continuity,
     int                         voxel_indices[],
     boundary_definition_struct  *boundary_def );
 
-private  BOOLEAN  check_voxel_for_isovalue(
+static  BOOLEAN  check_voxel_for_isovalue(
     voxel_coef_struct   *lookup,
-    Volume              volume,
-    Volume              label_volume,
+    VIO_Volume              volume,
+    VIO_Volume              label_volume,
     int                 degrees_continuity,
     int                 voxel_indices[],
     Real                line_origin[],
@@ -25,10 +25,10 @@ private  BOOLEAN  check_voxel_for_isovalue(
     BOOLEAN             already_found,
     Real                *dist_found );
 
-private  BOOLEAN  check_voxel_for_boundary(
+static  BOOLEAN  check_voxel_for_boundary(
     voxel_coef_struct           *lookup,
-    Volume                      volume,
-    Volume                      label_volume,
+    VIO_Volume                      volume,
+    VIO_Volume                      label_volume,
     int                         degrees_continuity,
     int                         voxel_indices[],
     Real                        line_origin[],
@@ -48,17 +48,17 @@ private  BOOLEAN  check_voxel_for_boundary(
         (result)[Z] = (origin)[Z] + (dist) * (direction)[Z]; \
     }
 
-private  void  clip_line_to_volume(
-    Volume     volume,
+static  void  clip_line_to_volume(
+    VIO_Volume     volume,
     int        degrees_continuity,
     Real       line_origin[],
     Real       line_direction[],
     Real       *t_min,
     Real       *t_max )
 {
-    int    sizes[N_DIMENSIONS];
-    Point  origin;
-    Vector direction;
+    int    sizes[VIO_N_DIMENSIONS];
+    VIO_Point  origin;
+    VIO_Vector direction;
 
     get_volume_sizes( volume, sizes );
 
@@ -76,8 +76,8 @@ private  void  clip_line_to_volume(
                              t_min, t_max );
 }
 
-private  void  set_up_to_search_ray(
-    Volume                      volume,
+static  void  set_up_to_search_ray(
+    VIO_Volume                      volume,
     int                         degrees_continuity,
     Real                        ray_origin[],
     Real                        unit_pos_dir[],
@@ -89,16 +89,16 @@ private  void  set_up_to_search_ray(
     Real                        direction[],
     Real                        *current_distance,
     Real                        *stop_distance,
-    Real                        next_distance[N_DIMENSIONS],
-    Real                        delta_distance[N_DIMENSIONS],
-    int                         voxel_index[N_DIMENSIONS],
-    int                         delta_voxel[N_DIMENSIONS],
+    Real                        next_distance[VIO_N_DIMENSIONS],
+    Real                        delta_distance[VIO_N_DIMENSIONS],
+    int                         voxel_index[VIO_N_DIMENSIONS],
+    int                         delta_voxel[VIO_N_DIMENSIONS],
     Real                        *next_closest_distance )
 {
     BOOLEAN       found_exit;
     Real          voxel_exit, t_min, t_max, voxel_offset;
     Real          direct;
-    Real          start_voxel[N_DIMENSIONS], model_point[N_DIMENSIONS];
+    Real          start_voxel[VIO_N_DIMENSIONS], model_point[VIO_N_DIMENSIONS];
     Real          *dir;
 
     if( model_dist + start_dist < 0.0 || model_dist + end_dist < 0.0 )
@@ -132,10 +132,10 @@ private  void  set_up_to_search_ray(
     clip_line_to_volume( volume, degrees_continuity,
                          origin, direction, &t_min, &t_max );
 
-    *current_distance = FABS(start_dist);
+    *current_distance = VIO_FABS(start_dist);
     if( t_min > *current_distance )
         *current_distance = t_min;
-    *stop_distance = FABS(end_dist);
+    *stop_distance = VIO_FABS(end_dist);
     if( t_max < *stop_distance )
         *stop_distance = t_max;
 
@@ -259,37 +259,37 @@ private  void  set_up_to_search_ray(
 static  int  count = 0;
 #endif
 
-public  BOOLEAN  find_boundary_in_direction(
-    Volume                      volume,
-    Volume                      label_volume,
+  BOOLEAN  find_boundary_in_direction(
+    VIO_Volume                      volume,
+    VIO_Volume                      label_volume,
     voxel_coef_struct           *lookup,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
     Real                        model_dist,
-    Point                       *ray_origin,
-    Vector                      *unit_pos_dir,
-    Vector                      *unit_neg_dir,
+    VIO_Point                       *ray_origin,
+    VIO_Vector                      *unit_pos_dir,
+    VIO_Vector                      *unit_neg_dir,
     Real                        max_outwards_search_distance,
     Real                        max_inwards_search_distance,
     int                         degrees_continuity,
     boundary_definition_struct  *boundary_def,
     Real                        *boundary_distance )
 {
-    private const Real  TOLERANCE = 0.0001;
+    static const Real  TOLERANCE = 0.0001;
     BOOLEAN       found, done0, done1, second_leg0, second_leg1, isovalue;
     Real          next_closest0, next_closest1;
-    int           voxel_index0[N_DIMENSIONS], voxel_index1[N_DIMENSIONS];
-    int           delta_voxel0[N_DIMENSIONS], delta_voxel1[N_DIMENSIONS];
+    int           voxel_index0[VIO_N_DIMENSIONS], voxel_index1[VIO_N_DIMENSIONS];
+    int           delta_voxel0[VIO_N_DIMENSIONS], delta_voxel1[VIO_N_DIMENSIONS];
     Real          current_distance0, current_distance1;
-    Real          next_distance0[N_DIMENSIONS], next_distance1[N_DIMENSIONS];
+    Real          next_distance0[VIO_N_DIMENSIONS], next_distance1[VIO_N_DIMENSIONS];
     Real          stop_distance0, stop_distance1;
-    Real          delta_distance0[N_DIMENSIONS], delta_distance1[N_DIMENSIONS];
+    Real          delta_distance0[VIO_N_DIMENSIONS], delta_distance1[VIO_N_DIMENSIONS];
     Real          max_dist, found_dist;
-    Real          ray_origin_real[N_DIMENSIONS];
-    Real          unit_pos[N_DIMENSIONS], unit_neg[N_DIMENSIONS];
+    Real          ray_origin_real[VIO_N_DIMENSIONS];
+    Real          unit_pos[VIO_N_DIMENSIONS], unit_neg[VIO_N_DIMENSIONS];
     BOOLEAN       inside_surface0, inside_surface1, do_first;
-    Real          origin0[N_DIMENSIONS], origin1[N_DIMENSIONS];
-    Real          direction0[N_DIMENSIONS], direction1[N_DIMENSIONS];
+    Real          origin0[VIO_N_DIMENSIONS], origin1[VIO_N_DIMENSIONS];
+    Real          direction0[VIO_N_DIMENSIONS], direction1[VIO_N_DIMENSIONS];
 
 #ifdef DEBUGGING
     {
@@ -379,8 +379,8 @@ public  BOOLEAN  find_boundary_in_direction(
 
     if( boundary_def->min_isovalue != boundary_def->max_isovalue )
     {
-        Vector   world_direction;
-        Real     point[N_DIMENSIONS];
+        VIO_Vector   world_direction;
+        Real     point[VIO_N_DIMENSIONS];
         Real     vx, vy, vz;
 
         isovalue = FALSE;
@@ -585,8 +585,8 @@ public  BOOLEAN  find_boundary_in_direction(
         }
 
         if( found &&
-            (done0 || FABS(*boundary_distance) <= current_distance0) &&
-            (done1 || FABS(*boundary_distance) <= current_distance1) )
+            (done0 || VIO_FABS(*boundary_distance) <= current_distance0) &&
+            (done1 || VIO_FABS(*boundary_distance) <= current_distance1) )
         {
             break;
         }
@@ -595,7 +595,7 @@ public  BOOLEAN  find_boundary_in_direction(
     return( found );
 }
 
-private  void   get_trilinear_gradient(
+static  void   get_trilinear_gradient(
     Real   coefs[],
     Real   u,
     Real   v,
@@ -646,10 +646,10 @@ private  void   get_trilinear_gradient(
 
 #define  MAX_DERIVS   2
 
-private  BOOLEAN  check_voxel_for_isovalue(
+static  BOOLEAN  check_voxel_for_isovalue(
     voxel_coef_struct   *lookup,
-    Volume              volume,
-    Volume              label_volume,
+    VIO_Volume              volume,
+    VIO_Volume              label_volume,
     int                 degrees_continuity,
     int                 voxel_indices[],
     Real                line_origin[],
@@ -664,8 +664,8 @@ private  BOOLEAN  check_voxel_for_isovalue(
 {
     BOOLEAN         found;
     int             i;
-    Real            value, dot_prod, voxel[N_DIMENSIONS];
-    Real            first_deriv[N_DIMENSIONS], *first_deriv_ptr[1];
+    Real            value, dot_prod, voxel[VIO_N_DIMENSIONS];
+    Real            first_deriv[VIO_N_DIMENSIONS], *first_deriv_ptr[1];
     BOOLEAN         active, deriv_dir_correct;
     int             n_boundaries;
     Real            boundary_positions[3];
@@ -692,7 +692,7 @@ private  BOOLEAN  check_voxel_for_isovalue(
 
     for_less( i, 0, n_boundaries )
     {
-        if( (!already_found || boundary_positions[i]< FABS(*dist_found)) )
+        if( (!already_found || boundary_positions[i]< VIO_FABS(*dist_found)) )
         {
             GET_RAY_POINT( voxel, line_origin, line_direction,
                            boundary_positions[i] );
@@ -746,14 +746,14 @@ private  BOOLEAN  check_voxel_for_isovalue(
     return( found );
 }
 
-private  BOOLEAN  does_voxel_contain_value_range(
-    Volume          volume,
+static  BOOLEAN  does_voxel_contain_value_range(
+    VIO_Volume          volume,
     int             degrees_continuity,
     int             voxel[],
     Real            min_value,
     Real            max_value )
 {
-    int      dim, i, n_values, start, end, sizes[MAX_DIMENSIONS];
+    int      dim, i, n_values, start, end, sizes[VIO_MAX_DIMENSIONS];
     BOOLEAN  greater, less;
     Real     values[4*4*4];
 
@@ -799,7 +799,7 @@ private  BOOLEAN  does_voxel_contain_value_range(
     start = -(degrees_continuity + 1) / 2;
     end = start + degrees_continuity + 2;
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         if( voxel[dim] + start < 0 || voxel[dim] + end > sizes[dim] )
             return( FALSE );
@@ -838,8 +838,8 @@ private  BOOLEAN  does_voxel_contain_value_range(
     return( FALSE );
 }
 
-private  BOOLEAN  voxel_might_contain_boundary(
-    Volume                      volume,
+static  BOOLEAN  voxel_might_contain_boundary(
+    VIO_Volume                      volume,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
     int                         degrees_continuity,
@@ -885,10 +885,10 @@ private  BOOLEAN  voxel_might_contain_boundary(
     return( TRUE );
 }
 
-private  BOOLEAN  check_voxel_for_boundary(
+static  BOOLEAN  check_voxel_for_boundary(
     voxel_coef_struct           *lookup,
-    Volume                      volume,
-    Volume                      label_volume,
+    VIO_Volume                      volume,
+    VIO_Volume                      label_volume,
     int                         degrees_continuity,
     int                         voxel_indices[],
     Real                        line_origin[],
@@ -905,8 +905,8 @@ private  BOOLEAN  check_voxel_for_boundary(
     int             degrees;
     Real            line_poly[10], value, vx, vy, vz;
     Real            t, increment, t_min, t_max;
-    Vector          direction;
-    Real            surface[N_DIMENSIONS];
+    VIO_Vector          direction;
+    Real            surface[VIO_N_DIMENSIONS];
     Real            coefs[(2+MAX_DERIVS)*(2+MAX_DERIVS)*(2+MAX_DERIVS)];
 
     found = FALSE;
@@ -928,7 +928,7 @@ private  BOOLEAN  check_voxel_for_boundary(
     {
         if( *inside_surface )
         {
-            if( !already_found || min_line_t < FABS(*dist_found) )
+            if( !already_found || min_line_t < VIO_FABS(*dist_found) )
             {
                 if( searching_inwards )
                     *dist_found = -min_line_t;
@@ -964,7 +964,7 @@ private  BOOLEAN  check_voxel_for_boundary(
 
         if( inside != *inside_surface )
         {
-            if( !already_found || min_line_t < FABS(*dist_found) )
+            if( !already_found || min_line_t < VIO_FABS(*dist_found) )
             {
                 if( searching_inwards )
                     *dist_found = -min_line_t;
@@ -1008,7 +1008,7 @@ private  BOOLEAN  check_voxel_for_boundary(
 
         if( inside != prev_inside )
         {
-            if( !already_found || t < FABS(*dist_found) )
+            if( !already_found || t < VIO_FABS(*dist_found) )
             {
                 if( searching_inwards )
                     *dist_found = -t;

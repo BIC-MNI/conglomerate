@@ -4,7 +4,7 @@
 
 /*------------------------ basic stuff -----------*/
 
-public  void  tri_mesh_initialize(
+  void  tri_mesh_initialize(
     tri_mesh_struct  *mesh )
 {
     mesh->n_triangles = 0;
@@ -13,13 +13,13 @@ public  void  tri_mesh_initialize(
     mesh->edge_lookup_initialized = FALSE;
 }
 
-public  int  tri_mesh_get_n_points(
+  int  tri_mesh_get_n_points(
     tri_mesh_struct  *mesh )
 {
     return( mesh->n_points );
 }
 
-private  tri_node_struct  *create_tri_leaf(
+static  tri_node_struct  *create_tri_leaf(
     int              p0,
     int              p1,
     int              p2 )
@@ -39,7 +39,7 @@ private  tri_node_struct  *create_tri_leaf(
     return( node );
 }
 
-private  void  delete_tri_node(
+static  void  delete_tri_node(
     tri_node_struct  *node )
 {
     if( node->children[0] != NULL )
@@ -53,7 +53,7 @@ private  void  delete_tri_node(
     FREE( node );
 }
 
-private  void  tri_mesh_insert_triangle(
+static  void  tri_mesh_insert_triangle(
     tri_mesh_struct  *mesh,
     int              p0,
     int              p1,
@@ -73,23 +73,23 @@ private  void  tri_mesh_insert_triangle(
                           DEFAULT_CHUNK_SIZE );
 }
 
-private  int  tri_mesh_insert_point(
+static  int  tri_mesh_insert_point(
     tri_mesh_struct  *mesh,
-    Point            *point,
+    VIO_Point            *point,
     BOOLEAN          active_flag )
 {
     ADD_ELEMENT_TO_ARRAY( mesh->points, mesh->n_points, *point,
                           DEFAULT_CHUNK_SIZE )
     --mesh->n_points;
     ADD_ELEMENT_TO_ARRAY( mesh->active_flags, mesh->n_points,
-                          (Smallest_int) active_flag, DEFAULT_CHUNK_SIZE )
+                          (VIO_SCHAR) active_flag, DEFAULT_CHUNK_SIZE )
 
     return( mesh->n_points-1 );
 }
 
-private  Status  output_tri_node(
+static  VIO_Status  output_tri_node(
     FILE             *file,
-    File_formats     format,
+    VIO_File_formats     format,
     tri_node_struct  *node )
 {
     int      child, *list;
@@ -114,9 +114,9 @@ private  Status  output_tri_node(
     return( OK );
 }
 
-public  Status  tri_mesh_output(
-    STRING         filename,
-    File_formats   format,
+  VIO_Status  tri_mesh_output(
+    VIO_STR         filename,
+    VIO_File_formats   format,
     tri_mesh_struct  *mesh )
 {
     FILE     *file;
@@ -156,9 +156,9 @@ public  Status  tri_mesh_output(
     return( OK );
 }
 
-private  Status  input_tri_node(
+static  VIO_Status  input_tri_node(
     FILE             *file,
-    File_formats     format,
+    VIO_File_formats     format,
     tri_mesh_struct  *mesh,
     tri_node_struct  *node )
 {
@@ -197,10 +197,10 @@ private  Status  input_tri_node(
     return( OK );
 }
 
-public  BOOLEAN  tri_mesh_set_points(
+  BOOLEAN  tri_mesh_set_points(
     tri_mesh_struct  *mesh,
     int              n_points,
-    Point            points[] )
+    VIO_Point            points[] )
 {
     int   point;
 
@@ -216,9 +216,9 @@ public  BOOLEAN  tri_mesh_set_points(
     return( TRUE );
 }
 
-private  Status  input_tri_mesh_format(
-    STRING           filename,
-    File_formats     format,
+static  VIO_Status  input_tri_mesh_format(
+    VIO_STR           filename,
+    VIO_File_formats     format,
     tri_mesh_struct  *mesh )
 {
     FILE     *file;
@@ -251,7 +251,7 @@ private  Status  input_tri_mesh_format(
         if( io_boolean( file, READ_FILE, format, &flag ) != OK )
             return( ERROR );
 
-        mesh->active_flags[point] = (Smallest_int) flag;
+        mesh->active_flags[point] = (VIO_SCHAR) flag;
     }
 
     SET_ARRAY_SIZE( mesh->triangles, 0, mesh->n_triangles, DEFAULT_CHUNK_SIZE );
@@ -267,12 +267,12 @@ private  Status  input_tri_mesh_format(
     return( OK );
 }
 
-public  Status  tri_mesh_input(
-    STRING           filename,
-    File_formats     format,
+  VIO_Status  tri_mesh_input(
+    VIO_STR           filename,
+    VIO_File_formats     format,
     tri_mesh_struct  *mesh )
 {
-    Status         status;
+    VIO_Status         status;
     int            n_objects;
     object_struct  **objects;
 
@@ -300,7 +300,7 @@ public  Status  tri_mesh_input(
 
 /*--------------- edge point lookup ------------------------------- */
 
-private  void  insert_edge_midpoint(
+static  void  insert_edge_midpoint(
     hash2_table_struct      *edge_lookup,
     int                     p0,
     int                     p1,
@@ -317,7 +317,7 @@ private  void  insert_edge_midpoint(
     insert_in_hash2_table( edge_lookup, k0, k1, (void *) &midpoint );
 }
 
-private  BOOLEAN  lookup_edge_midpoint(
+static  BOOLEAN  lookup_edge_midpoint(
     hash2_table_struct    *edge_lookup,
     int                   p0,
     int                   p1,
@@ -331,7 +331,7 @@ private  BOOLEAN  lookup_edge_midpoint(
     return( lookup_in_hash2_table( edge_lookup, k0, k1, (void *) midpoint ) );
 }
 
-private  void   insert_edge_points(
+static  void   insert_edge_points(
     hash2_table_struct       *edge_lookup,
     tri_node_struct          *node )
 {
@@ -351,7 +351,7 @@ private  void   insert_edge_points(
     insert_edge_points( edge_lookup, node->children[3] );
 }
 
-public  void  tri_mesh_delete_edge_lookup(
+  void  tri_mesh_delete_edge_lookup(
     tri_mesh_struct     *mesh )
 {
     if( mesh->edge_lookup_initialized )
@@ -360,7 +360,7 @@ public  void  tri_mesh_delete_edge_lookup(
     mesh->edge_lookup_initialized = FALSE;
 }
 
-public  void  tri_mesh_create_edge_lookup(
+  void  tri_mesh_create_edge_lookup(
     tri_mesh_struct     *mesh )
 {
     int   tri;
@@ -376,7 +376,7 @@ public  void  tri_mesh_create_edge_lookup(
     mesh->edge_lookup_initialized = TRUE;
 }
 
-private  void  recursive_delete_tri_mesh(
+static  void  recursive_delete_tri_mesh(
     tri_node_struct  *node )
 {
     if( node == NULL )
@@ -390,7 +390,7 @@ private  void  recursive_delete_tri_mesh(
     FREE( node );
 }
 
-public  void  tri_mesh_delete(
+  void  tri_mesh_delete(
     tri_mesh_struct  *mesh )
 {
     int   tri;
@@ -412,21 +412,21 @@ public  void  tri_mesh_delete(
     }
 }
 
-private  void  check_edge_lookup_created(
+static  void  check_edge_lookup_created(
     tri_mesh_struct     *mesh )
 {
     if( !mesh->edge_lookup_initialized )
         tri_mesh_create_edge_lookup( mesh );
 }
 
-private  int  get_edge_midpoint(
+static  int  get_edge_midpoint(
     tri_mesh_struct      *mesh,
     int                  p0,
     int                  p1,
     BOOLEAN              active_flag )
 {
     int     midpoint;
-    Point   mid;
+    VIO_Point   mid;
     int     k0, k1;
 
     check_edge_lookup_created( mesh );
@@ -435,7 +435,7 @@ private  int  get_edge_midpoint(
 
     if( lookup_edge_midpoint( &mesh->edge_lookup, p0, p1, (void *) &midpoint ) )
     {
-        mesh->active_flags[midpoint] = (Smallest_int) active_flag;
+        mesh->active_flags[midpoint] = (VIO_SCHAR) active_flag;
         return( midpoint );
     }
 
@@ -453,7 +453,7 @@ private  int  get_edge_midpoint(
 
 /*------------------------------- subdivide ----------------------------- */
 
-private  void  subdivide_tri_node(
+static  void  subdivide_tri_node(
     tri_mesh_struct    *mesh,
     tri_node_struct    *node,
     BOOLEAN            active_flag )
@@ -479,7 +479,7 @@ private  void  subdivide_tri_node(
 
 /*----------------- removing unused nodes ------------------------ */
 
-private  void   mark_points_used(
+static  void   mark_points_used(
     tri_node_struct  *node,
     int              used[] )
 {
@@ -496,7 +496,7 @@ private  void   mark_points_used(
     }
 }
 
-private  void   renumber_points(
+static  void   renumber_points(
     tri_node_struct  *node,
     int              new_id[] )
 {
@@ -513,7 +513,7 @@ private  void   renumber_points(
     }
 }
 
-public  void   tri_mesh_delete_unused_nodes(
+  void   tri_mesh_delete_unused_nodes(
     tri_mesh_struct  *mesh )
 {
     int   *new_id, point, tri, new_n_points;
@@ -570,7 +570,7 @@ public  void   tri_mesh_delete_unused_nodes(
 
 /*------------------------ reorder triangles ------------------------- */
 
-private  void  reorder_triangles(
+static  void  reorder_triangles(
     tri_node_struct  *node,
     int              index )
 {
@@ -630,7 +630,7 @@ private  void  reorder_triangles(
     }
 }
 
-public  void   tri_mesh_convert_from_polygons(
+  void   tri_mesh_convert_from_polygons(
     polygons_struct  *polygons,
     tri_mesh_struct  *mesh )
 {
@@ -759,7 +759,7 @@ public  void   tri_mesh_convert_from_polygons(
 
 /* ------------------------------------------------------ */
 
-private  void   add_to_polygons(
+static  void   add_to_polygons(
     tri_mesh_struct          *mesh,
     int                      *end_indices[],
     int                      *poly,
@@ -845,7 +845,7 @@ private  void   add_to_polygons(
     }
 }
 
-public   void   tri_mesh_convert_to_polygons(
+   void   tri_mesh_convert_to_polygons(
     tri_mesh_struct   *mesh,
     polygons_struct   *polygons )
 {
@@ -883,12 +883,12 @@ public   void   tri_mesh_convert_to_polygons(
 
 /*----------------------------------------------------------- */
 
-private  Real  get_triangle_size(
-    Point   *p1,
-    Point   *p2,
-    Point   *p3 )
+static  VIO_Real  get_triangle_size(
+    VIO_Point   *p1,
+    VIO_Point   *p2,
+    VIO_Point   *p3 )
 {
-    Real  dist1, dist2, dist3;
+    VIO_Real  dist1, dist2, dist3;
 
     dist1 = sq_distance_between_points( p1, p2 );
     dist2 = sq_distance_between_points( p2, p3 );
@@ -897,18 +897,18 @@ private  Real  get_triangle_size(
     return( MAX3( dist1, dist2, dist3 ) );
 }
 
-private  void   coalesce_on_node_values(
+static  void   coalesce_on_node_values(
     tri_mesh_struct    *mesh,
     tri_node_struct    *node,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               min_size_sq,
-    Real               max_size_sq )
+    VIO_Real               values[],
+    VIO_Real               min_size_sq,
+    VIO_Real               max_size_sq )
 {
     int       i, list[6], child;
-    Real      size;
+    VIO_Real      size;
     BOOLEAN   coalesce;
 
     if( node->children[0] != NULL )
@@ -987,14 +987,14 @@ private  void   coalesce_on_node_values(
     }
 }
 
-public   void   tri_mesh_coalesce_triangles(
+   void   tri_mesh_coalesce_triangles(
     tri_mesh_struct    *mesh,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               min_size,
-    Real               max_size )
+    VIO_Real               values[],
+    VIO_Real               min_size,
+    VIO_Real               max_size )
 {
     int                tri;
 
@@ -1016,18 +1016,18 @@ public   void   tri_mesh_coalesce_triangles(
 
 /*------------------------ subdivide ---------------------------------- */
 
-private  void   subdivide_on_node_values(
+static  void   subdivide_on_node_values(
     tri_mesh_struct    *mesh,
     tri_node_struct    *node,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               min_size_sq,
-    Real               max_size_sq,
+    VIO_Real               values[],
+    VIO_Real               min_size_sq,
+    VIO_Real               max_size_sq,
     int                max_subdivisions )
 {
-    Real     size;
+    VIO_Real     size;
     int      child, vertex;
     BOOLEAN  subdivide_flag;
 
@@ -1073,14 +1073,14 @@ private  void   subdivide_on_node_values(
     }
 }
 
-public   void   tri_mesh_subdivide_triangles(
+   void   tri_mesh_subdivide_triangles(
     tri_mesh_struct    *mesh,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               min_size,
-    Real               max_size,
+    VIO_Real               values[],
+    VIO_Real               min_size,
+    VIO_Real               max_size,
     int                max_subdivisions )
 {
     int                tri;
@@ -1104,7 +1104,7 @@ public   void   tri_mesh_subdivide_triangles(
 
 /*------------------------ subdivide ---------------------------------- */
 
-private  void   subdivide_bordering_triangles(
+static  void   subdivide_bordering_triangles(
     tri_mesh_struct    *mesh,
     tri_node_struct    *node )
 {
@@ -1137,7 +1137,7 @@ private  void   subdivide_bordering_triangles(
     }
 }
 
-public   void   tri_mesh_subdivide_bordering_triangles(
+   void   tri_mesh_subdivide_bordering_triangles(
     tri_mesh_struct    *mesh )
 {
     int                tri;
@@ -1153,7 +1153,7 @@ public   void   tri_mesh_subdivide_bordering_triangles(
 
 /* ---------------------------------------------------------------- */
 
-private  void   count_on_level(
+static  void   count_on_level(
     tri_mesh_struct   *mesh,
     tri_node_struct   *node,
     int               *n_levels,
@@ -1182,7 +1182,7 @@ private  void   count_on_level(
     }
 }
 
-public  void  tri_mesh_print_levels(
+  void  tri_mesh_print_levels(
     tri_mesh_struct  *mesh )
 {
     int   tri, n_levels, *n_in_level, level;
@@ -1204,11 +1204,11 @@ public  void  tri_mesh_print_levels(
 
 /* ---------------------------------------------------------------- */
 
-private  Status  output_fixed_midpoints(
+static  VIO_Status  output_fixed_midpoints(
     FILE                 *file,
     hash2_table_struct   *edge_lookup,
-    Smallest_int         active_flags[],
-    Smallest_int         visited_flags[],
+    VIO_SCHAR         active_flags[],
+    VIO_SCHAR         visited_flags[],
     tri_node_struct      *node )
 {
     int   edge, p1, p2, midpoint, child;
@@ -1244,12 +1244,12 @@ private  Status  output_fixed_midpoints(
     return( OK );
 }
 
-public  Status  output_mesh_fixed_midpoints(
-    STRING           filename,
+  VIO_Status  output_mesh_fixed_midpoints(
+    VIO_STR           filename,
     tri_mesh_struct  *mesh )
 {
     int           tri, point;
-    Smallest_int  *visited_flags;
+    VIO_SCHAR  *visited_flags;
     FILE          *file;
 
     if( open_file( filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
@@ -1275,7 +1275,7 @@ public  Status  output_mesh_fixed_midpoints(
     return( OK );
 }
 
-private   void  make_meshes_same(
+static   void  make_meshes_same(
     tri_mesh_struct      *dest_mesh,
     tri_mesh_struct      *src_mesh,
     tri_node_struct      *dest_node,
@@ -1313,7 +1313,7 @@ private   void  make_meshes_same(
     }
 }
 
-private  void  tri_mesh_make_meshes_same(
+static  void  tri_mesh_make_meshes_same(
     tri_mesh_struct  *dest_mesh,
     tri_mesh_struct  *src_mesh )
 {
@@ -1333,7 +1333,7 @@ private  void  tri_mesh_make_meshes_same(
     }
 }
 
-private   void  recursive_reconcile_points(
+static   void  recursive_reconcile_points(
     tri_mesh_struct      *dest_mesh,
     tri_mesh_struct      *src_mesh,
     tri_node_struct      *dest_node,
@@ -1356,7 +1356,7 @@ private   void  recursive_reconcile_points(
                                     src_node->children[child] );
 }
 
-public  void  tri_mesh_reconcile_points(
+  void  tri_mesh_reconcile_points(
     tri_mesh_struct  *dest_mesh,
     tri_mesh_struct  *src_mesh )
 {

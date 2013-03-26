@@ -2,35 +2,35 @@
 #include  <bicpl.h>
 #include  <special_geometry.h>
 
-private  void  gaussian_blur_points(
+static  void  gaussian_blur_points(
     int               n_polygon_points,
-    Point             points[],
-    Real              values[],
+    VIO_Point             points[],
+    VIO_Real              values[],
     int               n_neighbours[],
     int               *neighbours[],
-    Smallest_int      done_flags[],
+    VIO_SCHAR      done_flags[],
     int               point_index,
-    Real              fwhm,
-    Real              dist,
-    Point             *smooth_point,
-    Real              *value );
+    VIO_Real              fwhm,
+    VIO_Real              dist,
+    VIO_Point             *smooth_point,
+    VIO_Real              *value );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename, values_filename;
+    VIO_STR           input_filename, output_filename, values_filename;
     int              n_objects, p;
     int              *n_neighbours, **neighbours;
     FILE             *file;
-    File_formats     format;
+    VIO_File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons;
-    Smallest_int     *done_flags;
-    Point            *smooth_points, point;
-    Real             fwhm, distance_ratio, *values, value, *smooth_values;
-    BOOLEAN          values_present;
-    progress_struct  progress;
+    VIO_SCHAR     *done_flags;
+    VIO_Point            *smooth_points, point;
+    VIO_Real             fwhm, distance_ratio, *values, value, *smooth_values;
+    VIO_BOOL          values_present;
+    VIO_progress_struct  progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -48,7 +48,7 @@ int  main(
     values_present = get_string_argument( NULL, &values_filename );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
     {
         print_error( "Error reading %s.\n", input_filename );
@@ -62,12 +62,12 @@ int  main(
         ALLOC( values, polygons->n_points );
         ALLOC( smooth_values, polygons->n_points );
 
-        if( open_file( values_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( values_filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
         for_less( p, 0, polygons->n_points )
         {
-            if( input_real( file, &values[p] ) != OK )
+            if( input_real( file, &values[p] ) != VIO_OK )
                 return( 1 );
         }
 
@@ -115,13 +115,13 @@ int  main(
 
     if( values_present )
     {
-        if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK)
+        if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK)
             return( 1 );
 
         for_less( p, 0, polygons->n_points )
         {
-            if( output_real( file, smooth_values[p] ) != OK ||
-                output_newline( file ) != OK )
+            if( output_real( file, smooth_values[p] ) != VIO_OK ||
+                output_newline( file ) != VIO_OK )
                 return( 1 );
         }
 
@@ -140,9 +140,9 @@ int  main(
     return( 0 );
 }
 
-private  Real  evaluate_gaussian(
-    Real   x,
-    Real   e_const )
+static  VIO_Real  evaluate_gaussian(
+    VIO_Real   x,
+    VIO_Real   e_const )
 {
     return( exp( e_const * x * x ) );
 }
@@ -151,17 +151,17 @@ private  Real  evaluate_gaussian(
 
 int  get_points_within_dist(
     int               n_polygon_points,
-    Point             polygon_points[],
+    VIO_Point             polygon_points[],
     int               n_neighbours[],
     int               *neighbours[],
-    Smallest_int      done_flags[],
+    VIO_SCHAR      done_flags[],
     int               point_index,
-    Real              dist,
+    VIO_Real              dist,
     int               points[],
-    Real              dists[] )
+    VIO_Real              dists[] )
 {
     int           current_index, n_points, p, neigh, i;
-    Real          this_dist;
+    VIO_Real          this_dist;
 
     current_index = 0;
 
@@ -202,21 +202,21 @@ int  get_points_within_dist(
     return( n_points );
 }
 
-private  void  gaussian_blur_points(
+static  void  gaussian_blur_points(
     int               n_polygon_points,
-    Point             polygon_points[],
-    Real              values[],
+    VIO_Point             polygon_points[],
+    VIO_Real              values[],
     int               n_neighbours[],
     int               *neighbours[],
-    Smallest_int      *done_flags,
+    VIO_SCHAR      *done_flags,
     int               point_index,
-    Real              fwhm,
-    Real              dist,
-    Point             *smooth_point,
-    Real              *value )
+    VIO_Real              fwhm,
+    VIO_Real              dist,
+    VIO_Point             *smooth_point,
+    VIO_Real              *value )
 {
-    Real   sum[3], weight, sum_weight, point_dist, e_const;
-    Real   *dists;
+    VIO_Real   sum[3], weight, sum_weight, point_dist, e_const;
+    VIO_Real   *dists;
     int    i, c, n_points, *points, neigh;
 
     ALLOC( points, n_polygon_points );
@@ -249,8 +249,8 @@ private  void  gaussian_blur_points(
             sum[0] += weight * values[neigh];
         else
         {
-            for_less( c, 0, N_DIMENSIONS )
-                sum[c] += weight * (Real) Point_coord(polygon_points[neigh],c);
+            for_less( c, 0, VIO_N_DIMENSIONS )
+                sum[c] += weight * (VIO_Real) Point_coord(polygon_points[neigh],c);
         }
 
         sum_weight += weight;
@@ -265,8 +265,8 @@ private  void  gaussian_blur_points(
     }
     else
     {
-        for_less( c, 0, N_DIMENSIONS )
-            Point_coord(*smooth_point,c) = (Point_coord_type) (sum[c] /
+        for_less( c, 0, VIO_N_DIMENSIONS )
+            Point_coord(*smooth_point,c) = (VIO_Point_coord_type) (sum[c] /
                                                                sum_weight);
     }
 }

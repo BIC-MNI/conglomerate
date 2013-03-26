@@ -5,20 +5,20 @@
 
 typedef  float   lsq_type;
 
-private  Real   create_surface_interpolation(
+static  VIO_Real   create_surface_interpolation(
     object_struct    *object,
     int              n_points,
-    Point            points[],
-    Real             values[],
-    Real             smoothness,
+    VIO_Point            points[],
+    VIO_Real             values[],
+    VIO_Real             smoothness,
     int              n_iters,
     BOOLEAN          node_values_initialized,
-    Real             node_values[] );
+    VIO_Real             node_values[] );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  surface.obj  xyz+values.txt output.txt  [smoothness]\n\
 \n\n";
 
@@ -29,13 +29,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               surface_filename, xyz_filename;
-    STRING               output_filename, initial_values;
-    File_formats         format;
+    VIO_STR               surface_filename, xyz_filename;
+    VIO_STR               output_filename, initial_values;
+    VIO_File_formats         format;
     FILE                 *file;
     int                  n_objects, n_points, point, n_iters;
-    Point                *points;
-    Real                 *values, value, x, y, z, *node_values, smoothness;
+    VIO_Point                *points;
+    VIO_Real                 *values, value, x, y, z, *node_values, smoothness;
     object_struct        **objects;
     polygons_struct      *polygons;
 
@@ -128,18 +128,18 @@ int  main(
     return( 0 );
 }
 
-private  void  create_coefficients(
-    Real             interp_weight,
-    Real             smooth_weight,
+static  void  create_coefficients(
+    VIO_Real             interp_weight,
+    VIO_Real             smooth_weight,
     int              n_interp_points,
-    Point            points[],
-    Real             values[],
+    VIO_Point            points[],
+    VIO_Real             values[],
     object_struct    *object,
-    Real             total_length,
+    VIO_Real             total_length,
     int              n_neighbours[],
     int              **neighbours,
-    Smallest_int     interior_flags[],
-    Real             *constant,
+    VIO_SCHAR     interior_flags[],
+    VIO_Real             *constant,
     lsq_type         *linear_terms[],
     lsq_type         *square_terms[],
     int              *n_cross_terms[],
@@ -149,13 +149,13 @@ private  void  create_coefficients(
     int              i, poly, node, p, size;
     int              n_parameters, *indices;
     polygons_struct  *polygons;
-    Point            polygon_points[MAX_POINTS_PER_POLYGON];
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             *weights, dist, avg_dist, weight;
-    Real             x_flat[MAX_POINTS_PER_POLYGON];
-    Real             y_flat[MAX_POINTS_PER_POLYGON];
-    Real             consistency_weights[MAX_POINTS_PER_POLYGON];
-    Point            point_on_surface;
+    VIO_Point            polygon_points[MAX_POINTS_PER_POLYGON];
+    VIO_Point            neigh_points[MAX_POINTS_PER_POLYGON];
+    VIO_Real             *weights, dist, avg_dist, weight;
+    VIO_Real             x_flat[MAX_POINTS_PER_POLYGON];
+    VIO_Real             y_flat[MAX_POINTS_PER_POLYGON];
+    VIO_Real             consistency_weights[MAX_POINTS_PER_POLYGON];
+    VIO_Point            point_on_surface;
 
     polygons = get_polygons_ptr( object );
 
@@ -212,7 +212,7 @@ private  void  create_coefficients(
             avg_dist += distance_between_points( &polygons->points[node],
                                                  &neigh_points[p] );
 
-        avg_dist /= (Real) n_neighbours[node];
+        avg_dist /= (VIO_Real) n_neighbours[node];
 
         weight = smooth_weight / sqrt( avg_dist / total_length );
 
@@ -233,11 +233,11 @@ private  void  create_coefficients(
             print_error( "Error in interpolation weights, using avg..\n" );
 
             for_less( p, 0, n_neighbours[node] )
-                consistency_weights[p] = 1.0 / (Real) n_neighbours[node];
+                consistency_weights[p] = 1.0 / (VIO_Real) n_neighbours[node];
         }
 #else
         for_less( p, 0, n_neighbours[node] )
-            consistency_weights[p] = 1.0 / (Real) n_neighbours[node];
+            consistency_weights[p] = 1.0 / (VIO_Real) n_neighbours[node];
 #endif
 
         for_less( p, 0, n_neighbours[node] )
@@ -260,30 +260,30 @@ private  void  create_coefficients(
                              *n_cross_terms, *cross_parms, *cross_terms );
 }
 
-private  Real   create_surface_interpolation(
+static  VIO_Real   create_surface_interpolation(
     object_struct    *object,
     int              n_interp_points,
-    Point            points[],
-    Real             values[],
-    Real             smoothness,
+    VIO_Point            points[],
+    VIO_Real             values[],
+    VIO_Real             smoothness,
     int              n_iters,
     BOOLEAN          node_values_initialized,
-    Real             node_values[] )
+    VIO_Real             node_values[] )
 {
     polygons_struct   *polygons;
-    Real              total_length, sum_x, sum_xx, variance;
-    Real              dist, interp_weight, smooth_weight, fit, constant;
+    VIO_Real              total_length, sum_x, sum_xx, variance;
+    VIO_Real              dist, interp_weight, smooth_weight, fit, constant;
     int               point, *n_point_neighbours, **point_neighbours;
     int               neigh, n_edges;
     int               n_points;
-    Smallest_int      *interior_flags;
+    VIO_SCHAR      *interior_flags;
     int               *n_cross_terms, **cross_parms;
     lsq_type          *linear_terms, *square_terms, **cross_terms;
 
     polygons = get_polygons_ptr( object );
 
     create_polygons_bintree( polygons,
-                             (int) ((Real) polygons->n_items * 0.3) );
+                             (int) ((VIO_Real) polygons->n_items * 0.3) );
 
     create_polygon_point_neighbours( polygons, FALSE, &n_point_neighbours,
                                      &point_neighbours, &interior_flags, NULL );
@@ -315,8 +315,8 @@ private  Real   create_surface_interpolation(
     if( n_interp_points == 1 )
         variance = 1.0;
     else
-        variance = (sum_xx - sum_x * sum_x / (Real) n_interp_points) /
-                   (Real) (n_interp_points - 1);
+        variance = (sum_xx - sum_x * sum_x / (VIO_Real) n_interp_points) /
+                   (VIO_Real) (n_interp_points - 1);
 
     if( variance == 0.0 )
         variance = 1.0;
@@ -324,11 +324,11 @@ private  Real   create_surface_interpolation(
     if( !node_values_initialized )
     {
         for_less( point, 0, n_points )
-            node_values[point] = sum_x / (Real) n_interp_points;
+            node_values[point] = sum_x / (VIO_Real) n_interp_points;
     }
 
-    interp_weight = 1.0 / (Real) n_interp_points / variance;
-    smooth_weight = smoothness / (Real) n_points / variance;
+    interp_weight = 1.0 / (VIO_Real) n_interp_points / variance;
+    smooth_weight = smoothness / (VIO_Real) n_points / variance;
 
     interp_weight = sqrt( interp_weight );
     smooth_weight = sqrt( smooth_weight );

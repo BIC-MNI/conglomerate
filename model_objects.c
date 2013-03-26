@@ -2,16 +2,16 @@
 #include  <deform.h>
 #include  <limits.h>
 
-private  void  set_deformation_model(
+static  void  set_deformation_model(
     deformation_model_struct  *model,
     int                       up_to_n_points,
-    Real                      model_weight,
+    VIO_Real                      model_weight,
     Deformation_model_types   model_type,
     object_struct             *model_object,
-    Real                      min_curvature_offset,
-    Real                      max_curvature_offset );
+    VIO_Real                      min_curvature_offset,
+    VIO_Real                      max_curvature_offset );
 
-public  void  initialize_deformation_model(
+  void  initialize_deformation_model(
     deformation_model_struct  *model )
 {
     model->n_models = 0;
@@ -22,7 +22,7 @@ public  void  initialize_deformation_model(
     model->position_constrained = FALSE;
 }
 
-private  void  delete_model_points(
+static  void  delete_model_points(
     deform_model_struct   *model )
 {
     if( model->n_model_points > 0 )
@@ -34,7 +34,7 @@ private  void  delete_model_points(
     }
 }
 
-private  void  delete_deform_model(
+static  void  delete_deform_model(
     deform_model_struct   *model )
 {
     if( model->model_type == GENERAL_MODEL ||
@@ -50,14 +50,14 @@ private  void  delete_deform_model(
     }
 }
 
-private  void  set_deformation_model(
+static  void  set_deformation_model(
     deformation_model_struct  *model,
     int                       up_to_n_points,
-    Real                      model_weight,
+    VIO_Real                      model_weight,
     Deformation_model_types   model_type,
     object_struct             *model_object,
-    Real                      min_curvature_offset,
-    Real                      max_curvature_offset )
+    VIO_Real                      min_curvature_offset,
+    VIO_Real                      max_curvature_offset )
 {
     int    i, model_index;
 
@@ -93,19 +93,19 @@ private  void  set_deformation_model(
         model->models[model_index].model_object = (object_struct *) NULL;
 
     model->models[model_index].n_model_points = 0;
-    model->models[model_index].model_centroids = (Point *) NULL;
-    model->models[model_index].model_normals = (Vector *) NULL;
-    model->models[model_index].model_points = (Point *) NULL;
+    model->models[model_index].model_centroids = (VIO_Point *) NULL;
+    model->models[model_index].model_normals = (VIO_Vector *) NULL;
+    model->models[model_index].model_points = (VIO_Point *) NULL;
 
     model->models[model_index].min_curvature_offset = min_curvature_offset;
     model->models[model_index].max_curvature_offset = max_curvature_offset;
 }
 
-private  void  print_deform_model(
+static  void  print_deform_model(
     deform_model_struct   *model )
 {
-    STRING  model_object_name;
-    STRING  type_name;
+    VIO_STR  model_object_name;
+    VIO_STR  type_name;
 
     switch( model->model_type )
     {
@@ -144,7 +144,7 @@ private  void  print_deform_model(
     print( "\n" );
 }
 
-public  void  print_deformation_model(
+  void  print_deformation_model(
     deformation_model_struct   *deformation_model )
 {
     int   i;
@@ -161,19 +161,19 @@ public  void  print_deformation_model(
     }
 }
 
-public  Status   add_deformation_model(
+  VIO_Status   add_deformation_model(
     deformation_model_struct   *deformation_model,
     int                        up_to_n_points,
-    Real                       model_weight,
+    VIO_Real                       model_weight,
     char                       model_filename[],
-    Real                       min_curvature_offset,
-    Real                       max_curvature_offset )
+    VIO_Real                       min_curvature_offset,
+    VIO_Real                       max_curvature_offset )
 {
-    Status                    status;
+    VIO_Status                    status;
     int                       n_objects;
     Deformation_model_types   model_type;
     object_struct             *model_object, **object_list;
-    File_formats              format;
+    VIO_File_formats              format;
 
     status = OK;
 
@@ -219,7 +219,7 @@ public  Status   add_deformation_model(
     return( status );
 }
 
-public  void  delete_deformation_model(
+  void  delete_deformation_model(
     deformation_model_struct  *model )
 {
     int   i;
@@ -234,22 +234,22 @@ public  void  delete_deformation_model(
         FREE( model->original_positions );
 }
 
-public  Status  input_original_positions(
+  VIO_Status  input_original_positions(
     deformation_model_struct  *deform_model,
     char                      position_filename[],
-    Real                      max_position_offset,
+    VIO_Real                      max_position_offset,
     int                       n_deforming_points )
 {
-    Status            status, input_status;
+    VIO_Status            status, input_status;
     int               i, n_objects, n_points;
     object_struct     **object_list;
-    File_formats      format;
-    Point             *points;
+    VIO_File_formats      format;
+    VIO_Point             *points;
     lines_struct      *lines;
     polygons_struct   *polygons;
 
     if( deform_model->position_constrained &&
-        deform_model->original_positions != (Point *) NULL )
+        deform_model->original_positions != (VIO_Point *) NULL )
         FREE( deform_model->original_positions );
 
     if( equal_strings( position_filename, "none" ) )
@@ -301,14 +301,14 @@ public  Status  input_original_positions(
     return( status );
 }
 
-private  void  compute_line_model_info(
+static  void  compute_line_model_info(
     lines_struct   *lines,
-    Point          centroids[],
-    Vector         normals[] )
+    VIO_Point          centroids[],
+    VIO_Vector         normals[] )
 {
     int      size, axis, a1, a2, start_index, end_index, vertex_index;
     int      point_index, neighbours[2], i;
-    Vector   dir_to_next;
+    VIO_Vector   dir_to_next;
     BOOLEAN  closed;
 
     axis = find_axial_plane( lines );
@@ -351,14 +351,14 @@ private  void  compute_line_model_info(
     }
 }
 
-private  void  compute_polygons_model_info(
+static  void  compute_polygons_model_info(
     polygons_struct   *polygons,
-    Point             centroids[],
-    Vector            normals[] )
+    VIO_Point             centroids[],
+    VIO_Vector            normals[] )
 {
-    Smallest_int   *points_done;
+    VIO_SCHAR   *points_done;
     int            p, size, poly, vertex_index, point_index;
-    Real           base_length, curvature;
+    VIO_Real           base_length, curvature;
 
     ALLOC( points_done, polygons->n_points );
 
@@ -391,7 +391,7 @@ private  void  compute_polygons_model_info(
     FREE( points_done );
 }
 
-private  BOOLEAN  check_correct_general_polygons(
+static  BOOLEAN  check_correct_general_polygons(
     polygons_struct      *polygons,
     deform_model_struct  *model )
 {
@@ -513,12 +513,12 @@ private  BOOLEAN  check_correct_general_polygons(
     return( TRUE );
 }
 
-private  BOOLEAN  check_correct_parametric_polygons(
+static  BOOLEAN  check_correct_parametric_polygons(
     polygons_struct       *polygons,
     deform_model_struct   *model )
 {
     int               n_up, n_model_up, n_polygon_points, n_items;
-    Point             centre;
+    VIO_Point             centre;
     BOOLEAN           model_sphere_topology, sphere_topology, correct;
     polygons_struct   *model_polygons;
 
@@ -570,12 +570,12 @@ private  BOOLEAN  check_correct_parametric_polygons(
     return( correct );
 }
 
-private  BOOLEAN  check_correct_subsampled_polygons(
+static  BOOLEAN  check_correct_subsampled_polygons(
     polygons_struct       *polygons,
     deform_model_struct   *model )
 {
     int               n_up, n_model_up, n_polygon_points, n_items;
-    Point             centre;
+    VIO_Point             centre;
     BOOLEAN           model_sphere_topology, sphere_topology;
     polygons_struct   *model_polygons;
 
@@ -625,7 +625,7 @@ private  BOOLEAN  check_correct_subsampled_polygons(
     return( TRUE );
 }
 
-private  BOOLEAN  check_correct_model_polygons(
+static  BOOLEAN  check_correct_model_polygons(
     polygons_struct       *polygons,
     deform_model_struct   *model )
 {
@@ -643,7 +643,7 @@ private  BOOLEAN  check_correct_model_polygons(
     return( correct );
 }
 
-public  BOOLEAN  check_correct_deformation_polygons(
+  BOOLEAN  check_correct_deformation_polygons(
     polygons_struct            *polygons,
     deformation_model_struct   *model )
 {
@@ -674,7 +674,7 @@ public  BOOLEAN  check_correct_deformation_polygons(
     return( model_correct );
 }
 
-private  BOOLEAN  check_correct_general_lines(
+static  BOOLEAN  check_correct_general_lines(
     lines_struct         *lines,
     deform_model_struct  *model )
 {
@@ -723,11 +723,11 @@ private  BOOLEAN  check_correct_general_lines(
     return( TRUE );
 }
 
-private  BOOLEAN  check_correct_parametric_lines(
+static  BOOLEAN  check_correct_parametric_lines(
     lines_struct          *lines,
     deform_model_struct   *model )
 {
-    Point             centre;
+    VIO_Point             centre;
     BOOLEAN           correct;
     lines_struct      *model_lines;
 
@@ -755,7 +755,7 @@ private  BOOLEAN  check_correct_parametric_lines(
     return( correct );
 }
 
-private  BOOLEAN  check_correct_model_lines(
+static  BOOLEAN  check_correct_model_lines(
     lines_struct          *lines,
     deform_model_struct   *model )
 {
@@ -771,7 +771,7 @@ private  BOOLEAN  check_correct_model_lines(
     return( correct );
 }
 
-public  BOOLEAN  check_correct_deformation_lines(
+  BOOLEAN  check_correct_deformation_lines(
     lines_struct               *lines,
     deformation_model_struct   *model )
 {
@@ -802,7 +802,7 @@ public  BOOLEAN  check_correct_deformation_lines(
     return( model_correct );
 }
 
-public  deform_model_struct  *find_relevent_model(
+  deform_model_struct  *find_relevent_model(
     deformation_model_struct  *model,
     int                       point_index )
 {

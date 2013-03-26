@@ -5,15 +5,15 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, input_tags;
-    Volume               volume;
-    Real                 y_min, y_max, y_step;
+    VIO_STR               volume_filename, input_tags;
+    VIO_Volume               volume;
+    VIO_Real                 y_min, y_max, y_step;
     int                  i;
     int                  min_step, max_step, n_steps, *counts;
     int                  n_volumes, n_tag_points, step;
-    Real                 **tags_volume1, **tags_volume2;
-    Real                 voxel_volume;
-    Real                 separations[N_DIMENSIONS];
+    VIO_Real                 **tags_volume1, **tags_volume2;
+    VIO_Real                 voxel_volume;
+    VIO_Real                 separations[VIO_N_DIMENSIONS];
     volume_input_struct  volume_input;
 
     initialize_argument_processing( argc, argv );
@@ -42,9 +42,9 @@ int  main(
                         NULL, NULL, NULL, NULL ) != OK )
         return( 1 );
 
-    min_step = FLOOR( y_min / y_step );
-    max_step = FLOOR( y_max / y_step );
-    if( (Real) max_step * y_step == y_max )
+    min_step = VIO_FLOOR( y_min / y_step );
+    max_step = VIO_FLOOR( y_max / y_step );
+    if( (VIO_Real) max_step * y_step == y_max )
         --max_step;
 
     n_steps = max_step - min_step + 1;
@@ -57,7 +57,7 @@ int  main(
 
     for_less( i, 0, n_tag_points )
     {
-        step = FLOOR( tags_volume1[i][Y] / y_step ) - min_step;
+        step = VIO_FLOOR( tags_volume1[i][Y] / y_step ) - min_step;
         if( step < 0 || step >= n_steps )
             print_error( "Error in file: %s  at %d'th point\n", input_tags, i );
         else
@@ -67,7 +67,7 @@ int  main(
     voxel_volume = separations[X] * separations[Y] * separations[Z];
 
     for_less( step, 0, n_steps )
-        print( " %g", voxel_volume * (Real) counts[step] );
+        print( " %g", voxel_volume * (VIO_Real) counts[step] );
     print( "\n" );
 
     return( 0 );

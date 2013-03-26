@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  labels.mnc [min_value max_value]\n\
 \n\
      Displays a count of the number of voxels of the different labels in the\n\
@@ -17,12 +17,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename;
-    Real                 min_volume, max_volume;
-    Real                 min_value, max_value, label;
+    VIO_STR               volume_filename;
+    VIO_Real                 min_volume, max_volume;
+    VIO_Real                 min_value, max_value, label;
     int                  v0, v1, v2, v3, v4, n_labels;
     int                  i, *counts;
-    Volume               volume;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -42,7 +42,7 @@ int  main(
 
     get_volume_real_range( volume, &min_volume, &max_volume );
 
-    n_labels = ROUND( max_volume ) - ROUND( min_volume ) + 1;
+    n_labels = VIO_ROUND( max_volume ) - VIO_ROUND( min_volume ) + 1;
 
     ALLOC( counts, n_labels );
 
@@ -51,15 +51,15 @@ int  main(
 
     BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
         label = get_volume_real_value( volume, v0, v1, v2, v3, v4 );
-        ++counts[ROUND(label) - ROUND(min_volume)];
+        ++counts[VIO_ROUND(label) - VIO_ROUND(min_volume)];
     END_ALL_VOXELS
 
-    for_inclusive( i, ROUND(min_volume), ROUND(max_volume) )
+    for_inclusive( i, VIO_ROUND(min_volume), VIO_ROUND(max_volume) )
     {
-        if( i == 0 || counts[i-ROUND(min_volume)] == 0 )
+        if( i == 0 || counts[i-VIO_ROUND(min_volume)] == 0 )
             continue;
 
-        print( "Label: %d %d\n", i, counts[i-ROUND(min_volume)] );
+        print( "Label: %d %d\n", i, counts[i-VIO_ROUND(min_volume)] );
     }
 
     FREE( counts );

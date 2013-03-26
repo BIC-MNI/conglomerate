@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input1.mnc  output.xfm\n\
 \n\
      Dumps the voxel-to-world transform to a file.\n";
@@ -16,9 +16,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, output_filename;
-    char                 comment[EXTREMELY_LARGE_STRING_SIZE];
-    Volume               volume;
+    VIO_STR               volume_filename, output_filename;
+    char                 comment[VIO_EXTREMELY_LARGE_STRING_SIZE];
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 

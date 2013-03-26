@@ -16,15 +16,15 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Volume               volume;
-    STRING               input_filename, output_filename;
-    STRING               volume_filename;
+    VIO_Volume               volume;
+    VIO_STR               input_filename, output_filename;
+    VIO_STR               volume_filename;
     int                  i, n_objects, p, n_points, degree, n_values;
-    int                  dim, sizes[MAX_DIMENSIONS];
+    int                  dim, sizes[VIO_MAX_DIMENSIONS];
     Real                 *values, *evaluate_values;
-    Real                 xyz_voxel[N_DIMENSIONS], voxel[MAX_DIMENSIONS];
-    Point                *points;
-    File_formats         format, output_format;
+    Real                 xyz_voxel[VIO_N_DIMENSIONS], voxel[VIO_MAX_DIMENSIONS];
+    VIO_Point                *points;
+    VIO_File_formats         format, output_format;
     object_struct        **object_list;
 
     initialize_argument_processing( argc, argv );

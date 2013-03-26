@@ -6,28 +6,28 @@
 
 typedef  float  dtype;
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
-    Point            init_points[],
-    Real             centroid_weight,
-    Real             sphere_weight,
+    VIO_Point            init_points[],
+    VIO_Real             centroid_weight,
+    VIO_Real             sphere_weight,
     int              n_iters );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, initial_filename;
+    VIO_STR               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
     int                  *n_neighbours, **neighbours, n_points;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons, p;
-    Point                *init_points, *points;
-    Real                 sphere_weight, centroid_weight;
+    VIO_Point                *init_points, *points;
+    VIO_Real                 sphere_weight, centroid_weight;
 
     initialize_argument_processing( argc, argv );
 
@@ -98,19 +98,19 @@ int  main(
     return( 0 );
 }
 
-private  Real  evaluate_fit(
+static  VIO_Real  evaluate_fit(
     int     n_parameters,
     dtype   parameters[],
     dtype   distances[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    centroid_weight,
+    VIO_Real    centroid_weight,
     dtype   centroid_weights[],
-    Real    sphere_weight )
+    VIO_Real    sphere_weight )
 {
     int    p, n_points, ind, n, neigh;
-    Real   fit, dx, dy, dz, dist, diff, act_dist, radius;
-    Real   xc, yc, zc, x, y, z, weight;
+    VIO_Real   fit, dx, dy, dz, dist, diff, act_dist, radius;
+    VIO_Real   xc, yc, zc, x, y, z, weight;
 
     fit = 0.0;
     n_points = n_parameters / 3;
@@ -124,12 +124,12 @@ private  Real  evaluate_fit(
             if( neigh < p )
                 continue;
 
-            dist = (Real) distances[ind];
+            dist = (VIO_Real) distances[ind];
             ++ind;
 
-            dx = (Real)parameters[IJ(p,0,3)] - (Real)parameters[IJ(neigh,0,3)];
-            dy = (Real)parameters[IJ(p,1,3)] - (Real)parameters[IJ(neigh,1,3)];
-            dz = (Real)parameters[IJ(p,2,3)] - (Real)parameters[IJ(neigh,2,3)];
+            dx = (VIO_Real)parameters[IJ(p,0,3)] - (VIO_Real)parameters[IJ(neigh,0,3)];
+            dy = (VIO_Real)parameters[IJ(p,1,3)] - (VIO_Real)parameters[IJ(neigh,1,3)];
+            dz = (VIO_Real)parameters[IJ(p,2,3)] - (VIO_Real)parameters[IJ(neigh,2,3)];
             act_dist = dx * dx + dy * dy + dz * dz;
             diff = dist - act_dist;
             fit += diff * diff;
@@ -147,15 +147,15 @@ private  Real  evaluate_fit(
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
-                weight = (Real) centroid_weights[ind+n];
-                xc += (Real) parameters[IJ(neigh,0,3)] * weight;
-                yc += (Real) parameters[IJ(neigh,1,3)] * weight;
-                zc += (Real) parameters[IJ(neigh,2,3)] * weight;
+                weight = (VIO_Real) centroid_weights[ind+n];
+                xc += (VIO_Real) parameters[IJ(neigh,0,3)] * weight;
+                yc += (VIO_Real) parameters[IJ(neigh,1,3)] * weight;
+                zc += (VIO_Real) parameters[IJ(neigh,2,3)] * weight;
             }
 
-            x = (Real) parameters[IJ(p,0,3)];
-            y = (Real) parameters[IJ(p,1,3)];
-            z = (Real) parameters[IJ(p,2,3)];
+            x = (VIO_Real) parameters[IJ(p,0,3)];
+            y = (VIO_Real) parameters[IJ(p,1,3)];
+            z = (VIO_Real) parameters[IJ(p,2,3)];
 
             dx = x - xc;
             dy = y - yc;
@@ -170,13 +170,13 @@ private  Real  evaluate_fit(
 
     if( sphere_weight > 0.0 )
     {
-        radius = (Real) parameters[n_parameters-1];
+        radius = (VIO_Real) parameters[n_parameters-1];
 
         for_less( p, 0, n_points )
         {
-            dx = (Real) parameters[IJ(p,0,3)];
-            dy = (Real) parameters[IJ(p,1,3)];
-            dz = (Real) parameters[IJ(p,2,3)];
+            dx = (VIO_Real) parameters[IJ(p,0,3)];
+            dy = (VIO_Real) parameters[IJ(p,1,3)];
+            dz = (VIO_Real) parameters[IJ(p,2,3)];
             act_dist = dx * dx + dy * dy + dz * dz;
             diff = radius * radius - act_dist;
             fit += sphere_weight * diff * diff;
@@ -186,22 +186,22 @@ private  Real  evaluate_fit(
     return( fit );
 }
 
-private  void  evaluate_fit_derivative(
+static  void  evaluate_fit_derivative(
     int      n_parameters,
     dtype    parameters[],
     dtype    distances[],
     int      n_neighbours[],
     int      *neighbours[],
-    Real     centroid_weight,
+    VIO_Real     centroid_weight,
     dtype    centroid_weights[],
-    Real     sphere_weight,
+    VIO_Real     sphere_weight,
     dtype    deriv[] )
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
-    Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
-    Real   x1, y1, z1, x2, y2, z2, weight, cw4;
-    Real   xc, yc, zc, x_deriv, y_deriv, z_deriv;
-    Real   x_factor, y_factor, z_factor, x_diff, y_diff, z_diff;
+    VIO_Real   dx, dy, dz, dist, diff, act_dist, radius, factor;
+    VIO_Real   x1, y1, z1, x2, y2, z2, weight, cw4;
+    VIO_Real   xc, yc, zc, x_deriv, y_deriv, z_deriv;
+    VIO_Real   x_factor, y_factor, z_factor, x_diff, y_diff, z_diff;
 #ifdef USE_CENTROID
     dtype  fx_factor, fy_factor, fz_factor;
 #endif
@@ -211,15 +211,15 @@ private  void  evaluate_fit_derivative(
 
     n_points = n_parameters / 3;
     if( sphere_weight > 0.0 )
-        radius = (Real) parameters[n_parameters-1];
+        radius = (VIO_Real) parameters[n_parameters-1];
 
     ind = 0;
     for_less( p, 0, n_points )
     {
         p_index = IJ(p,0,3);
-        x1 = (Real) parameters[p_index+0];
-        y1 = (Real) parameters[p_index+1];
-        z1 = (Real) parameters[p_index+2];
+        x1 = (VIO_Real) parameters[p_index+0];
+        y1 = (VIO_Real) parameters[p_index+1];
+        z1 = (VIO_Real) parameters[p_index+2];
 
         x_deriv = 0.0;
         y_deriv = 0.0;
@@ -242,17 +242,17 @@ private  void  evaluate_fit_derivative(
             if( neigh < p )
                 continue;
 
-            dist = (Real) distances[ind];
+            dist = (VIO_Real) distances[ind];
             ++ind;
 
             n_index = IJ(neigh,0,3);
-            x2 = (Real) parameters[n_index+0];
-            y2 = (Real) parameters[n_index+1];
-            z2 = (Real) parameters[n_index+2];
+            x2 = (VIO_Real) parameters[n_index+0];
+            y2 = (VIO_Real) parameters[n_index+1];
+            z2 = (VIO_Real) parameters[n_index+2];
 
-            x2 = (Real) parameters[IJ(neigh,0,3)];
-            y2 = (Real) parameters[IJ(neigh,1,3)];
-            z2 = (Real) parameters[IJ(neigh,2,3)];
+            x2 = (VIO_Real) parameters[IJ(neigh,0,3)];
+            y2 = (VIO_Real) parameters[IJ(neigh,1,3)];
+            z2 = (VIO_Real) parameters[IJ(neigh,2,3)];
             dx = x1 - x2;
             dy = y1 - y2;
             dz = z1 - z2;
@@ -281,9 +281,9 @@ private  void  evaluate_fit_derivative(
         for_less( p, 0, n_points )
         {
             p_index = IJ(p,0,3);
-            x1 = (Real) parameters[p_index+0];
-            y1 = (Real) parameters[p_index+1];
-            z1 = (Real) parameters[p_index+2];
+            x1 = (VIO_Real) parameters[p_index+0];
+            y1 = (VIO_Real) parameters[p_index+1];
+            z1 = (VIO_Real) parameters[p_index+2];
             xc = 0.0;
             yc = 0.0;
             zc = 0.0;
@@ -292,19 +292,19 @@ private  void  evaluate_fit_derivative(
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
 #ifdef USE_CENTROID
-                xc += (Real) parameters[n_index+0];
-                yc += (Real) parameters[n_index+1];
-                zc += (Real) parameters[n_index+2];
+                xc += (VIO_Real) parameters[n_index+0];
+                yc += (VIO_Real) parameters[n_index+1];
+                zc += (VIO_Real) parameters[n_index+2];
 #else
-                weight = (Real) centroid_weights[ind+n];
-                xc += (Real) parameters[n_index+0] * weight;
-                yc += (Real) parameters[n_index+1] * weight;
-                zc += (Real) parameters[n_index+2] * weight;
+                weight = (VIO_Real) centroid_weights[ind+n];
+                xc += (VIO_Real) parameters[n_index+0] * weight;
+                yc += (VIO_Real) parameters[n_index+1] * weight;
+                zc += (VIO_Real) parameters[n_index+2] * weight;
 #endif
             }
 
 #ifdef USE_CENTROID
-            weight = 1.0 / (Real) n_neighbours[p];
+            weight = 1.0 / (VIO_Real) n_neighbours[p];
             xc *= weight;
             yc *= weight;
             zc *= weight;
@@ -339,7 +339,7 @@ private  void  evaluate_fit_derivative(
                 deriv[n_index+1] += fy_factor;
                 deriv[n_index+2] += fz_factor;
 #else
-                weight = (Real) centroid_weights[ind+n];
+                weight = (VIO_Real) centroid_weights[ind+n];
                 deriv[n_index+0] += (dtype) (x_factor * weight);
                 deriv[n_index+1] += (dtype) (y_factor * weight);
                 deriv[n_index+2] += (dtype) (z_factor * weight);
@@ -351,27 +351,27 @@ private  void  evaluate_fit_derivative(
     }
 }
 
-private  void  evaluate_fit_along_line(
+static  void  evaluate_fit_along_line(
     int     n_parameters,
     dtype   parameters[],
     dtype   delta[],
     dtype   distances[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    centroid_weight,
+    VIO_Real    centroid_weight,
     dtype   centroid_weights[],
-    Real    sphere_weight,
-    Real    coefs[] )
+    VIO_Real    sphere_weight,
+    VIO_Real    coefs[] )
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
-    Real   dx, dy, dz, dr, dist, radius, radius2;
-    Real   dx1, dy1, dz1, x1, y1, z1;
-    Real   x, y, z;
-    Real   a1, b1, c1, a2, b2, c2, a3, b3, c3;
-    Real   ax, ay, az, bx, by, bz, weight;
-    Real   l0, l1, l2;
-    Real   d00, d01, d02, d11, d12, d22;
-    Real   s00, s01, s02, s11, s12, s22;
+    VIO_Real   dx, dy, dz, dr, dist, radius, radius2;
+    VIO_Real   dx1, dy1, dz1, x1, y1, z1;
+    VIO_Real   x, y, z;
+    VIO_Real   a1, b1, c1, a2, b2, c2, a3, b3, c3;
+    VIO_Real   ax, ay, az, bx, by, bz, weight;
+    VIO_Real   l0, l1, l2;
+    VIO_Real   d00, d01, d02, d11, d12, d22;
+    VIO_Real   s00, s01, s02, s11, s12, s22;
 
     d00 = 0.0;
     d01 = 0.0;
@@ -391,21 +391,21 @@ private  void  evaluate_fit_along_line(
 
     if( sphere_weight > 0.0 )
     {
-        radius = (Real) parameters[n_parameters-1];
+        radius = (VIO_Real) parameters[n_parameters-1];
         radius2 = radius * radius;
-        dr = (Real) delta[n_parameters-1];
+        dr = (VIO_Real) delta[n_parameters-1];
     }
 
     ind = 0;
     for_less( p, 0, n_points )
     {
         p_index = IJ(p,0,3);
-        x1 = (Real) parameters[p_index+0];
-        y1 = (Real) parameters[p_index+1];
-        z1 = (Real) parameters[p_index+2];
-        dx1 = (Real) delta[p_index+0];
-        dy1 = (Real) delta[p_index+1];
-        dz1 = (Real) delta[p_index+2];
+        x1 = (VIO_Real) parameters[p_index+0];
+        y1 = (VIO_Real) parameters[p_index+1];
+        z1 = (VIO_Real) parameters[p_index+2];
+        dx1 = (VIO_Real) delta[p_index+0];
+        dy1 = (VIO_Real) delta[p_index+1];
+        dz1 = (VIO_Real) delta[p_index+2];
 
         l0 = x1 * x1 + y1 * y1 + z1 * z1 - radius2;
         l1 = x1 * dx1 + y1 * dy1 + z1 * dz1 - radius * dr;
@@ -424,16 +424,16 @@ private  void  evaluate_fit_along_line(
             if( neigh < p )
                 continue;
 
-            dist = (Real) distances[ind];
+            dist = (VIO_Real) distances[ind];
             ++ind;
 
             n_index = IJ(neigh,0,3);
-            x = x1 - (Real) parameters[n_index+0];
-            y = y1 - (Real) parameters[n_index+1];
-            z = z1 - (Real) parameters[n_index+2];
-            dx = dx1 - (Real) delta[n_index+0];
-            dy = dy1 - (Real) delta[n_index+1];
-            dz = dz1 - (Real) delta[n_index+2];
+            x = x1 - (VIO_Real) parameters[n_index+0];
+            y = y1 - (VIO_Real) parameters[n_index+1];
+            z = z1 - (VIO_Real) parameters[n_index+2];
+            dx = dx1 - (VIO_Real) delta[n_index+0];
+            dy = dy1 - (VIO_Real) delta[n_index+1];
+            dz = dz1 - (VIO_Real) delta[n_index+2];
 
             l0 = x * x + y * y + z * z - dist;
             l1 = x * dx + y * dy + z * dz;
@@ -479,25 +479,25 @@ private  void  evaluate_fit_along_line(
                 neigh = neighbours[p][n];
                 n_index = IJ(neigh,0,3);
 #ifdef USE_CENTROID
-                ax += (Real)      delta[n_index+0];
-                bx += (Real) parameters[n_index+0];
-                ay += (Real)      delta[n_index+1];
-                by += (Real) parameters[n_index+1];
-                az += (Real)      delta[n_index+2];
-                bz += (Real) parameters[n_index+2];
+                ax += (VIO_Real)      delta[n_index+0];
+                bx += (VIO_Real) parameters[n_index+0];
+                ay += (VIO_Real)      delta[n_index+1];
+                by += (VIO_Real) parameters[n_index+1];
+                az += (VIO_Real)      delta[n_index+2];
+                bz += (VIO_Real) parameters[n_index+2];
 #else
-                weight = (Real) centroid_weights[ind+n];
-                ax += (Real)      delta[n_index+0] * weight;
-                bx += (Real) parameters[n_index+0] * weight;
-                ay += (Real)      delta[n_index+1] * weight;
-                by += (Real) parameters[n_index+1] * weight;
-                az += (Real)      delta[n_index+2] * weight;
-                bz += (Real) parameters[n_index+2] * weight;
+                weight = (VIO_Real) centroid_weights[ind+n];
+                ax += (VIO_Real)      delta[n_index+0] * weight;
+                bx += (VIO_Real) parameters[n_index+0] * weight;
+                ay += (VIO_Real)      delta[n_index+1] * weight;
+                by += (VIO_Real) parameters[n_index+1] * weight;
+                az += (VIO_Real)      delta[n_index+2] * weight;
+                bz += (VIO_Real) parameters[n_index+2] * weight;
 #endif
             }
 
 #ifdef USE_CENTROID
-            weight = 1.0 / (Real) n_neighbours[p];
+            weight = 1.0 / (VIO_Real) n_neighbours[p];
             ax *= weight;
             bx *= weight;
             ay *= weight;
@@ -507,12 +507,12 @@ private  void  evaluate_fit_along_line(
 #endif
 
             p_index = IJ( p, 0, 3 );
-            ax += (Real)      -delta[p_index+0];
-            bx += (Real) -parameters[p_index+0];
-            ay += (Real)      -delta[p_index+1];
-            by += (Real) -parameters[p_index+1];
-            az += (Real)      -delta[p_index+2];
-            bz += (Real) -parameters[p_index+2];
+            ax += (VIO_Real)      -delta[p_index+0];
+            bx += (VIO_Real) -parameters[p_index+0];
+            ay += (VIO_Real)      -delta[p_index+1];
+            by += (VIO_Real) -parameters[p_index+1];
+            az += (VIO_Real)      -delta[p_index+2];
+            bz += (VIO_Real) -parameters[p_index+2];
 
             a1 = ax * ax;
             b1 = ax * bx;
@@ -544,21 +544,21 @@ private  void  evaluate_fit_along_line(
     }
 }
 
-private  void  minimize_along_line(
+static  void  minimize_along_line(
     int     n_parameters,
     dtype   parameters[],
     dtype   delta[],
     dtype   distances[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    centroid_weight,
+    VIO_Real    centroid_weight,
     dtype   centroid_weights[],
-    Real    sphere_weight )
+    VIO_Real    sphere_weight )
 {
     int    p, s, n_solutions, best_index;
-    Real   coefs[5], deriv[4], *test, t, fit, best_fit, solutions[3];
+    VIO_Real   coefs[5], deriv[4], *test, t, fit, best_fit, solutions[3];
 /*
-    Real   test_fit;
+    VIO_Real   test_fit;
 */
 
     ALLOC( test, n_parameters );
@@ -569,7 +569,7 @@ private  void  minimize_along_line(
 
 
     for_less( p, 0, 4 )
-        deriv[p] = (Real) (p+1) * coefs[p+1];
+        deriv[p] = (VIO_Real) (p+1) * coefs[p+1];
 
     n_solutions = solve_cubic( deriv[3], deriv[2], deriv[1], deriv[0],
                                solutions );
@@ -617,7 +617,7 @@ private  void  minimize_along_line(
         t = solutions[best_index];
 
         for_less( p, 0, n_parameters )
-            parameters[p] = (dtype) ((Real) parameters[p] + t*(Real) delta[p]);
+            parameters[p] = (dtype) ((VIO_Real) parameters[p] + t*(VIO_Real) delta[p]);
     }
 
     if( sphere_weight > 0.0 && parameters[n_parameters-1] < (dtype) 0.0 )
@@ -626,25 +626,25 @@ private  void  minimize_along_line(
     FREE( test );
 }
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
-    Point            init_points[],
-    Real             centroid_weight,
-    Real             sphere_weight,
+    VIO_Point            init_points[],
+    VIO_Real             centroid_weight,
+    VIO_Real             sphere_weight,
     int              n_iters )
 {
     int              p, n, point, dim1, dim2, max_neighbours;
     int              n_parameters, total_neighbours, total_edges;
-    Real             gg, dgg, gam, current_time, last_update_time;
-    Real             fit;
-    Real             len, radius, *weights[3][3], *x_flat, *y_flat, *z_flat;
-    Point            centroid, *plane_points;
+    VIO_Real             gg, dgg, gam, current_time, last_update_time;
+    VIO_Real             fit;
+    VIO_Real             len, radius, *weights[3][3], *x_flat, *y_flat, *z_flat;
+    VIO_Point            centroid, *plane_points;
 #ifndef   USE_CENTROID
     int              neigh;
-    Vector           offset, normal, hor, vert;
+    VIO_Vector           offset, normal, hor, vert;
 #endif
     int              iter, ind, update_rate;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
@@ -672,7 +672,7 @@ private  void  flatten_polygons(
         {
             radius += distance_between_points( &points[point], &centroid );
         }
-        radius /= (Real) n_points;
+        radius /= (VIO_Real) n_points;
     }
 
     total_neighbours = 0;
@@ -706,7 +706,7 @@ private  void  flatten_polygons(
 #ifdef USE_CENTROID
             for_less( n, 0, n_neighbours[point] )
                 centroid_weights[ind+n] = (dtype)
-                            (1.0 / (Real) n_neighbours[point]);
+                            (1.0 / (VIO_Real) n_neighbours[point]);
 #else
             for_less( n, 0, n_neighbours[point] )
                 plane_points[n] = points[neighbours[point][n]];
@@ -787,8 +787,8 @@ private  void  flatten_polygons(
     if( sphere_weight > 0.0 )
         parameters[n_parameters-1] = (dtype) radius;
 
-    sphere_weight *= (Real) total_edges / (Real) n_points;
-    centroid_weight *= (Real) total_edges / (Real) n_points;
+    sphere_weight *= (VIO_Real) total_edges / (VIO_Real) n_points;
+    centroid_weight *= (VIO_Real) total_edges / (VIO_Real) n_points;
 
     fit = evaluate_fit( n_parameters, parameters, distances,
                         n_neighbours, neighbours,
@@ -824,11 +824,11 @@ private  void  flatten_polygons(
     {
         len = 0.0;
         for_less( p, 0, n_parameters )
-            len += (Real) xi[p] * (Real) xi[p];
+            len += (VIO_Real) xi[p] * (VIO_Real) xi[p];
 
         len = sqrt( len );
         for_less( p, 0, n_parameters )
-            unit_dir[p] = (dtype) ((Real) xi[p] / len);
+            unit_dir[p] = (dtype) ((VIO_Real) xi[p] / len);
 
         minimize_along_line( n_parameters, parameters, unit_dir, distances,
                              n_neighbours, neighbours,
@@ -842,7 +842,7 @@ private  void  flatten_polygons(
 
             print( "%d: %g", iter+1, fit );
             if( sphere_weight > 0.0 )
-                print( "\t Radius: %g", (Real) parameters[n_parameters-1] );
+                print( "\t Radius: %g", (VIO_Real) parameters[n_parameters-1] );
             print( "\n" );
 
             (void) flush_file( stdout );
@@ -872,10 +872,10 @@ private  void  flatten_polygons(
         dgg = 0.0;
         for_less( p, 0, n_parameters )
         {
-            gg += (Real) g[p] * (Real) g[p];
-            dgg += ((Real) xi[p] + (Real) g[p]) * (Real) xi[p];
+            gg += (VIO_Real) g[p] * (VIO_Real) g[p];
+            dgg += ((VIO_Real) xi[p] + (VIO_Real) g[p]) * (VIO_Real) xi[p];
 /*
-            dgg += ((Real) xi[p] * (Real) xi[p];
+            dgg += ((VIO_Real) xi[p] * (VIO_Real) xi[p];
 */
         }
 
@@ -887,7 +887,7 @@ private  void  flatten_polygons(
         for_less( p, 0, n_parameters )
         {
             g[p] = -xi[p];
-            h[p] = (dtype) ((Real) g[p] + gam * (Real) h[p]);
+            h[p] = (dtype) ((VIO_Real) g[p] + gam * (VIO_Real) h[p]);
             xi[p] = h[p];
         }
     }

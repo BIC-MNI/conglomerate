@@ -4,7 +4,7 @@
 
 #define  DEBUG
 
-private  void  create_2d_coordinates(
+static  void  create_2d_coordinates(
     polygons_struct  *polygons,
     int              north_pole );
 
@@ -12,9 +12,9 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename;
+    VIO_STR               src_filename, dest_filename;
     int                  n_objects;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
 
@@ -42,8 +42,8 @@ int  main(
 }
 
 #ifdef DEBUG
-private  void  write_values_to_file(
-    STRING  filename,
+static  void  write_values_to_file(
+    VIO_STR  filename,
     int     n_points,
     float   values[] )
 {
@@ -60,9 +60,9 @@ private  void  write_values_to_file(
 }
 #endif
 
-private  int  create_path_between_poles(
+static  int  create_path_between_poles(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
     int              north_pole,
@@ -105,7 +105,7 @@ private  int  create_path_between_poles(
     return( n_path );
 }
 
-private  int  get_polygon_containing_vertices(
+static  int  get_polygon_containing_vertices(
     polygons_struct  *polygons,
     int              p0,
     int              p1 )
@@ -146,7 +146,7 @@ private  int  get_polygon_containing_vertices(
 
 
 
-private  float  get_horizontal_coord(
+static  float  get_horizontal_coord(
     int              point,
     polygons_struct  *polygons,
     int              n_neighbours[],
@@ -159,7 +159,7 @@ private  float  get_horizontal_coord(
     int     ind, path_index, p, p0, p1, poly, current_poly, size, v0, v1;
     int     current_ind, start_index;
     float   height, ratio, sum_dist, to_point_dist, dx, dy, dz;
-    Point   start_point, prev_point, next_point, *point0, *point1;
+    VIO_Point   start_point, prev_point, next_point, *point0, *point1;
 
     height = vertical[point];
     if( height <= 0.0f || height >= 1.0f )
@@ -271,7 +271,7 @@ private  float  get_horizontal_coord(
     return( to_point_dist );
 }
 
-private  void  create_2d_coordinates(
+static  void  create_2d_coordinates(
     polygons_struct  *polygons,
     int              north_pole )
 {
@@ -280,8 +280,8 @@ private  void  create_2d_coordinates(
     float             *vertical, *horizontal;
     float             *distances, neigh_dist, best_dist, best_hor;
     int               n, neigh, current;
-    progress_struct   progress;
-    Real              x, y, z, dummy;
+    VIO_progress_struct   progress;
+    VIO_Real              x, y, z, dummy;
     PRIORITY_QUEUE_STRUCT( int )   queue;
 
     ALLOC( vertical, polygons->n_points );
@@ -380,7 +380,7 @@ private  void  create_2d_coordinates(
                             distances[current] >= neigh_dist ) 
                             continue;
 
-                        neigh_dist = (float) ((Real) distances[current] + 
+                        neigh_dist = (float) ((VIO_Real) distances[current] + 
                                               distance_between_points(
                                         &polygons->points[current],
                                         &polygons->points[neigh] ));
@@ -389,7 +389,7 @@ private  void  create_2d_coordinates(
                             neigh_dist < distances[neigh] )
                         {
                             INSERT_IN_PRIORITY_QUEUE( queue, neigh,
-                                                      (Real) -neigh_dist );
+                                                      (VIO_Real) -neigh_dist );
                             distances[neigh] = neigh_dist;
                             if( horizontal[neigh] >= 0.0f &&
                                 (best_dist < 0.0f || neigh_dist < best_dist) )
@@ -428,7 +428,7 @@ private  void  create_2d_coordinates(
 
     for_less( point, 0, polygons->n_points )
     {
-        map_uv_to_sphere( (Real) horizontal[point], (Real) vertical[point],
+        map_uv_to_sphere( (VIO_Real) horizontal[point], (VIO_Real) vertical[point],
                           &x, &y, &z );
         fill_Point( polygons->points[point], x, y, z );
     }

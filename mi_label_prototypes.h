@@ -1,50 +1,50 @@
 #ifndef  DEF_mi_label_prototypes
 #define  DEF_mi_label_prototypes
 
-public  BOOLEAN  get_label_lookup_var(
+  VIO_BOOL  get_label_lookup_var(
     int   minc_id,
     int   *label_var );
 
-public  BOOLEAN  read_label_lookup(
+  VIO_BOOL  read_label_lookup(
     int      minc_id,
     int      *n_labels,
     int      *values[],
-    STRING   *labels[] );
+    VIO_STR   *labels[] );
 
-public  BOOLEAN  write_label_lookup(
+  VIO_BOOL  write_label_lookup(
     int      minc_id,
     int      n_labels,
     int      values[],
-    STRING   labels[] );
+    VIO_STR   labels[] );
 
-public  void  add_label_to_list(
+  void  add_label_to_list(
     int      *n_labels,
     int      *values[],
-    STRING   *labels[],
+    VIO_STR   *labels[],
     int      value_to_add,
-    STRING   label_to_add );
+    VIO_STR   label_to_add );
 
-public  BOOLEAN  delete_label_from_list(
+  VIO_BOOL  delete_label_from_list(
     int      *n_labels,
     int      *values[],
-    STRING   *labels[],
+    VIO_STR   *labels[],
     int      value_to_delete );
 
-public  BOOLEAN  lookup_value_for_label(
+  VIO_BOOL  lookup_value_for_label(
     int      n_labels,
     int      values[],
-    STRING   labels[],
-    STRING   label,
+    VIO_STR   labels[],
+    VIO_STR   label,
     int      *value );
 
-public  BOOLEAN  lookup_label_for_value(
+  VIO_BOOL  lookup_label_for_value(
     int      n_labels,
     int      values[],
-    STRING   labels[],
+    VIO_STR   labels[],
     int      value,
-    STRING   *label );
+    VIO_STR   *label );
 
-public  void  print_label(
+  void  print_label(
     int      value,
-    STRING   label );
+    VIO_STR   label );
 #endif

@@ -11,15 +11,15 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               surface_filename, output_filename, filename;
-    STRING               output_lines_filename;
+    VIO_STR               surface_filename, output_filename, filename;
+    VIO_STR               output_lines_filename;
     int                  point, n_objects;
     int                  n, *n_neighbours, **neighbours, n_values;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list, *object;
     polygons_struct      *polygons;
     lines_struct         *lines;
-    Real                 *values, **components;
+    VIO_Real                 *values, **components;
     int                  *which_class, comp, max_index, n_components;
 
     initialize_argument_processing( argc, argv );

@@ -2,7 +2,7 @@
 #include  <bicpl.h>
 #include  <bicpl/images.h>
 
-private  Volume  convert_pixels_to_volume(
+static  VIO_Volume  convert_pixels_to_volume(
     int            n_components,
     int            n_slices,
     int            n_dimensions,
@@ -13,8 +13,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume         volume;
-    STRING         input_filename, output_filename;
+    VIO_Volume         volume;
+    VIO_STR         input_filename, output_filename;
     int            n_slices, n_components;
     pixels_struct  *pixels;
     nc_type        vol_type;
@@ -77,7 +77,7 @@ int  main(
     return( 0 );
 }
 
-private  Volume  convert_pixels_to_volume(
+static  VIO_Volume  convert_pixels_to_volume(
     int            n_components,
     int            n_slices,
     int            n_dimensions,
@@ -85,12 +85,12 @@ private  Volume  convert_pixels_to_volume(
     pixels_struct  pixels[] )
 {
     int      i, x, y, z, sizes[4];
-    Real     r, g, b, a;
+    VIO_Real     r, g, b, a;
     static   char  *dim_names2[] = { MIxspace, MIyspace, MIvector_dimension };
     static   char  *dim_names3[] = { MIzspace,
                                      MIxspace, MIyspace, MIvector_dimension };
-    Volume   volume;
-    Colour   colour;
+    VIO_Volume   volume;
+    VIO_Colour   colour;
 
     volume = create_volume( n_dimensions+(n_components>1?1:0),
                             n_dimensions == 2 ? dim_names2 : dim_names3,
@@ -133,13 +133,13 @@ private  Volume  convert_pixels_to_volume(
         colour = PIXEL_RGB_COLOUR(pixels[z],x,y);
 
         if( n_components == 1 )
-            r = (Real) get_Colour_luminance( colour ) / 255.0;
+            r = (VIO_Real) get_Colour_luminance( colour ) / 255.0;
         else
         {
-            r = (Real) get_Colour_r(colour) / 255.0;
-            g = (Real) get_Colour_g(colour) / 255.0;
-            b = (Real) get_Colour_b(colour) / 255.0;
-            a = (Real) get_Colour_a(colour) / 255.0;
+            r = (VIO_Real) get_Colour_r(colour) / 255.0;
+            g = (VIO_Real) get_Colour_g(colour) / 255.0;
+            b = (VIO_Real) get_Colour_b(colour) / 255.0;
+            a = (VIO_Real) get_Colour_a(colour) / 255.0;
         }
   
         if( n_dimensions == 2 )

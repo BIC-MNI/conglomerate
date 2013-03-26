@@ -36,10 +36,10 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc\n\
 \n\
      Lists all value-label pairs in the minc file.\n\
@@ -73,11 +73,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename, label;
+    VIO_STR     input_filename, label;
     int        i, a, in_minc_id, value;
     int        n_labels;
     int        *values;
-    STRING     *labels;
+    VIO_STR     *labels;
     BOOLEAN    list_all, by_value;
 
     /* --- check for enough arguments */

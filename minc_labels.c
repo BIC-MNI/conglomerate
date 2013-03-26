@@ -21,7 +21,7 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  BOOLEAN  get_label_lookup_var(
+  VIO_BOOL  get_label_lookup_var(
     int   minc_id,
     int   *label_var )
 {
@@ -54,15 +54,15 @@ public  BOOLEAN  get_label_lookup_var(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  BOOLEAN  read_label_lookup(
+  VIO_BOOL  read_label_lookup(
     int      minc_id,
     int      *n_labels,
     int      *values[],
-    STRING   *labels[] )
+    VIO_STR   *labels[] )
 {
-    BOOLEAN   okay;
+    VIO_BOOL   okay;
     int       i, start_index, end_index;
-    STRING    label_strings;
+    VIO_STR    label_strings;
     int       label_var, save_opts, length_label_strings, length;
     nc_type   type;
 
@@ -71,7 +71,7 @@ public  BOOLEAN  read_label_lookup(
     okay = TRUE;
     *n_labels = 0;
     *values = (int *) NULL;
-    *labels = (STRING *) NULL;
+    *labels = (VIO_STR *) NULL;
 
     label_strings = (char *) NULL;
 
@@ -161,7 +161,7 @@ public  BOOLEAN  read_label_lookup(
             end_index = start_index;
             while( end_index < length_label_strings &&
                    label_strings[end_index] != '\n' &&
-                   label_strings[end_index] != END_OF_STRING )
+                   label_strings[end_index] != VIO_END_OF_STRING )
                 ++end_index;
 
             /* --- now that the length of the string is known, allocate
@@ -177,7 +177,7 @@ public  BOOLEAN  read_label_lookup(
 
             /* --- add the ending null character */
 
-            (*labels)[i][end_index - start_index + 1] = END_OF_STRING;
+            (*labels)[i][end_index - start_index + 1] = VIO_END_OF_STRING;
             start_index = end_index + 1;
         }
     }
@@ -228,15 +228,15 @@ public  BOOLEAN  read_label_lookup(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  BOOLEAN  write_label_lookup(
+  VIO_BOOL  write_label_lookup(
     int      minc_id,
     int      n_labels,
     int      values[],
-    STRING   labels[] )
+    VIO_STR   labels[] )
 {
-    BOOLEAN   okay;
+    VIO_BOOL   okay;
     int       i, c, start_index, len;
-    STRING    label_strings;
+    VIO_STR    label_strings;
     int       label_var, save_opts, length_label_strings;
 
     /* --- initialize the labels to null */
@@ -336,7 +336,7 @@ public  BOOLEAN  write_label_lookup(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private  int   lookup_label_value(
+static  int   lookup_label_value(
     int    n_labels,
     int    values[],
     int    value )
@@ -366,10 +366,10 @@ private  int   lookup_label_value(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private  int   lookup_label(
+static  int   lookup_label(
     int      n_labels,
-    STRING   labels[],
-    STRING   label )
+    VIO_STR   labels[],
+    VIO_STR   label )
 {
     int   i;
 
@@ -400,12 +400,12 @@ private  int   lookup_label(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  void  add_label_to_list(
+  void  add_label_to_list(
     int      *n_labels,
     int      *values[],
-    STRING   *labels[],
+    VIO_STR   *labels[],
     int      value_to_add,
-    STRING   label_to_add )
+    VIO_STR   label_to_add )
 {
     int    ind;
 
@@ -445,10 +445,10 @@ public  void  add_label_to_list(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  BOOLEAN  delete_label_from_list(
+  VIO_BOOL  delete_label_from_list(
     int      *n_labels,
     int      *values[],
-    STRING   *labels[],
+    VIO_STR   *labels[],
     int      value_to_delete )
 {
     int    i, ind;
@@ -492,11 +492,11 @@ public  BOOLEAN  delete_label_from_list(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  BOOLEAN  lookup_value_for_label(
+  VIO_BOOL  lookup_value_for_label(
     int      n_labels,
     int      values[],
-    STRING   labels[],
-    STRING   label,
+    VIO_STR   labels[],
+    VIO_STR   label,
     int      *value )
 {
     int   i;
@@ -528,12 +528,12 @@ public  BOOLEAN  lookup_value_for_label(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  BOOLEAN  lookup_label_for_value(
+  VIO_BOOL  lookup_label_for_value(
     int      n_labels,
     int      values[],
-    STRING   labels[],
+    VIO_STR   labels[],
     int      value,
-    STRING   *label )
+    VIO_STR   *label )
 {
     int   i;
 
@@ -561,11 +561,11 @@ public  BOOLEAN  lookup_label_for_value(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  void  print_label(
+  void  print_label(
     int      value,
-    STRING   label )
+    VIO_STR   label )
 {
-    STRING   l;
+    VIO_STR   l;
 
     if( label == NULL )
         l = "";

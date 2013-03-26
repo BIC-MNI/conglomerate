@@ -4,23 +4,23 @@
 #undef   DEBUG
 #define  DEBUG
 
-private  Real  compute_resels(
+static  VIO_Real  compute_resels(
     polygons_struct   *average_polygons,
     int               n_surfaces[2],
-    Point             **samples[2],
-    Real              *fwhm );
+    VIO_Point             **samples[2],
+    VIO_Real              *fwhm );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           filename;
+    VIO_STR           filename;
     int              i, n_objects, n_surfaces[2], group, n_points, s;
-    File_formats     format;
+    VIO_File_formats     format;
     object_struct    **object_list;
     polygons_struct  polygons;
-    Point            *points, *copy_points, **samples[2];
-    Real             resels, fwhm;
+    VIO_Point            *points, *copy_points, **samples[2];
+    VIO_Real             resels, fwhm;
 
     initialize_argument_processing( argc, argv );
 
@@ -100,7 +100,7 @@ int  main(
 
     for_less( i, 0, n_points )
         SCALE_POINT( polygons.points[i], polygons.points[i],
-                     1.0 / (Real) (n_surfaces[0] + n_surfaces[1]) );
+                     1.0 / (VIO_Real) (n_surfaces[0] + n_surfaces[1]) );
 
     resels = compute_resels( &polygons, n_surfaces, samples, &fwhm );
 
@@ -112,8 +112,8 @@ int  main(
 
 #define   SQRT_TOLERANCE   1.0e-10
 
-private  Real  safe_sqrt(
-    Real   s )
+static  VIO_Real  safe_sqrt(
+    VIO_Real   s )
 {
     if( s < -SQRT_TOLERANCE )
         print_error( "safe_sqrt: %g\n", s );
@@ -123,9 +123,9 @@ private  Real  safe_sqrt(
     return( sqrt(s) );
 }
 
-private  void  compute_upper_triangular_Cholesky(
-    Real    s[3][3],
-    Real    **sqrt_s )
+static  void  compute_upper_triangular_Cholesky(
+    VIO_Real    s[3][3],
+    VIO_Real    **sqrt_s )
 {
     sqrt_s[0][0] = safe_sqrt( s[0][0] );
     sqrt_s[0][1] = s[0][1] / sqrt_s[0][0];
@@ -142,18 +142,18 @@ private  void  compute_upper_triangular_Cholesky(
 
 #define  TOLERANCE 1.0e-4
 
-private  void  check_Cholesky(
-    Real    s[3][3],
-    Real    **sqrt_s )
+static  void  check_Cholesky(
+    VIO_Real    s[3][3],
+    VIO_Real    **sqrt_s )
 {
     int   i, j, k;
-    Real  prod;
+    VIO_Real  prod;
 
-    for_less( i, 0, N_DIMENSIONS )
-    for_less( j, 0, N_DIMENSIONS )
+    for_less( i, 0, VIO_N_DIMENSIONS )
+    for_less( j, 0, VIO_N_DIMENSIONS )
     {
         prod = 0.0;
-        for_less( k, 0, N_DIMENSIONS )
+        for_less( k, 0, VIO_N_DIMENSIONS )
         {
             prod += sqrt_s[k][i] * sqrt_s[k][j];
         }
@@ -165,18 +165,18 @@ private  void  check_Cholesky(
     }
 }
 
-private  void  check_UV(
+static  void  check_UV(
     int     n_surfaces[2],
-    Real    **U,
-    Real    **V )
+    VIO_Real    **U,
+    VIO_Real    **V )
 {
     int   i, j, s, v;
-    Real  prod, desired;
+    VIO_Real  prod, desired;
 
     v = n_surfaces[0] + n_surfaces[1] - 2;
 
-    for_less( i, 0, N_DIMENSIONS )
-    for_less( j, 0, N_DIMENSIONS )
+    for_less( i, 0, VIO_N_DIMENSIONS )
+    for_less( j, 0, VIO_N_DIMENSIONS )
     {
         prod = 0.0;
         for_less( s, 0, n_surfaces[0] )
@@ -184,9 +184,9 @@ private  void  check_UV(
         for_less( s, 0, n_surfaces[1] )
             prod += V[s][i] * V[s][j];
 
-        prod /= (Real) v;
+        prod /= (VIO_Real) v;
 
-        desired = (Real) (i == j);
+        desired = (VIO_Real) (i == j);
 
         if( prod >= desired + TOLERANCE || prod <= desired - TOLERANCE )
         {
@@ -195,17 +195,17 @@ private  void  check_UV(
     }
 }
 
-private  void  compute_UV(
+static  void  compute_UV(
     int     n_surfaces[2],
-    Point   **samples[2],
+    VIO_Point   **samples[2],
     int     point_index,
-    Real    **U,
-    Real    **V )
+    VIO_Real    **U,
+    VIO_Real    **V )
 {
     int     c, s, i, j, v, dim;
-    Real    mean1[3], mean2[3], variance[3][3];
-    Real    **sqrt_s, **inverse_sqrt_s;
-    Real    dx, dy, dz;
+    VIO_Real    mean1[3], mean2[3], variance[3][3];
+    VIO_Real    **sqrt_s, **inverse_sqrt_s;
+    VIO_Real    dx, dy, dz;
 
     v = n_surfaces[0] + n_surfaces[1] - 2;
 
@@ -218,19 +218,19 @@ private  void  compute_UV(
     for_less( s, 0, n_surfaces[0] )
     {
         for_less( c, 0, 3 )
-            mean1[c] += (Real) Point_coord(samples[0][s][point_index],c);
+            mean1[c] += (VIO_Real) Point_coord(samples[0][s][point_index],c);
     }
 
     for_less( s, 0, n_surfaces[1] )
     {
         for_less( c, 0, 3 )
-            mean2[c] += (Real) Point_coord(samples[1][s][point_index],c);
+            mean2[c] += (VIO_Real) Point_coord(samples[1][s][point_index],c);
     }
 
     for_less( c, 0, 3 )
     {
-        mean1[c] /= (Real) n_surfaces[0];
-        mean2[c] /= (Real) n_surfaces[1];
+        mean1[c] /= (VIO_Real) n_surfaces[0];
+        mean2[c] /= (VIO_Real) n_surfaces[1];
     }
 
     for_less( i, 0, 3 )
@@ -241,9 +241,9 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = (Real) Point_x(samples[0][s][point_index]) - mean1[X];
-        dy = (Real) Point_y(samples[0][s][point_index]) - mean1[Y];
-        dz = (Real) Point_z(samples[0][s][point_index]) - mean1[Z];
+        dx = (VIO_Real) Point_x(samples[0][s][point_index]) - mean1[X];
+        dy = (VIO_Real) Point_y(samples[0][s][point_index]) - mean1[Y];
+        dz = (VIO_Real) Point_z(samples[0][s][point_index]) - mean1[Z];
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -255,9 +255,9 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = (Real) Point_x(samples[1][s][point_index]) - mean2[X];
-        dy = (Real) Point_y(samples[1][s][point_index]) - mean2[Y];
-        dz = (Real) Point_z(samples[1][s][point_index]) - mean2[Z];
+        dx = (VIO_Real) Point_x(samples[1][s][point_index]) - mean2[X];
+        dy = (VIO_Real) Point_y(samples[1][s][point_index]) - mean2[Y];
+        dz = (VIO_Real) Point_z(samples[1][s][point_index]) - mean2[Z];
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -274,11 +274,11 @@ private  void  compute_UV(
     for_less( i, 0, 3 )
     for_less( j, 0, 3 )
     {
-        variance[i][j] /= (Real) v;
+        variance[i][j] /= (VIO_Real) v;
     }
 
-    ALLOC2D( sqrt_s, 3, 3 );
-    ALLOC2D( inverse_sqrt_s, 3, 3 );
+    VIO_ALLOC2D( sqrt_s, 3, 3 );
+    VIO_ALLOC2D( inverse_sqrt_s, 3, 3 );
 
     compute_upper_triangular_Cholesky( variance, sqrt_s );
 
@@ -291,11 +291,11 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = (Real) Point_x(samples[0][s][point_index]) - mean1[X];
-        dy = (Real) Point_y(samples[0][s][point_index]) - mean1[Y];
-        dz = (Real) Point_z(samples[0][s][point_index]) - mean1[Z];
+        dx = (VIO_Real) Point_x(samples[0][s][point_index]) - mean1[X];
+        dy = (VIO_Real) Point_y(samples[0][s][point_index]) - mean1[Y];
+        dz = (VIO_Real) Point_z(samples[0][s][point_index]) - mean1[Z];
 
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             U[s][dim] = inverse_sqrt_s[0][dim] * dx +
                         inverse_sqrt_s[1][dim] * dy +
@@ -305,11 +305,11 @@ private  void  compute_UV(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = (Real) Point_x(samples[1][s][point_index]) - mean2[X];
-        dy = (Real) Point_y(samples[1][s][point_index]) - mean2[Y];
-        dz = (Real) Point_z(samples[1][s][point_index]) - mean2[Z];
+        dx = (VIO_Real) Point_x(samples[1][s][point_index]) - mean2[X];
+        dy = (VIO_Real) Point_y(samples[1][s][point_index]) - mean2[Y];
+        dz = (VIO_Real) Point_z(samples[1][s][point_index]) - mean2[Z];
 
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             V[s][dim] = inverse_sqrt_s[0][dim] * dx +
                         inverse_sqrt_s[1][dim] * dy +
@@ -319,79 +319,79 @@ private  void  compute_UV(
 
     check_UV( n_surfaces, U, V );
 
-    FREE2D( sqrt_s );
-    FREE2D( inverse_sqrt_s );
+    VIO_FREE2D( sqrt_s );
+    VIO_FREE2D( inverse_sqrt_s );
 }
 
-private  Real  compute_lambda(
+static  VIO_Real  compute_lambda(
     int      n_surfaces[2],
     int      p1,
     int      p2,
-    Real     **U_p1,
-    Real     **U_p2,
-    Real     **V_p1,
-    Real     **V_p2,
-    Point    mean_points[] )
+    VIO_Real     **U_p1,
+    VIO_Real     **U_p2,
+    VIO_Real     **V_p1,
+    VIO_Real     **V_p2,
+    VIO_Point    mean_points[] )
 {
     int   v, s, n, dim;
-    Real  lambda, dist_between, **delta_u, **delta_v;
+    VIO_Real  lambda, dist_between, **delta_u, **delta_v;
 
     v = n_surfaces[0] + n_surfaces[1] - 2;
-    n = v - N_DIMENSIONS + 1;
+    n = v - VIO_N_DIMENSIONS + 1;
 
     dist_between = distance_between_points( &mean_points[p1], &mean_points[p2]);
 
-    ALLOC2D( delta_u, n_surfaces[0], N_DIMENSIONS );
-    ALLOC2D( delta_v, n_surfaces[1], N_DIMENSIONS );
+    VIO_ALLOC2D( delta_u, n_surfaces[0], VIO_N_DIMENSIONS );
+    VIO_ALLOC2D( delta_v, n_surfaces[1], VIO_N_DIMENSIONS );
 
     for_less( s, 0, n_surfaces[0] )
     {
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
             delta_u[s][dim] = (U_p1[s][dim] - U_p2[s][dim]) / dist_between;
     }
 
     for_less( s, 0, n_surfaces[1] )
     {
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
             delta_v[s][dim] = (V_p1[s][dim] - V_p2[s][dim]) / dist_between;
     }
 
     lambda = 0.0;
     for_less( s, 0, n_surfaces[0] )
     {
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
             lambda += delta_u[s][dim] * delta_u[s][dim];
     }
     for_less( s, 0, n_surfaces[1] )
     {
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
             lambda += delta_v[s][dim] * delta_v[s][dim];
     }
 
 /*
-    lambda *= (Real) (n - 2) / (Real) (n - 1) / (Real) N_DIMENSIONS /
-              (Real) n;   why the division by n?
+    lambda *= (VIO_Real) (n - 2) / (VIO_Real) (n - 1) / (VIO_Real) VIO_N_DIMENSIONS /
+              (VIO_Real) n;   why the division by n?
 */
-    lambda *= (Real) (n - 2) / (Real) (n - 1) / (Real) N_DIMENSIONS;
+    lambda *= (VIO_Real) (n - 2) / (VIO_Real) (n - 1) / (VIO_Real) VIO_N_DIMENSIONS;
 
-    FREE2D( delta_u );
-    FREE2D( delta_v );
+    VIO_FREE2D( delta_u );
+    VIO_FREE2D( delta_v );
 
     return( lambda );
 }
 
-private  Real  compute_resels(
+static  VIO_Real  compute_resels(
     polygons_struct   *average_polygons,
     int               n_surfaces[2],
-    Point             **samples[2],
-    Real              *fwhm )
+    VIO_Point             **samples[2],
+    VIO_Real              *fwhm )
 {
     int    poly, size, edge, p1, p2, n_edges, point_index;
-    Real   sum_lambda, lambda, area, resels;
-    Real   ***U, ***V;
+    VIO_Real   sum_lambda, lambda, area, resels;
+    VIO_Real   ***U, ***V;
 
-    ALLOC3D( U, average_polygons->n_points, n_surfaces[0], N_DIMENSIONS );
-    ALLOC3D( V, average_polygons->n_points, n_surfaces[1], N_DIMENSIONS );
+    VIO_ALLOC3D( U, average_polygons->n_points, n_surfaces[0], VIO_N_DIMENSIONS );
+    VIO_ALLOC3D( V, average_polygons->n_points, n_surfaces[1], VIO_N_DIMENSIONS );
 
     for_less( point_index, 0, average_polygons->n_points )
     {
@@ -421,7 +421,7 @@ private  Real  compute_resels(
 if( n_edges == 0 )
 {
     int   s;
-    Real  dist_between;
+    VIO_Real  dist_between;
 
     dist_between = distance_between_points( &average_polygons->points[p1],
                                             &average_polygons->points[p2] );
@@ -461,7 +461,7 @@ if( n_edges == 0 )
         }
     }
 
-    lambda = sum_lambda / (Real) n_edges;
+    lambda = sum_lambda / (VIO_Real) n_edges;
 
     *fwhm = sqrt( 4.0 * log( 2.0 ) / lambda );
 

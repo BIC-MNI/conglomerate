@@ -29,16 +29,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, object_filename;
-    STRING               output_filename;
-    File_formats         format;
+    VIO_STR               input_volume_filename, object_filename;
+    VIO_STR               output_filename;
+    VIO_File_formats         format;
     minc_input_options   options;
-    Volume               volume;
+    VIO_Volume               volume;
     int                  point, n_points, n_objects;
-    Point                *points;
+    VIO_Point                *points;
     object_struct        **objects;
-    Real                 value;
-//    Real                 rgb_values[4];
+    VIO_Real                 value;
+//    VIO_Real                 rgb_values[4];
     FILE                 *file;
 
     /* Call ParseArgv */

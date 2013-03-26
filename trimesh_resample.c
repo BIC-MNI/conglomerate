@@ -1,10 +1,10 @@
 #include <volume_io.h>
 #include <special_geometry.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.obj|input.msh  input.obj output.msh output.obj output.mid\n\
          subdivide_values min_value max_value min_size max_size\n\
          coalesce_values min_value max_value min_size max_size\n\
@@ -18,19 +18,19 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING             input_mesh_filename, input_obj_filename;
-    STRING             output_mid_filename, output_obj_filename;
-    STRING             output_mesh_filename;
-    STRING             input_sub_filename, input_coal_filename;
+    VIO_STR             input_mesh_filename, input_obj_filename;
+    VIO_STR             output_mid_filename, output_obj_filename;
+    VIO_STR             output_mesh_filename;
+    VIO_STR             input_sub_filename, input_coal_filename;
     int                n_objects, new_n_polys, n_values;
     int                original_n_points;
-    File_formats       format;
+    VIO_File_formats       format;
     object_struct      **object_list, *object;
     polygons_struct    *polygons;
-    Real               *values;
-    Real               min_sub_value, max_sub_value, min_sub_size, max_sub_size;
-    Real               min_coal_value, max_coal_value;
-    Real               min_coal_size, max_coal_size;
+    VIO_Real               *values;
+    VIO_Real               min_sub_value, max_sub_value, min_sub_size, max_sub_size;
+    VIO_Real               min_coal_value, max_coal_value;
+    VIO_Real               min_coal_size, max_coal_size;
     tri_mesh_struct    mesh;
 
     initialize_argument_processing( argc, argv );

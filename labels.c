@@ -342,7 +342,7 @@ public  void  set_voxel_label_bit(
 @NAME       : set_all_volume_label_data_bit
 @INPUT      : volume
               bit
-              value - ON or OFF
+              value - TRUE or FALSE
 @OUTPUT     : 
 @RETURNS    : 
 @DESCRIPTION: Sets just the given bit of all the voxels' label data to the

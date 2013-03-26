@@ -1,14 +1,14 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  extract_largest_line(
+static  void  extract_largest_line(
     lines_struct  *lines,
     lines_struct  *new_lines );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input_lines.obj  output_lines.obj\n\
 \n\
      Copies the input lines to the output lines, but only the largest line\n\
@@ -21,8 +21,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src_filename, dest_filename;
-    File_formats         format;
+    VIO_STR               src_filename, dest_filename;
+    VIO_File_formats         format;
     int                  n_objects;
     object_struct        **objects;
     lines_struct         *lines, new_lines;
@@ -61,7 +61,7 @@ int  main(
     return( 0 );
 }
 
-private  void  extract_largest_line(
+static  void  extract_largest_line(
     lines_struct  *lines,
     lines_struct  *new_lines )
 {

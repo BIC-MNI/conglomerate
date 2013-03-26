@@ -6,18 +6,18 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume             volume;
-    STRING             input_filename, output_filename;
-    int                v[MAX_DIMENSIONS];
-    int                n_dims, sizes[MAX_DIMENSIONS], slice_index;
-    STRING             dim_names2d[] = {
+    VIO_Volume             volume;
+    VIO_STR             input_filename, output_filename;
+    int                v[VIO_MAX_DIMENSIONS];
+    int                n_dims, sizes[VIO_MAX_DIMENSIONS], slice_index;
+    VIO_STR             dim_names2d[] = {
                                          MIxspace,
                                          MIyspace };
-    STRING             dim_names3d[] = {
+    VIO_STR             dim_names3d[] = {
                                          MIzspace,
                                          MIxspace,
                                          MIyspace };
-    Colour             colour;
+    VIO_Colour             colour;
     int                x, y, a1, a2;
     pixels_struct      pixels;
     minc_input_options options;
@@ -92,7 +92,7 @@ int  main(
         for_less( y, 0, sizes[a2] )
         {
             v[a2] = y;
-            colour = (Colour) get_volume_real_value( volume,
+            colour = (VIO_Colour) get_volume_real_value( volume,
                                             v[0], v[1], v[2], v[3], v[4] );
 
             PIXEL_RGB_COLOUR(pixels,x,y) = colour;

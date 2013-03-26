@@ -4,10 +4,10 @@
 #define  MIN_INTERP .45
 #define  MAX_INTERP .55
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  surface.obj  u.txt v.txt  output.obj [alternate]\n\
 \n\
      .\n\n";
@@ -19,20 +19,20 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING              surface_filename, output_filename;
-    STRING              u1_filename, v1_filename;
-    STRING              u2_filename, v2_filename;
-    File_formats        format;
+    VIO_STR              surface_filename, output_filename;
+    VIO_STR              u1_filename, v1_filename;
+    VIO_STR              u2_filename, v2_filename;
+    VIO_File_formats        format;
     int                 n_objects, p;
-    Real                u, v, u_off, v_off, x, y, z, t1;
-    Real                len;
+    VIO_Real                u, v, u_off, v_off, x, y, z, t1;
+    VIO_Real                len;
     FILE                *u1_file, *u2_file, *v1_file, *v2_file;
-    Point               centre, unit_point, *new_points, trans_point;
-    Point               trans_point2;
+    VIO_Point               centre, unit_point, *new_points, trans_point;
+    VIO_Point               trans_point2;
     polygons_struct     *polygons, unit_sphere;
     object_struct       **objects;
-    BOOLEAN             interp_flag;
-    Real                ratio;
+    VIO_BOOL             interp_flag;
+    VIO_Real                ratio;
 
     initialize_argument_processing( argc, argv );
 
@@ -49,7 +49,7 @@ int  main(
                   get_string_argument( NULL, &v2_filename );
 
     if( input_graphics_file( surface_filename,
-                             &format, &n_objects, &objects ) != OK ||
+                             &format, &n_objects, &objects ) != VIO_OK ||
         n_objects != 1 || get_object_type(objects[0]) != POLYGONS )
     {
         print_error( "Surface file must contain one polygons struct\n" );
@@ -59,7 +59,7 @@ int  main(
     polygons = get_polygons_ptr( objects[0] );
 
     create_polygons_bintree( polygons,
-                             ROUND( (Real) polygons->n_items * 0.2 ) );
+                             VIO_ROUND( (VIO_Real) polygons->n_items * 0.2 ) );
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
 
@@ -67,16 +67,16 @@ int  main(
                                &unit_sphere );
 
     create_polygons_bintree( &unit_sphere,
-                             ROUND( (Real) unit_sphere.n_items * 0.2 ) );
+                             VIO_ROUND( (VIO_Real) unit_sphere.n_items * 0.2 ) );
 
-    if( open_file( u1_filename, READ_FILE, ASCII_FORMAT, &u1_file ) != OK ||
-        open_file( v1_filename, READ_FILE, ASCII_FORMAT, &v1_file ) != OK )
+    if( open_file( u1_filename, READ_FILE, ASCII_FORMAT, &u1_file ) != VIO_OK ||
+        open_file( v1_filename, READ_FILE, ASCII_FORMAT, &v1_file ) != VIO_OK )
         return( 1 );
 
     if( interp_flag )
     {
-        if( open_file( u2_filename, READ_FILE, ASCII_FORMAT, &u2_file ) != OK ||
-            open_file( v2_filename, READ_FILE, ASCII_FORMAT, &v2_file ) != OK )
+        if( open_file( u2_filename, READ_FILE, ASCII_FORMAT, &u2_file ) != VIO_OK ||
+            open_file( v2_filename, READ_FILE, ASCII_FORMAT, &v2_file ) != VIO_OK )
             return( 1 );
     }
 
@@ -84,8 +84,8 @@ int  main(
 
     for_less( p, 0, polygons->n_points )
     {
-        if( input_real( u1_file, &u_off ) != OK ||
-            input_real( v1_file, &v_off ) != OK )
+        if( input_real( u1_file, &u_off ) != VIO_OK ||
+            input_real( v1_file, &v_off ) != VIO_OK )
         {
             print_error( "Error reading u and v.\n" );
             return( 1 );
@@ -100,7 +100,7 @@ int  main(
 
         map_sphere_to_uv( x, y, z, &u, &v );
 
-        t1 = 2.0 * FABS( (v - 0.5) );
+        t1 = 2.0 * VIO_FABS( (v - 0.5) );
 
         u += u_off;
         v += v_off;
@@ -120,8 +120,8 @@ int  main(
 
         if( interp_flag )
         {
-            if( input_real( u2_file, &u_off ) != OK ||
-                input_real( v2_file, &v_off ) != OK )
+            if( input_real( u2_file, &u_off ) != VIO_OK ||
+                input_real( v2_file, &v_off ) != VIO_OK )
             {
                 print_error( "Error reading u and v.\n" );
                 return( 1 );
@@ -183,7 +183,7 @@ int  main(
     }
 
     if( output_graphics_file( output_filename, format, n_objects,
-                              objects ) != OK )
+                              objects ) != VIO_OK )
         return( 1 );
 
     return( 0 );

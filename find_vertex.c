@@ -5,12 +5,12 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Real           x, y, z, dist, best_dist;
-    Point          position, *points, p;
-    Status         status;
-    STRING         input_filename;
+    VIO_Real           x, y, z, dist, best_dist;
+    VIO_Point          position, *points, p;
+    VIO_Status         status;
+    VIO_STR         input_filename;
     int            i, n_objects, ind, n_points, best_poly, n_items;
-    File_formats   format;
+    VIO_File_formats   format;
     object_struct  **object_list;
 
     status = OK;

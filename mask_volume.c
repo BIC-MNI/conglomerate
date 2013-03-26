@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  mask_volume.mnc  output.mnc\n\
          [min] [max] [value_to_set]\n\
 \n\
@@ -22,13 +22,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, mask_volume_filename;
-    STRING               output_filename;
+    VIO_STR               volume_filename, mask_volume_filename;
+    VIO_STR               output_filename;
     Real                 mask_value, min_mask, max_mask;
     Real                 value_to_set;
-    int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed;
-    progress_struct      progress;
-    Volume               volume, mask_volume;
+    int                  x, y, z, sizes[VIO_MAX_DIMENSIONS], n_changed;
+    VIO_progress_struct      progress;
+    VIO_Volume               volume, mask_volume;
     BOOLEAN              value_specified, same_grid;
     minc_input_options   options;
 

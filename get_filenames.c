@@ -1,13 +1,13 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  BOOLEAN  get_next_filename(
-    STRING      *filename )
+static  BOOLEAN  get_next_filename(
+    VIO_STR      *filename )
 {
     static    FILE     *file = 0;
     static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
-    STRING             argument;
+    static    VIO_STR   filename_string;
+    VIO_STR             argument;
     BOOLEAN            found;
 
     found = FALSE;
@@ -53,10 +53,10 @@ private  BOOLEAN  get_next_filename(
     return( found );
 }
 
-public  int  get_filename_arguments(
-    STRING   *filenames[] )
+  int  get_filename_arguments(
+    VIO_STR   *filenames[] )
 {
-    STRING    filename;
+    VIO_STR    filename;
     int       n_files;
 
     n_files = 0;

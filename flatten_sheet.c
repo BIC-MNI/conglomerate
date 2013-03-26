@@ -15,7 +15,7 @@ typedef  float  ftype;
 
 #else
 
-typedef  Real   ftype;
+typedef  VIO_Real   ftype;
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  INITIALIZE_LSQ  initialize_lsq_terms
@@ -25,9 +25,9 @@ typedef  Real   ftype;
 
 #endif
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
+    VIO_Point            init_points[],
     int              n_fixed,
     int              fixed_indices[],
     int              n_iters );
@@ -36,14 +36,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, initial_filename;
-    STRING               fixed_filename;
+    VIO_STR               src_filename, dest_filename, initial_filename;
+    VIO_STR               fixed_filename;
     int                  n_objects, n_i_objects, n_iters;
     int                  n_fixed, *fixed_indices, ind;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons;
-    Point                *init_points;
+    VIO_Point                *init_points;
     FILE                 *file;
 
     initialize_argument_processing( argc, argv );
@@ -106,17 +106,17 @@ int  main(
     return( 0 );
 }
 
-private  void  create_coefficients(
+static  void  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              **neighbours,
-    Smallest_int     interior_flags[],
+    VIO_SCHAR     interior_flags[],
     int              n_fixed,
     int              fixed_indices[],
-    Real             *fixed_pos[2],
+    VIO_Real             *fixed_pos[2],
     int              to_parameters[],
     int              to_fixed_index[],
-    Real             *constant,
+    VIO_Real             *constant,
     ftype            *linear_terms[],
     ftype            *square_terms[],
     int              *n_cross_terms[],
@@ -125,12 +125,12 @@ private  void  create_coefficients(
 {
     int              node, p, dim, n_nodes_in, n_parameters;
     int              neigh, *indices, parm;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             flat[2][MAX_POINTS_PER_POLYGON];
-    Real             *weights[2][2], cons[2], con;
-    Real             *node_weights;
+    VIO_Point            neigh_points[MAX_POINTS_PER_POLYGON];
+    VIO_Real             flat[2][MAX_POINTS_PER_POLYGON];
+    VIO_Real             *weights[2][2], cons[2], con;
+    VIO_Real             *node_weights;
     BOOLEAN          found, ignoring;
-    progress_struct  progress;
+    VIO_progress_struct  progress;
 
     n_parameters = 2 * (polygons->n_points - n_fixed);
 
@@ -242,22 +242,22 @@ private  void  create_coefficients(
     FREE( weights[1][1] );
 }
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
+    VIO_Point            init_points[],
     int              n_fixed,
     int              fixed_indices[],
     int              n_iters )
 {
     int              i, p, point, *n_neighbours, **neighbours, which;
-    Real             *fixed_pos[2];
-    Real             constant;
+    VIO_Real             *fixed_pos[2];
+    VIO_Real             constant;
     int              *n_cross_terms, **cross_parms, w_offset;
     ftype            *linear_terms, *square_terms, **cross_terms;
-    Real             *parameters;
+    VIO_Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
-    Vector           x_dir, y_dir, offset, p12, p13;
-    Smallest_int     *interior_flags;
+    VIO_Vector           x_dir, y_dir, offset, p12, p13;
+    VIO_SCHAR     *interior_flags;
     BOOLEAN          alloced_fixed;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,

@@ -34,10 +34,10 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s [-clobber] input.mnc output.mnc  -label val1 str1 [val2 str2 ...]\n\
 \n\
    or: %s [-clobber] input.mnc output.mnc lookup_file\n\
@@ -68,15 +68,15 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename, output_filename, label_filename;
-    STRING     argument;
+    VIO_STR     input_filename, output_filename, label_filename;
+    VIO_STR     argument;
     int        clobber_mode, a, in_minc_id, out_minc_id, value;
     int        i, n_excluded, label_lookup_var;
-    BOOLEAN    label_specified;
-    STRING     label_string;
+    VIO_BOOL    label_specified;
+    VIO_STR     label_string;
     int        n_labels;
     int        *values;
-    STRING     *labels;
+    VIO_STR     *labels;
     FILE       *file;
 
     /* --- initialize the information that will be in the arguments */
@@ -194,7 +194,7 @@ int  main(
     {
         /* --- open the file containing the list of value-label pairs */
 
-        if( open_file( label_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( label_filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         {
             print_error( "Could not open \"%s\".\n", label_filename);
             return( 1 );
@@ -202,8 +202,8 @@ int  main(
 
         /* --- read an int and a string */
 
-        while( input_int( file, &value ) == OK &&
-               input_possibly_quoted_string( file, &label_string ) == OK)
+        while( input_int( file, &value ) == VIO_OK &&
+               input_possibly_quoted_string( file, &label_string ) == VIO_OK)
         {
             /* --- add value-label pair to list */
 

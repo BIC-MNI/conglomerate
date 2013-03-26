@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc [threshold]\n\
 \n\
      Finds the centroid of the volume.\n\n";
@@ -16,11 +16,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename;
-    Volume     volume;
-    int        v[MAX_DIMENSIONS], n_dims, dim;
+    VIO_STR     input_filename;
+    VIO_Volume     volume;
+    int        v[VIO_MAX_DIMENSIONS], n_dims, dim;
     Real       value, weight, threshold, xw, yw, zw;
-    Real       voxel_centroid[MAX_DIMENSIONS];
+    Real       voxel_centroid[VIO_MAX_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 

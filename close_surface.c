@@ -14,33 +14,33 @@
 
 typedef struct
 {
-    int   voxel[N_DIMENSIONS];
+    int   voxel[VIO_N_DIMENSIONS];
     int   n_voxels;
 } convex_boundary_struct;
 
-private  int  remove_just_inside_label(
-    Volume   volume,
+static  int  remove_just_inside_label(
+    VIO_Volume   volume,
     int      x,
     int      y,
     int      z );
 
-private  int   label_inside_convex_hull(
-    Volume           volume,
+static  int   label_inside_convex_hull(
+    VIO_Volume           volume,
     object_struct    *object,
     int              value_to_set );
 
-private  int  label_just_inside_convex_hull(
-    Volume                  volume,
+static  int  label_just_inside_convex_hull(
+    VIO_Volume                  volume,
     convex_boundary_struct  *boundaries[] );
 
-private  int  get_volume_int_value(
-    Volume  volume,
+static  int  get_volume_int_value(
+    VIO_Volume  volume,
     int     x,
     int     y,
     int     z );
 
-private  BOOLEAN  fill_inside(
-    Volume   volume,
+static  BOOLEAN  fill_inside(
+    VIO_Volume   volume,
     int      x,
     int      y,
     int      z,
@@ -49,13 +49,13 @@ private  BOOLEAN  fill_inside(
     int      *y_error,
     int      *z_error );
 
-private  void  label_connected_to_outside(
-    Volume   volume,
+static  void  label_connected_to_outside(
+    VIO_Volume   volume,
     int      x,
     int      y,
     int      z );
 
-private  void  print_convex_boundaries(
+static  void  print_convex_boundaries(
     int                     n_bound,
     convex_boundary_struct  bounds[] );
 
@@ -63,16 +63,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING                  input_volume_filename, input_surface_filename;
-    STRING                  output_volume_filename;
+    VIO_STR                  input_volume_filename, input_surface_filename;
+    VIO_STR                  output_volume_filename;
     int                     i, b, n_objects, n_convex_boundaries;
     int                     close_threshold, n_to_strip, max_region_size;
     int                     x_error, y_error, z_error, label_to_set;
-    int                     sizes[N_DIMENSIONS], x, y, z, value, n_voxels;
+    int                     sizes[VIO_N_DIMENSIONS], x, y, z, value, n_voxels;
     convex_boundary_struct  *convex_boundaries;
-    STRING                  history;
-    File_formats            format;
-    Volume                  volume;
+    VIO_STR                  history;
+    VIO_File_formats            format;
+    VIO_Volume                  volume;
     object_struct           **objects;
 
     initialize_argument_processing( argc, argv );
@@ -105,7 +105,7 @@ int  main(
         value = get_volume_int_value( volume, x, y, z );
         if( (value & LABEL_MASK) != value )
         {
-            print( "Volume has values with large values, which would interfere\n" ); 
+            print( "VIO_Volume has values with large values, which would interfere\n" ); 
             print( "with this program using the upper bits of volume as flags.\n" );
             return( 1 );
         }
@@ -274,8 +274,8 @@ int  main(
     return( 0 );
 }
 
-private  int  get_volume_int_value(
-    Volume  volume,
+static  int  get_volume_int_value(
+    VIO_Volume  volume,
     int     x,
     int     y,
     int     z )
@@ -284,28 +284,28 @@ private  int  get_volume_int_value(
 
     value = get_volume_real_value( volume, x, y, z, 0, 0 );
 
-    return( ROUND( value ) );
+    return( VIO_ROUND( value ) );
 }
 
-private  int   label_inside_convex_hull(
-    Volume           volume,
+static  int   label_inside_convex_hull(
+    VIO_Volume           volume,
     object_struct    *object,
     int              value_to_set )
 {
     BOOLEAN              inside;
     int                  c, x, y, z, obj_index, n_set;
-    int                  sizes[MAX_DIMENSIONS], n_intersects;
+    int                  sizes[VIO_MAX_DIMENSIONS], n_intersects;
     int                  n_points, int_index, next_z;
     Real                 xw, yw, zw, distances[2], limits[2][3];
-    Real                 voxel[MAX_DIMENSIONS], max_value, value;
-    Real                 boundary_voxel[MAX_DIMENSIONS];
-    Point                ray_origin, start_ray, end_ray, *points;
-    Point                point_range[2];
-    Point                ray_point;
-    Vector               ray_direction, offset;
+    Real                 voxel[VIO_MAX_DIMENSIONS], max_value, value;
+    Real                 boundary_voxel[VIO_MAX_DIMENSIONS];
+    VIO_Point                ray_origin, start_ray, end_ray, *points;
+    VIO_Point                point_range[2];
+    VIO_Point                ray_point;
+    VIO_Vector               ray_direction, offset;
     Real                 **enter_dist, **exit_dist;
     polygons_struct      *polygons;
-    progress_struct      progress;
+    VIO_progress_struct      progress;
 
     polygons = get_polygons_ptr( object );
 
@@ -314,7 +314,7 @@ private  int   label_inside_convex_hull(
     if( BINTREE_FACTOR > 0.0 )
     {
         create_polygons_bintree( polygons,
-                                 ROUND( (Real) polygons->n_items *
+                                 VIO_ROUND( (Real) polygons->n_items *
                                         BINTREE_FACTOR) + 1);
     }
 
@@ -331,7 +331,7 @@ private  int   label_inside_convex_hull(
                                 (Real) Point_x(point_range[x]),
                                 (Real) Point_y(point_range[y]),
                                 (Real) Point_z(point_range[z]), voxel );
-        for_less( c, 0, N_DIMENSIONS )
+        for_less( c, 0, VIO_N_DIMENSIONS )
         {
             if( x == 0 && y == 0 && z == 0 || voxel[c] < limits[0][c] )
             {
@@ -345,7 +345,7 @@ private  int   label_inside_convex_hull(
 
     }
 
-    for_less( c, 0, N_DIMENSIONS )
+    for_less( c, 0, VIO_N_DIMENSIONS )
     {
         limits[0][c] -= 100.0;
         limits[1][c] += 100.0;
@@ -355,8 +355,8 @@ private  int   label_inside_convex_hull(
 
     n_set = 0;
 
-    ALLOC2D( enter_dist, sizes[X], sizes[Y] );
-    ALLOC2D( exit_dist, sizes[X], sizes[Y] );
+    VIO_ALLOC2D( enter_dist, sizes[X], sizes[Y] );
+    VIO_ALLOC2D( exit_dist, sizes[X], sizes[Y] );
 
     initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
                                 "Testing inside" );
@@ -490,14 +490,14 @@ private  int   label_inside_convex_hull(
         }
     }
 
-    FREE2D( enter_dist );
-    FREE2D( exit_dist );
+    VIO_FREE2D( enter_dist );
+    VIO_FREE2D( exit_dist );
 
     return( n_set );
 }
 
-private  BOOLEAN  is_on_convex_boundary(
-    Volume   volume,
+static  BOOLEAN  is_on_convex_boundary(
+    VIO_Volume   volume,
     int      sizes[],
     int      x,
     int      y,
@@ -537,8 +537,8 @@ typedef struct
     short  x, y, z;
 } xyz_struct;
 
-private  int  expand_convex_boundary(
-    Volume   volume,
+static  int  expand_convex_boundary(
+    VIO_Volume   volume,
     int      sizes[],
     int      x,
     int      y,
@@ -601,11 +601,11 @@ private  int  expand_convex_boundary(
     return( n_voxels );
 }
 
-private  int  label_just_inside_convex_hull(
-    Volume                  volume,
+static  int  label_just_inside_convex_hull(
+    VIO_Volume                  volume,
     convex_boundary_struct  *boundaries[] )
 {
-    int                     sizes[N_DIMENSIONS], x, y, z, n_boundaries;
+    int                     sizes[VIO_N_DIMENSIONS], x, y, z, n_boundaries;
     convex_boundary_struct  bound;
 
     get_volume_sizes( volume, sizes );
@@ -629,14 +629,14 @@ private  int  label_just_inside_convex_hull(
     return( n_boundaries );
 }
 
-private  int  remove_just_inside_label(
-    Volume   volume,
+static  int  remove_just_inside_label(
+    VIO_Volume   volume,
     int      x,
     int      y,
     int      z )
 {
     int                          i, n_dirs, *dx, *dy, *dz, tx, ty, tz, value;
-    int                          n_voxels, sizes[N_DIMENSIONS];
+    int                          n_voxels, sizes[VIO_N_DIMENSIONS];
     xyz_struct                   xyz;
     QUEUE_STRUCT( xyz_struct )   queue;
 
@@ -695,8 +695,8 @@ private  int  remove_just_inside_label(
     return( n_voxels );
 }
 
-private  BOOLEAN  fill_inside(
-    Volume   volume,
+static  BOOLEAN  fill_inside(
+    VIO_Volume   volume,
     int      x,
     int      y,
     int      z,
@@ -707,7 +707,7 @@ private  BOOLEAN  fill_inside(
 {
     BOOLEAN                      error;
     int                          i, n_dirs, *dx, *dy, *dz, tx, ty, tz, value;
-    int                          sizes[N_DIMENSIONS];
+    int                          sizes[VIO_N_DIMENSIONS];
     xyz_struct                   xyz;
     QUEUE_STRUCT( xyz_struct )   queue;
 
@@ -778,14 +778,14 @@ private  BOOLEAN  fill_inside(
     return( error );
 }
 
-private  void  label_connected_to_outside(
-    Volume   volume,
+static  void  label_connected_to_outside(
+    VIO_Volume   volume,
     int      x,
     int      y,
     int      z )
 {
     int                          i, n_dirs, *dx, *dy, *dz, tx, ty, tz, value;
-    int                          sizes[N_DIMENSIONS];
+    int                          sizes[VIO_N_DIMENSIONS];
     xyz_struct                   xyz;
     QUEUE_STRUCT( xyz_struct )   queue;
 
@@ -851,7 +851,7 @@ private  void  label_connected_to_outside(
 
 #define  N_TO_PRINT  10
 
-private  void  print_convex_boundaries(
+static  void  print_convex_boundaries(
     int                     n_bound,
     convex_boundary_struct  bounds[] )
 {

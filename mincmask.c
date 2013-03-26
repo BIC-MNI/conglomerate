@@ -65,13 +65,13 @@ static ArgvInfo argTable[] = {
 };
 
 
-static int point_not_masked(Volume volume, Real wx, Real wy, Real wz) {
+static int point_not_masked(VIO_Volume volume, VIO_Real wx, VIO_Real wy, VIO_Real wz) {
 
   double result;
 
   //printf("in point not masked\n");
 
-  if (volume!=(Volume)NULL) {
+  if (volume!=(VIO_Volume)NULL) {
     evaluate_volume_in_world(volume, wx, wy, wz, 0, TRUE, 0, &result,
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL);
@@ -97,14 +97,14 @@ main ( argc, argv )
     *maskfilename,
     *outfilename;
   
-  Volume 
+  VIO_Volume 
       tmp,
       data,mask;
   
-  Status 
+  VIO_Status 
     status;
 
-  Real
+  VIO_Real
       min, max,
       voxel_value, true_value, zero, wx,wy,wz;
   int
@@ -112,7 +112,7 @@ main ( argc, argv )
     mask_size[3],
     i,j,k;
   
-  progress_struct 
+  VIO_progress_struct 
     progress;
 
 				/* set globals */
@@ -212,7 +212,7 @@ main ( argc, argv )
     for_less(j, 0, data_size[1]) {
       for_less(k, 0, data_size[2]) {
 
-	convert_3D_voxel_to_world(data, (Real)i, (Real)j, (Real)k, &wx, &wy, &wz);
+	convert_3D_voxel_to_world(data, (VIO_Real)i, (VIO_Real)j, (VIO_Real)k, &wx, &wy, &wz);
 
 	if (!invert_mask)
 	{

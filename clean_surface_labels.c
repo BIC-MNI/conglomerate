@@ -37,12 +37,12 @@
 // Prototypes of functions in this file.
 
 static void usage( char * );
-private Status read_surface_obj( STRING, int *, Point *[],
-                                 Vector *[], int *[], int **[] );
-private Status get_surface_neighbours( polygons_struct *, int *[],
+static VIO_Status read_surface_obj( VIO_STR, int *, VIO_Point *[],
+                                 VIO_Vector *[], int *[], int **[] );
+static VIO_Status get_surface_neighbours( polygons_struct *, int *[],
                                        int ** [] );
-private void read_scalar( int n_points, int scalar[], char * in_file );
-private void save_scalar( int n_points, int scalar[], char * out_file );
+static void read_scalar( int n_points, int scalar[], char * in_file );
+static void save_scalar( int n_points, int scalar[], char * out_file );
 
 
 // Main program.
@@ -51,8 +51,8 @@ int main( int argc, char * argv[] ) {
 
   int      i, j, nn, count, min_lbl, max_lbl, min_count, max_count, modified;
   int      n_points;           // number of grid points 
-  Point  * coords;             // coordinates
-  Vector * normals;            // normal vectors
+  VIO_Point  * coords;             // coordinates
+  VIO_Vector * normals;            // normal vectors
   int    * n_ngh = NULL;       // node neighbours (inverse connectivity)
   int   ** ngh = NULL;
 
@@ -60,15 +60,15 @@ int main( int argc, char * argv[] ) {
 
   if( argc < 3 ) {
     usage( argv[0] );
-    return( ERROR );
+    return( VIO_ERROR );
   }
 
   // Parse the command line arguments for the file names.
 
   // Read the surface file.
   if( read_surface_obj( argv[1], &n_points, &coords, &normals,
-                        &n_ngh, &ngh ) != OK ) {
-    return( ERROR );
+                        &n_ngh, &ngh ) != VIO_OK ) {
+    return( VIO_ERROR );
   }
 
   int * labels = (int *)malloc( n_points * sizeof( int ) );
@@ -151,7 +151,7 @@ int main( int argc, char * argv[] ) {
 //
 static void usage( char * executable_name ) {
 
-  STRING  usage_format = "\
+  VIO_STR  usage_format = "\
 Usage: %s surface.obj labels.txt new_labels.txt\n\
 Values: surface.obj = the surface\n\
         labels.txt = input labels (range 0 to 255)\n\
@@ -171,33 +171,33 @@ Values: surface.obj = the surface\n\
 // n_neighbours: number of vertices around each node
 // neighbours: the set of ordered triangle consisting of the vertices
 //
-private Status read_surface_obj( STRING filename,
+static VIO_Status read_surface_obj( VIO_STR filename,
                                  int * n_points,
-                                 Point * points[],
-                                 Vector * normals[],
+                                 VIO_Point * points[],
+                                 VIO_Vector * normals[],
                                  int * n_neighbours[],
                                  int ** neighbours[] ) {
 
   int               i, n_objects;
   object_struct  ** object_list;
   polygons_struct * surface;
-  File_formats      format;
-  STRING            expanded;
+  VIO_File_formats      format;
+  VIO_STR            expanded;
 
   expanded = expand_filename( filename );   // why?????
 
   int err = input_graphics_file( expanded, &format, &n_objects,
                                  &object_list );
 
-  if( err != OK ) {
+  if( err != VIO_OK ) {
     print_error( "Error reading file %s\n", expanded );
-    return( ERROR );
+    return( VIO_ERROR );
   }
 
   if( n_objects != 1 ||
       ( n_objects == 1 && get_object_type(object_list[0]) != POLYGONS ) ) {
     print_error( "Error in contents of file %s\n", expanded );
-    return( ERROR );
+    return( VIO_ERROR );
   }
 
   delete_string( expanded );
@@ -223,14 +223,14 @@ private Status read_surface_obj( STRING filename,
 
   delete_object_list( n_objects, object_list );
 
-  return( OK );
+  return( VIO_OK );
 }
 
 // -------------------------------------------------------------------
 // Construct the edges around each node. The edges are sorted to
 // make an ordered closed loop.
 //
-private Status get_surface_neighbours( polygons_struct * surface,
+static VIO_Status get_surface_neighbours( polygons_struct * surface,
                                        int * n_neighbours_return[],
                                        int ** neighbours_return[] ) {
 
@@ -244,7 +244,7 @@ private Status get_surface_neighbours( polygons_struct * surface,
 
   if( 3 * surface->n_items != surface->end_indices[surface->n_items-1] ) {
     printf( "Surface must contain only triangular polygons.\n" );
-    return ERROR;
+    return VIO_ERROR;
   }
 
   // Check if the node numbering starts at 0 or 1.
@@ -352,14 +352,14 @@ private Status get_surface_neighbours( polygons_struct * surface,
 
   FREE( tmp );
 
-  return OK;
+  return VIO_OK;
 
 }
 
 // -------------------------------------------------------------------
 // Read a scalar from a file.
 //
-private void read_scalar( int n_points, int scalar[], char * in_file ) {
+static void read_scalar( int n_points, int scalar[], char * in_file ) {
 
   int i;
   float val;
@@ -375,7 +375,7 @@ private void read_scalar( int n_points, int scalar[], char * in_file ) {
 // -------------------------------------------------------------------
 // Save a scalar to a file.
 //
-private void save_scalar( int n_points, int scalar[], char * out_file ) {
+static void save_scalar( int n_points, int scalar[], char * out_file ) {
 
   int i;
 

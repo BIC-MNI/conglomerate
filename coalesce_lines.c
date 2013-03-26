@@ -1,13 +1,13 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void   coalesce_lines(
+static  void   coalesce_lines(
     lines_struct  *lines );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.obj  output.obj\n\
 \n\
      Coalesces any shared points in a lines object.\n\n";
@@ -19,8 +19,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src_filename, dest_filename;
-    File_formats         format;
+    VIO_STR               src_filename, dest_filename;
+    VIO_File_formats         format;
     int                  i;
     int                  n_objects;
     object_struct        **objects;
@@ -52,7 +52,7 @@ int  main(
     return( 0 );
 }
 
-private  void   coalesce_indices(
+static  void   coalesce_indices(
     lines_struct  *lines )
 {
     int            i, j, p, line, size, point_index, neigh_index, n;
@@ -143,12 +143,12 @@ private  void   coalesce_indices(
     FREE( n_neighbours );
 }
 
-private  void   coalesce_lines(
+static  void   coalesce_lines(
     lines_struct  *lines )
 {
     int               i, j, n_new_points, *translations;
     int               n_indices;
-    Point             *new_points;
+    VIO_Point             *new_points;
 
     n_new_points = 0;
     new_points = NULL;

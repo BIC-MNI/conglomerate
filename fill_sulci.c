@@ -5,16 +5,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, input_surface_filename;
-    STRING               output_volume_filename;
-    Real                 separations[MAX_DIMENSIONS];
+    VIO_STR               input_volume_filename, input_surface_filename;
+    VIO_STR               output_volume_filename;
+    Real                 separations[VIO_MAX_DIMENSIONS];
     Real                 voxel_size, threshold;
-    STRING               history;
-    File_formats         format;
-    Volume               volume, label_volume;
-    int                  n_objects, voxel[MAX_DIMENSIONS];
-    int                  sizes[MAX_DIMENSIONS], n_changed;
-    int                  range_changed[2][N_DIMENSIONS];
+    VIO_STR               history;
+    VIO_File_formats         format;
+    VIO_Volume               volume, label_volume;
+    int                  n_objects, voxel[VIO_MAX_DIMENSIONS];
+    int                  sizes[VIO_MAX_DIMENSIONS], n_changed;
+    int                  range_changed[2][VIO_N_DIMENSIONS];
     object_struct        **objects;
 
     initialize_argument_processing( argc, argv );
@@ -49,8 +49,8 @@ int  main(
     get_volume_separations( volume, separations );
     get_volume_sizes( volume, sizes );
 
-    voxel_size = MIN3( FABS(separations[0]), FABS(separations[1]),
-                       FABS(separations[2]) );
+    voxel_size = MIN3( VIO_FABS(separations[0]), VIO_FABS(separations[1]),
+                       VIO_FABS(separations[2]) );
 
     print( "Scanning object to volume.\n" );
 

@@ -5,23 +5,23 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               surface_filename, unit_sphere_filename;
-    STRING               output_filename;
-    STRING               input_values_filename, output_values_filename;
+    VIO_STR               surface_filename, unit_sphere_filename;
+    VIO_STR               output_filename;
+    VIO_STR               input_values_filename, output_values_filename;
     int                  n_objects, n_triangles, p;
     int                  n_s_objects, poly, size, i;
-    Point                centre, *new_points, poly_point;
-    File_formats         format;
+    VIO_Point                centre, *new_points, poly_point;
+    VIO_File_formats         format;
     object_struct        **object_list, **s_object_list, *out_object;
-    Real                 dist, value, *in_values;
+    VIO_Real                 dist, value, *in_values;
     FILE                 *in_file, *out_file;
     polygons_struct      *surface, *dest_sphere, *sphere;
-    progress_struct      progress;
+    VIO_progress_struct      progress;
     BOOLEAN              values_specified;
-    Point                poly1_points[MAX_POINTS_PER_POLYGON];
-    Point                poly2_points[MAX_POINTS_PER_POLYGON];
-    Point                scaled_point;
-    Real                 weights[MAX_POINTS_PER_POLYGON];
+    VIO_Point                poly1_points[MAX_POINTS_PER_POLYGON];
+    VIO_Point                poly2_points[MAX_POINTS_PER_POLYGON];
+    VIO_Point                scaled_point;
+    VIO_Real                 weights[MAX_POINTS_PER_POLYGON];
 
 
     initialize_argument_processing( argc, argv );
@@ -75,7 +75,7 @@ int  main(
                                n_triangles, dest_sphere );
 
     create_polygons_bintree( sphere,
-                             ROUND( (Real) sphere->n_items * 0.7 ) );
+                             VIO_ROUND( (VIO_Real) sphere->n_items * 0.7 ) );
 
     ALLOC( new_points, dest_sphere->n_points );
 

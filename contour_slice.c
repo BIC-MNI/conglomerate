@@ -1,16 +1,16 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  contour_volume_slice(
-    Volume        volume,
+static  void  contour_volume_slice(
+    VIO_Volume        volume,
     int           axis_index,
-    Real          slice_pos,
+    VIO_Real          slice_pos,
     BOOLEAN       world_flag,
-    Real          contour_value,
+    VIO_Real          contour_value,
     lines_struct  *lines );
 
-private  int  get_axis_index(
-    STRING   name,
+static  int  get_axis_index(
+    VIO_STR   name,
     int      *axis_index,
     BOOLEAN  *world_flag )
 {
@@ -33,10 +33,10 @@ private  int  get_axis_index(
     return( *axis_index >= 0 );
 }
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  volume_file  output_file  x|y|z|xw|yw|zw slice_pos\n\
        [contour_value1] [contour_value2] ... \n\
 \n\
@@ -49,12 +49,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, output_filename;
-    STRING               axis_name;
-    Volume               volume;
+    VIO_STR               input_volume_filename, output_filename;
+    VIO_STR               axis_name;
+    VIO_Volume               volume;
     int                  n_objects, axis_index;
     object_struct        **objects, *object;
-    Real                 contour_value, slice_pos;
+    VIO_Real                 contour_value, slice_pos;
     BOOLEAN              world_flag;
 
     initialize_argument_processing( argc, argv );
@@ -101,30 +101,30 @@ int  main(
 typedef  struct
 {
     int            ids[3];
-    Smallest_int   lower_left_fence;
+    VIO_SCHAR   lower_left_fence;
 } node_struct;
 
-private  void  record_values(
-    Volume        volume,
+static  void  record_values(
+    VIO_Volume        volume,
     int           a1,
     int           a2,
     int           axis_index,
-    Real          slice_pos,
+    VIO_Real          slice_pos,
     int           x_size,
     int           y_size,
-    Real          contour_value,
-    Real          **values )
+    VIO_Real          contour_value,
+    VIO_Real          **values )
 {
     int  x, y;
-    Real voxel[N_DIMENSIONS], value;
+    VIO_Real voxel[VIO_N_DIMENSIONS], value;
 
     voxel[axis_index] = slice_pos;
     for_less( x, 0, x_size )
     {
-        voxel[a1] = (Real) x;
+        voxel[a1] = (VIO_Real) x;
         for_less( y, 0, y_size )
         {
-            voxel[a2] = (Real) y;
+            voxel[a2] = (VIO_Real) y;
             evaluate_volume( volume, voxel, FALSE, 0, FALSE, 0.0,
                              &value, NULL, NULL );
             values[x][y] = value - contour_value;
@@ -132,39 +132,39 @@ private  void  record_values(
     }
 }
 
-private  void  get_point(
-    Volume   volume,
+static  void  get_point(
+    VIO_Volume   volume,
     int      axis_index,
-    Real     slice_pos,
-    Real     x,
-    Real     y,
-    Point    *point )
+    VIO_Real     slice_pos,
+    VIO_Real     x,
+    VIO_Real     y,
+    VIO_Point    *point )
 {
-    Real   voxel[N_DIMENSIONS], xw, yw, zw;
+    VIO_Real   voxel[VIO_N_DIMENSIONS], xw, yw, zw;
 
     voxel[axis_index] = slice_pos;
-    voxel[(axis_index+1) % N_DIMENSIONS] = x;
-    voxel[(axis_index+2) % N_DIMENSIONS] = y;
+    voxel[(axis_index+1) % VIO_N_DIMENSIONS] = x;
+    voxel[(axis_index+2) % VIO_N_DIMENSIONS] = y;
 
     convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
 
     fill_Point( *point, xw, yw, zw );
 }
 
-private  void  create_node_points(
-    Volume       volume,
+static  void  create_node_points(
+    VIO_Volume       volume,
     int          axis_index,
-    Real         slice_pos,
+    VIO_Real         slice_pos,
     int          x_size,
     int          y_size,
-    Real         **values,
+    VIO_Real         **values,
     node_struct  **node_info,
     int          *n_points,
-    Point        *points[] )
+    VIO_Point        *points[] )
 {
     int    x, y;
-    Real   this_value, neigh_value, fraction;
-    Point  point;
+    VIO_Real   this_value, neigh_value, fraction;
+    VIO_Point  point;
 
     for_less( x, 0, x_size )
     {
@@ -188,7 +188,7 @@ private  void  create_node_points(
                 if( node_info[x][y].ids[2] < 0 )
                 {
                     get_point( volume, axis_index, slice_pos,
-                               (Real) x, (Real) y, &point );
+                               (VIO_Real) x, (VIO_Real) y, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
                     node_info[x][y].ids[2] = *n_points-1;
@@ -200,7 +200,7 @@ private  void  create_node_points(
                 if( node_info[x+1][y].ids[2] < 0 )
                 {
                     get_point( volume, axis_index, slice_pos,
-                               (Real) x+1.0, (Real) y, &point );
+                               (VIO_Real) x+1.0, (VIO_Real) y, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
                     node_info[x+1][y].ids[2] = *n_points-1;
@@ -211,7 +211,7 @@ private  void  create_node_points(
             {
                 fraction = this_value / (this_value - neigh_value);
                 get_point( volume, axis_index, slice_pos,
-                           (Real) x + fraction, (Real) y, &point );
+                           (VIO_Real) x + fraction, (VIO_Real) y, &point );
                 ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                       DEFAULT_CHUNK_SIZE );
                 node_info[x][y].ids[0] = *n_points-1;
@@ -225,7 +225,7 @@ private  void  create_node_points(
                 if( node_info[x][y].ids[2] < 0 )
                 {
                     get_point( volume, axis_index, slice_pos,
-                               (Real) x, (Real) y, &point );
+                               (VIO_Real) x, (VIO_Real) y, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
                     node_info[x][y].ids[2] = *n_points-1;
@@ -237,7 +237,7 @@ private  void  create_node_points(
                 if( node_info[x][y+1].ids[2] < 0 )
                 {
                     get_point( volume, axis_index, slice_pos,
-                               (Real) x, (Real) y+1.0, &point );
+                               (VIO_Real) x, (VIO_Real) y+1.0, &point );
                     ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                           DEFAULT_CHUNK_SIZE );
                     node_info[x][y+1].ids[2] = *n_points-1;
@@ -248,7 +248,7 @@ private  void  create_node_points(
             {
                 fraction = this_value / (this_value - neigh_value);
                 get_point( volume, axis_index, slice_pos,
-                           (Real) x, (Real) y + fraction, &point );
+                           (VIO_Real) x, (VIO_Real) y + fraction, &point );
                 ADD_ELEMENT_TO_ARRAY( *points, *n_points, point,
                                       DEFAULT_CHUNK_SIZE );
                 node_info[x][y].ids[1] = *n_points-1;
@@ -258,13 +258,13 @@ private  void  create_node_points(
             neigh_value = (values[x][y] + values[x+1][y] + values[x][y+1] +
                            values[x+1][y+1]) / 4.0;
 
-            node_info[x][y].lower_left_fence = (Smallest_int)
+            node_info[x][y].lower_left_fence = (VIO_SCHAR)
                                        (this_value * neigh_value <= 0.0);
         }
     }
 }
 
-private  void  contour_rectangle(
+static  void  contour_rectangle(
     int           x,
     int           y,
     node_struct   **node_info,
@@ -351,21 +351,21 @@ private  void  contour_rectangle(
     }
 }
 
-private  void  contour_volume_slice(
-    Volume        volume,
+static  void  contour_volume_slice(
+    VIO_Volume        volume,
     int           axis_index,
-    Real          slice_pos,
+    VIO_Real          slice_pos,
     BOOLEAN       world_flag,
-    Real          contour_value,
+    VIO_Real          contour_value,
     lines_struct  *lines )
 {
-    int           x, y, a1, a2, sizes[N_DIMENSIONS];
+    int           x, y, a1, a2, sizes[VIO_N_DIMENSIONS];
     node_struct   **node_info;
-    Real          **values;
-    Real          world[N_DIMENSIONS], voxel[N_DIMENSIONS];
+    VIO_Real          **values;
+    VIO_Real          world[VIO_N_DIMENSIONS], voxel[VIO_N_DIMENSIONS];
 
-    a1 = (axis_index + 1) % N_DIMENSIONS;
-    a2 = (axis_index + 2) % N_DIMENSIONS;
+    a1 = (axis_index + 1) % VIO_N_DIMENSIONS;
+    a2 = (axis_index + 2) % VIO_N_DIMENSIONS;
 
     if( world_flag )
     {
@@ -380,18 +380,18 @@ private  void  contour_volume_slice(
 
     get_volume_sizes( volume, sizes );
 
-    ALLOC2D( values, sizes[a1], sizes[a2] );
+    VIO_ALLOC2D( values, sizes[a1], sizes[a2] );
 
     record_values( volume, a1, a2, axis_index, slice_pos,
                    sizes[a1], sizes[a2], contour_value, values );
 
-    ALLOC2D( node_info, sizes[a1], sizes[a2] );
+    VIO_ALLOC2D( node_info, sizes[a1], sizes[a2] );
 
     create_node_points( volume, axis_index, slice_pos,
                         sizes[a1], sizes[a2], values, node_info,
                         &lines->n_points, &lines->points );
 
-    FREE2D( values );
+    VIO_FREE2D( values );
 
     for_less( x, 0, sizes[a1] - 1 )
     {
@@ -404,5 +404,5 @@ private  void  contour_volume_slice(
     print( "Contour: %g   N points: %d    N lines: %d\n",
            contour_value, lines->n_points, lines->n_items );
 
-    FREE2D( node_info );
+    VIO_FREE2D( node_info );
 }

@@ -1,9 +1,9 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private   void  check_neighbours(
-    Volume        volume,
-    Smallest_int  ***flags,
+static   void  check_neighbours(
+    VIO_Volume        volume,
+    VIO_SCHAR  ***flags,
     int           x,
     int           y,
     int           z,
@@ -13,8 +13,8 @@ private   void  check_neighbours(
     int           dy_max,
     int           dz_min,
     int           dz_max,
-    Real          min_voxel,
-    Real          max_voxel,
+    VIO_Real          min_voxel,
+    VIO_Real          max_voxel,
     int           *n_lower,
     int           *n_higher );
 
@@ -25,17 +25,17 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Volume               volume;
-    Real                 min_threshold, max_threshold;
-    Real                 min_voxel, max_voxel;
-    Real                 set_low, set_high;
-    int                  x, y, z, sizes[N_DIMENSIONS];
+    VIO_STR               input_filename, output_filename;
+    VIO_Volume               volume;
+    VIO_Real                 min_threshold, max_threshold;
+    VIO_Real                 min_voxel, max_voxel;
+    VIO_Real                 set_low, set_high;
+    int                  x, y, z, sizes[VIO_N_DIMENSIONS];
     int                  dx_min, dx_max, dy_min, dy_max, dz_min, dz_max;
     int                  n_lower, n_higher;
     int                  start, end, slice;
-    Smallest_int         **flags[3], **tmp;
-    progress_struct      progress;
+    VIO_SCHAR         **flags[3], **tmp;
+    VIO_progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -50,7 +50,7 @@ int  main(
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -58,14 +58,14 @@ int  main(
     get_volume_voxel_range( volume, &min_voxel, &max_voxel );
 
     set_low = convert_value_to_voxel( volume, min_threshold );
-    set_low = (Real) ROUND( set_low );
+    set_low = (VIO_Real) VIO_ROUND( set_low );
     while( convert_voxel_to_value( volume, set_low ) > min_threshold )
         set_low -= 1.0;
     if( set_low < min_voxel )
         set_low = min_voxel;
 
     set_high = convert_value_to_voxel( volume, max_threshold );
-    set_high = (Real) ROUND( set_high );
+    set_high = (VIO_Real) VIO_ROUND( set_high );
     while( convert_voxel_to_value( volume, set_high ) < max_threshold )
         set_high += 1.0;
     if( set_high > max_voxel )
@@ -74,9 +74,9 @@ int  main(
     n_lower = 0;
     n_higher = 0;
 
-    ALLOC2D( flags[0], sizes[1], sizes[2] );
-    ALLOC2D( flags[1], sizes[1], sizes[2] );
-    ALLOC2D( flags[2], sizes[1], sizes[2] );
+    VIO_ALLOC2D( flags[0], sizes[1], sizes[2] );
+    VIO_ALLOC2D( flags[1], sizes[1], sizes[2] );
+    VIO_ALLOC2D( flags[2], sizes[1], sizes[2] );
 
     initialize_progress_report( &progress, FALSE, sizes[0] * sizes[1],
                                 "Clamping" );
@@ -103,7 +103,7 @@ int  main(
             for_less( z, 0, sizes[2] )
             {
                 Threshold_types  type;
-                Real             value;
+                VIO_Real             value;
 
                 value = get_volume_real_value( volume, x + slice, y, z, 0, 0 );
 
@@ -113,7 +113,7 @@ int  main(
                     type = ABOVE_THRESHOLD;
                 else
                     type = WITHIN_THRESHOLD;
-                flags[1+slice][y][z] = (Smallest_int) type;
+                flags[1+slice][y][z] = (VIO_SCHAR) type;
             }
         }
 
@@ -155,9 +155,9 @@ int  main(
         }
     }
 
-    FREE2D( flags[0] );
-    FREE2D( flags[1] );
-    FREE2D( flags[2] );
+    VIO_FREE2D( flags[0] );
+    VIO_FREE2D( flags[1] );
+    VIO_FREE2D( flags[2] );
 
     terminate_progress_report( &progress );
 
@@ -173,9 +173,9 @@ int  main(
     return( 0 );
 }
 
-private   void  check_neighbours(
-    Volume        volume,
-    Smallest_int  ***flags,
+static   void  check_neighbours(
+    VIO_Volume        volume,
+    VIO_SCHAR  ***flags,
     int           x,
     int           y,
     int           z,
@@ -185,13 +185,13 @@ private   void  check_neighbours(
     int           dy_max,
     int           dz_min,
     int           dz_max,
-    Real          min_voxel,
-    Real          max_voxel,
+    VIO_Real          min_voxel,
+    VIO_Real          max_voxel,
     int           *n_lower,
     int           *n_higher )
 {
     int              dx, dy, dz;
-    BOOLEAN          change;
+    VIO_BOOL          change;
     Threshold_types  type, desired_type;
 
     desired_type = (Threshold_types) flags[1][y][z];

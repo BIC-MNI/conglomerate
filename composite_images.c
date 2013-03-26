@@ -5,12 +5,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING            input_filename, output_filename;
+    VIO_STR            input_filename, output_filename;
     int               x, y, n_files, r, g, b, a;
     int               x_offset, y_offset, x_min, x_max, y_min, y_max;
     int               y_offset_flipped;
     pixels_struct     pixels, top_pixels;
-    Colour            bottom, top, col;
+    VIO_Colour            bottom, top, col;
     BOOLEAN           add_flag;
 
     initialize_argument_processing( argc, argv );

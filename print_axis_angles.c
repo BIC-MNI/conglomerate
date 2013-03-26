@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  to_tal.xfm\n\
 \n\
      Displays the angles in degrees between the native space and talairach\n\
@@ -17,12 +17,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, transform_filename;
-    General_transform    transform, *volume_transform;
-    Real                 c, angle, ox, oy, oz, vx, vy, vz;
-    Vector               axis[N_DIMENSIONS], axis_in_tal;
-    Volume               volume;
-    Transform            *t;
+    VIO_STR               volume_filename, transform_filename;
+    VIO_General_transform    transform, *volume_transform;
+    VIO_Real                 c, angle, ox, oy, oz, vx, vy, vz;
+    VIO_Vector               axis[VIO_N_DIMENSIONS], axis_in_tal;
+    VIO_Volume               volume;
+    VIO_Transform            *t;
     int                  dim;
 
     initialize_argument_processing( argc, argv );
@@ -56,7 +56,7 @@ int  main(
 
     general_transform_point( &transform, 0.0, 0.0, 0.0, &ox, &oy, &oz );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         general_transform_point( &transform,
                                  RVector_x(axis[dim]),
@@ -66,7 +66,7 @@ int  main(
         fill_Vector( axis_in_tal, vx - ox, vy - oy, vz - oz );
         NORMALIZE_VECTOR( axis_in_tal, axis_in_tal );
         c = RVector_coord( axis_in_tal, dim );
-        c = FABS( c );
+        c = VIO_FABS( c );
         angle = RAD_TO_DEG * acos( c );
         print( "%c axis: %.4g degrees\n", "XYZ"[dim], angle );
     }

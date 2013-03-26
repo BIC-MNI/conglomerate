@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  example.mnc  input.tags output.tags\n\
 \n\
      Flips tags about the left-right centre of the volume.\n\n";
@@ -16,12 +16,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, input_tags, output_tags;
-    Volume               volume;
-    Real                 voxel[N_DIMENSIONS];
-    int                  i, sizes[N_DIMENSIONS];
+    VIO_STR               volume_filename, input_tags, output_tags;
+    VIO_Volume               volume;
+    VIO_Real                 voxel[VIO_N_DIMENSIONS];
+    int                  i, sizes[VIO_N_DIMENSIONS];
     int                  n_volumes, n_tag_points;
-    Real                 **tags_volume1, **tags_volume2, *weights;
+    VIO_Real                 **tags_volume1, **tags_volume2, *weights;
     int                  *structure_ids, *patient_ids;
     volume_input_struct  volume_input;
 
@@ -56,7 +56,7 @@ int  main(
         convert_world_to_voxel( volume, tags_volume1[i][X],
                                         tags_volume1[i][Y],
                                         tags_volume1[i][Z], voxel );
-        voxel[X] = (Real) sizes[X] - 1.0 - voxel[X];
+        voxel[X] = (VIO_Real) sizes[X] - 1.0 - voxel[X];
 
         convert_voxel_to_world( volume, voxel, &tags_volume1[i][X],
                                                &tags_volume1[i][Y],

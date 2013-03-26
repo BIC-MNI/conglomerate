@@ -5,17 +5,17 @@
 
 #define  BINTREE_FACTOR   0.5
 
-private  void   map_2d_to_unit_sphere(
+static  void   map_2d_to_unit_sphere(
     int    x,
     int    nx,
     int    y,
     int    ny,
-    Point  *point );
+    VIO_Point  *point );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s surface.obj  output.mnc nx ny [volume.mnc [degree]]\n\
 \n\
      Maps a surface to a flat sheet image.  If the volume is not specified,\n\
@@ -29,25 +29,25 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               surface_filename, output_filename, volume_filename;
-    File_formats         format;
+    VIO_STR               surface_filename, output_filename, volume_filename;
+    VIO_File_formats         format;
     polygons_struct      *surface, unit_sphere;
     int                  i, n_objects, nx, ny, x, y, point_index;
     int                  sizes[3], degree, poly, size, ind, n_done;
-    Real                 min_value, max_value, value;
-    Real                 weights[1000], *curvatures;
-    Real                 separations[N_DIMENSIONS];
-    Real                 bottom_left[N_DIMENSIONS];
-    Real                 zero[N_DIMENSIONS];
+    VIO_Real                 min_value, max_value, value;
+    VIO_Real                 weights[1000], *curvatures;
+    VIO_Real                 separations[VIO_N_DIMENSIONS];
+    VIO_Real                 bottom_left[VIO_N_DIMENSIONS];
+    VIO_Real                 zero[VIO_N_DIMENSIONS];
     object_struct        **objects;
     BOOLEAN              use_volume;
-    Point                unit_point, on_sphere_point, centre, surface_point;
-    Point                poly_points[1000], centroid;
-    Real                 base_length;
-    Vector               normal;
-    Volume               volume, image;
-    progress_struct      progress;
-    STRING               dim_names[] = { MIzspace, MIyspace, MIxspace };
+    VIO_Point                unit_point, on_sphere_point, centre, surface_point;
+    VIO_Point                poly_points[1000], centroid;
+    VIO_Real                 base_length;
+    VIO_Vector               normal;
+    VIO_Volume               volume, image;
+    VIO_progress_struct      progress;
+    VIO_STR               dim_names[] = { MIzspace, MIyspace, MIxspace };
 
     /*--- get the arguments from the command line */
 
@@ -154,7 +154,7 @@ int  main(
                                surface->n_items, &unit_sphere );
 
     create_polygons_bintree( &unit_sphere,
-                             ROUND( (Real) unit_sphere.n_items *
+                             VIO_ROUND( (VIO_Real) unit_sphere.n_items *
                                     BINTREE_FACTOR ) );
 
     image = create_volume( 3, dim_names, NC_SHORT, FALSE, 0.0, 0.0 );
@@ -172,8 +172,8 @@ int  main(
 
     set_volume_real_range( image, min_value, max_value );
 
-    separations[1] = 1.0 / (Real) ny;
-    separations[2] = 1.0 / (Real) nx;
+    separations[1] = 1.0 / (VIO_Real) ny;
+    separations[2] = 1.0 / (VIO_Real) nx;
     separations[0] = (separations[1] + separations[2]) / 2.0;
     set_volume_separations( image, separations );
 
@@ -205,9 +205,9 @@ int  main(
             if( use_volume )
             {
                 evaluate_volume_in_world( volume,
-                                          (Real) Point_x(surface_point),
-                                          (Real) Point_y(surface_point),
-                                          (Real) Point_z(surface_point),
+                                          (VIO_Real) Point_x(surface_point),
+                                          (VIO_Real) Point_y(surface_point),
+                                          (VIO_Real) Point_z(surface_point),
                                           degree, FALSE, 0.0,
                                           &value,
                                           NULL, NULL, NULL,
@@ -258,17 +258,17 @@ int  main(
     return( 0 );
 }
 
-private  void   map_2d_to_unit_sphere(
+static  void   map_2d_to_unit_sphere(
     int    i,
     int    ni,
     int    j,
     int    nj,
-    Point  *point )
+    VIO_Point  *point )
 {
-    Real  angle_around, angle_up, x, y, z, r;
+    VIO_Real  angle_around, angle_up, x, y, z, r;
 
-    angle_around = ((Real) i + 0.5)  / (Real) ni * 2.0 * PI;
-    angle_up = -PI/2.0 + ((Real) j + 0.5) / (Real) nj * PI;
+    angle_around = ((VIO_Real) i + 0.5)  / (VIO_Real) ni * 2.0 * PI;
+    angle_up = -PI/2.0 + ((VIO_Real) j + 0.5) / (VIO_Real) nj * PI;
 
     z = sin( angle_up );
 

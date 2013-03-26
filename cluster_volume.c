@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  output.mnc  min_threshold  max_threshold\n\
            [6|26]\n\
 \n\
@@ -21,12 +21,12 @@ int  main(
     char  *argv[] )
 {
     Real             min_threshold, max_threshold;
-    int              sizes[N_DIMENSIONS], v[MAX_DIMENSIONS];
-    int              range_changed[2][N_DIMENSIONS];
+    int              sizes[VIO_N_DIMENSIONS], v[VIO_MAX_DIMENSIONS];
+    int              range_changed[2][VIO_N_DIMENSIONS];
     int              current_label, num_labels, n_neighbours;
-    STRING           volume_filename, output_filename;
-    Volume           volume, label_volume;
-    progress_struct  progress;
+    VIO_STR           volume_filename, output_filename;
+    VIO_Volume           volume, label_volume;
+    VIO_progress_struct  progress;
     Neighbour_types  connectivity;
 
     initialize_argument_processing( argc, argv );
@@ -58,7 +58,7 @@ int  main(
 
     label_volume = create_label_volume( volume, NC_UNSPECIFIED );
 
-    num_labels = ROUND( get_volume_voxel_max( label_volume ) );
+    num_labels = VIO_ROUND( get_volume_voxel_max( label_volume ) );
 
     get_volume_sizes( volume, sizes );
 

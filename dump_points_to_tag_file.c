@@ -5,12 +5,12 @@ int  main(
     int  argc,
     char *argv[] )
 {
-    STRING         filename1, filename2, filename3, output_filename;
-    STRING         filenames[2];
-    Real           **tags[2];
+    VIO_STR         filename1, filename2, filename3, output_filename;
+    VIO_STR         filenames[2];
+    VIO_Real           **tags[2];
     int            i, surface, n_surfaces, n_points[2];
-    Point          *points[2];
-    File_formats   format;
+    VIO_Point          *points[2];
+    VIO_File_formats   format;
     object_struct  **object_list;
     int            n_objects;
 
@@ -61,12 +61,12 @@ int  main(
             return( 1 );
         }
 
-        ALLOC2D( tags[surface], n_points[surface], 3 );
+        VIO_ALLOC2D( tags[surface], n_points[surface], 3 );
         for_less( i, 0, n_points[surface] )
         {
-            tags[surface][i][X] = (Real) Point_x(points[surface][i]);
-            tags[surface][i][Y] = (Real) Point_y(points[surface][i]);
-            tags[surface][i][Z] = (Real) Point_z(points[surface][i]);
+            tags[surface][i][X] = (VIO_Real) Point_x(points[surface][i]);
+            tags[surface][i][Y] = (VIO_Real) Point_y(points[surface][i]);
+            tags[surface][i][Z] = (VIO_Real) Point_z(points[surface][i]);
         }
     }
 

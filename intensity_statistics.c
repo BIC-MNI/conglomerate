@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  volume.mnc  input.tag|input.mnc|none  [dump_file|none] [median]\n\
 \n\
      Computes the statistics for the volume intensity of the volume.  If\n\
@@ -21,23 +21,23 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, label_filename, dummy;
-    STRING               dump_filename;
+    VIO_STR               volume_filename, label_filename, dummy;
+    VIO_STR               dump_filename;
     Real                 mean, median, std_dev, value;
     Real                 min_sample_value, max_sample_value;
-    Volume               volume, label_volume;
+    VIO_Volume               volume, label_volume;
     BOOLEAN              median_required, first_pass;
-    Real                 separations[MAX_DIMENSIONS];
-    Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
-    Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
-    Real                 min_xyz_voxel[MAX_DIMENSIONS];
-    Real                 max_xyz_voxel[MAX_DIMENSIONS];
-    Real                 real_v[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
+    Real                 separations[VIO_MAX_DIMENSIONS];
+    Real                 min_world[VIO_MAX_DIMENSIONS], max_world[VIO_MAX_DIMENSIONS];
+    Real                 min_voxel[VIO_MAX_DIMENSIONS], max_voxel[VIO_MAX_DIMENSIONS];
+    Real                 min_xyz_voxel[VIO_MAX_DIMENSIONS];
+    Real                 max_xyz_voxel[VIO_MAX_DIMENSIONS];
+    Real                 real_v[VIO_MAX_DIMENSIONS], world[VIO_MAX_DIMENSIONS];
     Real                 min_value, max_value;
     Real                 median_min, median_max, median_error;
     FILE                 *file;
     BOOLEAN              dumping, labels_present, first, done;
-    int                  c, n_samples, v[MAX_DIMENSIONS];
+    int                  c, n_samples, v[VIO_MAX_DIMENSIONS];
     statistics_struct    stats;
 
     initialize_argument_processing( argc, argv );
@@ -127,7 +127,7 @@ int  main(
                             return( 1 );
                     }
 
-                    for_less( c, 0, N_DIMENSIONS )
+                    for_less( c, 0, VIO_N_DIMENSIONS )
                         real_v[c] = (Real) v[c];
 
                     convert_voxel_to_world( volume, real_v,
@@ -136,7 +136,7 @@ int  main(
                     if( first )
                     {
                         first = FALSE;
-                        for_less( c, 0, N_DIMENSIONS )
+                        for_less( c, 0, VIO_N_DIMENSIONS )
                         {
                             min_voxel[c] = real_v[c];
                             max_voxel[c] = real_v[c];
@@ -146,7 +146,7 @@ int  main(
                     }
                     else
                     {
-                        for_less( c, 0, N_DIMENSIONS )
+                        for_less( c, 0, VIO_N_DIMENSIONS )
                         {
                             if( real_v[c] < min_voxel[c] )
                                 min_voxel[c] = real_v[c];
@@ -182,8 +182,8 @@ int  main(
                 median_max = convert_value_to_voxel( volume,
                                                      median + median_error );
 
-                median_min = (Real) ROUND( median_min );
-                median_max = (Real) ROUND( median_max );
+                median_min = (Real) VIO_ROUND( median_min );
+                median_max = (Real) VIO_ROUND( median_max );
 
                 if( median_min == median_max )
                 {
@@ -214,7 +214,7 @@ int  main(
         reorder_voxel_to_xyz( volume, max_voxel, max_xyz_voxel );
 
         print( "N Voxels : %d\n", n_samples );
-        print( "Volume   : %g\n",
+        print( "VIO_Volume   : %g\n",
                       (Real) n_samples * separations[X] * separations[Y] *
                                          separations[Z] );
         print( "Min      : %g\n", min_sample_value );
@@ -224,19 +224,19 @@ int  main(
             print( "Median   : %g\n", median );
         print( "Std Dev  : %g\n", std_dev );
         print( "Voxel Rng:" );
-        for_less( c, 0, N_DIMENSIONS )
+        for_less( c, 0, VIO_N_DIMENSIONS )
             print( " %g", min_xyz_voxel[c] );
         print( "\n" );
         print( "         :" );
-        for_less( c, 0, N_DIMENSIONS )
+        for_less( c, 0, VIO_N_DIMENSIONS )
             print( " %g", max_xyz_voxel[c] );
         print( "\n" );
         print( "World Rng:" );
-        for_less( c, 0, N_DIMENSIONS )
+        for_less( c, 0, VIO_N_DIMENSIONS )
             print( " %g", min_world[c] );
         print( "\n" );
         print( "         :" );
-        for_less( c, 0, N_DIMENSIONS )
+        for_less( c, 0, VIO_N_DIMENSIONS )
             print( " %g", max_world[c] );
         print( "\n" );
     }

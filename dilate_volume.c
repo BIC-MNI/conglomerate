@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: dilate_volume input.mnc output.mnc  dilation_value\n\
             [6|26]  [n_dilations]  [mask.mnc min_mask max_mask]\n\
 \n\
@@ -20,13 +20,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename, mask_filename;
-    STRING               *dim_names;
-    Real                 min_mask, max_mask, value_to_dilate;
+    VIO_STR               input_filename, output_filename, mask_filename;
+    VIO_STR               *dim_names;
+    VIO_Real                 min_mask, max_mask, value_to_dilate;
     BOOLEAN              mask_volume_present;
-    Volume               volume, mask_volume;
+    VIO_Volume               volume, mask_volume;
     int                  i, n_dilations, n_neighs, n_changed;
-    int                  range_changed[2][N_DIMENSIONS];
+    int                  range_changed[2][VIO_N_DIMENSIONS];
     Neighbour_types      connectivity;
 
     initialize_argument_processing( argc, argv );

@@ -4,13 +4,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume     volume;
-    STRING     input_filename, output_filename;
-    char       history[EXTREMELY_LARGE_STRING_SIZE];
-    int        x_size, y_size, z_size, sizes[MAX_DIMENSIONS];
+    VIO_Volume     volume;
+    VIO_STR     input_filename, output_filename;
+    char       history[VIO_EXTREMELY_LARGE_STRING_SIZE];
+    int        x_size, y_size, z_size, sizes[VIO_MAX_DIMENSIONS];
     int        n_voxels, x, y, z, i, j, k;
     int        end_x, end_y, end_z;
-    Real       value, voxel_value, avg;
+    VIO_Real       value, voxel_value, avg;
 
     initialize_argument_processing( argc, argv );
 
@@ -28,7 +28,7 @@ int  main(
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -39,15 +39,15 @@ int  main(
 
     /*--- step through volume in steps of averaging size */
 
-    for( x = 0;  x < sizes[X];  x += x_size )
+    for( x = 0;  x < sizes[VIO_X];  x += x_size )
     {
-        end_x = MIN( sizes[X], x + x_size );
-        for( y = 0;  y < sizes[Y];  y += y_size )
+        end_x = MIN( sizes[VIO_X], x + x_size );
+        for( y = 0;  y < sizes[VIO_Y];  y += y_size )
         {
-            end_y = MIN( sizes[Y], y + y_size );
-            for( z = 0;  z < sizes[Z];  z += z_size )
+            end_y = MIN( sizes[VIO_Y], y + y_size );
+            for( z = 0;  z < sizes[VIO_Y];  z += z_size )
             {
-                end_z = MIN( sizes[Z], z + z_size );
+                end_z = MIN( sizes[VIO_Y], z + z_size );
 
                 /*--- get the average of the block of voxels */
 
@@ -60,7 +60,7 @@ int  main(
                     avg += value;
                 }
 
-                avg /= (Real) n_voxels;
+                avg /= (VIO_Real) n_voxels;
                 voxel_value = convert_value_to_voxel( volume, avg );
 
                 /*--- store the average in the block of voxels */
@@ -81,7 +81,7 @@ int  main(
 
     if( output_modified_volume( output_filename, NC_UNSPECIFIED,
              FALSE, 0.0, 0.0, volume, input_filename,
-             history, (minc_output_options *) NULL ) != OK )
+             history, (minc_output_options *) NULL ) != VIO_OK )
         return( 1 );
 
     return( 0 );

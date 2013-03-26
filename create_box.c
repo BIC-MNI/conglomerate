@@ -4,11 +4,11 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING          output_filename;
+    VIO_STR          output_filename;
     int             ind;
     object_struct   *object;
     polygons_struct *polygons;
-    Real            x1, x2, y1, y2, z1, z2;
+    VIO_Real            x1, x2, y1, y2, z1, z2;
 
     initialize_argument_processing( argc, argv );
 

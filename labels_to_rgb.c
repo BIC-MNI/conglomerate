@@ -2,24 +2,24 @@
 #include  <bicpl.h>
 #include  <bicpl/images.h>
 
-private  Status  load_colour_map(
-    STRING           filename,
+static  VIO_Status  load_colour_map(
+    VIO_STR           filename,
     int              *n_colours,
-    Colour           *colours[] );
+    VIO_Colour           *colours[] );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume             volume, rgb_volume;
-    STRING             input_filename, colour_map_filename, output_filename;
-    int                v[MAX_DIMENSIONS], i, int_value;
-    int                n_dims, sizes[MAX_DIMENSIONS], dim;
-    STRING             *dim_names, *dim_names_rgb;
+    VIO_Volume             volume, rgb_volume;
+    VIO_STR             input_filename, colour_map_filename, output_filename;
+    int                v[VIO_MAX_DIMENSIONS], i, int_value;
+    int                n_dims, sizes[VIO_MAX_DIMENSIONS], dim;
+    VIO_STR             *dim_names, *dim_names_rgb;
     Real               value;
-    Real               separations[MAX_DIMENSIONS];
-    Colour             colour, *label_map;
-    General_transform  transform;
+    Real               separations[VIO_MAX_DIMENSIONS];
+    VIO_Colour             colour, *label_map;
+    VIO_General_transform  transform;
     int                n_colour_comps, n_colours;
 
     initialize_argument_processing( argc, argv );
@@ -79,7 +79,7 @@ int  main(
 
         value = get_volume_real_value( volume, v[0], v[1], v[2], v[3], v[4] );
 
-        int_value = ROUND( value );
+        int_value = VIO_ROUND( value );
 
         if( 0 <= int_value && int_value < n_colours )
             colour = label_map[int_value];
@@ -115,15 +115,15 @@ int  main(
     return( 0 );
 }
 
-private  Status  load_colour_map(
-    STRING           filename,
+static  VIO_Status  load_colour_map(
+    VIO_STR           filename,
     int              *n_colours,
-    Colour           *colours[] )
+    VIO_Colour           *colours[] )
 {
-    Status   status;
+    VIO_Status   status;
     FILE     *file;
-    Colour   col;
-    STRING   line;
+    VIO_Colour   col;
+    VIO_STR   line;
     int      index, i;
 
     if( open_file_with_default_suffix( filename, "map",

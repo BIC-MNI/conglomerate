@@ -5,13 +5,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING            input_filename, colour_name, output_filename;
+    VIO_STR            input_filename, colour_name, output_filename;
     int               i, x, y, x_min, x_max, y_min, y_max, x_size, y_size;
     int               image_x_min, image_x_max, image_y_min, image_y_max;
     int               x_pos, y_pos, *x_poses, *y_poses, n_images;
     int               start_x, end_x, start_y, end_y;
     pixels_struct     in_pixels, *images, pixels;
-    Colour            background;
+    VIO_Colour            background;
     int               desired_x_size, desired_y_size;
     BOOLEAN           desired_size_flag;
 

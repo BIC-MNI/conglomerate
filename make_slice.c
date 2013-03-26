@@ -5,19 +5,19 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, output_filename;
-    STRING               axis_name, space;
-    Volume               volume;
+    VIO_STR               input_volume_filename, output_filename;
+    VIO_STR               axis_name, space;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
     int                  axis, x_tess, y_tess, a1, a2;
     BOOLEAN              voxel_slice, volume_present;
     object_struct        *object;
     polygons_struct      *polygons;
     Real                 pos, x_min, x_max, y_min, y_max;
-    Real                 voxel[MAX_DIMENSIONS];
+    Real                 voxel[VIO_MAX_DIMENSIONS];
     Real                 xw, yw, zw, xvw, yvw, zvw;
-    Point                origin;
-    Vector               normal;
+    VIO_Point                origin;
+    VIO_Vector               normal;
 
     initialize_argument_processing( argc, argv );
 
@@ -116,25 +116,25 @@ int  main(
         polygons->n_points = 4;
         ALLOC( polygons->points, polygons->n_points );
         ALLOC( polygons->normals, polygons->n_points );
-        a1 = (axis + 1) % N_DIMENSIONS;
-        a2 = (axis + 2) % N_DIMENSIONS;
+        a1 = (axis + 1) % VIO_N_DIMENSIONS;
+        a2 = (axis + 2) % VIO_N_DIMENSIONS;
         fill_Vector( polygons->normals[0], 0.0, 0.0, 0.0 );
-        Vector_coord( polygons->normals[0], axis ) = (Point_coord_type) 1.0;
+        Vector_coord( polygons->normals[0], axis ) = (VIO_Point_coord_type) 1.0;
         polygons->normals[1] = polygons->normals[0];
         polygons->normals[2] = polygons->normals[0];
         polygons->normals[3] = polygons->normals[0];
-        Point_coord( polygons->points[0], axis ) = (Point_coord_type) pos;
-        Point_coord( polygons->points[0], a1 ) = (Point_coord_type) x_min;
-        Point_coord( polygons->points[0], a2 ) = (Point_coord_type) y_min;
-        Point_coord( polygons->points[1], axis ) = (Point_coord_type) pos;
-        Point_coord( polygons->points[1], a1 ) = (Point_coord_type) x_max;
-        Point_coord( polygons->points[1], a2 ) = (Point_coord_type) y_min;
-        Point_coord( polygons->points[2], axis ) = (Point_coord_type) pos;
-        Point_coord( polygons->points[2], a1 ) = (Point_coord_type) x_max;
-        Point_coord( polygons->points[2], a2 ) = (Point_coord_type) y_max;
-        Point_coord( polygons->points[3], axis ) = (Point_coord_type) pos;
-        Point_coord( polygons->points[3], a1 ) = (Point_coord_type) x_min;
-        Point_coord( polygons->points[3], a2 ) = (Point_coord_type) y_max;
+        Point_coord( polygons->points[0], axis ) = (VIO_Point_coord_type) pos;
+        Point_coord( polygons->points[0], a1 ) = (VIO_Point_coord_type) x_min;
+        Point_coord( polygons->points[0], a2 ) = (VIO_Point_coord_type) y_min;
+        Point_coord( polygons->points[1], axis ) = (VIO_Point_coord_type) pos;
+        Point_coord( polygons->points[1], a1 ) = (VIO_Point_coord_type) x_max;
+        Point_coord( polygons->points[1], a2 ) = (VIO_Point_coord_type) y_min;
+        Point_coord( polygons->points[2], axis ) = (VIO_Point_coord_type) pos;
+        Point_coord( polygons->points[2], a1 ) = (VIO_Point_coord_type) x_max;
+        Point_coord( polygons->points[2], a2 ) = (VIO_Point_coord_type) y_max;
+        Point_coord( polygons->points[3], axis ) = (VIO_Point_coord_type) pos;
+        Point_coord( polygons->points[3], a1 ) = (VIO_Point_coord_type) x_min;
+        Point_coord( polygons->points[3], a2 ) = (VIO_Point_coord_type) y_max;
         polygons->n_items = 1;
         ALLOC( polygons->end_indices, 1 );
         polygons->end_indices[0] = 4;

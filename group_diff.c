@@ -1,33 +1,33 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void   compute_inv_variance(
+static  void   compute_inv_variance(
     int     n_surfaces[2],
-    Point   **samples[2],
+    VIO_Point   **samples[2],
     int     p,
-    Point   *avg1,
-    Point   *avg2,
-    Real    **variance,
-    Real    **inv_s );
+    VIO_Point   *avg1,
+    VIO_Point   *avg2,
+    VIO_Real    **variance,
+    VIO_Real    **inv_s );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
     FILE             *file;
-    STRING           filename, output_filename;
+    VIO_STR           filename, output_filename;
     int              i, n_objects, n_surfaces[2], group, n_points, s, p;
     int              v, nu, which;
-    File_formats     format;
+    VIO_File_formats     format;
     object_struct    **object_list;
     polygons_struct  polygons;
-    Point            *points, *copy_points, **samples[2];
-    Point            *avg1_points, *avg2_points;
-    Vector           offset;
-    Real             **inv_s, tx, ty, tz, mahalanobis, variance;
-    Real             mean[2], var[2], sum_x, sum_xx, dist;
-    Real             conversion_to_f_statistic, value, **var_mat;
-    Real             determinant;
+    VIO_Point            *points, *copy_points, **samples[2];
+    VIO_Point            *avg1_points, *avg2_points;
+    VIO_Vector           offset;
+    VIO_Real             **inv_s, tx, ty, tz, mahalanobis, variance;
+    VIO_Real             mean[2], var[2], sum_x, sum_xx, dist;
+    VIO_Real             conversion_to_f_statistic, value, **var_mat;
+    VIO_Real             determinant;
     BOOLEAN          one_d_flag, t_flag, m_dist_flag;
 
     initialize_argument_processing( argc, argv );
@@ -139,10 +139,10 @@ int  main(
     {
         ADD_POINTS( polygons.points[i], avg1_points[i], avg2_points[i] );
         SCALE_POINT( polygons.points[i], polygons.points[i],
-                     1.0 / (Real) (n_surfaces[0]+n_surfaces[1]) );
+                     1.0 / (VIO_Real) (n_surfaces[0]+n_surfaces[1]) );
 
-        SCALE_POINT( avg1_points[i], avg1_points[i], 1.0 / (Real)n_surfaces[0]);
-        SCALE_POINT( avg2_points[i], avg2_points[i], 1.0 / (Real)n_surfaces[1]);
+        SCALE_POINT( avg1_points[i], avg1_points[i], 1.0 / (VIO_Real)n_surfaces[0]);
+        SCALE_POINT( avg2_points[i], avg2_points[i], 1.0 / (VIO_Real)n_surfaces[1]);
     }
 
     if( one_d_flag )
@@ -151,16 +151,16 @@ int  main(
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
         return( 1 );
 
-    ALLOC2D( inv_s, 3, 3 );
+    VIO_ALLOC2D( inv_s, 3, 3 );
 
     v = n_surfaces[0] + n_surfaces[1] - 2;
-    nu = v - N_DIMENSIONS + 1;
-    conversion_to_f_statistic = (Real) nu /
-                                ((Real) v * (Real) N_DIMENSIONS *
-                                 (1.0 / (Real) n_surfaces[0] +
-                                  1.0 / (Real) n_surfaces[1]));
+    nu = v - VIO_N_DIMENSIONS + 1;
+    conversion_to_f_statistic = (VIO_Real) nu /
+                                ((VIO_Real) v * (VIO_Real) VIO_N_DIMENSIONS *
+                                 (1.0 / (VIO_Real) n_surfaces[0] +
+                                  1.0 / (VIO_Real) n_surfaces[1]));
 
-    ALLOC2D( var_mat, 3, 3 );
+    VIO_ALLOC2D( var_mat, 3, 3 );
 
     for_less( p, 0, n_points )
     {
@@ -179,27 +179,27 @@ int  main(
                     sum_xx += dist * dist;
                 }
 
-                mean[which] = sum_x / (Real) n_surfaces[which];
+                mean[which] = sum_x / (VIO_Real) n_surfaces[which];
 
                 if( n_surfaces[which] == 1 )
                     var[which] = 0.0;
                 else
                     var[which] = (sum_xx - sum_x * sum_x /
-                       (Real) n_surfaces[which]) / (Real) (n_surfaces[which]-1);
+                       (VIO_Real) n_surfaces[which]) / (VIO_Real) (n_surfaces[which]-1);
             }
 
 #ifndef OLD
-            variance = sqrt( ((Real) (n_surfaces[0]-1) * var[0] +
-                              (Real) (n_surfaces[1]-1) * var[1]) /
-                             (Real) v );
+            variance = sqrt( ((VIO_Real) (n_surfaces[0]-1) * var[0] +
+                              (VIO_Real) (n_surfaces[1]-1) * var[1]) /
+                             (VIO_Real) v );
 
             value = (mean[0] - mean[1]) /
-                       (variance * sqrt( 1.0 / (Real) n_surfaces[0] +
-                                         1.0 / (Real) n_surfaces[1] ));
+                       (variance * sqrt( 1.0 / (VIO_Real) n_surfaces[0] +
+                                         1.0 / (VIO_Real) n_surfaces[1] ));
 #else
             value = (mean[0] - mean[1]) /
-                       (sqrt( var[0] / (Real) n_surfaces[0] +
-                              var[1] / (Real) n_surfaces[1] ));
+                       (sqrt( var[0] / (VIO_Real) n_surfaces[0] +
+                              var[1] / (VIO_Real) n_surfaces[1] ));
 #endif
         }
         else
@@ -209,19 +209,19 @@ int  main(
 
             SUB_POINTS( offset, avg1_points[p], avg2_points[p] );
 
-            tx = (Real) Vector_x(offset) * inv_s[0][0] +
-                 (Real) Vector_y(offset) * inv_s[1][0] +
-                 (Real) Vector_z(offset) * inv_s[2][0];
-            ty = (Real) Vector_x(offset) * inv_s[0][1] +
-                 (Real) Vector_y(offset) * inv_s[1][1] +
-                 (Real) Vector_z(offset) * inv_s[2][1];
-            tz = (Real) Vector_x(offset) * inv_s[0][2] +
-                 (Real) Vector_y(offset) * inv_s[1][2] +
-                 (Real) Vector_z(offset) * inv_s[2][2];
+            tx = (VIO_Real) Vector_x(offset) * inv_s[0][0] +
+                 (VIO_Real) Vector_y(offset) * inv_s[1][0] +
+                 (VIO_Real) Vector_z(offset) * inv_s[2][0];
+            ty = (VIO_Real) Vector_x(offset) * inv_s[0][1] +
+                 (VIO_Real) Vector_y(offset) * inv_s[1][1] +
+                 (VIO_Real) Vector_z(offset) * inv_s[2][1];
+            tz = (VIO_Real) Vector_x(offset) * inv_s[0][2] +
+                 (VIO_Real) Vector_y(offset) * inv_s[1][2] +
+                 (VIO_Real) Vector_z(offset) * inv_s[2][2];
 
-            mahalanobis = tx * (Real) Vector_x(offset) +
-                          ty * (Real) Vector_y(offset) +
-                          tz * (Real) Vector_z(offset);
+            mahalanobis = tx * (VIO_Real) Vector_x(offset) +
+                          ty * (VIO_Real) Vector_y(offset) +
+                          tz * (VIO_Real) Vector_z(offset);
 
             if( t_flag )
             {
@@ -233,7 +233,7 @@ int  main(
                                                var_mat[1][1] * var_mat[2][0]);
 
                 value = exp( -0.5 * mahalanobis ) /
-                        pow(2.0*PI,(Real) N_DIMENSIONS/2.0) /
+                        pow(2.0*PI,(VIO_Real) VIO_N_DIMENSIONS/2.0) /
                         sqrt( determinant );
             }
             else if( m_dist_flag )
@@ -246,22 +246,22 @@ int  main(
         (void) output_newline( file );
     }
 
-    FREE2D( var_mat );
+    VIO_FREE2D( var_mat );
 
     return( 0 );
 }
 
-private  void   compute_inv_variance(
+static  void   compute_inv_variance(
     int     n_surfaces[2],
-    Point   **samples[2],
+    VIO_Point   **samples[2],
     int     p,
-    Point   *avg1,
-    Point   *avg2,
-    Real    **variance,
-    Real    **inv_s )
+    VIO_Point   *avg1,
+    VIO_Point   *avg2,
+    VIO_Real    **variance,
+    VIO_Real    **inv_s )
 {
     int     s, i, j;
-    Real    dx, dy, dz;
+    VIO_Real    dx, dy, dz;
 
     /*--- compute the variance at each of the two nodes */
 
@@ -273,9 +273,9 @@ private  void   compute_inv_variance(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = (Real) Point_x(samples[0][s][p]) - (Real) Point_x(*avg1);
-        dy = (Real) Point_y(samples[0][s][p]) - (Real) Point_y(*avg1);
-        dz = (Real) Point_z(samples[0][s][p]) - (Real) Point_z(*avg1);
+        dx = (VIO_Real) Point_x(samples[0][s][p]) - (VIO_Real) Point_x(*avg1);
+        dy = (VIO_Real) Point_y(samples[0][s][p]) - (VIO_Real) Point_y(*avg1);
+        dz = (VIO_Real) Point_z(samples[0][s][p]) - (VIO_Real) Point_z(*avg1);
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -287,9 +287,9 @@ private  void   compute_inv_variance(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = (Real) Point_x(samples[1][s][p]) - (Real) Point_x(*avg2);
-        dy = (Real) Point_y(samples[1][s][p]) - (Real) Point_y(*avg2);
-        dz = (Real) Point_z(samples[1][s][p]) - (Real) Point_z(*avg2);
+        dx = (VIO_Real) Point_x(samples[1][s][p]) - (VIO_Real) Point_x(*avg2);
+        dy = (VIO_Real) Point_y(samples[1][s][p]) - (VIO_Real) Point_y(*avg2);
+        dz = (VIO_Real) Point_z(samples[1][s][p]) - (VIO_Real) Point_z(*avg2);
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -306,7 +306,7 @@ private  void   compute_inv_variance(
     for_less( i, 0, 3 )
     for_less( j, 0, 3 )
     {
-        variance[i][j] /= (Real) (n_surfaces[0] + n_surfaces[1] - 2);
+        variance[i][j] /= (VIO_Real) (n_surfaces[0] + n_surfaces[1] - 2);
     }
 
     if( !invert_square_matrix( 3, variance, inv_s ) )

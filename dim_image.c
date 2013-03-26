@@ -5,12 +5,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING            input_filename, output_filename;
+    VIO_STR            input_filename, output_filename;
     int               x, y;
     pixels_struct     pixels;
-    Colour            col;
-    Real              r, g, b, a;
-    Real              r_scale, g_scale, b_scale, a_scale;
+    VIO_Colour            col;
+    VIO_Real              r, g, b, a;
+    VIO_Real              r_scale, g_scale, b_scale, a_scale;
 
     initialize_argument_processing( argc, argv );
 

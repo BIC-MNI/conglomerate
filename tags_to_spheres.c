@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.tag  output.obj  radius  [optional_n_triangles]\n\
 \n\
      Creates a set of spheres with the given radius to correspond with the\n\
@@ -19,12 +19,12 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING              input_filename, output_filename;
+    VIO_STR              input_filename, output_filename;
     int                 i, n_triangles;
     int                 n_volumes, n_tags;
-    Real                **tags, *weights, radius, this_radius;
+    VIO_Real                **tags, *weights, radius, this_radius;
     object_struct       **object_list;
-    Point               centre;
+    VIO_Point               centre;
 
     initialize_argument_processing( argc, argv );
 

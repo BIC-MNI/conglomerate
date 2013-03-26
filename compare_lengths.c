@@ -4,13 +4,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               polygons_filename1, polygons_filename2;
-    File_formats         format;
+    VIO_STR               polygons_filename1, polygons_filename2;
+    VIO_File_formats         format;
     int                  poly, size, p1, p2, edge, n_edges;
     int                  n_objects1, n_objects2;
     object_struct        **objects1, **objects2;
-    Real                 sum_x, sum_xx, min_x, max_x, avg, var;
-    Real                 relative, l1, l2, sum1, sum2, scale;
+    VIO_Real                 sum_x, sum_xx, min_x, max_x, avg, var;
+    VIO_Real                 relative, l1, l2, sum1, sum2, scale;
     polygons_struct      *polygons1, *polygons2;
 
     initialize_argument_processing( argc, argv );
@@ -124,9 +124,9 @@ int  main(
         }
     }
 
-    avg = sum_x / (Real) n_edges;
+    avg = sum_x / (VIO_Real) n_edges;
 
-    var = (sum_xx - sum_x * sum_x / (Real) n_edges) / (Real) (n_edges-1);
+    var = (sum_xx - sum_x * sum_x / (VIO_Real) n_edges) / (VIO_Real) (n_edges-1);
 
     print( "Min: %g\n", min_x );
     print( "Max: %g\n", max_x );

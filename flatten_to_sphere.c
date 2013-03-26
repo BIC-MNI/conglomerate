@@ -1,9 +1,9 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
+    VIO_Point            init_points[],
     int              n_iters );
 
 int  main(
@@ -12,10 +12,10 @@ int  main(
 {
     STRING               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons;
-    Point                *init_points;
+    VIO_Point                *init_points;
 
     initialize_argument_processing( argc, argv );
 
@@ -61,7 +61,7 @@ int  main(
     return( 0 );
 }
 
-private  int   get_neighbours_neighbours(
+static  int   get_neighbours_neighbours(
     int    node,
     int    n_neighbours[],
     int    *neighbours[],
@@ -107,21 +107,21 @@ private  int   get_neighbours_neighbours(
     return( n_nn );
 }
 
-private  void  create_mesh(
+static  void  create_mesh(
     int            node,
     int            n_neighbours[],
     int            *neighbours[],
     int            total_neighbours,
     int            neigh_indices[],
-    Real           x_sphere[],
-    Real           y_sphere[],
-    Real           z_sphere[] )
+    VIO_Real           x_sphere[],
+    VIO_Real           y_sphere[],
+    VIO_Real           z_sphere[] )
 {
     object_struct  *object;
     lines_struct   *lines;
     int            t, n, nn, neigh, current;
-    Point          point1, point2;
-    char           name[EXTREMELY_LARGE_STRING_SIZE];
+    VIO_Point          point1, point2;
+    char           name[VIO_EXTREMELY_LARGE_STRING_SIZE];
 
     object = create_object( LINES );
     lines = get_lines_ptr( object );
@@ -174,28 +174,28 @@ private  void  create_mesh(
 
 #define  MAX_NN 1000
 
-private  int   flatten_patches_to_sphere(
-    Real             radius,
+static  int   flatten_patches_to_sphere(
+    VIO_Real             radius,
     polygons_struct  *polygons,
     int              node,
     int              n_neighbours[],
     int              **neighbours,
     int              neigh_indices[],
-    Real             x_sphere[],
-    Real             y_sphere[],
-    Real             z_sphere[] )
+    VIO_Real             x_sphere[],
+    VIO_Real             y_sphere[],
+    VIO_Real             z_sphere[] )
 {
     int              n_nn, neigh, neigh_neigh, i, p, n, which;
     int              desired_node;
     int              counts[MAX_NN];
-    Point            neigh_points[MAX_NN];
-    Point            neigh_neigh_points[MAX_NN];
-    Real             x_sphere1[MAX_NN], x, y, z;
-    Real             y_sphere1[MAX_NN];
-    Real             z_sphere1[MAX_NN], len, factor;
-    Vector           x_axis, y_axis, z_axis;
-    Point            origin;
-    Transform        transform, from, to;
+    VIO_Point            neigh_points[MAX_NN];
+    VIO_Point            neigh_neigh_points[MAX_NN];
+    VIO_Real             x_sphere1[MAX_NN], x, y, z;
+    VIO_Real             y_sphere1[MAX_NN];
+    VIO_Real             z_sphere1[MAX_NN], len, factor;
+    VIO_Vector           x_axis, y_axis, z_axis;
+    VIO_Point            origin;
+    VIO_Transform        transform, from, to;
     
     for_less( n, 0, n_neighbours[node] )
     {
@@ -293,9 +293,9 @@ private  int   flatten_patches_to_sphere(
 
     for_less( i, 0, n_nn )
     {
-        x_sphere[n_neighbours[node]+i] /= (Real) counts[i];
-        y_sphere[n_neighbours[node]+i] /= (Real) counts[i];
-        z_sphere[n_neighbours[node]+i] /= (Real) counts[i];
+        x_sphere[n_neighbours[node]+i] /= (VIO_Real) counts[i];
+        y_sphere[n_neighbours[node]+i] /= (VIO_Real) counts[i];
+        z_sphere[n_neighbours[node]+i] /= (VIO_Real) counts[i];
 
         len = x_sphere[n_neighbours[node]+i] * x_sphere[n_neighbours[node]+i] +
               y_sphere[n_neighbours[node]+i] * y_sphere[n_neighbours[node]+i] +
@@ -324,16 +324,16 @@ private  int   flatten_patches_to_sphere(
     return( n_neighbours[node] + n_nn );
 }
 
-private  void  create_coefficients(
+static  void  create_coefficients(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              **neighbours,
     int              n_fixed,
     int              fixed_indices[],
-    Real             *fixed_pos[3],
+    VIO_Real             *fixed_pos[3],
     int              to_parameters[],
     int              to_fixed_index[],
-    Real             *constant,
+    VIO_Real             *constant,
     float            *linear_terms[],
     float            *square_terms[],
     int              *n_cross_terms[],
@@ -342,18 +342,18 @@ private  void  create_coefficients(
 {
     int              node, p, dim, max_neighbours;
     int              neigh, ind, dim1, n_neighs, n_parameters;
-    Real             x_sphere[100];
-    Real             y_sphere[100];
-    Real             z_sphere[100];
+    VIO_Real             x_sphere[100];
+    VIO_Real             y_sphere[100];
+    VIO_Real             z_sphere[100];
     int              neigh_indices[100];
-    Real             *weights[3][3];
-    Real             radius, con, *node_weights;
+    VIO_Real             *weights[3][3];
+    VIO_Real             radius, con, *node_weights;
     int              *indices;
     BOOLEAN          found, ignoring;
-    progress_struct  progress;
+    VIO_progress_struct  progress;
 #ifdef SPHERE
     polygons_struct  unit_sphere;
-    static  Point            centre = { 0.0f, 0.0f, 0.0f };
+    static  VIO_Point            centre = { 0.0f, 0.0f, 0.0f };
 #endif
 
     radius = sqrt( get_polygons_surface_area( polygons ) / 4.0 / PI );
@@ -375,7 +375,7 @@ private  void  create_coefficients(
 
     max_neighbours = MIN((1+max_neighbours)*max_neighbours,polygons->n_points );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         ALLOC( weights[0][dim], max_neighbours );
         ALLOC( weights[1][dim], max_neighbours );
@@ -432,11 +432,11 @@ private  void  create_coefficients(
 
         if( !ignoring )
         {
-            for_less( dim, 0, N_DIMENSIONS )
-            for_less( dim1, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
+            for_less( dim1, 0, VIO_N_DIMENSIONS )
             for_less( p, 0, n_neighs )
             {
-                if( FABS( weights[dim][dim1][p] ) > 100.0 )
+                if( VIO_FABS( weights[dim][dim1][p] ) > 100.0 )
                 {
                     print_error( "Interpolation weights too high: %d %d %d %g\n",
                                  p, dim, dim1, weights[dim][dim1][p] );
@@ -448,7 +448,7 @@ private  void  create_coefficients(
         if( ignoring )
             continue;
 
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             ind = 0;
 
@@ -469,7 +469,7 @@ private  void  create_coefficients(
                 neigh = neigh_indices[p];
                 if( to_parameters[neigh] >= 0 )
                 {
-                    for_less( dim1, 0, N_DIMENSIONS )
+                    for_less( dim1, 0, VIO_N_DIMENSIONS )
                     {
                         if( weights[dim][dim1][p] != 0.0 )
                         {
@@ -481,7 +481,7 @@ private  void  create_coefficients(
                 }
                 else
                 {
-                    for_less( dim1, 0, N_DIMENSIONS )
+                    for_less( dim1, 0, VIO_N_DIMENSIONS )
                     {
                         con += -weights[dim][dim1][p] *
                               fixed_pos[dim1][to_fixed_index[neigh]];
@@ -500,7 +500,7 @@ private  void  create_coefficients(
 
     terminate_progress_report( &progress );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         FREE( weights[0][dim] );
         FREE( weights[1][dim] );
@@ -514,19 +514,19 @@ private  void  create_coefficients(
                              *cross_terms );
 }
 
-private  void   get_transform(
+static  void   get_transform(
     int         n_points,
-    Point       src_points[],
-    Point       dest_points[],
-    Transform   *transform )
+    VIO_Point       src_points[],
+    VIO_Point       dest_points[],
+    VIO_Transform   *transform )
 {
     int                p, dim;
-    Real               **src_tags, **dest_tags;
-    Real               src_area, dest_area, scale;
-    Transform          from, to, scale_transform;
-    Point              origin;
-    Vector             hor, vert, normal;
-    General_transform  gen_transform;
+    VIO_Real               **src_tags, **dest_tags;
+    VIO_Real               src_area, dest_area, scale;
+    VIO_Transform          from, to, scale_transform;
+    VIO_Point              origin;
+    VIO_Vector             hor, vert, normal;
+    VIO_General_transform  gen_transform;
 
     if( n_points == 3 )
     {
@@ -560,12 +560,12 @@ private  void   get_transform(
     }
     else
     {
-        ALLOC2D( src_tags, n_points, N_DIMENSIONS );
-        ALLOC2D( dest_tags, n_points, N_DIMENSIONS );
+        VIO_ALLOC2D( src_tags, n_points, VIO_N_DIMENSIONS );
+        VIO_ALLOC2D( dest_tags, n_points, VIO_N_DIMENSIONS );
 
         for_less( p, 0, n_points )
         {
-            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
             {
                 src_tags[p][dim] = RPoint_coord(src_points[p],dim);
                 dest_tags[p][dim] = RPoint_coord(dest_points[p],dim);
@@ -575,30 +575,30 @@ private  void   get_transform(
         compute_transform_from_tags( n_points, dest_tags, src_tags, TRANS_LSQ7,
                                      &gen_transform );
 
-        FREE2D( src_tags );
-        FREE2D( dest_tags );
+        VIO_FREE2D( src_tags );
+        VIO_FREE2D( dest_tags );
         *transform = *get_linear_transform_ptr( &gen_transform );
         delete_general_transform( &gen_transform );
     }
 }
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
+    VIO_Point            init_points[],
     int              n_iters )
 {
     int              i, point, *n_neighbours, **neighbours;
     int              n_fixed, *fixed_indices, size, dim;
     int              n_parameters;
-    Real             *fixed_pos[3], x, y, z;
-    Real             constant;
+    VIO_Real             *fixed_pos[3], x, y, z;
+    VIO_Real             constant;
     float            *linear_terms, *square_terms, **cross_terms;
     int              *n_cross_terms, **cross_parms;
-    Real             *parameters;
+    VIO_Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
-    Point            first_points[MAX_POINTS_PER_POLYGON];
-    Point            init_first_points[MAX_POINTS_PER_POLYGON];
-    Transform        transform;
+    VIO_Point            first_points[MAX_POINTS_PER_POLYGON];
+    VIO_Point            init_first_points[MAX_POINTS_PER_POLYGON];
+    VIO_Transform        transform;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -624,7 +624,7 @@ private  void  flatten_polygons(
     {
         fixed_indices[i] = polygons->indices[
                            POINT_INDEX(polygons->end_indices,0,i)];
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
             fixed_pos[dim][i] = RPoint_coord(
                                    polygons->points[fixed_indices[i]], dim );
     }

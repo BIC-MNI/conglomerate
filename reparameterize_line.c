@@ -1,15 +1,15 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  reparameterize_lines(
+static  void  reparameterize_lines(
     lines_struct  *lines,
     lines_struct  *new_lines,
     int           n_points );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input_lines.obj  output_lines.obj\n\
 \n\
      Copies the input lines to the output lines, but only the largest line\n\
@@ -22,8 +22,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src_filename, dest_filename;
-    File_formats         format;
+    VIO_STR               src_filename, dest_filename;
+    VIO_File_formats         format;
     int                  n_objects, n_points;
     object_struct        **objects;
     lines_struct         *lines, new_lines;
@@ -69,14 +69,14 @@ int  main(
     return( 0 );
 }
 
-private  void  reparameterize_lines(
+static  void  reparameterize_lines(
     lines_struct  *lines,
     lines_struct  *new_lines,
     int           n_points )
 {
     int      size, i;
     BOOLEAN  closed_flag;
-    Real     total_length, ratio;
+    VIO_Real     total_length, ratio;
 
     size = GET_OBJECT_SIZE( *lines, 0 );
 
@@ -90,9 +90,9 @@ private  void  reparameterize_lines(
     for_less( i, 0, n_points )
     {
         if( closed_flag )
-            ratio = (Real) i / (Real) n_points;
+            ratio = (VIO_Real) i / (VIO_Real) n_points;
         else
-            ratio = (Real) i / (Real) (n_points-1);
+            ratio = (VIO_Real) i / (VIO_Real) (n_points-1);
 
         get_lines_arc_point( lines, ratio * total_length,
                              &new_lines->points[i] );

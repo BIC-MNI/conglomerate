@@ -41,14 +41,14 @@ int  main(
 			 int   argc,
 			 char  *argv[] )
 {
-	STRING     glim_filename, coordlist_filename, output_filename;
+	VIO_STR     glim_filename, coordlist_filename, output_filename;
 	char       cur_minc[255];
 	float      x[255], y[255], z[255];
 	double       value;
-	Volume     volume;
+	VIO_Volume     volume;
 	float      curx, cury, curz;
-	int        voxx, voxy, voxz, sizes[MAX_DIMENSIONS];
-	Real       voxel[MAX_DIMENSIONS];
+	int        voxx, voxy, voxz, sizes[VIO_MAX_DIMENSIONS];
+	Real       voxel[VIO_MAX_DIMENSIONS];
 	int        i, r, keep_looping, n_coords;
 	FILE*      coordfile;
 	FILE*      glimfile;
@@ -136,9 +136,9 @@ int  main(
 
 				printf("Reading %f %f %f (%d %d %d) from %s\n", x[i], y[i], z[i], voxx, voxy, voxz, cur_minc);
 
-				voxx = ROUND( voxel[0] );
-				voxy = ROUND( voxel[1] );
-				voxz = ROUND( voxel[2] );
+				voxx = VIO_ROUND( voxel[0] );
+				voxy = VIO_ROUND( voxel[1] );
+				voxz = VIO_ROUND( voxel[2] );
 
 				if( voxx >= 0 && voxx < sizes[0] &&
 					 voxy >= 0 && voxy < sizes[1] &&

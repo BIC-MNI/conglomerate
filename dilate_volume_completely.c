@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc output.mnc  [max_dilations|-1] [6|26] [min_outside max_outside]\n\
                 [min_inside max_inside]\n\
      Dilates all regions of volume until there are no values in the range\n\
@@ -17,19 +17,19 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Volume               volume;
+    VIO_STR               input_filename, output_filename;
+    VIO_Volume               volume;
     int                  n_neighs, iter, max_dilations;
-    int                  sizes[N_DIMENSIONS];
+    int                  sizes[VIO_N_DIMENSIONS];
     int                  x, y, z, n_changed;
     int                  tx, ty, tz, n_dirs, *dx, *dy, *dz, dir;
     BOOLEAN              found;
-    Real                 max_value, test_value, value;
-    Real                 min_outside, max_outside;
-    Real                 min_inside, max_inside;
-    Real                 **output_buffer[2], **tmp;
+    VIO_Real                 max_value, test_value, value;
+    VIO_Real                 min_outside, max_outside;
+    VIO_Real                 min_inside, max_inside;
+    VIO_Real                 **output_buffer[2], **tmp;
     Neighbour_types      connectivity;
-    progress_struct      progress;
+    VIO_progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -65,8 +65,8 @@ int  main(
 
     get_volume_sizes( volume, sizes );
 
-    ALLOC2D( output_buffer[0], sizes[Y], sizes[Z] );
-    ALLOC2D( output_buffer[1], sizes[Y], sizes[Z] );
+    VIO_ALLOC2D( output_buffer[0], sizes[Y], sizes[Z] );
+    VIO_ALLOC2D( output_buffer[1], sizes[Y], sizes[Z] );
 
     n_changed = 1;
     while( (max_dilations < 0 || iter < max_dilations) && n_changed > 0 )
@@ -159,8 +159,8 @@ int  main(
         print( "Iter: %d    N changed: %d\n", iter, n_changed );
     }
 
-    FREE2D( output_buffer[0] );
-    FREE2D( output_buffer[1] );
+    VIO_FREE2D( output_buffer[0] );
+    VIO_FREE2D( output_buffer[1] );
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED, FALSE,
                                    0.0, 0.0, volume, input_filename,

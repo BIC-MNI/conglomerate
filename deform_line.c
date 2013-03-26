@@ -1,30 +1,30 @@
 #include  <volume_io.h>
 #include  <deform.h>
 
-private  void  perturb_line_points(
+static  void  perturb_line_points(
     int                          axis,
     lines_struct                 *lines,
-    Real                         curvature_factors[],
-    Point                        new_points[],
-    Real                         fractional_step,
-    Real                         max_step,
-    Real                         max_search_distance,
+    VIO_Real                         curvature_factors[],
+    VIO_Point                        new_points[],
+    VIO_Real                         fractional_step,
+    VIO_Real                         max_step,
+    VIO_Real                         max_search_distance,
     int                          degrees_continuity,
     deform_data_struct           *deform_data,
     boundary_definition_struct   *boundary_def,
     deformation_model_struct     *deformation_model,
     deform_stats                 *stats );
-private  Real  one_iteration_lines(
+static  VIO_Real  one_iteration_lines(
     lines_struct      *lines,
     deform_struct     *deform_parms,
     int               iteration );
 
-public  void  deform_lines(
+  void  deform_lines(
     lines_struct      *lines,
     deform_struct     *deform_parms )
 {
     int                iteration;
-    Real               max_error;
+    VIO_Real               max_error;
 
     iteration = 0;
     do
@@ -37,7 +37,7 @@ public  void  deform_lines(
            iteration < deform_parms->max_iterations );
 }
 
-public  void  deform_lines_one_iteration(
+  void  deform_lines_one_iteration(
     lines_struct      *lines,
     deform_struct     *deform_parms,
     int               iteration )
@@ -45,14 +45,14 @@ public  void  deform_lines_one_iteration(
     (void) one_iteration_lines( lines, deform_parms, iteration );
 }
 
-private  Real  one_iteration_lines(
+static  VIO_Real  one_iteration_lines(
     lines_struct      *lines,
     deform_struct     *deform_parms,
     int               iteration )
 {
     int                axis;
-    Point              *new_points, *tmp;
-    Real               *curvature_factors;
+    VIO_Point              *new_points, *tmp;
+    VIO_Real               *curvature_factors;
     deform_stats       stats;
 
     if( lines->n_items > 1 || 
@@ -105,25 +105,25 @@ private  Real  one_iteration_lines(
     return( stats.maximum );
 }
 
-public  void  get_line_equilibrium_point(
+  void  get_line_equilibrium_point(
     lines_struct                 *lines,
     int                          axis,
     int                          point_index,
     int                          neighbours[],
-    Real                         curvature_factors[],
-    Real                         max_search_distance,
+    VIO_Real                         curvature_factors[],
+    VIO_Real                         max_search_distance,
     int                          degrees_continuity,
-    Volume                       volume,
-    Volume                       label_volume,
+    VIO_Volume                       volume,
+    VIO_Volume                       label_volume,
     boundary_definition_struct   *boundary_def,
     deformation_model_struct     *deformation_model,
-    Point                        *equilibrium_point,
-    Point                        *boundary_point )
+    VIO_Point                        *equilibrium_point,
+    VIO_Point                        *boundary_point )
 {
     BOOLEAN          found_flag;
-    Real             base_length, model_distance, boundary_distance;
-    Point            centroid, model_point, search_origin;
-    Vector           normal, pos_model_dir, neg_model_dir;
+    VIO_Real             base_length, model_distance, boundary_distance;
+    VIO_Point            centroid, model_point, search_origin;
+    VIO_Vector           normal, pos_model_dir, neg_model_dir;
 
     compute_line_centroid_and_normal( lines, axis, neighbours[0], neighbours[1],
                                  &centroid, &normal, &base_length );
@@ -143,7 +143,7 @@ public  void  get_line_equilibrium_point(
                                 degrees_continuity,
                                 boundary_def, &boundary_distance );
 
-    if( boundary_point != (Point *) NULL )
+    if( boundary_point != (VIO_Point *) NULL )
         get_model_shape_point( &model_point, &pos_model_dir, &neg_model_dir,
                                boundary_distance, boundary_point );
 
@@ -154,14 +154,14 @@ public  void  get_line_equilibrium_point(
                                equilibrium_point );
 }
 
-private  void  perturb_line_points(
+static  void  perturb_line_points(
     int                          axis,
     lines_struct                 *lines,
-    Real                         curvature_factors[],
-    Point                        new_points[],
-    Real                         fractional_step,
-    Real                         max_step,
-    Real                         max_search_distance,
+    VIO_Real                         curvature_factors[],
+    VIO_Point                        new_points[],
+    VIO_Real                         fractional_step,
+    VIO_Real                         max_step,
+    VIO_Real                         max_search_distance,
     int                          degrees_continuity,
     deform_data_struct           *deform_data,
     boundary_definition_struct   *boundary_def,
@@ -171,10 +171,10 @@ private  void  perturb_line_points(
     int              point_index, vertex_index;
     int              size, start_index, end_index;
     int              neighbours[2], i;
-    Point            equilibrium_point;
+    VIO_Point            equilibrium_point;
     BOOLEAN          closed;
-    progress_struct  progress;
-    Real             dist_from_equil;
+    VIO_progress_struct  progress;
+    VIO_Real             dist_from_equil;
 
     for_less( point_index, 0, lines->n_points )
         new_points[point_index] = lines->points[point_index];
@@ -221,7 +221,7 @@ private  void  perturb_line_points(
                                     deform_data->label_volume,
                                     boundary_def,
                                     deformation_model, &equilibrium_point,
-                                    (Point *) NULL );
+                                    (VIO_Point *) NULL );
 
         dist_from_equil = deform_point( point_index, lines->points,
                                         &equilibrium_point,
@@ -239,7 +239,7 @@ private  void  perturb_line_points(
     terminate_progress_report( &progress );
 }
 
-public  int  find_axial_plane(
+  int  find_axial_plane(
     lines_struct   *lines )
 {
     int      axis, p;

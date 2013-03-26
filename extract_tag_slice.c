@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  volume  output.tag  x|y|z  slice_mm  [min] [max]\n\
 \n\
      Creates a tag file from a volume, taking only the tags from the given\n\
@@ -18,17 +18,17 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, tag_filename, axis_name;
-    Volume               volume;
+    VIO_STR               volume_filename, tag_filename, axis_name;
+    VIO_Volume               volume;
     FILE                 *file;
-    Real                 min_id, max_id, world[N_DIMENSIONS];
-    Real                 voxel[N_DIMENSIONS], slice_pos, value;
-    Real                 tag[N_DIMENSIONS];
-    int                  int_voxel[N_DIMENSIONS], sizes[N_DIMENSIONS];
+    Real                 min_id, max_id, world[VIO_N_DIMENSIONS];
+    Real                 voxel[VIO_N_DIMENSIONS], slice_pos, value;
+    Real                 tag[VIO_N_DIMENSIONS];
+    int                  int_voxel[VIO_N_DIMENSIONS], sizes[VIO_N_DIMENSIONS];
     int                  n_tags, structure_id, a1, a2, axis;
-    int                  block_sizes[MAX_DIMENSIONS];
+    int                  block_sizes[VIO_MAX_DIMENSIONS];
     BOOLEAN              min_present;
-    progress_struct      progress;
+    VIO_progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -91,9 +91,9 @@ int  main(
     convert_world_to_voxel( volume, world[X], world[Y], world[Z], voxel );
 
     get_volume_sizes( volume, sizes );
-    a1 = (axis + 1) % N_DIMENSIONS;
-    a2 = (axis + 2) % N_DIMENSIONS;
-    int_voxel[axis] = ROUND( voxel[axis] );
+    a1 = (axis + 1) % VIO_N_DIMENSIONS;
+    a2 = (axis + 2) % VIO_N_DIMENSIONS;
+    int_voxel[axis] = VIO_ROUND( voxel[axis] );
 
     if( int_voxel[axis] < 0 || int_voxel[axis] >= sizes[axis] )
     {
@@ -120,7 +120,7 @@ int  main(
                                            (Real) int_voxel[Z],
                                            &tag[X], &tag[Y], &tag[Z] );
 
-                structure_id = ROUND( value );
+                structure_id = VIO_ROUND( value );
 
                 if( output_one_tag( file, 1, tag, NULL, NULL,
                                     &structure_id, NULL, NULL ) != OK )

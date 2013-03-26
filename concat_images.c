@@ -5,10 +5,10 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING            input_filename1, input_filename2, output_filename;
+    VIO_STR            input_filename1, input_filename2, output_filename;
     int               x, y;
     pixels_struct     in_pixels1, in_pixels2, out_pixels;
-    Colour            col;
+    VIO_Colour            col;
 
     initialize_argument_processing( argc, argv );
 

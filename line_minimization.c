@@ -5,13 +5,13 @@
 #define  GOLDEN_RATIO   0.618034
 #define  DEFAULT_STEP   1.0e-10
 
-private  Real  evaluate_along_line(
+static  VIO_Real  evaluate_along_line(
     int      n_parameters,
-    Real     parameters[],
-    Real     line_direction[],
-    Real     t,
-    Real     test_parameters[],
-    Real     (*function) ( Real [], void * ),
+    VIO_Real     parameters[],
+    VIO_Real     line_direction[],
+    VIO_Real     t,
+    VIO_Real     test_parameters[],
+    VIO_Real     (*function) ( VIO_Real [], void * ),
     void     *function_data )
 {
     int   parm;
@@ -22,22 +22,22 @@ private  Real  evaluate_along_line(
     return( (*function) ( test_parameters, function_data ) );
 }
 
-public  Real  minimize_along_line(
+  VIO_Real  minimize_along_line(
     int      n_parameters,
-    Real     parameters[],
-    Real     line_direction[],
-    Real     test_parameters[],
-    Real     (*function) ( Real [], void * ),
+    VIO_Real     parameters[],
+    VIO_Real     line_direction[],
+    VIO_Real     test_parameters[],
+    VIO_Real     (*function) ( VIO_Real [], void * ),
     void     *function_data,
-    Real     range_tolerance,
-    Real     domain_tolerance,
-    Real     current_value,
-    Real     *max_movement )
+    VIO_Real     range_tolerance,
+    VIO_Real     domain_tolerance,
+    VIO_Real     current_value,
+    VIO_Real     *max_movement )
 {
     int              p;
-    Real             t0, t1, t2, f0, f1, f2, t_next, f_next, step, fsize;
-    Real             swap, bottom, new_size, old_size;
-    Real             search_ratio, prev_step, final_value, movement;
+    VIO_Real             t0, t1, t2, f0, f1, f2, t_next, f_next, step, fsize;
+    VIO_Real             swap, bottom, new_size, old_size;
+    VIO_Real             search_ratio, prev_step, final_value, movement;
     BOOLEAN          done, prev_failed;
 
     search_ratio = SEARCH_RATIO;
@@ -186,7 +186,7 @@ public  Real  minimize_along_line(
         final_value = f1;
         for_less( p, 0, n_parameters )
         {
-            movement = FABS( t1 * line_direction[p] );
+            movement = VIO_FABS( t1 * line_direction[p] );
             if( movement > *max_movement )
                 *max_movement = movement;
             parameters[p] += t1 * line_direction[p];

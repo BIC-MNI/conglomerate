@@ -1,19 +1,19 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  Real  gaussian_function(
-    Real  exp_constant,
-    Real  x1,
-    Real  y1,
-    Real  z1,
-    Real  x2,
-    Real  y2,
-    Real  z2 );
+static  VIO_Real  gaussian_function(
+    VIO_Real  exp_constant,
+    VIO_Real  x1,
+    VIO_Real  y1,
+    VIO_Real  z1,
+    VIO_Real  x2,
+    VIO_Real  y2,
+    VIO_Real  z2 );
 
-private  void  usage(
+static  void  usage(
     char   executable[] )
 {
-    STRING  usage =
+    VIO_STR  usage =
 "Usage: %s  like_volume.mnc  output.mnc  [-max_value value] x1 y1 z1 fwhm1 \n\
             [x2 y2 z2 fwhm2 ] [-tag filename fwhm]...\n\
 \n\
@@ -28,25 +28,25 @@ overriden by the -max_value argument.\n\n";
 
 typedef struct
 {
-    Real  x;
-    Real  y;
-    Real  z;
-    Real  exp_constant;
+    VIO_Real  x;
+    VIO_Real  y;
+    VIO_Real  z;
+    VIO_Real  exp_constant;
 } peak_struct;
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               like_filename, output_filename, history_string, arg;
-    STRING               tag_filename;
-    Volume               volume;
+    VIO_STR               like_filename, output_filename, history_string, arg;
+    VIO_STR               tag_filename;
+    VIO_Volume               volume;
     int                  n_peaks, p, a, xv, yv, zv;
-    int                  sizes[N_DIMENSIONS], tag, n_tag_points, n_volumes;
+    int                  sizes[VIO_N_DIMENSIONS], tag, n_tag_points, n_volumes;
     peak_struct          *peaks, peak;
-    Real                 x, y, z, value, v[N_DIMENSIONS], fwhm;
-    Real                 min_value, max_value, **tags_volume1;
-    progress_struct      progress;
+    VIO_Real                 x, y, z, value, v[VIO_N_DIMENSIONS], fwhm;
+    VIO_Real                 min_value, max_value, **tags_volume1;
+    VIO_progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -124,7 +124,7 @@ int  main(
 
     if( max_value <= 0.0 )
     {
-        max_value = (Real) n_peaks;
+        max_value = (VIO_Real) n_peaks;
         print( "Max value = %g\n", max_value );
     }
 
@@ -143,9 +143,9 @@ int  main(
     {
         for_less( zv, 0, sizes[Z] )
         {
-            v[0] = (Real) xv;
-            v[1] = (Real) yv;
-            v[2] = (Real) zv;
+            v[0] = (VIO_Real) xv;
+            v[1] = (VIO_Real) yv;
+            v[2] = (VIO_Real) zv;
 
             convert_voxel_to_world( volume, v, &x, &y, &z );
 
@@ -188,16 +188,16 @@ int  main(
     return( 0 );
 }
 
-private  Real  gaussian_function(
-    Real  exp_constant,
-    Real  x1,
-    Real  y1,
-    Real  z1,
-    Real  x2,
-    Real  y2,
-    Real  z2 )
+static  VIO_Real  gaussian_function(
+    VIO_Real  exp_constant,
+    VIO_Real  x1,
+    VIO_Real  y1,
+    VIO_Real  z1,
+    VIO_Real  x2,
+    VIO_Real  y2,
+    VIO_Real  z2 )
 {
-    Real  dx, dy, dz, dist, value;
+    VIO_Real  dx, dy, dz, dist, value;
 
     dx = x1 - x2;
     dy = y1 - y2;

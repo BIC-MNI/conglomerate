@@ -18,7 +18,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/libraries/conglomerate/match_tags.c,v 1.1 2004-04-07 15:53:20 bert Exp $";
+static char rcsid[]="$Header: /static-cvsroot/libraries/conglomerate/match_tags.c,v 1.1 2004-04-07 15:53:20 bert Exp $";
 #endif
 
 #include <stdlib.h>
@@ -35,9 +35,9 @@ static char rcsid[]="$Header: /private-cvsroot/libraries/conglomerate/match_tags
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#ifndef public
-#  define public
-#  define private static
+#ifndef 
+#  define 
+#  define static static
 #endif
 
 #define WORLD_NDIMS 3
@@ -82,10 +82,10 @@ ArgvInfo argTable[] = {
 int main(int argc, char *argv[])
 {
    char *pname, *tagfile1, *tagfile2, *outtag, *history;
-   Real **tags1, **tags2, **new_tags, *this_tag;
+   VIO_Real **tags1, **tags2, **new_tags, *this_tag;
    int n_volumes1, n_volumes2, n_tag_points1, n_tag_points2;
    int ipoint1, ipoint2, icoord, near_tag;
-   STRING *labels1, *labels2, *new_labels, this_label;
+   VIO_STR *labels1, *labels2, *new_labels, this_label;
    double min_distsq, distsq, diff, maximum_distsq;
    size_t string_length;
    FILE *fp;

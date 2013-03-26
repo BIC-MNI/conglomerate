@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: tagtominc  example_volume.mnc  input.tag  output.mnc  [structure_id|-1] [crop]\n\
 \n\
      Converts a tag file to a MINC volume with values equal the tags'\n\
@@ -21,23 +21,23 @@ int  main(
     char  *argv[] )
 {
     FILE                 *file;
-    Status               status;
-    STRING               volume_filename, tag_filename;
-    STRING               output_filename, label;
-    Real                 voxel[MAX_DIMENSIONS];
+    VIO_Status               status;
+    VIO_STR               volume_filename, tag_filename;
+    VIO_STR               output_filename, label;
+    Real                 voxel[VIO_MAX_DIMENSIONS];
     Real                 value_to_set;
     Real                 volume_min, volume_max;
     BOOLEAN              crop_flag;
-    STRING               history, dummy;
-    Volume               volume, new_volume, used_volume;
+    VIO_STR               history, dummy;
+    VIO_Volume               volume, new_volume, used_volume;
     volume_input_struct  volume_input;
-    int                  limits[2][MAX_DIMENSIONS];
+    int                  limits[2][VIO_MAX_DIMENSIONS];
     int                  structure_id, n_tag_points, n_volumes, tag_id;
     int                  n_used_tag_points;
     int                  n_inside_tag_points;
-    Real                 tags1[N_DIMENSIONS];
+    Real                 tags1[VIO_N_DIMENSIONS];
     int                  i, x, y, z;
-    int                  sizes[N_DIMENSIONS];
+    int                  sizes[VIO_N_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 
@@ -104,9 +104,9 @@ int  main(
 
             if( voxel_is_within_volume( new_volume, voxel ) )
             {
-                x = ROUND( voxel[X] );
-                y = ROUND( voxel[Y] );
-                z = ROUND( voxel[Z] );
+                x = VIO_ROUND( voxel[X] );
+                y = VIO_ROUND( voxel[Y] );
+                z = VIO_ROUND( voxel[Z] );
 
                 value_to_set = (Real) tag_id;
                 if( value_to_set < volume_min || value_to_set > volume_max )

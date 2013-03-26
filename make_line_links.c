@@ -3,19 +3,19 @@
 
 #define  TOLERANCE  0.0
 
-private  void  tmp_coalesce_object_points(
+static  void  tmp_coalesce_object_points(
     int      *n_points,
-    Point    *points[],
+    VIO_Point    *points[],
     int      n_indices,
     int      indices[] );
 
-private  void  coalesce_lines(
+static  void  coalesce_lines(
     lines_struct   *lines );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input_lines1.obj  input_lines2.obj output_lines.obj n_links\n\
 \n\
      Creates a set of line segments linking the two input lines.\n\n";
@@ -27,13 +27,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src1_filename, src2_filename, dest_filename;
-    File_formats         format;
+    VIO_STR               src1_filename, src2_filename, dest_filename;
+    VIO_File_formats         format;
     int                  n_objects1, n_objects2, n_links, i, obj_index;
     object_struct        **objects1, **objects2, *object;
     lines_struct         *lines1, *lines;
-    Point                point1, point2;
-    Real                 length;
+    VIO_Point                point1, point2;
+    VIO_Real                 length;
 
     initialize_argument_processing( argc, argv );
 
@@ -89,7 +89,7 @@ return( 0 );
     length = get_lines_length( lines1 );
     for_less( i, 0, n_links )
     {
-        get_lines_arc_point( lines1, (Real) i / (Real) n_links * length,
+        get_lines_arc_point( lines1, (VIO_Real) i / (VIO_Real) n_links * length,
                              &point1 );
 
         (void) find_closest_point_on_object( &point1, objects2[0],
@@ -109,7 +109,7 @@ return( 0 );
 }
 
 
-private  void  coalesce_lines(
+static  void  coalesce_lines(
     lines_struct   *lines )
 {
     int   p, n, l, *n_neighbours, **neighbours, total_neighbours;
@@ -257,27 +257,27 @@ typedef  struct
     int   *point_indices;
 } box_struct;
 
-private  void  get_box_index(
-    Point   *point,
-    Point   *min_point,
-    Point   *max_point,
+static  void  get_box_index(
+    VIO_Point   *point,
+    VIO_Point   *min_point,
+    VIO_Point   *max_point,
     int     n_boxes[],
     int     *i,
     int     *j,
     int     *k )
 {
-    Real  diff, p, min_p, max_p;
-    int   dim, *coords[N_DIMENSIONS];
+    VIO_Real  diff, p, min_p, max_p;
+    int   dim, *coords[VIO_N_DIMENSIONS];
 
     coords[X] = i;
     coords[Y] = j;
     coords[Z] = k;
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
-        p = (Real) Point_coord(*point,dim);
-        min_p = (Real) Point_coord(*min_point,dim);
-        max_p = (Real) Point_coord(*max_point,dim);
+        p = (VIO_Real) Point_coord(*point,dim);
+        min_p = (VIO_Real) Point_coord(*min_point,dim);
+        max_p = (VIO_Real) Point_coord(*max_point,dim);
         if( p <= min_p )
             *(coords[dim]) = 0;
         else if( p >= max_p )
@@ -288,40 +288,40 @@ private  void  get_box_index(
             if( diff <= 0.0 )
                 *(coords[dim]) = 0;
             else
-                *(coords[dim]) = (int) ((Real) n_boxes[dim] *
+                *(coords[dim]) = (int) ((VIO_Real) n_boxes[dim] *
                                         (p - min_p) / diff);
         }
     } 
 }
 
-private  void  tmp_coalesce_object_points(
+static  void  tmp_coalesce_object_points(
     int      *n_points,
-    Point    *points[],
+    VIO_Point    *points[],
     int      n_indices,
     int      indices[] )
 {
-    int         n_boxes[N_DIMENSIONS];
+    int         n_boxes[VIO_N_DIMENSIONS];
     int         i, j, k, p, point, ind, *points_list, *translation;
     int         cum_index, dim, new_n_points;
     int         i1, i2, j1, j2, k1, k2;
     box_struct  ***boxes;
-    Point       min_point, max_point, *new_points, pt;
+    VIO_Point       min_point, max_point, *new_points, pt;
     BOOLEAN     found;
 
     new_points = NULL;
 
     get_range_points( *n_points, *points, &min_point, &max_point );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
-        n_boxes[dim] = (int) pow( (Real) *n_points * N_BOX_RATIO, 0.3333 );
+        n_boxes[dim] = (int) pow( (VIO_Real) *n_points * N_BOX_RATIO, 0.3333 );
         if( n_boxes[dim] < MIN_N_BOXES )
             n_boxes[dim] = MIN_N_BOXES;
         if( Point_coord(min_point,dim) == Point_coord(max_point,dim) )
             n_boxes[dim] = 1;
     }
 
-    ALLOC3D( boxes, n_boxes[X], n_boxes[Y], n_boxes[Z] );
+    VIO_ALLOC3D( boxes, n_boxes[X], n_boxes[Y], n_boxes[Z] );
 
     for_less( i, 0, n_boxes[X] )
     for_less( j, 0, n_boxes[Y] )
@@ -409,7 +409,7 @@ private  void  tmp_coalesce_object_points(
     for_less( i, 0, n_indices )
         indices[i] = translation[indices[i]];
 
-    FREE3D( boxes );
+    VIO_FREE3D( boxes );
     FREE( points_list );
     FREE( translation );
 

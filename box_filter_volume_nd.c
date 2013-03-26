@@ -1,14 +1,14 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  box_filter_volume(
-    Volume   volume,
-    Real     filter_widths[] );
+static  void  box_filter_volume(
+    VIO_Volume   volume,
+    VIO_Real     filter_widths[] );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING   usage_str = "\n\
+    VIO_STR   usage_str = "\n\
 Usage: %s input.mnc output.mnc x_width [y_width [z_width [width4 [width5]]]]\n\
 \n\
      Box filters a volume with the given WORLD coordinate widths,\n\n";
@@ -21,11 +21,11 @@ int  main(
     char  *argv[] )
 {
     int        dim, n_dims;
-    Volume     volume;
-    Real       file_order_filter_widths[MAX_DIMENSIONS];
-    Real       filter_widths[MAX_DIMENSIONS];
-    Real       separations[MAX_DIMENSIONS];
-    STRING     input_filename, output_filename, history;
+    VIO_Volume     volume;
+    VIO_Real       file_order_filter_widths[VIO_MAX_DIMENSIONS];
+    VIO_Real       filter_widths[VIO_MAX_DIMENSIONS];
+    VIO_Real       separations[VIO_MAX_DIMENSIONS];
+    VIO_STR     input_filename, output_filename, history;
 
     initialize_argument_processing( argc, argv );
 
@@ -39,7 +39,7 @@ int  main(
 
     if( input_volume( input_filename, -1, File_order_dimension_names,
                       NC_BYTE, FALSE, 0.0, 255.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     n_dims = get_volume_n_dimensions( volume );
@@ -57,7 +57,7 @@ int  main(
 
     get_volume_separations( volume, separations );
     for_less( dim, 0, n_dims )
-        file_order_filter_widths[dim] /= FABS( separations[dim] );
+        file_order_filter_widths[dim] /= VIO_FABS( separations[dim] );
 
     box_filter_volume( volume, file_order_filter_widths );
 
@@ -70,19 +70,19 @@ int  main(
     return( 0 );
 }
 
-private  void  box_filter_1d_simple(
+static  void  box_filter_1d_simple(
     int   size,
-    Real  values[],
-    Real  output[],
-    Real  width )
+    VIO_Real  values[],
+    VIO_Real  output[],
+    VIO_Real  width )
 {
     int   start, end, v;
-    Real  half_width, current;
+    VIO_Real  half_width, current;
 
     half_width = width / 2.0;
 
-    start = FLOOR( -half_width + 0.5 );
-    end = FLOOR( half_width + 0.5 );
+    start = VIO_FLOOR( -half_width + 0.5 );
+    end = VIO_FLOOR( half_width + 0.5 );
 
     current = 0.0;
     for_less( v, 0, MIN(end,size) )
@@ -101,18 +101,18 @@ private  void  box_filter_1d_simple(
     }
 }
 
-private  void  box_filter_1d(
+static  void  box_filter_1d(
     int   size,
-    Real  values[],
-    Real  output[],
-    Real  width )
+    VIO_Real  values[],
+    VIO_Real  output[],
+    VIO_Real  width )
 {
     int   start, end, v;
-    Real  left_weight, right_weight, half_width, current;
+    VIO_Real  left_weight, right_weight, half_width, current;
 
     half_width = width / 2.0;
 
-    left_weight = FRACTION( half_width + 0.5 );
+    left_weight = VIO_FRACTION( half_width + 0.5 );
     right_weight = 1.0 - left_weight;
 
     left_weight /= width;
@@ -120,8 +120,8 @@ private  void  box_filter_1d(
 
     current = 0.0;
 
-    start = FLOOR( -half_width + 0.5 );
-    end = FLOOR( half_width + 0.5 );
+    start = VIO_FLOOR( -half_width + 0.5 );
+    end = VIO_FLOOR( half_width + 0.5 );
 
     for_less( v, 0, MIN(end,size) )
         current += values[v] / width;
@@ -145,21 +145,21 @@ private  void  box_filter_1d(
     }
 }
 
-private  void  box_filter_volume(
-    Volume   volume,
-    Real     filter_widths[] )
+static  void  box_filter_volume(
+    VIO_Volume   volume,
+    VIO_Real     filter_widths[] )
 {
     int   v, dim, n_dims, blurring_dim, n;
     int   v0, v1, v2, v3, v4;
-    int   sizes[MAX_DIMENSIONS], max_size;
-    int   start[MAX_DIMENSIONS];
-    int   end[MAX_DIMENSIONS];
-    int   count[MAX_DIMENSIONS];
+    int   sizes[VIO_MAX_DIMENSIONS], max_size;
+    int   start[VIO_MAX_DIMENSIONS];
+    int   end[VIO_MAX_DIMENSIONS];
+    int   count[VIO_MAX_DIMENSIONS];
     int   count0, count1, count2, count3, count4;
     int   start0, start1, start2, start3, start4;
     int   end0, end1, end2, end3, end4;
-    Real  *values, *output, volume_min, volume_max;
-    BOOLEAN  simple_case;
+    VIO_Real  *values, *output, volume_min, volume_max;
+    VIO_BOOL  simple_case;
 
     n_dims = get_volume_n_dimensions( volume );
     get_volume_sizes( volume, sizes );
@@ -173,7 +173,7 @@ private  void  box_filter_volume(
     ALLOC( values, max_size );
     ALLOC( output, max_size );
 
-    for_less( dim, n_dims, MAX_DIMENSIONS )
+    for_less( dim, n_dims, VIO_MAX_DIMENSIONS )
     {
         start[dim] = 0;
         end[dim] = 0;
@@ -215,7 +215,7 @@ private  void  box_filter_volume(
         end4 = end[4];
 
         simple_case = numerically_close(
-                        FRACTION( filter_widths[blurring_dim] / 2.0 ), 0.5,
+                        VIO_FRACTION( filter_widths[blurring_dim] / 2.0 ), 0.5,
                         1.0e-6 );
 
         for_inclusive( v0, start0, end0 )

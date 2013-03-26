@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING   usage_str = "\n\
+    VIO_STR   usage_str = "\n\
 Usage: %s input.mnc output.mnc\n\
 \n\
      Preprocesses classified volume for segmentation.\n\n";
@@ -16,11 +16,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Real       voxel[N_DIMENSIONS], value;
-    int        int_voxel[N_DIMENSIONS], iter, n_dilations;
-    Volume     volume, label_volume;
-    STRING     input_filename, output_filename;
-    int        range_changed[2][N_DIMENSIONS];
+    VIO_Real       voxel[VIO_N_DIMENSIONS], value;
+    int        int_voxel[VIO_N_DIMENSIONS], iter, n_dilations;
+    VIO_Volume     volume, label_volume;
+    VIO_STR     input_filename, output_filename;
+    int        range_changed[2][VIO_N_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 
@@ -42,9 +42,9 @@ int  main(
 
     convert_world_to_voxel( volume, -22.0, 10.0, 26.0, voxel );
 
-    int_voxel[0] = ROUND( voxel[0] );
-    int_voxel[1] = ROUND( voxel[1] );
-    int_voxel[2] = ROUND( voxel[2] );
+    int_voxel[0] = VIO_ROUND( voxel[0] );
+    int_voxel[1] = VIO_ROUND( voxel[1] );
+    int_voxel[2] = VIO_ROUND( voxel[2] );
 
     do
     {

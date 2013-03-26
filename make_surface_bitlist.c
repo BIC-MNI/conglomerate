@@ -2,24 +2,24 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  label_surface_voxels(
-    Volume               volume,
+static  void  label_surface_voxels(
+    VIO_Volume               volume,
     bitlist_3d_struct    *bitlist,
     int                  bitlist_sizes[],
-    General_transform    *bitlist_to_world,
-    Real                 threshold,
-    Real                 tolerance );
+    VIO_General_transform    *bitlist_to_world,
+    VIO_Real                 threshold,
+    VIO_Real                 tolerance );
 
-private  BOOLEAN  volume_range_contains_threshold(
-    Volume   volume,
-    Real     min_voxel[],
-    Real     max_voxel[],
-    Real     threshold );
+static  BOOLEAN  volume_range_contains_threshold(
+    VIO_Volume   volume,
+    VIO_Real     min_voxel[],
+    VIO_Real     max_voxel[],
+    VIO_Real     threshold );
 
-private  void  usage(
+static  void  usage(
     char   executable[] )
 {
-    STRING   usage_str = "\n\
+    VIO_STR   usage_str = "\n\
 Usage: %s   input.mnc  output_prefix   threshold  \n\
             [x_size]  [y_size]  [z_size]  [tolerance]\n\
 \n\
@@ -32,17 +32,17 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING              input_filename, transform_filename, bitlist_filename;
-    STRING              output_prefix;
-    Volume              volume;
+    VIO_STR              input_filename, transform_filename, bitlist_filename;
+    VIO_STR              output_prefix;
+    VIO_Volume              volume;
     bitlist_3d_struct   bitlist;
     FILE                *file;
     int                 dim;
-    int                 sizes[N_DIMENSIONS], bitlist_sizes[N_DIMENSIONS];
-    Real                threshold;
-    Real                tolerance;
-    Transform           new_to_old;
-    General_transform   *volume_transform, mod_transform, new_transform;
+    int                 sizes[VIO_N_DIMENSIONS], bitlist_sizes[VIO_N_DIMENSIONS];
+    VIO_Real                threshold;
+    VIO_Real                tolerance;
+    VIO_Transform           new_to_old;
+    VIO_General_transform   *volume_transform, mod_transform, new_transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -66,7 +66,7 @@ int  main(
 
     get_volume_sizes( volume, sizes );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         if( bitlist_sizes[dim] < 1 )
             bitlist_sizes[dim] = sizes[dim] + 1;
@@ -76,12 +76,12 @@ int  main(
 
     make_identity_transform( &new_to_old );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
-        Transform_elem( new_to_old, dim, dim ) = (Real) (sizes[dim]+1) /
-                                                 (Real) bitlist_sizes[dim];
-        Transform_elem( new_to_old, dim, 3 ) = 0.5 * (Real) (sizes[dim]+1) /
-                                               (Real) bitlist_sizes[dim] - 1.0;
+        Transform_elem( new_to_old, dim, dim ) = (VIO_Real) (sizes[dim]+1) /
+                                                 (VIO_Real) bitlist_sizes[dim];
+        Transform_elem( new_to_old, dim, 3 ) = 0.5 * (VIO_Real) (sizes[dim]+1) /
+                                               (VIO_Real) bitlist_sizes[dim] - 1.0;
     }
 
     create_linear_transform( &mod_transform, &new_to_old );
@@ -114,20 +114,20 @@ int  main(
     return( 0 );
 }
 
-private  void  label_surface_voxels(
-    Volume               volume,
+static  void  label_surface_voxels(
+    VIO_Volume               volume,
     bitlist_3d_struct    *bitlist,
     int                  bitlist_sizes[],
-    General_transform    *bitlist_to_world,
-    Real                 threshold,
-    Real                 tolerance )
+    VIO_General_transform    *bitlist_to_world,
+    VIO_Real                 threshold,
+    VIO_Real                 tolerance )
 {
     int                 x, y, z, dim, dx, dy, dz;
-    Real                voxel[N_DIMENSIONS];
-    Real                min_voxel[N_DIMENSIONS], max_voxel[N_DIMENSIONS];
-    int                 sizes[N_DIMENSIONS];
-    progress_struct     progress;
-    General_transform   *volume_transform, inverse, v_to_v;
+    VIO_Real                voxel[VIO_N_DIMENSIONS];
+    VIO_Real                min_voxel[VIO_N_DIMENSIONS], max_voxel[VIO_N_DIMENSIONS];
+    int                 sizes[VIO_N_DIMENSIONS];
+    VIO_progress_struct     progress;
+    VIO_General_transform   *volume_transform, inverse, v_to_v;
 
     volume_transform = get_voxel_to_world_transform( volume );
     create_inverse_general_transform( volume_transform, &inverse );
@@ -148,15 +148,15 @@ private  void  label_surface_voxels(
             for_less( dy, 0, 2 )
             for_less( dz, 0, 2 )
             {
-                voxel[X] = (Real) x - 0.5 + (Real) dx;
-                voxel[Y] = (Real) y - 0.5 + (Real) dy;
-                voxel[Z] = (Real) z - 0.5 + (Real) dz;
+                voxel[X] = (VIO_Real) x - 0.5 + (VIO_Real) dx;
+                voxel[Y] = (VIO_Real) y - 0.5 + (VIO_Real) dy;
+                voxel[Z] = (VIO_Real) z - 0.5 + (VIO_Real) dz;
 
                 general_transform_point( &v_to_v,
                                          voxel[X], voxel[Y], voxel[Z],
                                          &voxel[X], &voxel[Y], &voxel[Z] );
 
-                for_less( dim, 0, N_DIMENSIONS )
+                for_less( dim, 0, VIO_N_DIMENSIONS )
                 {
                     if( dx == 0 && dy == 0 && dz == 0 ||
                         voxel[dim] < min_voxel[dim] )
@@ -171,7 +171,7 @@ private  void  label_surface_voxels(
                 }
             }
 
-            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
             {
                 min_voxel[dim] -= tolerance;
                 max_voxel[dim] += tolerance;
@@ -180,7 +180,7 @@ private  void  label_surface_voxels(
             if( volume_range_contains_threshold( volume, min_voxel, max_voxel,
                                                  threshold ) )
             {
-                set_bitlist_bit_3d( bitlist, x, y, z, ON );
+                set_bitlist_bit_3d( bitlist, x, y, z, TRUE );
             }
         }
 
@@ -190,24 +190,24 @@ private  void  label_surface_voxels(
     terminate_progress_report( &progress );
 }
 
-private  BOOLEAN  volume_range_contains_threshold(
-    Volume   volume,
-    Real     min_voxel[],
-    Real     max_voxel[],
-    Real     threshold )
+static  BOOLEAN  volume_range_contains_threshold(
+    VIO_Volume   volume,
+    VIO_Real     min_voxel[],
+    VIO_Real     max_voxel[],
+    VIO_Real     threshold )
 {
-    int      dim, sizes[N_DIMENSIONS];
-    Real     value, x, y, z, voxel[N_DIMENSIONS];
+    int      dim, sizes[VIO_N_DIMENSIONS];
+    VIO_Real     value, x, y, z, voxel[VIO_N_DIMENSIONS];
     BOOLEAN  x_is_int, y_is_int, z_is_int, above, below;
 
     get_volume_sizes( volume, sizes );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         if( min_voxel[dim] < -1.0 )
             min_voxel[dim] = -1.0;
-        if( max_voxel[dim] > (Real) sizes[dim] )
-            max_voxel[dim] = (Real) sizes[dim];
+        if( max_voxel[dim] > (VIO_Real) sizes[dim] )
+            max_voxel[dim] = (VIO_Real) sizes[dim];
     }
 
     above = FALSE;
@@ -260,7 +260,7 @@ private  BOOLEAN  volume_range_contains_threshold(
 
                 z += 1.0;
                 if( !IS_INT(z) )
-                    z = (Real) (int) z;
+                    z = (VIO_Real) (int) z;
                 if( z > max_voxel[Z] )
                 {
                     z = max_voxel[Z];
@@ -275,7 +275,7 @@ private  BOOLEAN  volume_range_contains_threshold(
 
             y += 1.0;
             if( !IS_INT(y) )
-                y = (Real) (int) y;
+                y = (VIO_Real) (int) y;
             if( y > max_voxel[Y] )
             {
                 y = max_voxel[Y];
@@ -291,7 +291,7 @@ private  BOOLEAN  volume_range_contains_threshold(
 
         x += 1.0;
         if( !IS_INT(x) )
-            x = (Real) (int) x;
+            x = (VIO_Real) (int) x;
         if( x > max_voxel[X] )
         {
             x = max_voxel[X];

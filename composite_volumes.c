@@ -14,21 +14,21 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume             volume, rgb_volume;
-    STRING             input_filename, output_filename;
-    STRING             under_colour_name, over_colour_name;
-    int                n_dims, sizes[MAX_DIMENSIONS], dim, n_volumes;
-    int                v[MAX_DIMENSIONS];
-    Real               vr[MAX_DIMENSIONS];
-    Real               vv[MAX_DIMENSIONS], xw, yw, zw;
-    int                ivv[MAX_DIMENSIONS], x, y, z;
-    STRING             *dim_names, *dim_names_rgb;
-    STRING             coding_type_string;
+    VIO_Volume             volume, rgb_volume;
+    VIO_STR             input_filename, output_filename;
+    VIO_STR             under_colour_name, over_colour_name;
+    int                n_dims, sizes[VIO_MAX_DIMENSIONS], dim, n_volumes;
+    int                v[VIO_MAX_DIMENSIONS];
+    Real               vr[VIO_MAX_DIMENSIONS];
+    Real               vv[VIO_MAX_DIMENSIONS], xw, yw, zw;
+    int                ivv[VIO_MAX_DIMENSIONS], x, y, z;
+    VIO_STR             *dim_names, *dim_names_rgb;
+    VIO_STR             coding_type_string;
     Real               value, low, high, r, g, b, a;
-    Real               separations[MAX_DIMENSIONS], opacity;
-    Colour             colour;
-    Colour             over_colour, under_colour, new_col, old_col;
-    General_transform  transform;
+    Real               separations[VIO_MAX_DIMENSIONS], opacity;
+    VIO_Colour             colour;
+    VIO_Colour             over_colour, under_colour, new_col, old_col;
+    VIO_General_transform  transform;
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
 

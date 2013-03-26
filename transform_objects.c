@@ -1,13 +1,13 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-public  Status  process_object(
+  VIO_Status  process_object(
     object_struct  *object );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: transform_objects  input.obj  input.xfm  [output.obj]\n\
 \n\
      Transforms the input objects by the input transform, placing output in\n\
@@ -16,22 +16,22 @@ Usage: transform_objects  input.obj  input.xfm  [output.obj]\n\
     print_error( usage_str, executable );
 }
 
-private  void  transform_object(
-    General_transform      *transform,
+static  void  transform_object(
+    VIO_General_transform      *transform,
     object_struct          *object )
 {
     int    i, n_points;
-    Point  *points;
-    Real   x, y, z;
+    VIO_Point  *points;
+    VIO_Real   x, y, z;
 
     n_points = get_object_points( object, &points );
 
     for_less( i, 0, n_points )
     {
         general_transform_point( transform,
-                                 (Real) Point_x(points[i]),
-                                 (Real) Point_y(points[i]),
-                                 (Real) Point_z(points[i]), &x, &y, &z );
+                                 (VIO_Real) Point_x(points[i]),
+                                 (VIO_Real) Point_y(points[i]),
+                                 (VIO_Real) Point_z(points[i]), &x, &y, &z );
 
         fill_Point( points[i], x, y, z );
     }
@@ -41,12 +41,12 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING              input_filename, output_filename, transform_filename;
-    STRING              dummy;
+    VIO_STR              input_filename, output_filename, transform_filename;
+    VIO_STR              dummy;
     int                 i, n_objects;
     BOOLEAN             invert;
-    General_transform   transform;
-    File_formats        format;
+    VIO_General_transform   transform;
+    VIO_File_formats        format;
     object_struct       **object_list;
     BOOLEAN             is_left_handed;
 

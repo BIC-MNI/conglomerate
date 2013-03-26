@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  surface.obj  pairs.tag  output.txt [alternate]\n\
 \n\
      .\n\n";
@@ -16,14 +16,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING              surface_filename, output_filename, tags_filename;
-    STRING              output_prefix, dummy;
-    File_formats        format;
+    VIO_STR              surface_filename, output_filename, tags_filename;
+    VIO_STR              output_prefix, dummy;
+    VIO_File_formats        format;
     int                 n_volumes, n_tag_points, n_objects, tag;
-    Real                **tags1, **tags2, u1, v1, u2, v2, x, y, z;
-    Real                du, dv;
+    VIO_Real                **tags1, **tags2, u1, v1, u2, v2, x, y, z;
+    VIO_Real                du, dv;
     FILE                *file1, *file2;
-    Point               point, centre, unit_point;
+    VIO_Point               point, centre, unit_point;
     polygons_struct     *polygons, unit_sphere;
     object_struct       **objects;
     BOOLEAN             rotate_flag;
@@ -61,7 +61,7 @@ int  main(
     polygons = get_polygons_ptr( objects[0] );
 
     create_polygons_bintree( polygons,
-                             ROUND( (Real) polygons->n_items * 0.2 ) );
+                             VIO_ROUND( (VIO_Real) polygons->n_items * 0.2 ) );
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
 

@@ -4,25 +4,25 @@
 #define  MAX_ITERS   1000
 #define  TOLERANCE   1.0e-5
 
-private  Real  get_z_score(
-    Point     *avg1,
-    Real      **inv_variance1,
-    Point     *avg2,
-    Real      **inv_variance2 );
+static  VIO_Real  get_z_score(
+    VIO_Point     *avg1,
+    VIO_Real      **inv_variance1,
+    VIO_Point     *avg2,
+    VIO_Real      **inv_variance2 );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
     FILE             *output_file, *variance_file;
-    STRING           surface1_filename, variance1_filename;
-    STRING           surface2_filename, variance2_filename, output_filename;
+    VIO_STR           surface1_filename, variance1_filename;
+    VIO_STR           surface2_filename, variance2_filename, output_filename;
     int              p, i, j;
     int              n_objects1, n_objects2, n_points;
-    File_formats     format;
+    VIO_File_formats     format;
     object_struct    **object_list1, **object_list2;
-    Point            *points1, *points2;
-    Real             ***variance1, ***variance2, z;
+    VIO_Point            *points1, *points2;
+    VIO_Real             ***variance1, ***variance2, z;
 
     initialize_argument_processing( argc, argv );
 
@@ -47,7 +47,7 @@ int  main(
 
     n_points = get_object_points( object_list1[0], &points1 );
 
-    ALLOC3D( variance1, n_points, 3, 3 );
+    VIO_ALLOC3D( variance1, n_points, 3, 3 );
 
     if( open_file( variance1_filename, READ_FILE, ASCII_FORMAT, &variance_file )
         != OK )
@@ -76,7 +76,7 @@ int  main(
         return( 1 );
     }
 
-    ALLOC3D( variance2, n_points, 3, 3 );
+    VIO_ALLOC3D( variance2, n_points, 3, 3 );
 
     if( open_file( variance2_filename, READ_FILE, ASCII_FORMAT, &variance_file )
         != OK )
@@ -110,13 +110,13 @@ int  main(
     return( 0 );
 }
 
-private  Real  compute_mahalanobis_distance(
-    Real    avg[],
-    Real    **inv_var,
-    Real    point[],
-    Real    deriv[] )
+static  VIO_Real  compute_mahalanobis_distance(
+    VIO_Real    avg[],
+    VIO_Real    **inv_var,
+    VIO_Real    point[],
+    VIO_Real    deriv[] )
 {
-    Real   x, y, z, tx, ty, tz, m;
+    VIO_Real   x, y, z, tx, ty, tz, m;
 
     x = point[0] - avg[0];
     y = point[1] - avg[1];
@@ -140,18 +140,18 @@ private  Real  compute_mahalanobis_distance(
 
 typedef  struct
 {
-    Real  avg1[3];
-    Real  **inv_variance1;
-    Real  avg2[3];
-    Real  **inv_variance2;
+    VIO_Real  avg1[3];
+    VIO_Real  **inv_variance1;
+    VIO_Real  avg2[3];
+    VIO_Real  **inv_variance2;
 } min_data_struct;
 
-private  Real  min_function(
-    Real   parameters[],
+static  VIO_Real  min_function(
+    VIO_Real   parameters[],
     void   *void_data )
 {
-    Real              z1, z2, diff, deriv1[3], deriv2[3], close;
-    Real              f1_dot_f1, f1_dot_f2, f2_dot_f2;
+    VIO_Real              z1, z2, diff, deriv1[3], deriv2[3], close;
+    VIO_Real              f1_dot_f1, f1_dot_f2, f2_dot_f2;
     min_data_struct   *data;
 
     data = (min_data_struct *) void_data;
@@ -177,24 +177,24 @@ private  Real  min_function(
     return( diff * diff );
 }
 
-private  Real  get_z_score(
-    Point     *avg1,
-    Real      **inv_variance1,
-    Point     *avg2,
-    Real      **inv_variance2 )
+static  VIO_Real  get_z_score(
+    VIO_Point     *avg1,
+    VIO_Real      **inv_variance1,
+    VIO_Point     *avg2,
+    VIO_Real      **inv_variance2 )
 {
     int               c;
-    Real              initial[3], initial_steps[3], solution[3], z;
+    VIO_Real              initial[3], initial_steps[3], solution[3], z;
     min_data_struct   data;
 
     for_less( c, 0, 3 )
     {
-        initial[c] = ((Real) Point_coord(*avg1,c) +
-                      (Real) Point_coord(*avg2,c)) / 2.0;
+        initial[c] = ((VIO_Real) Point_coord(*avg1,c) +
+                      (VIO_Real) Point_coord(*avg2,c)) / 2.0;
         initial_steps[c] = 1.0;
-        data.avg1[c] = (Real) Point_coord(*avg1,c);
+        data.avg1[c] = (VIO_Real) Point_coord(*avg1,c);
         data.inv_variance1 = inv_variance1;
-        data.avg2[c] = (Real) Point_coord(*avg2,c);
+        data.avg2[c] = (VIO_Real) Point_coord(*avg2,c);
         data.inv_variance2 = inv_variance2;
     }
 

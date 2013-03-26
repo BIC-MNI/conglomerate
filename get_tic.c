@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s filename.mnc  x y z v|w [radius1] [radius2] [radius3]\n\
 \n\
      Computes the min, max, mean, standard deviation, and median for a set\n\
@@ -22,26 +22,26 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, voxel_flag_string;
-    STRING               component_string;
-    char                 buffer[EXTREMELY_LARGE_STRING_SIZE];
-    Real                 mean, median, std_dev, value, pos[N_DIMENSIONS];
+    VIO_STR               volume_filename, voxel_flag_string;
+    VIO_STR               component_string;
+    char                 buffer[VIO_EXTREMELY_LARGE_STRING_SIZE];
+    Real                 mean, median, std_dev, value, pos[VIO_N_DIMENSIONS];
     Real                 min_sample_value, max_sample_value;
-    Volume               volume;
-    Real                 separations[MAX_DIMENSIONS];
-    int                  min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
-    int                  start_voxel[MAX_DIMENSIONS], end_voxel[MAX_DIMENSIONS];
+    VIO_Volume               volume;
+    Real                 separations[VIO_MAX_DIMENSIONS];
+    int                  min_voxel[VIO_MAX_DIMENSIONS], max_voxel[VIO_MAX_DIMENSIONS];
+    int                  start_voxel[VIO_MAX_DIMENSIONS], end_voxel[VIO_MAX_DIMENSIONS];
     int                  n_dims, axis, voxel_index;
-    STRING               *dim_names;
+    VIO_STR               *dim_names;
     Real                 min_value, max_value, radius;
-    Real                 voxel_radius[MAX_DIMENSIONS], diff, dist;
-    Real                 voxel_centre[MAX_DIMENSIONS];
+    Real                 voxel_radius[VIO_MAX_DIMENSIONS], diff, dist;
+    Real                 voxel_centre[VIO_MAX_DIMENSIONS];
     Real                 min_pos, max_pos, median_error;
     BOOLEAN              done, use_world_space;
-    BOOLEAN              is_spatial_dim[MAX_DIMENSIONS];
+    BOOLEAN              is_spatial_dim[VIO_MAX_DIMENSIONS];
     int                  n_samples;
-    int                  sizes[MAX_DIMENSIONS], voxel[MAX_DIMENSIONS];
-    int                  dim, n_spatial_dims, spatial_dims[N_DIMENSIONS];
+    int                  sizes[VIO_MAX_DIMENSIONS], voxel[VIO_MAX_DIMENSIONS];
+    int                  dim, n_spatial_dims, spatial_dims[VIO_N_DIMENSIONS];
     statistics_struct    stats;
 
     initialize_argument_processing( argc, argv );
@@ -70,7 +70,7 @@ int  main(
     get_volume_real_range( volume, &min_value, &max_value );
     dim_names = get_volume_dimension_names( volume );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
         spatial_dims[dim] = -1;
 
     n_spatial_dims = 0;
@@ -93,21 +93,21 @@ int  main(
         }
     }
 
-    for_less( dim, n_dims, MAX_DIMENSIONS )
+    for_less( dim, n_dims, VIO_MAX_DIMENSIONS )
     {
         start_voxel[dim] = 0;
         end_voxel[dim] = 0;
     }
 
-    for_less( dim, n_spatial_dims, MAX_DIMENSIONS )
+    for_less( dim, n_spatial_dims, VIO_MAX_DIMENSIONS )
     {
         min_voxel[dim] = 0;
         max_voxel[dim] = 0;
     }
 
-    if( n_spatial_dims != N_DIMENSIONS )
+    if( n_spatial_dims != VIO_N_DIMENSIONS )
     {
-        print_error( "Warning: Volume has %d spatial dimensions.\n",
+        print_error( "Warning: VIO_Volume has %d spatial dimensions.\n",
                       n_spatial_dims );
         return( 1 );
     }
@@ -145,13 +145,13 @@ int  main(
             voxel_index = spatial_dims[dim];
 
             voxel_radius[voxel_index] = radius /
-                                       FABS(separations[voxel_index]);
+                                       VIO_FABS(separations[voxel_index]);
 
             min_pos = voxel_centre[voxel_index] - voxel_radius[voxel_index];
             max_pos = voxel_centre[voxel_index] + voxel_radius[voxel_index];
 
-            min_voxel[dim] = MAX( 0, ROUND(min_pos) );
-            max_voxel[dim] = MIN( sizes[voxel_index]-1, ROUND(max_pos) );
+            min_voxel[dim] = MAX( 0, VIO_ROUND(min_pos) );
+            max_voxel[dim] = MIN( sizes[voxel_index]-1, VIO_ROUND(max_pos) );
         }
 
         for_inclusive( voxel[0], start_voxel[0], end_voxel[0] )

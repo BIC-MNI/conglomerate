@@ -4,45 +4,45 @@
 
 #define  MAX_DERIVS   2
 
-private  void   get_voxel_coefs(
+static  void   get_voxel_coefs(
     int     degrees_continuity,
-    Real    voxel[],
-    Real    coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2] );
-private  void   make_coefs_uv(
+    VIO_Real    voxel[],
+    VIO_Real    coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2] );
+static  void   make_coefs_uv(
     int     degrees_continuity,
-    Real    voxels[MAX_DERIVS+2],
-    Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
-    Real    coefs[MAX_DERIVS+2] );
-private  void   make_coefs_u(
+    VIO_Real    voxels[MAX_DERIVS+2],
+    VIO_Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real    coefs[MAX_DERIVS+2] );
+static  void   make_coefs_u(
     int     degrees_continuity,
-    Real    coefs_uv[MAX_DERIVS+2][MAX_DERIVS+2],
-    Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
-    Real    coefs_u[MAX_DERIVS+2][MAX_DERIVS+2] );
-private  void  find_coefs_of_line(
+    VIO_Real    coefs_uv[MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real    coefs_u[MAX_DERIVS+2][MAX_DERIVS+2] );
+static  void  find_coefs_of_line(
     int         degrees_continuity,
-    Real        coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2],
-    Real        ou,
-    Real        ov,
-    Real        ow,
-    Real        du,
-    Real        dv,
-    Real        dw,
-    Real        line_coefs[(MAX_DERIVS+1) * N_DIMENSIONS+1] );
+    VIO_Real        coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real        ou,
+    VIO_Real        ov,
+    VIO_Real        ow,
+    VIO_Real        du,
+    VIO_Real        dv,
+    VIO_Real        dw,
+    VIO_Real        line_coefs[(MAX_DERIVS+1) * VIO_N_DIMENSIONS+1] );
 
-private  void  get_voxel_line_tricubic(
-    Real        coefs[],
+static  void  get_voxel_line_tricubic(
+    VIO_Real        coefs[],
     int         x,
     int         y,
     int         z,
-    Real        line_origin[],
-    Real        line_direction[],
-    Real        line_poly[] )
+    VIO_Real        line_origin[],
+    VIO_Real        line_direction[],
+    VIO_Real        line_poly[] )
 {
-    Real  du, dv, dw, ou, ov, ow, delta0, delta1, delta0t, delta1t, delta0tt;
-    Real  d00, d01, d10, d11;
-    Real  c00a, c01a, c10a, c11a;
-    Real  c00t, c01t, c10t, c11t;
-    Real  c0a, c1a, c0t, c1t, c0tt, c1tt;
+    VIO_Real  du, dv, dw, ou, ov, ow, delta0, delta1, delta0t, delta1t, delta0tt;
+    VIO_Real  d00, d01, d10, d11;
+    VIO_Real  c00a, c01a, c10a, c11a;
+    VIO_Real  c00t, c01t, c10t, c11t;
+    VIO_Real  c0a, c1a, c0t, c1t, c0tt, c1tt;
 
     d00 = coefs[1] - coefs[0];
     d01 = coefs[3] - coefs[2];
@@ -52,9 +52,9 @@ private  void  get_voxel_line_tricubic(
     du = line_direction[X];
     dv = line_direction[Y];
     dw = line_direction[Z];
-    ou = line_origin[X] - (Real) x;
-    ov = line_origin[Y] - (Real) y;
-    ow = line_origin[Z] - (Real) z;
+    ou = line_origin[X] - (VIO_Real) x;
+    ov = line_origin[Y] - (VIO_Real) y;
+    ow = line_origin[Z] - (VIO_Real) z;
 
     c00a = coefs[0] + ow * d00;
     c01a = coefs[2] + ow * d01;
@@ -87,18 +87,18 @@ private  void  get_voxel_line_tricubic(
     line_poly[3] = du * delta0tt;
 }
 
-public  int  find_voxel_line_polynomial(
-    Real        coefs[],
+  int  find_voxel_line_polynomial(
+    VIO_Real        coefs[],
     int         degrees_continuity,
     int         x,
     int         y,
     int         z,
-    Real        line_origin[],
-    Real        line_direction[],
-    Real        line_poly[] )
+    VIO_Real        line_origin[],
+    VIO_Real        line_direction[],
+    VIO_Real        line_poly[] )
 {
-    Real  du, dv, dw, ou, ov, ow, voxel_offset;
-    Real  voxel_coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2];
+    VIO_Real  du, dv, dw, ou, ov, ow, voxel_offset;
+    VIO_Real  voxel_coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2];
 
     if( degrees_continuity == 0 )
     {
@@ -118,9 +118,9 @@ public  int  find_voxel_line_polynomial(
     du = line_direction[X];
     dv = line_direction[Y];
     dw = line_direction[Z];
-    ou = line_origin[X] - ((Real) x + voxel_offset);
-    ov = line_origin[Y] - ((Real) y + voxel_offset);
-    ow = line_origin[Z] - ((Real) z + voxel_offset);
+    ou = line_origin[X] - ((VIO_Real) x + voxel_offset);
+    ov = line_origin[Y] - ((VIO_Real) y + voxel_offset);
+    ow = line_origin[Z] - ((VIO_Real) z + voxel_offset);
 
     find_coefs_of_line( degrees_continuity, voxel_coefs, ou, ov, ow, du, dv, dw,
                         line_poly );
@@ -130,15 +130,15 @@ public  int  find_voxel_line_polynomial(
 
 #define  N_STEPS  8
 
-private  int   get_cubic_root(
-    Real  coefs[],
-    Real  u_min,
-    Real  u_max,
-    Real  *solution )
+static  int   get_cubic_root(
+    VIO_Real  coefs[],
+    VIO_Real  u_min,
+    VIO_Real  u_max,
+    VIO_Real  *solution )
 {
 #ifndef OLD
     int    n;
-    Real   sol[3];
+    VIO_Real   sol[3];
     n = get_roots_of_polynomial( 4, coefs, u_min, u_max, 0.0, sol );
     if( n > 0 )
     {
@@ -148,11 +148,11 @@ private  int   get_cubic_root(
     return( n );
 #else
     int   i;
-    Real  value, prev_value, h, hh, u, alpha;
-    Real  h1, h2, h3;
+    VIO_Real  value, prev_value, h, hh, u, alpha;
+    VIO_Real  h1, h2, h3;
 
     u = u_min;
-    h = (u_max - u_min) / (Real) N_STEPS;
+    h = (u_max - u_min) / (VIO_Real) N_STEPS;
     value = evaluate_polynomial( 4, coefs, u );
 
     hh = h * h;
@@ -170,11 +170,11 @@ private  int   get_cubic_root(
         if( prev_value * value <= 0.0 )
         {
             if( prev_value == 0.0 && value == 0.0 )
-                alpha = ((Real) i + 0.5) / (Real) N_STEPS;
+                alpha = ((VIO_Real) i + 0.5) / (VIO_Real) N_STEPS;
             else
             {
-                alpha = ((Real) i + prev_value / (prev_value - value)) /
-                        (Real) N_STEPS;
+                alpha = ((VIO_Real) i + prev_value / (prev_value - value)) /
+                        (VIO_Real) N_STEPS;
             }
 
             *solution = (1.0 - alpha) * u_min + alpha * u_max;
@@ -186,20 +186,20 @@ private  int   get_cubic_root(
 #endif
 }
 
-public  int  find_voxel_line_value_intersection(
-    Real        coefs[],
+  int  find_voxel_line_value_intersection(
+    VIO_Real        coefs[],
     int         degrees_continuity,
     int         x,
     int         y,
     int         z,
-    Real        line_origin[],
-    Real        line_direction[],
-    Real        t_min,
-    Real        t_max,
-    Real        isovalue,
-    Real        distances[3] )
+    VIO_Real        line_origin[],
+    VIO_Real        line_direction[],
+    VIO_Real        t_min,
+    VIO_Real        t_max,
+    VIO_Real        isovalue,
+    VIO_Real        distances[3] )
 {
-    Real  line_coefs[(MAX_DERIVS+1) * N_DIMENSIONS+1];
+    VIO_Real  line_coefs[(MAX_DERIVS+1) * VIO_N_DIMENSIONS+1];
     int   degrees, n_intersections;
 
     degrees = find_voxel_line_polynomial( coefs, degrees_continuity,
@@ -226,18 +226,18 @@ public  int  find_voxel_line_value_intersection(
     return( n_intersections );
 }
 
-private  void   get_voxel_coefs(
+static  void   get_voxel_coefs(
     int     degrees_continuity,
-    Real    voxel[],
-    Real    coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2] )
+    VIO_Real    voxel[],
+    VIO_Real    coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2] )
 {
     int    u, v, du, dv, dw, i, j, ind;
-    Real   val, **bases;
-    Real   interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2];
-    Real   coefs_uv[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2];
-    Real   coefs_u[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2];
+    VIO_Real   val, **bases;
+    VIO_Real   interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2];
+    VIO_Real   coefs_uv[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2];
+    VIO_Real   coefs_u[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2];
 
-    ALLOC2D( bases, 4, 4 );
+    VIO_ALLOC2D( bases, 4, 4 );
 
     switch( degrees_continuity )
     {
@@ -260,7 +260,7 @@ private  void   get_voxel_coefs(
             interpolation_coefs[i][j] = bases[i][j];
     }
 
-    FREE2D( bases );
+    VIO_FREE2D( bases );
 
     ind = 0;
     for_less( u, 0, degrees_continuity + 2 )
@@ -296,13 +296,13 @@ private  void   get_voxel_coefs(
     }
 }
 
-private  void   make_coefs_uv(
+static  void   make_coefs_uv(
     int     degrees_continuity,
-    Real    voxels[MAX_DERIVS+2],
-    Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
-    Real    coefs[MAX_DERIVS+2] )
+    VIO_Real    voxels[MAX_DERIVS+2],
+    VIO_Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real    coefs[MAX_DERIVS+2] )
 {
-    Real  val;
+    VIO_Real  val;
     int   dw, w;
 
     for_less( dw, 0, degrees_continuity + 2 )
@@ -314,13 +314,13 @@ private  void   make_coefs_uv(
     }
 }
 
-private  void   make_coefs_u(
+static  void   make_coefs_u(
     int     degrees_continuity,
-    Real    coefs_uv[MAX_DERIVS+2][MAX_DERIVS+2],
-    Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
-    Real    coefs_u[MAX_DERIVS+2][MAX_DERIVS+2] )
+    VIO_Real    coefs_uv[MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real    interpolation_coefs[MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real    coefs_u[MAX_DERIVS+2][MAX_DERIVS+2] )
 {
-    Real  val;
+    VIO_Real  val;
     int   v, dv, dw;
 
     for_less( dv, 0, degrees_continuity + 2 )
@@ -335,16 +335,16 @@ private  void   make_coefs_u(
     }
 }
 
-private  void   add_components(
+static  void   add_components(
     int   du,
     int   dv,
     int   dw,
-    Real  coef,
-    Real  line[2][N_DIMENSIONS],
-    Real  line_coefs[(MAX_DERIVS+1) * N_DIMENSIONS+1] )
+    VIO_Real  coef,
+    VIO_Real  line[2][VIO_N_DIMENSIONS],
+    VIO_Real  line_coefs[(MAX_DERIVS+1) * VIO_N_DIMENSIONS+1] )
 {
     int   u1, u2, u3, v1, v2, v3, w1, w2, w3;
-    Real  u1f, u2f, u3f, v1f, v2f, v3f, w1f, w2f, w3f;
+    VIO_Real  u1f, u2f, u3f, v1f, v2f, v3f, w1f, w2f, w3f;
 
     for_less( u1, 0, 2 )
     {
@@ -449,19 +449,19 @@ private  void   add_components(
     }
 }
 
-private  void  find_coefs_of_line(
+static  void  find_coefs_of_line(
     int         degrees_continuity,
-    Real        coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2],
-    Real        ou,
-    Real        ov,
-    Real        ow,
-    Real        du,
-    Real        dv,
-    Real        dw,
-    Real        line_coefs[(MAX_DERIVS+1) * N_DIMENSIONS+1] )
+    VIO_Real        coefs[MAX_DERIVS+2][MAX_DERIVS+2][MAX_DERIVS+2],
+    VIO_Real        ou,
+    VIO_Real        ov,
+    VIO_Real        ow,
+    VIO_Real        du,
+    VIO_Real        dv,
+    VIO_Real        dw,
+    VIO_Real        line_coefs[(MAX_DERIVS+1) * VIO_N_DIMENSIONS+1] )
 {
     int   deg, u_deg, v_deg, w_deg;
-    Real  line[2][N_DIMENSIONS];
+    VIO_Real  line[2][VIO_N_DIMENSIONS];
 
     line[0][0] = ou;
     line[0][1] = ov;
@@ -470,7 +470,7 @@ private  void  find_coefs_of_line(
     line[1][1] = dv;
     line[1][2] = dw;
 
-    for_less( deg, 0, (degrees_continuity+1) * N_DIMENSIONS+1 )
+    for_less( deg, 0, (degrees_continuity+1) * VIO_N_DIMENSIONS+1 )
         line_coefs[deg] = 0.0;
 
     for_less( u_deg, 0, degrees_continuity + 2 )

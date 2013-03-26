@@ -15,7 +15,7 @@ typedef  float  ftype;
 
 #else
 
-typedef  Real   ftype;
+typedef  VIO_Real   ftype;
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  INITIALIZE_LSQ  initialize_lsq_terms
@@ -25,14 +25,14 @@ typedef  Real   ftype;
 
 #endif
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     BOOLEAN          use_prediction_method,
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
-    Smallest_int     interior_flags[],
-    Point            init_points[],
+    VIO_SCHAR     interior_flags[],
+    VIO_Point            init_points[],
     int              n_fixed,
     int              fixed_indices[],
     int              n_iters );
@@ -41,16 +41,16 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, initial_filename;
-    STRING               fixed_filename, method_name;
+    VIO_STR               src_filename, dest_filename, initial_filename;
+    VIO_STR               fixed_filename, method_name;
     int                  n_objects, n_i_objects, n_iters;
     int                  n_fixed, *fixed_indices, ind, p, n_points;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons;
-    Point                *init_points, *points;
+    VIO_Point                *init_points, *points;
     int                  *n_neighbours, **neighbours;
-    Smallest_int         *interior_flags;
+    VIO_SCHAR         *interior_flags;
     FILE                 *file;
     BOOLEAN              use_prediction_method;
 
@@ -155,16 +155,16 @@ int  main(
     return( 0 );
 }
 
-private  void  flatten_around_point(
-    Point            points[],
+static  void  flatten_around_point(
+    VIO_Point            points[],
     int              point,
     int              n_neighbours[],
     int              **neighbours,
-    Smallest_int     interior_flags[],
-    Point            flat[] )
+    VIO_SCHAR     interior_flags[],
+    VIO_Point            flat[] )
 {
     int              n;
-    Real             *x_flat, *y_flat;
+    VIO_Real             *x_flat, *y_flat;
 
     ALLOC( x_flat, n_neighbours[point] );
     ALLOC( y_flat, n_neighbours[point] );
@@ -184,18 +184,18 @@ private  void  flatten_around_point(
     FREE( y_flat );
 }
 
-private  void  create_coefficients_prediction_method(
+static  void  create_coefficients_prediction_method(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              **neighbours,
-    Smallest_int     interior_flags[],
+    VIO_SCHAR     interior_flags[],
     int              n_fixed,
     int              fixed_indices[],
-    Real             *fixed_pos[2],
+    VIO_Real             *fixed_pos[2],
     int              to_parameters[],
     int              to_fixed_index[],
-    Real             *constant,
+    VIO_Real             *constant,
     ftype            *linear_terms[],
     ftype            *square_terms[],
     int              *n_cross_terms[],
@@ -204,12 +204,12 @@ private  void  create_coefficients_prediction_method(
 {
     int              node, p, dim, n_nodes_in, n_parameters;
     int              neigh, *indices, parm;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             flat[2][MAX_POINTS_PER_POLYGON];
-    Real             *weights[2][2], cons[2], con;
-    Real             *node_weights;
+    VIO_Point            neigh_points[MAX_POINTS_PER_POLYGON];
+    VIO_Real             flat[2][MAX_POINTS_PER_POLYGON];
+    VIO_Real             *weights[2][2], cons[2], con;
+    VIO_Real             *node_weights;
     BOOLEAN          found, ignoring;
-    progress_struct  progress;
+    VIO_progress_struct  progress;
 
     n_parameters = 2 * (n_points - n_fixed);
 
@@ -321,18 +321,18 @@ private  void  create_coefficients_prediction_method(
     FREE( weights[1][1] );
 }
 
-private  void  create_coefficients(
+static  void  create_coefficients(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              **neighbours,
-    Smallest_int     interior_flags[],
+    VIO_SCHAR     interior_flags[],
     int              n_fixed,
     int              fixed_indices[],
-    Real             *fixed_pos[2],
+    VIO_Real             *fixed_pos[2],
     int              to_parameters[],
     int              to_fixed_index[],
-    Real             *constant,
+    VIO_Real             *constant,
     ftype            *linear_terms[],
     ftype            *square_terms[],
     int              *n_cross_terms[],
@@ -342,12 +342,12 @@ private  void  create_coefficients(
     int              dim, n_nodes_in, n_parameters, n, nn, point;
     int              max_neighbours, next_n, offset, tmp;
     int              indices[6], nodes[3], dim2, n_to_do;
-    Real             con, node_weights[6], x, y;
-    Real             weights[2][3][2], len;
-    Point            *flat, flat_point[3], tmp_point;
-    Vector           v12, v13, v12_rotated;
+    VIO_Real             con, node_weights[6], x, y;
+    VIO_Real             weights[2][3][2], len;
+    VIO_Point            *flat, flat_point[3], tmp_point;
+    VIO_Vector           v12, v13, v12_rotated;
     BOOLEAN          found;
-    progress_struct  progress;
+    VIO_progress_struct  progress;
 
     n_parameters = 2 * (n_points - n_fixed);
 
@@ -439,7 +439,7 @@ private  void  create_coefficients(
 #define DEBUG
 #ifdef DEBUG
 {
-    Real  sum;
+    VIO_Real  sum;
 
     for_less( dim, 0, 2 )
     {
@@ -503,14 +503,14 @@ private  void  create_coefficients(
     REALLOC_LSQ( n_parameters, *n_cross_terms, *cross_parms, *cross_terms );
 }
 
-private  int  choose_static_polygon(
+static  int  choose_static_polygon(
     int              n_points,
     int              n_neighbours[],
     int              *neighbours[],
-    Smallest_int     interior_flags[] )
+    VIO_SCHAR     interior_flags[] )
 {
     int                n_done, which, point, n;
-    Smallest_int       *used_flags;
+    VIO_SCHAR       *used_flags;
     QUEUE_STRUCT(int)  queue;
 
     INITIALIZE_QUEUE( queue );
@@ -519,7 +519,7 @@ private  int  choose_static_polygon(
     ALLOC( used_flags, n_points );
     for_less( point, 0, n_points )
     {
-        used_flags[point] = (Smallest_int) (!interior_flags[point]);
+        used_flags[point] = (VIO_SCHAR) (!interior_flags[point]);
         if( used_flags[point] )
         {
             INSERT_IN_QUEUE( queue, point );
@@ -566,27 +566,27 @@ private  int  choose_static_polygon(
     return( which );
 }
 
-private  void  flatten_polygons(
+static  void  flatten_polygons(
     BOOLEAN          use_prediction_method,
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
-    Smallest_int     interior_flags[],
-    Point            init_points[],
+    VIO_SCHAR     interior_flags[],
+    VIO_Point            init_points[],
     int              n_fixed,
     int              fixed_indices[],
     int              n_iters )
 {
     int              i, p, point, which, n;
-    Real             *fixed_pos[2];
-    Real             constant;
+    VIO_Real             *fixed_pos[2];
+    VIO_Real             constant;
     int              *n_cross_terms, **cross_parms, w_offset;
     ftype            *linear_terms, *square_terms, **cross_terms;
-    Real             *parameters;
+    VIO_Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
-    Vector           x_dir, y_dir, offset;
-    Point            *flat;
+    VIO_Vector           x_dir, y_dir, offset;
+    VIO_Point            *flat;
     polygons_struct  tmp_polygons;
     BOOLEAN          alloced_fixed;
 

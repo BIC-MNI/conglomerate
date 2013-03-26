@@ -6,13 +6,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src_polygons_filename;
-    File_formats         format;
+    VIO_STR               src_polygons_filename;
+    VIO_File_formats         format;
     int                  n_src_objects, poly;
     object_struct        **src_objects;
     polygons_struct      *polygons, unit_sphere;
-    Real                 x, y, z, xs, ys, zs, u, v, dist;
-    Point                point, centre, unit_point, poly_point;
+    VIO_Real                 x, y, z, xs, ys, zs, u, v, dist;
+    VIO_Point                point, centre, unit_point, poly_point;
 
     initialize_argument_processing( argc, argv );
 
@@ -39,7 +39,7 @@ int  main(
     polygons = get_polygons_ptr(src_objects[0]);
 
     create_polygons_bintree( polygons,
-                        ROUND( (Real) polygons->n_items * BINTREE_FACTOR ) );
+                        VIO_ROUND( (VIO_Real) polygons->n_items * BINTREE_FACTOR ) );
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
 

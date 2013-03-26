@@ -4,10 +4,10 @@
 #define DEBUG
 #undef  DEBUG
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s sphere.obj sphere_flat.obj input.obj output_flat.obj output_fixed dist\n\
 \n\
      .\n\n";
@@ -19,22 +19,22 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               sphere_filename, sphere_flat_filename, input_filename;
-    STRING               output_flat_filename, output_fixed_filename;
+    VIO_STR               sphere_filename, sphere_flat_filename, input_filename;
+    VIO_STR               output_flat_filename, output_fixed_filename;
     int                  p, n_objects, best_index;
     int                  sphere_vertex, patch_vertex;
     int                  n_fixed, *fixed_indices;
 #ifdef DEBUG
     int                  *sphere_indices;
 #endif
-    Smallest_int         *init_points_done;
-    Real                 distance, best_dist;
-    File_formats         format;
+    VIO_SCHAR         *init_points_done;
+    VIO_Real                 distance, best_dist;
+    VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *sphere, *sphere_flat, *patch;
-    Point                *init_points;
+    VIO_Point                *init_points;
     FILE                 *file;
-    progress_struct      progress;
+    VIO_progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -50,27 +50,27 @@ int  main(
     }
 
     if( input_graphics_file( sphere_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
     sphere = get_polygons_ptr( object_list[0] );
 
     if( input_graphics_file( sphere_flat_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
     sphere_flat = get_polygons_ptr( object_list[0] );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
     patch = get_polygons_ptr( object_list[0] );
 
-    create_polygons_bintree( patch, ROUND( (Real) patch->n_items * 0.2 ) );
+    create_polygons_bintree( patch, VIO_ROUND( (VIO_Real) patch->n_items * 0.2 ) );
 
     ALLOC( init_points, patch->n_points );
     ALLOC( init_points_done, patch->n_points );
@@ -124,13 +124,13 @@ int  main(
     print( "Number of fixed vertices is %d\n", n_fixed );
 
     if( open_file( output_fixed_filename, WRITE_FILE, ASCII_FORMAT, &file )
-                           != OK )
+                           != VIO_OK )
         return( 1 );
 
     for_less( p, 0, n_fixed )
     {
-        if( output_int( file, fixed_indices[p] ) != OK ||
-            output_newline( file ) != OK )
+        if( output_int( file, fixed_indices[p] ) != VIO_OK ||
+            output_newline( file ) != VIO_OK )
         {
             print_error( "Error writing fixed file.\n" );
             return( 1 );

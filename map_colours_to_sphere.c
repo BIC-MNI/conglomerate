@@ -1,17 +1,17 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  map_colours_to_sphere_topology(
-    Volume            volume,
+static  void  map_colours_to_sphere_topology(
+    VIO_Volume            volume,
     int               continuity,
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
-    Point             *origin,
+    VIO_Point             *origin,
     Real              origin_u,
     Real              origin_v,
     Real              rot_angle );
-private  void  evaluate_volume_by_voting(
-    Volume    volume,
+static  void  evaluate_volume_by_voting(
+    VIO_Volume    volume,
     Real      x,
     Real      y,
     Real      z,
@@ -22,17 +22,17 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               input_filename, output_filename, volume_filename;
-    Volume               volume;
-    int                  n_objects, sizes[MAX_DIMENSIONS], continuity;
-    File_formats         format;
+    VIO_STR               input_filename, output_filename, volume_filename;
+    VIO_Volume               volume;
+    int                  n_objects, sizes[VIO_MAX_DIMENSIONS], continuity;
+    VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
     Real                 origin_x, origin_y, origin_z;
     Real                 origin_u, origin_v, rot_angle;
     BOOLEAN              origin_specified;
-    Point                origin;
-    STRING               dim_names[4] = { MIxspace,
+    VIO_Point                origin;
+    VIO_STR               dim_names[4] = { MIxspace,
                                           MIyspace,
                                           MIzspace,
                                           MIvector_dimension };
@@ -100,18 +100,18 @@ int  main(
     return( 0 );
 }
 
-private  void  get_sphere_transform(
-    Point      *pos,
+static  void  get_sphere_transform(
+    VIO_Point      *pos,
     Real       u,
     Real       v,
     Real       angle,
-    Transform  *transform )
+    VIO_Transform  *transform )
 {
     Real       z_angle, vert_angle, x, y, z;
-    Vector     axis, vert, up, vert_transformed, up_transformed;
-    Vector     axis_transformed;
-    Point      origin;
-    Transform  about_point, vert_rot, z_rot, change;
+    VIO_Vector     axis, vert, up, vert_transformed, up_transformed;
+    VIO_Vector     axis_transformed;
+    VIO_Point      origin;
+    VIO_Transform  about_point, vert_rot, z_rot, change;
 
     CONVERT_POINT_TO_VECTOR( axis, *pos );
 
@@ -154,9 +154,9 @@ private  void  get_sphere_transform(
     concat_transforms( transform, &about_point, &change );
 }
 
-private  void  convert_sphere_point_to_2d(
-    Transform  *transform,
-    Point      *point,
+static  void  convert_sphere_point_to_2d(
+    VIO_Transform  *transform,
+    VIO_Point      *point,
     Real       *u,
     Real       *v )
 {
@@ -177,7 +177,7 @@ private  void  convert_sphere_point_to_2d(
     *u = angle_around / (2.0*PI);
 }
 
-private  void  convert_uv_to_volume_position(
+static  void  convert_uv_to_volume_position(
     int      sizes[],
     Real     u,
     Real     v,
@@ -189,22 +189,22 @@ private  void  convert_uv_to_volume_position(
     voxel[3] = 0.0;
 }
 
-private  void  map_colours_to_sphere_topology(
-    Volume            volume,
+static  void  map_colours_to_sphere_topology(
+    VIO_Volume            volume,
     int               continuity,
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
-    Point             *origin,
+    VIO_Point             *origin,
     Real              origin_u,
     Real              origin_v,
     Real              rot_angle )
 {
-    int              point_index, sizes[MAX_DIMENSIONS];
-    Real             u, v, voxel[MAX_DIMENSIONS], value[4];
+    int              point_index, sizes[VIO_MAX_DIMENSIONS];
+    Real             u, v, voxel[VIO_MAX_DIMENSIONS], value[4];
     Real             min_value, max_value, r, g, b;
-    Point            centre, unit_origin;
+    VIO_Point            centre, unit_origin;
     polygons_struct  unit_sphere;
-    Transform        transform;
+    VIO_Transform        transform;
     BOOLEAN          interpolating[4] = { TRUE, TRUE, TRUE, FALSE };
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
@@ -267,15 +267,15 @@ private  void  map_colours_to_sphere_topology(
     }
 }
 
-private  void  evaluate_volume_by_voting(
-    Volume    volume,
+static  void  evaluate_volume_by_voting(
+    VIO_Volume    volume,
     Real      x,
     Real      y,
     Real      z,
     Real      fill_value,
     Real      values[] )
 {
-    int      id[2][2][2], sizes[N_DIMENSIONS];
+    int      id[2][2][2], sizes[VIO_N_DIMENSIONS];
     Real     corners[2][2][2][4], x_frac, y_frac, z_frac;
     int      i, j, k, tx, ty, tz, dx, dy, dz;
     int      clas, n_classes, coef_ind;
@@ -283,9 +283,9 @@ private  void  evaluate_volume_by_voting(
 
     get_volume_sizes( volume, sizes );
 
-    i = FLOOR( x );
-    j = FLOOR( y );
-    k = FLOOR( z );
+    i = VIO_FLOOR( x );
+    j = VIO_FLOOR( y );
+    k = VIO_FLOOR( z );
 
     for_less( dx, 0, 2 )
     {

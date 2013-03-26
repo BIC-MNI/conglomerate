@@ -10,11 +10,11 @@ typedef struct tri_node_struct
 typedef struct
 {
     int                  n_points;
-    Point                *points;
-    Smallest_int         *active_flags;
+    VIO_Point                *points;
+    VIO_SCHAR         *active_flags;
     int                  n_triangles;
     tri_node_struct      *triangles;
-    BOOLEAN              edge_lookup_initialized;
+    VIO_BOOL              edge_lookup_initialized;
     hash2_table_struct   edge_lookup;
 } tri_mesh_struct;
 

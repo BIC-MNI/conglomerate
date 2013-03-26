@@ -3,11 +3,11 @@
 
 public  int  clip_polygons_to_plane(
     polygons_struct   *polygons,
-    Vector            *plane_normal,
-    Real              plane_constant,
+    VIO_Vector            *plane_normal,
+    VIO_Real              plane_constant,
     polygons_struct   *clipped );
 
-public  Real  get_closed_polyhedron_volume(
+public  VIO_Real  get_closed_polyhedron_volume(
     polygons_struct  *polygons );
 
 public  void  tri_mesh_initialize(
@@ -16,19 +16,19 @@ public  void  tri_mesh_initialize(
 public  int  tri_mesh_get_n_points(
     tri_mesh_struct  *mesh );
 
-public  Status  tri_mesh_output(
-    STRING         filename,
-    File_formats   format,
+public  VIO_Status  tri_mesh_output(
+    VIO_STR         filename,
+    VIO_File_formats   format,
     tri_mesh_struct  *mesh );
 
-public  BOOLEAN  tri_mesh_set_points(
+public  VIO_BOOL  tri_mesh_set_points(
     tri_mesh_struct  *mesh,
     int              n_points,
-    Point            points[] );
+    VIO_Point            points[] );
 
-public  Status  tri_mesh_input(
-    STRING           filename,
-    File_formats     format,
+public  VIO_Status  tri_mesh_input(
+    VIO_STR           filename,
+    VIO_File_formats     format,
     tri_mesh_struct  *mesh );
 
 public  void  tri_mesh_delete_edge_lookup(
@@ -53,21 +53,21 @@ public   void   tri_mesh_convert_to_polygons(
 
 public   void   tri_mesh_coalesce_triangles(
     tri_mesh_struct    *mesh,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               min_size,
-    Real               max_size );
+    VIO_Real               values[],
+    VIO_Real               min_size,
+    VIO_Real               max_size );
 
 public   void   tri_mesh_subdivide_triangles(
     tri_mesh_struct    *mesh,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               min_size,
-    Real               max_size,
+    VIO_Real               values[],
+    VIO_Real               min_size,
+    VIO_Real               max_size,
     int                max_subdivisions );
 
 public   void   tri_mesh_subdivide_bordering_triangles(
@@ -76,8 +76,8 @@ public   void   tri_mesh_subdivide_bordering_triangles(
 public  void  tri_mesh_print_levels(
     tri_mesh_struct  *mesh );
 
-public  Status  output_mesh_fixed_midpoints(
-    STRING           filename,
+public  VIO_Status  output_mesh_fixed_midpoints(
+    VIO_STR           filename,
     tri_mesh_struct  *mesh );
 
 public  void  tri_mesh_reconcile_points(

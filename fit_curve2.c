@@ -2,23 +2,23 @@
 #include  <bicpl.h>
 #include  <conjugate_min.h>
 
-private  void  fit_curve(
+static  void  fit_curve(
     int     n_points,
-    Point   points[],
-    Real    stretch_weight,
-    Real    smoothness_weight,
+    VIO_Point   points[],
+    VIO_Real    stretch_weight,
+    VIO_Real    smoothness_weight,
     int     n_cvs,
-    Point   cvs[] );
+    VIO_Point   cvs[] );
 
-private  int  get_minimum_spanning_tree_main_branch(
+static  int  get_minimum_spanning_tree_main_branch(
     int    n_points,
-    Point  points[],
+    VIO_Point  points[],
     int    indices[] );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input_lines.tag  output_lines.obj n_mm_per_segment\n\
                   [stretch_weight] [smoothness_weight] [disjoint_distance]\n\
 \n\
@@ -33,11 +33,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Real                 **tags, stretch_weight, smoothness_weight;
-    Real                 disjoint_distance, sq_disjoint_distance;
-    Real                 n_mm_per_segment, length, pos, delta_length;
-    Real                 current_length;
+    VIO_STR               input_filename, output_filename;
+    VIO_Real                 **tags, stretch_weight, smoothness_weight;
+    VIO_Real                 disjoint_distance, sq_disjoint_distance;
+    VIO_Real                 n_mm_per_segment, length, pos, delta_length;
+    VIO_Real                 current_length;
     int                  *tree_indices, n_span, n_segments;
     int                  p, n_tag_points, n_volumes;
     int                  i, n_cvs;
@@ -45,7 +45,7 @@ int  main(
     int                  current_ind;
     object_struct        **object_list;
     lines_struct         *lines;
-    Point                *points, *class_points;
+    VIO_Point                *points, *class_points;
     BOOLEAN              break_up_flag;
     int                  *classes, cl, n_changed;
 
@@ -180,7 +180,7 @@ int  main(
                                               &class_points[tree_indices[p+1]]);
         }
 
-        n_segments = ROUND( length / n_mm_per_segment );
+        n_segments = VIO_ROUND( length / n_mm_per_segment );
 
         if( n_segments < 1 )
         {
@@ -199,7 +199,7 @@ int  main(
 
         for_less( i, 0, n_cvs )
         {
-            pos = length * ((Real) i / (Real) n_segments);
+            pos = length * ((VIO_Real) i / (VIO_Real) n_segments);
             while( current_length < pos )
             {
                 delta_length = distance_between_points(&class_points
@@ -244,14 +244,14 @@ int  main(
     return( 0 );
 }
 
-private  void  get_minimum_spanning_tree(
+static  void  get_minimum_spanning_tree(
     int    n_points,
-    Point  points[],
+    VIO_Point  points[],
     int    (*edges)[2] )
 {
-    Real          min_dist, dist;
+    VIO_Real          min_dist, dist;
     int           p, min_ind, n_edges, i, i1, i2, min_i1, min_i2;
-    Smallest_int  *included;
+    VIO_SCHAR  *included;
 
     ALLOC( included, n_points );
 
@@ -347,7 +347,7 @@ private  void  get_minimum_spanning_tree(
 
 }
 
-private  void  get_distance_from_vertex(
+static  void  get_distance_from_vertex(
     int    n_points,
     int    (*edges)[2],
     int    vertex,
@@ -402,9 +402,9 @@ private  void  get_distance_from_vertex(
     while( changed );
 }
 
-private  int  get_minimum_spanning_tree_main_branch(
+static  int  get_minimum_spanning_tree_main_branch(
     int    n_points,
-    Point  points[],
+    VIO_Point  points[],
     int    indices[] )
 {
     int               (*tree_edges)[2], i1, i2;
@@ -469,13 +469,13 @@ private  int  get_minimum_spanning_tree_main_branch(
     return( max_dist+1 );
 }
 
-private  Real  point_segment_dist(
-    Point   *point,
-    Real    seg1[],
-    Real    seg2[],
-    Real    *alpha )
+static  VIO_Real  point_segment_dist(
+    VIO_Point   *point,
+    VIO_Real    seg1[],
+    VIO_Real    seg2[],
+    VIO_Real    *alpha )
 {
-    Real   dx, dy, dz, len, dot_prod;
+    VIO_Real   dx, dy, dz, len, dot_prod;
 
     dx = seg2[0] - seg1[0];
     dy = seg2[1] - seg1[1];
@@ -513,25 +513,25 @@ private  Real  point_segment_dist(
     return( dx * dx + dy * dy + dz * dz );
 }
 
-private  void  get_point_deriv(
-    Point   *point,
-    Real    seg_point[],
-    Real    deriv[] )
+static  void  get_point_deriv(
+    VIO_Point   *point,
+    VIO_Real    seg_point[],
+    VIO_Real    deriv[] )
 {
     deriv[0] = 2.0 * (seg_point[0] - RPoint_x(*point));
     deriv[1] = 2.0 * (seg_point[1] - RPoint_y(*point));
     deriv[2] = 2.0 * (seg_point[2] - RPoint_z(*point));
 }
 
-private  void  get_segment_deriv(
-    Point   *point,
-    Real    seg1[],
-    Real    seg2[],
-    Real    deriv[] )
+static  void  get_segment_deriv(
+    VIO_Point   *point,
+    VIO_Real    seg1[],
+    VIO_Real    seg2[],
+    VIO_Real    deriv[] )
 {
     int    i;
-    Real   px, py, pz, s1x, s1y, s1z, s2x, s2y, s2z;
-    Real   dot_top, dot_bottom, top_deriv[6], bottom_deriv[6];
+    VIO_Real   px, py, pz, s1x, s1y, s1z, s2x, s2y, s2z;
+    VIO_Real   dot_top, dot_bottom, top_deriv[6], bottom_deriv[6];
 
     px = RPoint_x(*point);
     py = RPoint_y(*point);
@@ -579,14 +579,14 @@ private  void  get_segment_deriv(
     }
 }
 
-private  int   get_closest_segment(
-    Point   *point,
+static  int   get_closest_segment(
+    VIO_Point   *point,
     int     n_points,
-    Real    parameters[],
-    Real    *best_dist,
-    Real    *best_alpha )
+    VIO_Real    parameters[],
+    VIO_Real    *best_dist,
+    VIO_Real    *best_alpha )
 {
-    Real  dist, alpha;
+    VIO_Real  dist, alpha;
     int   seg, best_seg;
 
     *best_dist = 0.0;
@@ -606,16 +606,16 @@ private  int   get_closest_segment(
     return( best_seg );
 }
 
-private  Real  evaluate_fit(
+static  VIO_Real  evaluate_fit(
     int    n_segments,
-    Real   parameters[],
+    VIO_Real   parameters[],
     int    n_points,
-    Point  points[],
-    Real   stretch_weight,
-    Real   smoothness_weight )
+    VIO_Point  points[],
+    VIO_Real   stretch_weight,
+    VIO_Real   smoothness_weight )
 {
     int    p, seg;
-    Real   fit, dist, alpha, fit2, dx, dy, dz, fit3, cx, cy, cz;
+    VIO_Real   fit, dist, alpha, fit2, dx, dy, dz, fit3, cx, cy, cz;
 
     fit = 0.0;
 
@@ -653,17 +653,17 @@ private  Real  evaluate_fit(
     return( fit + fit2 * stretch_weight + fit3 * smoothness_weight );
 }
 
-private  void  evaluate_fit_deriv(
+static  void  evaluate_fit_deriv(
     int    n_segments,
-    Real   parameters[],
+    VIO_Real   parameters[],
     int    n_points,
-    Point  points[],
-    Real   stretch_weight,
-    Real   smoothness_weight,
-    Real   deriv[] )
+    VIO_Point  points[],
+    VIO_Real   stretch_weight,
+    VIO_Real   smoothness_weight,
+    VIO_Real   deriv[] )
 {
     int    p, seg;
-    Real   dist, alpha, point_deriv[3], seg_deriv[6], dx, dy, dz, cx, cy, cz;
+    VIO_Real   dist, alpha, point_deriv[3], seg_deriv[6], dx, dy, dz, cx, cy, cz;
 
     for_less( p, 0, 3 * (n_segments+1) )
         deriv[p] = 0.0;
@@ -739,13 +739,13 @@ typedef  struct
 {
     int     n_segments;
     int     n_points;
-    Point   *points;
-    Real    stretch_weight;
-    Real    smoothness_weight;
+    VIO_Point   *points;
+    VIO_Real    stretch_weight;
+    VIO_Real    smoothness_weight;
 } func_data_struct;
 
-private  Real  function(
-    Real  parameters[],
+static  VIO_Real  function(
+    VIO_Real  parameters[],
     void  *void_ptr )
 {
     func_data_struct   *data;
@@ -757,10 +757,10 @@ private  Real  function(
                           data->stretch_weight, data->smoothness_weight) );
 }
 
-private  void  function_deriv(
-    Real  parameters[],
+static  void  function_deriv(
+    VIO_Real  parameters[],
     void  *void_ptr,
-    Real  deriv[] )
+    VIO_Real  deriv[] )
 {
     func_data_struct   *data;
 
@@ -771,24 +771,24 @@ private  void  function_deriv(
                         data->smoothness_weight, deriv );
 }
 
-private  void  fit_curve(
+static  void  fit_curve(
     int     n_points,
-    Point   points[],
-    Real    stretch_weight,
-    Real    smoothness_weight,
+    VIO_Point   points[],
+    VIO_Real    stretch_weight,
+    VIO_Real    smoothness_weight,
     int     n_cvs,
-    Point   cvs[] )
+    VIO_Point   cvs[] )
 {
     int                p, n_iterations;
-    Real               *parameters, range_tolerance, domain_tolerance, fit;
-    Real               line_min_range_tolerance, line_min_domain_tolerance;
+    VIO_Real               *parameters, range_tolerance, domain_tolerance, fit;
+    VIO_Real               line_min_range_tolerance, line_min_domain_tolerance;
     func_data_struct   data;
 
-    stretch_weight *= (Real) n_points / (Real) (n_cvs-1);
+    stretch_weight *= (VIO_Real) n_points / (VIO_Real) (n_cvs-1);
     if( n_cvs < 3 )
         smoothness_weight = 0.0;
     else
-        smoothness_weight *= (Real) n_points / (Real) (n_cvs-2);
+        smoothness_weight *= (VIO_Real) n_points / (VIO_Real) (n_cvs-2);
 
     ALLOC( parameters, 3 * n_cvs );
 

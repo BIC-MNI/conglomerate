@@ -3,15 +3,15 @@
 
 #define  CHUNK_SIZE   1000000
 
-private  void  extract_isosurface(
+static  void  extract_isosurface(
     Minc_file         minc_file,
-    Volume            volume,
+    VIO_Volume            volume,
     Minc_file         label_file,
-    Volume            label_volume,
+    VIO_Volume            label_volume,
     Real              min_label,
     Real              max_label,
     int               spatial_axes[],
-    General_transform *voxel_to_world_transform,
+    VIO_General_transform *voxel_to_world_transform,
     Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
@@ -19,7 +19,7 @@ private  void  extract_isosurface(
     Real              valid_low,
     Real              valid_high,
     polygons_struct   *polygons );
-private  void  extract_surface(
+static  void  extract_surface(
     Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
@@ -35,17 +35,17 @@ private  void  extract_surface(
     int               slice_index,
     BOOLEAN           right_handed,
     int               spatial_axes[],
-    General_transform *voxel_to_world_transform,
+    VIO_General_transform *voxel_to_world_transform,
     int               ***point_ids[],
     polygons_struct   *polygons );
 
-static  STRING    dimension_names_3D[] = { MIzspace, MIyspace, MIxspace };
-static  STRING    dimension_names[] = { MIyspace, MIxspace };
+static  VIO_STR    dimension_names_3D[] = { MIzspace, MIyspace, MIxspace };
+static  VIO_STR    dimension_names[] = { MIyspace, MIxspace };
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: marching_cubes  input.mnc  output.obj  threshold\n\
        marching_cubes  input.mnc  output.obj  min_threshold max_threshold\n\
 \n\
@@ -59,20 +59,20 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, output_filename;
-    STRING               label_filename;
-    Volume               volume, label_volume;
+    VIO_STR               input_volume_filename, output_filename;
+    VIO_STR               label_filename;
+    VIO_Volume               volume, label_volume;
     Real                 min_threshold, max_threshold;
     Real                 min_label, max_label;
     Real                 valid_low, valid_high;
     Minc_file            minc_file, label_file;
     BOOLEAN              binary_flag;
-    int                  c, spatial_axes[N_DIMENSIONS];
+    int                  c, spatial_axes[VIO_N_DIMENSIONS];
     int                  int_method;
     Marching_cubes_methods  method;
     object_struct        *object;
     volume_input_struct  volume_input;
-    General_transform    voxel_to_world_transform;
+    VIO_General_transform    voxel_to_world_transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -124,7 +124,7 @@ int  main(
     copy_general_transform( &volume_input.minc_file->voxel_to_world_transform,
                             &voxel_to_world_transform );
 
-    for_less( c, 0, N_DIMENSIONS )
+    for_less( c, 0, VIO_N_DIMENSIONS )
         spatial_axes[c] = volume->spatial_axes[c];
 
     delete_volume_input( &volume_input );
@@ -191,11 +191,11 @@ int  main(
     return( 0 );
 }
 
-private  void  clear_slice(
-    Volume            volume,
+static  void  clear_slice(
+    VIO_Volume            volume,
     Real              **slice )
 {
-    int    x, y, sizes[MAX_DIMENSIONS];
+    int    x, y, sizes[VIO_MAX_DIMENSIONS];
 
     get_volume_sizes( volume, sizes );
 
@@ -204,12 +204,12 @@ private  void  clear_slice(
         slice[x][y] = 0.0;
 }
 
-private  void  input_slice(
+static  void  input_slice(
     Minc_file         minc_file,
-    Volume            volume,
+    VIO_Volume            volume,
     Real              **slice )
 {
-    int    sizes[MAX_DIMENSIONS];
+    int    sizes[VIO_MAX_DIMENSIONS];
     Real   amount_done;
 
     while( input_more_minc_file( minc_file, &amount_done ) )
@@ -223,7 +223,7 @@ private  void  input_slice(
                                    &slice[0][0] );
 }
 
-private  Real  get_slice_value(
+static  Real  get_slice_value(
     Real      ***slices,
     int       x_size,
     int       y_size,
@@ -237,7 +237,7 @@ private  Real  get_slice_value(
         return( slices[z][x][y] );
 }
 
-private  void  clear_points(
+static  void  clear_points(
     int         x_size,
     int         y_size,
     int         max_edges,
@@ -255,23 +255,23 @@ private  void  clear_points(
     }
 }
 
-private  void   get_world_point(
+static  void   get_world_point(
     Real                slice,
     Real                x,
     Real                y,
     int                 spatial_axes[],
-    General_transform   *voxel_to_world_transform,
-    Point               *point )
+    VIO_General_transform   *voxel_to_world_transform,
+    VIO_Point               *point )
 {
     int            c;
     Real           xw, yw, zw;
-    Real           real_voxel[N_DIMENSIONS], voxel_pos[N_DIMENSIONS];
+    Real           real_voxel[VIO_N_DIMENSIONS], voxel_pos[VIO_N_DIMENSIONS];
 
     real_voxel[0] = slice;
     real_voxel[1] = x;
     real_voxel[2] = y;
 
-    for_less( c, 0, N_DIMENSIONS )
+    for_less( c, 0, VIO_N_DIMENSIONS )
     {
         if( spatial_axes[c] >= 0 )
             voxel_pos[c] = real_voxel[spatial_axes[c]];
@@ -286,15 +286,15 @@ private  void   get_world_point(
     fill_Point( *point, xw, yw, zw );
 }
 
-private  void  extract_isosurface(
+static  void  extract_isosurface(
     Minc_file         minc_file,
-    Volume            volume,
+    VIO_Volume            volume,
     Minc_file         label_file,
-    Volume            label_volume,
+    VIO_Volume            label_volume,
     Real              min_label,
     Real              max_label,
     int               spatial_axes[],
-    General_transform *voxel_to_world_transform,
+    VIO_General_transform *voxel_to_world_transform,
     Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
@@ -303,15 +303,15 @@ private  void  extract_isosurface(
     Real              valid_high,
     polygons_struct   *polygons )
 {
-    int             n_slices, sizes[MAX_DIMENSIONS], x_size, y_size, slice;
+    int             n_slices, sizes[VIO_MAX_DIMENSIONS], x_size, y_size, slice;
     int             ***point_ids[2], ***tmp_point_ids;
     int             max_edges;
     Real            **slices[2], **tmp_slices;
     Real            **label_slices[2];
-    progress_struct progress;
-    Surfprop        spr;
-    Point           point000, point100, point010, point001;
-    Vector          v100, v010, v001, perp;
+    VIO_progress_struct progress;
+    VIO_Surfprop        spr;
+    VIO_Point           point000, point100, point010, point001;
+    VIO_Vector          v100, v010, v001, perp;
     BOOLEAN         right_handed;
 
     get_world_point( 0.0, 0.0, 0.0, spatial_axes, voxel_to_world_transform,
@@ -336,19 +336,19 @@ private  void  extract_isosurface(
     x_size = sizes[X];
     y_size = sizes[Y];
 
-    ALLOC2D( slices[0], x_size, y_size );
-    ALLOC2D( slices[1], x_size, y_size );
+    VIO_ALLOC2D( slices[0], x_size, y_size );
+    VIO_ALLOC2D( slices[1], x_size, y_size );
 
     if( label_volume != NULL )
     {
-        ALLOC2D( label_slices[0], x_size, y_size );
-        ALLOC2D( label_slices[1], x_size, y_size );
+        VIO_ALLOC2D( label_slices[0], x_size, y_size );
+        VIO_ALLOC2D( label_slices[1], x_size, y_size );
     }
 
     max_edges = get_max_marching_edges( method );
 
-    ALLOC3D( point_ids[0], x_size+2, y_size+2, max_edges );
-    ALLOC3D( point_ids[1], x_size+2, y_size+2, max_edges );
+    VIO_ALLOC3D( point_ids[0], x_size+2, y_size+2, max_edges );
+    VIO_ALLOC3D( point_ids[1], x_size+2, y_size+2, max_edges );
 
     clear_slice( volume, slices[1] );
     if( label_volume != NULL )
@@ -411,20 +411,20 @@ private  void  extract_isosurface(
         compute_polygon_normals( polygons );
     }
 
-    FREE2D( slices[0] );
-    FREE2D( slices[1] );
+    VIO_FREE2D( slices[0] );
+    VIO_FREE2D( slices[1] );
 
     if( label_volume != NULL )
     {
-        FREE2D( label_slices[0] );
-        FREE2D( label_slices[1] );
+        VIO_FREE2D( label_slices[0] );
+        VIO_FREE2D( label_slices[1] );
     }
 
-    FREE3D( point_ids[0] );
-    FREE3D( point_ids[1] );
+    VIO_FREE3D( point_ids[0] );
+    VIO_FREE3D( point_ids[1] );
 }
 
-private  int   get_point_index(
+static  int   get_point_index(
     int                 x,
     int                 y,
     int                 slice_index,
@@ -433,17 +433,17 @@ private  int   get_point_index(
     voxel_point_type    *point,
     Real                corners[2][2][2],
     int                 spatial_axes[],
-    General_transform   *voxel_to_world_transform,
+    VIO_General_transform   *voxel_to_world_transform,
     BOOLEAN             binary_flag,
     Real                min_threshold,
     Real                max_threshold,
     int                 ***point_ids[],
     polygons_struct     *polygons )
 {
-    int            voxel[N_DIMENSIONS], edge, point_index;
-    int            edge_voxel[N_DIMENSIONS];
-    Real           v[N_DIMENSIONS];
-    Point          world_point;
+    int            voxel[VIO_N_DIMENSIONS], edge, point_index;
+    int            edge_voxel[VIO_N_DIMENSIONS];
+    Real           v[VIO_N_DIMENSIONS];
+    VIO_Point          world_point;
     Point_classes  point_class;
 
     voxel[X] = x + point->coord[X];
@@ -475,7 +475,7 @@ private  int   get_point_index(
     return( point_index );
 }
 
-private  void  extract_surface(
+static  void  extract_surface(
     Marching_cubes_methods  method,
     BOOLEAN           binary_flag,
     Real              min_threshold,
@@ -491,7 +491,7 @@ private  void  extract_surface(
     int               slice_index,
     BOOLEAN           right_handed,
     int               spatial_axes[],
-    General_transform *voxel_to_world_transform,
+    VIO_General_transform *voxel_to_world_transform,
     int               ***point_ids[],
     polygons_struct   *polygons )
 {

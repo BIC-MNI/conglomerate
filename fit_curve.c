@@ -1,27 +1,27 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  get_best_line(
+static  void  get_best_line(
     int     n_points,
-    Point   points[],
-    Point   *line_origin,
-    Vector  *line_direction,
+    VIO_Point   points[],
+    VIO_Point   *line_origin,
+    VIO_Vector  *line_direction,
     int     *best_axis );
 
-private  void  fit_curve(
+static  void  fit_curve(
     int     n_points,
-    Point   points[],
-    Point   *line_origin,
-    Vector  *line_direction,
+    VIO_Point   points[],
+    VIO_Point   *line_origin,
+    VIO_Vector  *line_direction,
     int     axis,
-    Real    smoothness_weight,
+    VIO_Real    smoothness_weight,
     int     n_cvs,
-    Point   cvs[] );
+    VIO_Point   cvs[] );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input_lines.tag  output_lines.obj n_controls n_intervals\n\
                   [smoothness_weight] [disjoint_distance]\n\
 \n\
@@ -40,16 +40,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Real                 **tags, u, smoothness_weight;
-    Real                 disjoint_distance, sq_disjoint_distance;
+    VIO_STR               input_filename, output_filename;
+    VIO_Real                 **tags, u, smoothness_weight;
+    VIO_Real                 disjoint_distance, sq_disjoint_distance;
     int                  p, n_piecewise, n_tag_points, n_volumes, axis;
     int                  n_intervals_per, i, n_cvs, ind, n;
     int                  n_class_points, p2, p1, n_classes;
     object_struct        **object_list;
     lines_struct         *lines;
-    Point                *points, line_origin, *cvs, *class_points;
-    Vector               line_direction;
+    VIO_Point                *points, line_origin, *cvs, *class_points;
+    VIO_Vector               line_direction;
     BOOLEAN              break_up_flag;
     int                  *classes, cl, n_changed;
 
@@ -192,7 +192,7 @@ int  main(
                 n = n_intervals_per;
             for_less( i, 0, n )
             {
-                u = (Real) i / (Real) (n_intervals_per-1);
+                u = (VIO_Real) i / (VIO_Real) (n_intervals_per-1);
                 fill_Point( lines->points[ind],
                         cubic_interpolate( u, RPoint_x(cvs[p-1]),
                                               RPoint_x(cvs[p+0]),
@@ -227,27 +227,27 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN  get_best_line_using_axis_2d(
+static  BOOLEAN  get_best_line_using_axis_2d(
     int     n_points,
-    Point   points[],
+    VIO_Point   points[],
     int     axis,
-    Real    vy,
-    Real    vz,
-    Point   *line_origin,
-    Vector  *line_direction,
-    Real    *error )
+    VIO_Real    vy,
+    VIO_Real    vz,
+    VIO_Point   *line_origin,
+    VIO_Vector  *line_direction,
+    VIO_Real    *error )
 {
     int                    a1, a2, p;
-    Real                   p_dot_p, x, y, z, p_dot_v;
-    Real                   second_deriv, constant;
-    Point                  centroid;
-    Vector                 offset;
+    VIO_Real                   p_dot_p, x, y, z, p_dot_v;
+    VIO_Real                   second_deriv, constant;
+    VIO_Point                  centroid;
+    VIO_Vector                 offset;
     BOOLEAN                okay;
 
     get_points_centroid( n_points, points, &centroid );
 
-    a1 = (axis + 1) % N_DIMENSIONS;
-    a2 = (axis + 2) % N_DIMENSIONS;
+    a1 = (axis + 1) % VIO_N_DIMENSIONS;
+    a2 = (axis + 2) % VIO_N_DIMENSIONS;
 
     second_deriv = 0.0;
     constant = 0.0;
@@ -269,10 +269,10 @@ private  BOOLEAN  get_best_line_using_axis_2d(
     if( okay )
     {
         *line_origin = centroid;
-        Vector_coord( *line_direction, axis ) = (Point_coord_type)
+        Vector_coord( *line_direction, axis ) = (VIO_Point_coord_type)
                                                 (-constant / second_deriv);
-        Vector_coord( *line_direction, a1 ) = (Point_coord_type) vy;
-        Vector_coord( *line_direction, a2 ) = (Point_coord_type) vz;
+        Vector_coord( *line_direction, a1 ) = (VIO_Point_coord_type) vy;
+        Vector_coord( *line_direction, a2 ) = (VIO_Point_coord_type) vz;
 
         *error = 0.0;
         for_less( p, 0, n_points )
@@ -289,27 +289,27 @@ private  BOOLEAN  get_best_line_using_axis_2d(
 }
 
 
-private  void  get_best_line(
+static  void  get_best_line(
     int     n_points,
-    Point   points[],
-    Point   *line_origin,
-    Vector  *line_direction,
+    VIO_Point   points[],
+    VIO_Point   *line_origin,
+    VIO_Vector  *line_direction,
     int     *best_axis )
 {
     int      axis, value;
     BOOLEAN  found;
-    Real     best_error, error;
-    Point    origin;
-    Vector   direction;
+    VIO_Real     best_error, error;
+    VIO_Point    origin;
+    VIO_Vector   direction;
 
     found = FALSE;
     best_error = 0.0;
 
-    for_less( axis, 0, N_DIMENSIONS )
+    for_less( axis, 0, VIO_N_DIMENSIONS )
     for_less( value, 0, 2 )
     {
         if( get_best_line_using_axis_2d( n_points, points, axis,
-                                         (Real) value, 1.0 - (Real) value,
+                                         (VIO_Real) value, 1.0 - (VIO_Real) value,
                                          &origin, &direction, &error ) )
         {
             if( !found || error < best_error )
@@ -319,9 +319,9 @@ private  void  get_best_line(
                 *line_origin = origin;
                 *line_direction = direction;
                 if( value == 0 )
-                    *best_axis = (axis + 1) % N_DIMENSIONS;
+                    *best_axis = (axis + 1) % VIO_N_DIMENSIONS;
                 else
-                    *best_axis = (axis + 2) % N_DIMENSIONS;
+                    *best_axis = (axis + 2) % VIO_N_DIMENSIONS;
             }
         }
     }
@@ -330,19 +330,19 @@ private  void  get_best_line(
         handle_internal_error( "get_best_line" );
 }
 
-private  void  get_spline_fit(
+static  void  get_spline_fit(
     int      n_points,
-    Point    points[],
-    Real     smoothness_weight,
+    VIO_Point    points[],
+    VIO_Real     smoothness_weight,
     int      n_cvs,
-    Point    cvs[] )
+    VIO_Point    cvs[] )
 {
     int                    p, i, off, b;
     linear_least_squares   lsq;
-    Real                   **basis, *coefs, u, x, y, weight, power, h;
-    Real                   len;
+    VIO_Real                   **basis, *coefs, u, x, y, weight, power, h;
+    VIO_Real                   len;
 
-    ALLOC2D( basis, 4, 4 );
+    VIO_ALLOC2D( basis, 4, 4 );
 
     get_cubic_spline_coefs( basis );
 
@@ -400,8 +400,8 @@ private  void  get_spline_fit(
         add_to_linear_least_squares( &lsq, coefs, y );
     }
 
-    h = len / (Real) (n_cvs-3);
-    smoothness_weight *= sqrt( (Real) n_points / (Real) (n_cvs-4) ) / h / h;
+    h = len / (VIO_Real) (n_cvs-3);
+    smoothness_weight *= sqrt( (VIO_Real) n_points / (VIO_Real) (n_cvs-4) ) / h / h;
 
     for_less( p, 1, n_cvs-3 )
     {
@@ -420,39 +420,39 @@ private  void  get_spline_fit(
 
     for_less( p, 1, n_cvs-1 )
     {
-        Point_y(cvs[p]) = (Point_coord_type) coefs[p-1];
+        Point_y(cvs[p]) = (VIO_Point_coord_type) coefs[p-1];
     }
 
-    Point_y(cvs[0]) = (Point_coord_type)
+    Point_y(cvs[0]) = (VIO_Point_coord_type)
                       (2.5 * coefs[0] - 2.0 * coefs[1] + 0.5 * coefs[2]);
-    Point_y(cvs[n_cvs-1]) = (Point_coord_type)
+    Point_y(cvs[n_cvs-1]) = (VIO_Point_coord_type)
                       (2.5 * coefs[n_cvs-3] - 2.0 * coefs[n_cvs-4] +
                        0.5 * coefs[n_cvs-5]);
 
     delete_linear_least_squares( &lsq );
 
     FREE( coefs );
-    FREE2D( basis );
+    VIO_FREE2D( basis );
 }
 
-private  void  fit_curve(
+static  void  fit_curve(
     int     n_points,
-    Point   points[],
-    Point   *line_origin,
-    Vector  *line_direction,
+    VIO_Point   points[],
+    VIO_Point   *line_origin,
+    VIO_Vector  *line_direction,
     int     axis,
-    Real    smoothness_weight,
+    VIO_Real    smoothness_weight,
     int     n_cvs,
-    Point   cvs[] )
+    VIO_Point   cvs[] )
 {
     int     p;
-    Real    t_min, t_max, t, x, y;
-    Vector  offset, vert, plane;
-    Point   *aligned_points;
+    VIO_Real    t_min, t_max, t, x, y;
+    VIO_Vector  offset, vert, plane;
+    VIO_Point   *aligned_points;
 
     ALLOC( aligned_points, n_points );
     fill_Vector( plane, 0.0, 0.0, 0.0 );
-    Vector_coord(plane,axis) = (Point_coord_type) 1.0;
+    Vector_coord(plane,axis) = (VIO_Point_coord_type) 1.0;
 
     CROSS_VECTORS( vert, plane, *line_direction );
     NORMALIZE_VECTOR( vert, vert );
@@ -480,7 +480,7 @@ private  void  fit_curve(
 
     for_less( p, 0, n_cvs )
     {
-        x = INTERPOLATE( (Real) (p-1) / (Real) (n_cvs-3), t_min, t_max );
+        x = INTERPOLATE( (VIO_Real) (p-1) / (VIO_Real) (n_cvs-3), t_min, t_max );
         fill_Point( cvs[p], x, 0.0, 0.0 );
     }
 

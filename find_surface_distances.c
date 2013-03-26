@@ -7,17 +7,17 @@ int  main(
     char   *argv[] )
 {
     FILE                        *file;
-    STRING                      volume_filename, surface_filename;
-    STRING                      output_filename;
+    VIO_STR                      volume_filename, surface_filename;
+    VIO_STR                      output_filename;
     int                         p, n_objects;
-    File_formats                format;
+    VIO_File_formats                format;
     object_struct               **object_list;
     polygons_struct             *polygons;
-    Volume                      volume;
-    Real                        dist, threshold;
-    Real                        max_inwards_distance, max_outwards_distance;
+    VIO_Volume                      volume;
+    VIO_Real                        dist, threshold;
+    VIO_Real                        max_inwards_distance, max_outwards_distance;
     boundary_definition_struct  boundary_def;
-    progress_struct             progress;
+    VIO_progress_struct             progress;
 
     initialize_argument_processing( argc, argv );
 

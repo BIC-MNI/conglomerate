@@ -3,44 +3,44 @@
 
 #define  BINTREE_FACTOR  0.5
 
-private  void  find_boundary_blocks(
-    Point              *min_point,
-    Real               block_size,
+static  void  find_boundary_blocks(
+    VIO_Point              *min_point,
+    VIO_Real               block_size,
     int                x_size,
     int                y_size,
     int                z_size,
     bitlist_3d_struct  *on_boundary,
     object_struct      *surface,
-    Real               radius_of_curvature );
-private  BOOLEAN  block_within_distance(
-    Point              *min_point,
-    Real               block_size,
+    VIO_Real               radius_of_curvature );
+static  BOOLEAN  block_within_distance(
+    VIO_Point              *min_point,
+    VIO_Real               block_size,
     int                x_size,
     int                y_size,
     int                z_size,
     bitlist_3d_struct  *on_boundary,
-    Point              *point,
-    Real               radius );
+    VIO_Point              *point,
+    VIO_Real               radius );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src_polygons_filename, dest_polygons_filename;
-    File_formats         format;
+    VIO_STR               src_polygons_filename, dest_polygons_filename;
+    VIO_File_formats         format;
     int                  n_objects, poly, obj_index, size, dim;
     int                  x_grid_size, y_grid_size, z_grid_size;
-    Real                 radius_of_curvature, dist;
+    VIO_Real                 radius_of_curvature, dist;
     object_struct        **objects;
     polygons_struct      *polygons;
     BOOLEAN              on_boundary;
-    Point                centroid, sphere_centre, *points;
-    Point                found_point;
-    Vector               normal;
-    progress_struct      progress;
-    Real                 surface_area, buried_surface_area, total_surface_area;
-    Real                 block_size;
-    Point                min_point, max_point;
+    VIO_Point                centroid, sphere_centre, *points;
+    VIO_Point                found_point;
+    VIO_Vector               normal;
+    VIO_progress_struct      progress;
+    VIO_Real                 surface_area, buried_surface_area, total_surface_area;
+    VIO_Real                 block_size;
+    VIO_Point                min_point, max_point;
     bitlist_3d_struct    bitlist;
 
     initialize_argument_processing( argc, argv );
@@ -71,24 +71,24 @@ int  main(
     set_polygon_per_item_colours( polygons );
 
     create_polygons_bintree( polygons,
-                         ROUND( (Real) polygons->n_items * BINTREE_FACTOR ) );
+                         VIO_ROUND( (VIO_Real) polygons->n_items * BINTREE_FACTOR ) );
 
     get_range_points( polygons->n_points, polygons->points,
                       &min_point, &max_point );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         Point_coord( min_point,dim ) -=
-               (Point_coord_type) (3.0 * block_size + radius_of_curvature);
+               (VIO_Point_coord_type) (3.0 * block_size + radius_of_curvature);
         Point_coord( max_point,dim ) +=
-               (Point_coord_type) (3.0 * block_size + radius_of_curvature);
+               (VIO_Point_coord_type) (3.0 * block_size + radius_of_curvature);
     }
 
-    x_grid_size = ROUND( (RPoint_x(max_point) - RPoint_x(min_point)) /
+    x_grid_size = VIO_ROUND( (RPoint_x(max_point) - RPoint_x(min_point)) /
                           block_size) + 1;
-    y_grid_size = ROUND( (RPoint_y(max_point) - RPoint_y(min_point)) /
+    y_grid_size = VIO_ROUND( (RPoint_y(max_point) - RPoint_y(min_point)) /
                           block_size) + 1;
-    z_grid_size = ROUND( (RPoint_z(max_point) - RPoint_z(min_point)) /
+    z_grid_size = VIO_ROUND( (RPoint_z(max_point) - RPoint_z(min_point)) /
                           block_size) + 1;
 
     print( "bytes: %d\n", x_grid_size * y_grid_size * z_grid_size / 8 );
@@ -166,26 +166,26 @@ int  main(
 }
 
 
-private  void  convert_world_to_block(
-    Point       *min_point,
-    Real        block_size,
-    Point       *point,
-    Real        *x_block,
-    Real        *y_block,
-    Real        *z_block )
+static  void  convert_world_to_block(
+    VIO_Point       *min_point,
+    VIO_Real        block_size,
+    VIO_Point       *point,
+    VIO_Real        *x_block,
+    VIO_Real        *y_block,
+    VIO_Real        *z_block )
 {
     *x_block = (RPoint_x(*point) - RPoint_x(*min_point)) / block_size;
     *y_block = (RPoint_y(*point) - RPoint_y(*min_point)) / block_size;
     *z_block = (RPoint_z(*point) - RPoint_z(*min_point)) / block_size;
 }
 
-private  void  convert_block_to_world(
-    Point       *min_point,
-    Real        block_size,
-    Real        x_block,
-    Real        y_block,
-    Real        z_block,
-    Point       *point )
+static  void  convert_block_to_world(
+    VIO_Point       *min_point,
+    VIO_Real        block_size,
+    VIO_Real        x_block,
+    VIO_Real        y_block,
+    VIO_Real        z_block,
+    VIO_Point       *point )
 {
     fill_Point( *point,
                 RPoint_x(*min_point) + x_block * block_size,
@@ -200,15 +200,15 @@ typedef  struct
     unsigned short z;
 } voxel_struct;
 
-private  void  find_boundary_blocks(
-    Point              *min_point,
-    Real               block_size,
+static  void  find_boundary_blocks(
+    VIO_Point              *min_point,
+    VIO_Real               block_size,
     int                x_size,
     int                y_size,
     int                z_size,
     bitlist_3d_struct  *on_boundary,
     object_struct      *surface,
-    Real               radius_of_curvature )
+    VIO_Real               radius_of_curvature )
 {
     int                           n_to_do, poly, size;
     polygons_struct               *polygons;
@@ -216,16 +216,16 @@ private  void  find_boundary_blocks(
     QUEUE_STRUCT( voxel_struct )  queue;
     voxel_struct                  voxel;
     int                           x, y, z, *dx, *dy, *dz, dir, n_dirs;
-    Real                          x_min_real, x_max_real, y_min_real;
-    Real                          y_max_real, z_min_real, z_max_real;
+    VIO_Real                          x_min_real, x_max_real, y_min_real;
+    VIO_Real                          y_max_real, z_min_real, z_max_real;
     int                           x_min, x_max, y_min, y_max, z_min, z_max;
     int                           nx, ny, nz;
-    Point                         block_centre, *points, lower, upper;
-    Point                         max_range, min_range, nearest_point;
-    Vector                        offset;
-    Real                          distance, dist;
+    VIO_Point                         block_centre, *points, lower, upper;
+    VIO_Point                         max_range, min_range, nearest_point;
+    VIO_Vector                        offset;
+    VIO_Real                          distance, dist;
     int                           max_x, max_y, max_z;
-    progress_struct               progress;
+    VIO_progress_struct               progress;
 
     distance = radius_of_curvature;
 
@@ -251,11 +251,11 @@ private  void  find_boundary_blocks(
         convert_world_to_block( min_point, block_size, &upper,
                                 &x_max_real, &y_max_real, &z_max_real );
 
-        x_min = MAX( 0, FLOOR( x_min_real ) );
+        x_min = MAX( 0, VIO_FLOOR( x_min_real ) );
         x_max = MIN( x_size-1, CEILING( x_max_real ) );
-        y_min = MAX( 0, FLOOR( y_min_real ) );
+        y_min = MAX( 0, VIO_FLOOR( y_min_real ) );
         y_max = MIN( y_size-1, CEILING( y_max_real ) );
-        z_min = MAX( 0, FLOOR( z_min_real ) );
+        z_min = MAX( 0, VIO_FLOOR( z_min_real ) );
         z_max = MIN( z_size-1, CEILING( z_max_real ) );
 
         for_inclusive( x, x_min, x_max )
@@ -266,9 +266,9 @@ private  void  find_boundary_blocks(
                 continue;
 
             convert_block_to_world( min_point, block_size,
-                                    (Real) x + 0.5,
-                                    (Real) y + 0.5,
-                                    (Real) z + 0.5, &block_centre );
+                                    (VIO_Real) x + 0.5,
+                                    (VIO_Real) y + 0.5,
+                                    (VIO_Real) z + 0.5, &block_centre );
 
             dist = get_point_object_distance_sq( &block_centre,
                                                  surface, poly,
@@ -360,23 +360,23 @@ private  void  find_boundary_blocks(
     delete_bitlist_3d( &visited_flags );
 }
 
-private  BOOLEAN  block_within_distance(
-    Point              *min_point,
-    Real               block_size,
+static  BOOLEAN  block_within_distance(
+    VIO_Point              *min_point,
+    VIO_Real               block_size,
     int                x_size,
     int                y_size,
     int                z_size,
     bitlist_3d_struct  *on_boundary,
-    Point              *point,
-    Real               radius )
+    VIO_Point              *point,
+    VIO_Real               radius )
 {
     int        dim, x_min, x_max, y_min, y_max, z_min, z_max;
     int        x, y, z;
-    Real       x_min_real, x_max_real, y_min_real;
-    Real       y_max_real, z_min_real, z_max_real;
-    Real       dist, delta;
-    Vector     offset;
-    Point      lower, upper, start_block, end_block;
+    VIO_Real       x_min_real, x_max_real, y_min_real;
+    VIO_Real       y_max_real, z_min_real, z_max_real;
+    VIO_Real       dist, delta;
+    VIO_Vector     offset;
+    VIO_Point      lower, upper, start_block, end_block;
 
     fill_Vector( offset, radius, radius, radius );
     SUB_POINT_VECTOR( lower, *point, offset );
@@ -386,11 +386,11 @@ private  BOOLEAN  block_within_distance(
     convert_world_to_block( min_point, block_size, &upper,
                             &x_max_real, &y_max_real, &z_max_real );
 
-    x_min = MAX( 0, FLOOR( x_min_real ) );
+    x_min = MAX( 0, VIO_FLOOR( x_min_real ) );
     x_max = MIN( x_size-1, CEILING( x_max_real ) );
-    y_min = MAX( 0, FLOOR( y_min_real ) );
+    y_min = MAX( 0, VIO_FLOOR( y_min_real ) );
     y_max = MIN( y_size-1, CEILING( y_max_real ) );
-    z_min = MAX( 0, FLOOR( z_min_real ) );
+    z_min = MAX( 0, VIO_FLOOR( z_min_real ) );
     z_max = MIN( z_size-1, CEILING( z_max_real ) );
 
     for_inclusive( x, x_min, x_max )
@@ -400,16 +400,16 @@ private  BOOLEAN  block_within_distance(
         if( get_bitlist_bit_3d( on_boundary, x, y, z ) )
         {
             convert_block_to_world( min_point, block_size,
-                                    (Real) x,
-                                    (Real) y,
-                                    (Real) z, &start_block );
+                                    (VIO_Real) x,
+                                    (VIO_Real) y,
+                                    (VIO_Real) z, &start_block );
             convert_block_to_world( min_point, block_size,
-                                    (Real) x + 1.0,
-                                    (Real) y + 1.0,
-                                    (Real) z + 1.0, &end_block );
+                                    (VIO_Real) x + 1.0,
+                                    (VIO_Real) y + 1.0,
+                                    (VIO_Real) z + 1.0, &end_block );
 
             dist = 0.0;
-            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
             {
                 if( RPoint_coord(*point,dim) < RPoint_coord(start_block,dim) )
                 {

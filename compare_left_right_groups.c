@@ -14,19 +14,19 @@ int  main(
     STRING             filename, output_filename, *filenames[2];
     int                i, j, ni, nj, n_objects;
     int                surf, n_surfaces[2], group, object_index;
-    File_formats       format;
+    VIO_File_formats       format;
     object_struct      **object_list;
     polygons_struct    *polygons;
-    Real               left_x, right_x, y, z, avg;
+    VIO_Real               left_x, right_x, y, z, avg;
     BOOLEAN            **samples_valid;
-    Real               ***samples[2], **t_stat, t;
-    Real               sx, sy, sz, prob, min_t, max_t, dist;
-    Point              point, ray_origin, min_range, max_range, origin;
-    Vector             ray_direction;
-    Volume             volume;
-    int                sizes[N_DIMENSIONS];
-    Transform          linear;
-    General_transform  transform;
+    VIO_Real               ***samples[2], **t_stat, t;
+    VIO_Real               sx, sy, sz, prob, min_t, max_t, dist;
+    VIO_Point              point, ray_origin, min_range, max_range, origin;
+    VIO_Vector             ray_direction;
+    VIO_Volume             volume;
+    int                sizes[VIO_N_DIMENSIONS];
+    VIO_Transform          linear;
+    VIO_General_transform  transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -65,14 +65,14 @@ int  main(
         return( 1 );
     }
 
-    ALLOC2D( samples_valid, ni, nj );
+    VIO_ALLOC2D( samples_valid, ni, nj );
     for_less( i, 0, ni )
         for_less( j, 0, nj )
             samples_valid[i][j] = TRUE;
 
     for_less( group, 0, 2 )
     {
-        ALLOC3D( samples[group], ni, nj, n_surfaces[group] );
+        VIO_ALLOC3D( samples[group], ni, nj, n_surfaces[group] );
 
         for_less( surf, 0, n_surfaces[group] )
         {
@@ -91,7 +91,7 @@ int  main(
 
             polygons = get_polygons_ptr(object_list[0]);
             create_polygons_bintree( polygons,
-                                     ROUND( (Real) polygons->n_items *
+                                     VIO_ROUND( (VIO_Real) polygons->n_items *
                                             BINTREE_FACTOR ) );
 
             if( group == 0 && surf == 0 )
@@ -103,14 +103,14 @@ int  main(
             for_less( i, 0, ni )
             for_less( j, 0, nj )
             {
-                y = INTERPOLATE( (Real) i / (Real) (ni-1),
-                                 (Real) Point_y(min_range),
-                                 (Real) Point_y(max_range) );
-                z = INTERPOLATE( (Real) j / (Real) (nj-1),
-                                 (Real) Point_z(min_range),
-                                 (Real) Point_z(max_range) );
+                y = INTERPOLATE( (VIO_Real) i / (VIO_Real) (ni-1),
+                                 (VIO_Real) Point_y(min_range),
+                                 (VIO_Real) Point_y(max_range) );
+                z = INTERPOLATE( (VIO_Real) j / (VIO_Real) (nj-1),
+                                 (VIO_Real) Point_z(min_range),
+                                 (VIO_Real) Point_z(max_range) );
 
-                fill_Point( ray_origin, (Real) Point_x(max_range) + 100.0,
+                fill_Point( ray_origin, (VIO_Real) Point_x(max_range) + 100.0,
                             y, z );
                 fill_Vector( ray_direction, -1.0, 0.0, 0.0 );
 
@@ -119,12 +119,12 @@ int  main(
                                                &dist, NULL ) )
                 {
                     GET_POINT_ON_RAY( point, ray_origin, ray_direction, dist );
-                    right_x = (Real) Point_x( point ) - REGISTRATION_OFFSET;
+                    right_x = (VIO_Real) Point_x( point ) - REGISTRATION_OFFSET;
                 }
                 else
                     right_x = 0.0;
 
-                fill_Point( ray_origin, (Real) Point_x(min_range) - 100.0, y,z);
+                fill_Point( ray_origin, (VIO_Real) Point_x(min_range) - 100.0, y,z);
                 fill_Vector( ray_direction, 1.0, 0.0, 0.0 );
 
                 if( intersect_ray_with_object( &ray_origin, &ray_direction,
@@ -132,7 +132,7 @@ int  main(
                                                &dist, NULL ) )
                 {
                     GET_POINT_ON_RAY( point, ray_origin, ray_direction, dist );
-                    left_x = -(Real) Point_x( point ) + REGISTRATION_OFFSET;
+                    left_x = -(VIO_Real) Point_x( point ) + REGISTRATION_OFFSET;
                 }
                 else
                     left_x = 0.0;
@@ -158,7 +158,7 @@ int  main(
         }
     }
 
-    ALLOC2D( t_stat, ni, nj );
+    VIO_ALLOC2D( t_stat, ni, nj );
 
     min_t = 0.0;
     max_t = 0.0;
@@ -202,11 +202,11 @@ int  main(
         set_volume_real_value( volume, 1, i, j, 0, 0, prob );
     }
 
-    sx = ((Real) Point_x(max_range) - (Real) Point_x(min_range)) / 1.0;
-    sy = ((Real) Point_y(max_range) - (Real) Point_y(min_range)) /
-         (Real) (ni-1);
-    sz = ((Real) Point_z(max_range) - (Real) Point_z(min_range)) /
-         (Real) (nj-1);
+    sx = ((VIO_Real) Point_x(max_range) - (VIO_Real) Point_x(min_range)) / 1.0;
+    sy = ((VIO_Real) Point_y(max_range) - (VIO_Real) Point_y(min_range)) /
+         (VIO_Real) (ni-1);
+    sz = ((VIO_Real) Point_z(max_range) - (VIO_Real) Point_z(min_range)) /
+         (VIO_Real) (nj-1);
 
     make_scale_transform( sx, sy, sz, &linear );
     fill_Point( origin, Point_x(min_range), Point_y(min_range),

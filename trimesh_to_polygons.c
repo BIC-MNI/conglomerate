@@ -1,10 +1,10 @@
 #include <volume_io.h>
 #include <special_geometry.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.msh  output.obj  output.mid\n\
 \n\
      Converts the trimesh to a polgyons file.\n\n";
@@ -16,8 +16,8 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING             output_mid_filename, input_mesh_filename;
-    STRING             output_filename;
+    VIO_STR             output_mid_filename, input_mesh_filename;
+    VIO_STR             output_filename;
     object_struct      *object;
     tri_mesh_struct    mesh;
 

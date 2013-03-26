@@ -1,17 +1,17 @@
 #include  <volume_io.h>
 #include  <deform.h>
 
-public  BOOLEAN  is_point_inside_surface(
-    Volume                      volume,
-    Volume                      label_volume,
+  BOOLEAN  is_point_inside_surface(
+    VIO_Volume                      volume,
+    VIO_Volume                      label_volume,
     int                         continuity,
     Real                        voxel[],
-    Vector                      *direction,
+    VIO_Vector                      *direction,
     boundary_definition_struct  *boundary_def )
 {
     BOOLEAN active;
     Real    value, mag, dx, dy, dz, dot_product;
-    Real    derivs[MAX_DIMENSIONS], *deriv_ptr[1];
+    Real    derivs[VIO_MAX_DIMENSIONS], *deriv_ptr[1];
     Real    min_dot, max_dot;
 
     active = get_volume_voxel_activity( label_volume, voxel, FALSE );
@@ -63,17 +63,17 @@ public  BOOLEAN  is_point_inside_surface(
     }
 }
 
-public  void   get_centre_of_cube(
-    Point       *cube,
+  void   get_centre_of_cube(
+    VIO_Point       *cube,
     int         sizes[3],
-    Point       *centre )
+    VIO_Point       *centre )
 {
     int  c;
 
     for_less( c, 0, 3 )
     {
         if( sizes[c] > 1 )
-            Point_coord(*centre,c) = (Point_coord_type) (
+            Point_coord(*centre,c) = (VIO_Point_coord_type) (
                  ((Real) Point_coord(cube[0],c) +
                   (Real) Point_coord(cube[1],c)) / 2.0);
         else
@@ -81,7 +81,7 @@ public  void   get_centre_of_cube(
     }
 }
 
-public  BOOLEAN  contains_value(
+  BOOLEAN  contains_value(
     Real  values[2][2][2],
     int   sizes[3] )
 {
@@ -122,8 +122,8 @@ public  BOOLEAN  contains_value(
     return( FALSE );
 }
 
-public  BOOLEAN  cube_is_small_enough(
-    Point     cube[2],
+  BOOLEAN  cube_is_small_enough(
+    VIO_Point     cube[2],
     int       sizes[3],
     Real      min_cube_size )
 {
@@ -147,7 +147,7 @@ public  BOOLEAN  cube_is_small_enough(
     return( small_enough );
 }
 
-public  void  initialize_deform_stats(
+  void  initialize_deform_stats(
     deform_stats  *stats )
 {
     int  i;
@@ -159,7 +159,7 @@ public  void  initialize_deform_stats(
         stats->n_below[i] = 0;
 }
 
-public  void  record_error_in_deform_stats(
+  void  record_error_in_deform_stats(
     deform_stats   *stats,
     Real           error )
 {
@@ -177,7 +177,7 @@ public  void  record_error_in_deform_stats(
     }
 }
 
-public  void  print_deform_stats(
+  void  print_deform_stats(
     deform_stats   *stats,
     int            n_points )
 {
@@ -206,10 +206,10 @@ public  void  print_deform_stats(
     print( "\n" );
 }
 
-public  BOOLEAN   get_max_point_cube_distance(
-    Point   cube[2],
+  BOOLEAN   get_max_point_cube_distance(
+    VIO_Point   cube[2],
     int     sizes[3],
-    Point   *point,
+    VIO_Point   *point,
     Real    *distance )
 {
     int      c;
@@ -242,7 +242,7 @@ public  BOOLEAN   get_max_point_cube_distance(
         return( FALSE );
 }
 
-public  void  initialize_deformation_parameters(
+  void  initialize_deformation_parameters(
     deform_struct  *deform )
 {
     deform->deform_data.type = VOLUME_DATA;
@@ -266,7 +266,7 @@ public  void  initialize_deformation_parameters(
     deform->movement_threshold = 0.0;
 }
 
-public  void  delete_deformation_parameters(
+  void  delete_deformation_parameters(
     deform_struct  *deform )
 {
     delete_deformation_model( &deform->deformation_model );
@@ -275,7 +275,7 @@ public  void  delete_deformation_parameters(
         FREE( deform->prev_movements );
 }
 
-public  void  set_boundary_definition(
+  void  set_boundary_definition(
     boundary_definition_struct  *boundary_def,
     Real                        min_value,
     Real                        max_value,
@@ -316,22 +316,22 @@ public  void  set_boundary_definition(
     }
 }
 
-public  void  initialize_lookup_volume_coeficients(
+  void  initialize_lookup_volume_coeficients(
     voxel_coef_struct  *lookup )
 {
     lookup->n_in_hash = 0;
 }
 
-public  void  lookup_volume_coeficients(
+  void  lookup_volume_coeficients(
     voxel_coef_struct  *lookup,
-    Volume             volume,
+    VIO_Volume             volume,
     int                degrees_continuity,
     int                x,
     int                y,
     int                z,
     Real               c[] )
 {
-    int                    key, i, offset, n, sizes[N_DIMENSIONS];
+    int                    key, i, offset, n, sizes[VIO_N_DIMENSIONS];
     voxel_lin_coef_struct  *data;
 
     offset = -(degrees_continuity + 1) / 2;
@@ -405,7 +405,7 @@ public  void  lookup_volume_coeficients(
         c[i] = data->coefs[i];
 }
 
-public  void  delete_lookup_volume_coeficients(
+  void  delete_lookup_volume_coeficients(
     voxel_coef_struct  *lookup )
 {
     voxel_lin_coef_struct  *ptr, *next;

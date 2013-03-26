@@ -1,32 +1,32 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  int  surface_fill(
+static  int  surface_fill(
     polygons_struct   *surface,
     int               n_neighbours[],
     int               *neighbours[],
-    Point             *point,
-    Real              values[],
-    Real              min_value,
-    Real              max_value,
-    Real              value_to_set,
-    Real              max_dist );
+    VIO_Point             *point,
+    VIO_Real              values[],
+    VIO_Real              min_value,
+    VIO_Real              max_value,
+    VIO_Real              value_to_set,
+    VIO_Real              max_dist );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
     FILE                 *file;
-    STRING               surface_filename, sulcus_filename;
-    STRING               input_values_filename, output_values_filename;
+    VIO_STR               surface_filename, sulcus_filename;
+    VIO_STR               input_values_filename, output_values_filename;
     int                  i, p, n_objects, n_points;
     int                  *n_neighbours, **neighbours, n_set;
-    Point                *points;
-    File_formats         format;
+    VIO_Point                *points;
+    VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *surface;
-    Real                 min_value, max_value, *values, value_to_set;
-    Real                 max_dist;
+    VIO_Real                 min_value, max_value, *values, value_to_set;
+    VIO_Real                 max_dist;
 
     initialize_argument_processing( argc, argv );
 
@@ -82,7 +82,7 @@ int  main(
                                      &neighbours, NULL, NULL );
 
     create_polygons_bintree( surface,
-                             ROUND( (Real) surface->n_items * 0.1 ) );
+                             VIO_ROUND( (VIO_Real) surface->n_items * 0.1 ) );
 
     n_set = 0;
     for_less( i, 0, n_objects )
@@ -119,21 +119,21 @@ int  main(
     return( 0 );
 }
 
-private  int  surface_fill(
+static  int  surface_fill(
     polygons_struct   *surface,
     int               n_neighbours[],
     int               *neighbours[],
-    Point             *point,
-    Real              values[],
-    Real              min_value,
-    Real              max_value,
-    Real              value_to_set,
-    Real              max_dist )
+    VIO_Point             *point,
+    VIO_Real              values[],
+    VIO_Real              min_value,
+    VIO_Real              max_value,
+    VIO_Real              value_to_set,
+    VIO_Real              max_dist )
 {
     int                     size, poly, vertex, neigh, point_index, n;
     int                     n_changed;
     int                     step, next_step_index, max_steps;
-    Point                   poly_point;
+    VIO_Point                   poly_point;
     BOOLEAN                 new_step;
     QUEUE_STRUCT( int )     queue;
 
@@ -163,7 +163,7 @@ private  int  surface_fill(
     }
 
     step = 0;
-    max_steps = ROUND( max_dist );
+    max_steps = VIO_ROUND( max_dist );
     new_step = FALSE;
 
     while( !IS_QUEUE_EMPTY(queue) )

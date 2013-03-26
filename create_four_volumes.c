@@ -18,24 +18,24 @@ int   main(
     int                   n_tag_volumes, n_tag_points, n_tag_files;
     int                   v0, v1, v2, v3, v4, offset, unique_index;
     nc_type               nc_data_type;          
-    Volume                example_volume;
-    Real                  **tags1, **tags2, voxel_pos[N_DIMENSIONS];
-    Real                  fraction_done, value;
+    VIO_Volume                example_volume;
+    VIO_Real                  **tags1, **tags2, voxel_pos[VIO_N_DIMENSIONS];
+    VIO_Real                  fraction_done, value;
     BOOLEAN               this_present, opposite_present;
     int                   ind;
-    STRING                *file_dim_names;
-    STRING                output_filename;
+    VIO_STR                *file_dim_names;
+    VIO_STR                output_filename;
     char                  *suffixes[] = { "not_this_not_opposite",
                                           "not_this_yes_opposite",
                                           "yes_this_not_opposite",
                                           "yes_this_yes_opposite" };
     volume_input_struct   input_info;
-    Real                  voxel;
-    Volume                input_volume, output_volumes[N_OUTPUT], used_volume;
+    VIO_Real                  voxel;
+    VIO_Volume                input_volume, output_volumes[N_OUTPUT], used_volume;
     Minc_file             output_files[N_OUTPUT];
-    General_transform     voxel_to_world_transform;
+    VIO_General_transform     voxel_to_world_transform;
     minc_output_options   output_options;
-    progress_struct       progress;
+    VIO_progress_struct       progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -117,7 +117,7 @@ int   main(
 
     if( get_file_dimension_names( example_filename, &n_dims,
                                   &file_dim_names ) != OK ||
-        n_dims != N_DIMENSIONS )
+        n_dims != VIO_N_DIMENSIONS )
     {
         print_error( "Error reading dimension names from %s.\n",
                      example_filename );
@@ -125,7 +125,7 @@ int   main(
     }
 
     for_less( d, 0, n_chunk_dims )
-        dim_names_2d[d] = file_dim_names[d+N_DIMENSIONS-n_chunk_dims];
+        dim_names_2d[d] = file_dim_names[d+VIO_N_DIMENSIONS-n_chunk_dims];
 
     if( n_chunk_dims == 2 && equal_strings( file_dim_names[0], MIxspace ) )
         dim_names_2d[0] = file_dim_names[0];
@@ -138,10 +138,10 @@ int   main(
 
     /*--- get the 3d information about the file */
 
-    for_less( d, 0, N_DIMENSIONS )
+    for_less( d, 0, VIO_N_DIMENSIONS )
         dim_names_3d[d] = file_dim_names[d];
 
-    if( start_volume_input( example_filename, N_DIMENSIONS, dim_names_3d,
+    if( start_volume_input( example_filename, VIO_N_DIMENSIONS, dim_names_3d,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE,
                             &example_volume, NULL, &input_info ) != OK )
     {
@@ -179,7 +179,7 @@ int   main(
 
     for_less( i, 0, n_chunk_dims )
     {
-        for_less( d, 0, N_DIMENSIONS )
+        for_less( d, 0, VIO_N_DIMENSIONS )
             if( equal_strings( dim_names_2d[i], file_dim_names[d] ) )
                 break;
         sizes_2d[i] = sizes_3d[d];
@@ -194,7 +194,7 @@ int   main(
 
         output_volumes[i] = create_volume( n_chunk_dims, dim_names_2d,
                                            nc_data_type, FALSE,
-                                           0.0, (Real) max_voxel );
+                                           0.0, (VIO_Real) max_voxel );
         set_volume_real_range( output_volumes[i], 0.0, 100.0 );
         set_volume_sizes( output_volumes[i], sizes_2d );
         alloc_volume_data( output_volumes[i] );
@@ -207,10 +207,10 @@ int   main(
         output_filename = concat_strings( output_prefix, "_" );
         concat_to_string( &output_filename, suffixes[i] );
 
-        output_files[i] = initialize_minc_output( output_filename, N_DIMENSIONS,
+        output_files[i] = initialize_minc_output( output_filename, VIO_N_DIMENSIONS,
                                               file_dim_names, sizes_3d,
                                               nc_data_type, FALSE,
-                                              0.0, (Real) max_voxel,
+                                              0.0, (VIO_Real) max_voxel,
                                               &voxel_to_world_transform,
                                               output_volumes[i],
                                               &output_options );
@@ -270,12 +270,12 @@ int   main(
                                                 tags1[i][Z],
                                                 voxel_pos );
 
-                        convert_real_to_int_voxel( N_DIMENSIONS, voxel_pos, v );
+                        convert_real_to_int_voxel( VIO_N_DIMENSIONS, voxel_pos, v );
                         if( int_voxel_is_within_volume( example_volume, v ))
                         {
                             set_volume_voxel_value( example_volume,
                                             v[0], v[1], v[2], v[3], v[4],
-                                            (Real) unique_index );
+                                            (VIO_Real) unique_index );
                         }
                     }
 
@@ -316,7 +316,7 @@ int   main(
                 {
                     value = get_volume_voxel_value( used_volume,
                                         v[0], v[1], v[2], v[3], v[4]);
-                    this_present = (ROUND(value) == unique_index);
+                    this_present = (VIO_ROUND(value) == unique_index);
                 }
                 else
                 {
@@ -330,7 +330,7 @@ int   main(
                 {
                     value = get_volume_voxel_value( used_volume,
                                            v[0], v[1], v[2], v[3], v[4]);
-                    opposite_present = (ROUND(value) == unique_index);
+                    opposite_present = (VIO_ROUND(value) == unique_index);
                 }
                 else
                 {

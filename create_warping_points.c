@@ -1,17 +1,17 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void   get_n_tags(
+static  void   get_n_tags(
     polygons_struct  *surface,
     polygons_struct  *dest_surface,
     lines_struct     *lines,
     int              n_tags,
-    Point            tags[] );
+    VIO_Point            tags[] );
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  output.tag  n_along surface1.obj surface2.obj A_file1 A_file2 ... B_file1 B_file2 B_file3\n\
 \n\n";
 
@@ -22,16 +22,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               output_filename, filename, *filenames;
-    STRING               surface1_filename, surface2_filename;
-    File_formats         format;
+    VIO_STR               output_filename, filename, *filenames;
+    VIO_STR               surface1_filename, surface2_filename;
+    VIO_File_formats         format;
     int                  n_tags, n_tags_per_line, n_objects, poly;
     int                  i, t, n_pairs, n_files, obj_index;
-    Real                 **tags1, **tags2;
+    VIO_Real                 **tags1, **tags2;
     object_struct        **objects1, **objects2, **objects;
     lines_struct         *lines1, *lines2;
     polygons_struct      *surface1, *surface2;
-    Point                point_on_sulcus, *sulcal_points;
+    VIO_Point                point_on_sulcus, *sulcal_points;
 
     initialize_argument_processing( argc, argv );
 
@@ -82,9 +82,9 @@ int  main(
     tags2 = NULL;
 
     create_polygons_bintree( surface1,
-                             ROUND( (Real) surface1->n_items * 0.2 ) );
+                             VIO_ROUND( (VIO_Real) surface1->n_items * 0.2 ) );
     create_polygons_bintree( surface2,
-                             ROUND( (Real) surface2->n_items * 0.2 ) );
+                             VIO_ROUND( (VIO_Real) surface2->n_items * 0.2 ) );
 surface1->bintree = NULL;
 surface2->bintree = NULL;
 
@@ -121,7 +121,7 @@ surface2->bintree = NULL;
         lines1 = get_lines_ptr( objects1[0] );
         lines2 = get_lines_ptr( objects2[0] );
 
-        create_lines_bintree( lines2, ROUND( (Real) lines2->n_points * 3.0 ) );
+        create_lines_bintree( lines2, VIO_ROUND( (VIO_Real) lines2->n_points * 3.0 ) );
 lines2->bintree = NULL;
 
         SET_ARRAY_SIZE( tags1, n_tags, n_tags + n_tags_per_line,
@@ -131,8 +131,8 @@ lines2->bintree = NULL;
 
         for_less( t, n_tags, n_tags + n_tags_per_line )
         {
-            ALLOC( tags1[t], N_DIMENSIONS );
-            ALLOC( tags2[t], N_DIMENSIONS );
+            ALLOC( tags1[t], VIO_N_DIMENSIONS );
+            ALLOC( tags2[t], VIO_N_DIMENSIONS );
         }
 
         get_n_tags( surface1, NULL, lines1, n_tags_per_line, sulcal_points );
@@ -173,11 +173,11 @@ lines2->bintree = NULL;
     return( 0 );
 }
 
-private  int  get_position(
-    Real   distance,
+static  int  get_position(
+    VIO_Real   distance,
     int    n_intervals,
-    Real   int_length[],
-    Real   *fraction )
+    VIO_Real   int_length[],
+    VIO_Real   *fraction )
 {
     int   index;
 
@@ -193,15 +193,15 @@ private  int  get_position(
     return( index );
 }
 
-private  void   get_n_tags(
+static  void   get_n_tags(
     polygons_struct  *surface,
     polygons_struct  *dest_surface,
     lines_struct     *lines,
     int              n_tags,
-    Point            tags[] )
+    VIO_Point            tags[] )
 {
     int      size, i, p0, p1, ind;
-    Real     *lengths, total_length, fraction;
+    VIO_Real     *lengths, total_length, fraction;
 
     size = GET_OBJECT_SIZE( *lines, 0 );
 
@@ -218,7 +218,7 @@ private  void   get_n_tags(
 
     for_less( i, 0, n_tags )
     {
-        ind = get_position( (Real) i / (Real) (n_tags-1) * total_length,
+        ind = get_position( (VIO_Real) i / (VIO_Real) (n_tags-1) * total_length,
                             size-1, lengths, &fraction );
         p0 = lines->indices[ind];
         p1 = lines->indices[ind+1];

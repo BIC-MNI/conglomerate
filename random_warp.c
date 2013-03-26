@@ -1,26 +1,26 @@
 #include  <bicpl.h>
 #include  <volume_io.h>
 
-private  void  get_random_unit_vector(
-    Vector   *v );
+static  void  get_random_unit_vector(
+    VIO_Vector   *v );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    char                 comment[EXTREMELY_LARGE_STRING_SIZE];
-    STRING               src_filename, output_filename, tag_filename;
-    int                  n_points, dim, delta[N_DIMENSIONS];
+    char                 comment[VIO_EXTREMELY_LARGE_STRING_SIZE];
+    VIO_STR               src_filename, output_filename, tag_filename;
+    int                  n_points, dim, delta[VIO_N_DIMENSIONS];
     int                  n_objects, ind, i, initial_seed;
-    Point                *points, centroid, min_corner, max_corner, point;
-    Vector               offset;
-    File_formats         format;
+    VIO_Point                *points, centroid, min_corner, max_corner, point;
+    VIO_Vector               offset;
+    VIO_File_formats         format;
     object_struct        **object_list, **tag_objects;
     marker_struct        *marker;
-    Real                 domain_factor, warp_distance;
-    Real                 **tags1, **tags2;
+    VIO_Real                 domain_factor, warp_distance;
+    VIO_Real                 **tags1, **tags2;
     BOOLEAN              dump_tags;
-    General_transform    transform;
+    VIO_General_transform    transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -70,12 +70,12 @@ int  main(
     for_inclusive( delta[Y], -1, 1 )
     for_inclusive( delta[Z], -1, 1 )
     {
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
-            tags1[ind][dim] = (Real) Point_coord(centroid,dim) +
-                              (Real) delta[dim] * domain_factor *
-                              ((Real) Point_coord(max_corner,dim) -
-                               (Real) Point_coord(min_corner,dim));
+            tags1[ind][dim] = (VIO_Real) Point_coord(centroid,dim) +
+                              (VIO_Real) delta[dim] * domain_factor *
+                              ((VIO_Real) Point_coord(max_corner,dim) -
+                               (VIO_Real) Point_coord(min_corner,dim));
             tags2[ind][dim] = tags1[ind][dim];
         }
 
@@ -84,15 +84,15 @@ int  main(
 
     point = points[get_random_int(n_points)];
 
-    tags1[27][X] = (Real) Point_x(point);
-    tags1[27][Y] = (Real) Point_y(point);
-    tags1[27][Z] = (Real) Point_z(point);
+    tags1[27][X] = (VIO_Real) Point_x(point);
+    tags1[27][Y] = (VIO_Real) Point_y(point);
+    tags1[27][Z] = (VIO_Real) Point_z(point);
 
     get_random_unit_vector( &offset );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
         tags2[27][dim] = tags1[27][dim] +
-                         warp_distance * (Real) Vector_coord(offset,dim );
+                         warp_distance * (VIO_Real) Vector_coord(offset,dim );
 
     safe_compute_transform_from_tags( 28, tags2, tags1, TRANS_TPS,
                                       &transform );
@@ -138,7 +138,7 @@ int  main(
 
 #define   TOLERANCE  1.0e-3
 {
-    Real   tx, ty, tz;
+    VIO_Real   tx, ty, tz;
 
     for_less( i, 0, 28 )
     {
@@ -161,10 +161,10 @@ int  main(
     return( 0 );
 }
 
-private  void  get_random_unit_vector(
-    Vector   *v )
+static  void  get_random_unit_vector(
+    VIO_Vector   *v )
 {
-    Real  x, y, z, len_squared, len;
+    VIO_Real  x, y, z, len_squared, len;
 
     do
     {

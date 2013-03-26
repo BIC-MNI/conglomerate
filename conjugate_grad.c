@@ -6,17 +6,17 @@ struct  conjugate_grad_struct
 {
     BOOLEAN  first_call;
     int      n_parameters;
-    Real     *g;
-    Real     *h;
+    VIO_Real     *g;
+    VIO_Real     *h;
 };
 
-public  void   reinitialize_conjugate_gradient(
+  void   reinitialize_conjugate_gradient(
     conjugate_grad   con )
 {
     con->first_call = TRUE;
 }
 
-public  conjugate_grad   initialize_conjugate_gradient(
+  conjugate_grad   initialize_conjugate_gradient(
     int       n_parameters )
 {
     conjugate_grad  con;
@@ -35,7 +35,7 @@ public  conjugate_grad   initialize_conjugate_gradient(
     return( con );
 }
 
-public  void   delete_conjugate_gradient(
+  void   delete_conjugate_gradient(
     conjugate_grad   con )
 {
     if( con->n_parameters >= 0 )
@@ -47,13 +47,13 @@ public  void   delete_conjugate_gradient(
     FREE( con );
 }
 
-public  BOOLEAN  get_conjugate_unit_direction(
+  BOOLEAN  get_conjugate_unit_direction(
     conjugate_grad   con,
-    Real        derivative[],
-    Real        unit_dir[] )
+    VIO_Real        derivative[],
+    VIO_Real        unit_dir[] )
 {
     int      p;
-    Real     len, gg, dgg, gam;
+    VIO_Real     len, gg, dgg, gam;
     BOOLEAN  found;
 
     found = TRUE;

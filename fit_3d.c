@@ -17,7 +17,7 @@ typedef  float  ftype;
 
 #else
 
-typedef  Real   ftype;
+typedef  VIO_Real   ftype;
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  INITIALIZE_LSQ  initialize_lsq_terms
@@ -28,28 +28,28 @@ typedef  Real   ftype;
 
 #endif
 
-private  void   fit_polygons(
+static  void   fit_polygons(
     int                n_points,
     int                n_neighbours[],
     int                *neighbours[],
-    Point              surface_points[],
-    Point              model_points[],
-    Real               model_weight,
-    Real               centroid_weight,
-    Volume             volume,
-    Real               threshold,
+    VIO_Point              surface_points[],
+    VIO_Point              model_points[],
+    VIO_Real               model_weight,
+    VIO_Real               centroid_weight,
+    VIO_Volume             volume,
+    VIO_Real               threshold,
     char               normal_direction,
-    Real               tangent_weight,
-    Real               max_outward,
-    Real               max_inward,
-    Smallest_int       fit_this_node[],
+    VIO_Real               tangent_weight,
+    VIO_Real               max_outward,
+    VIO_Real               max_inward,
+    VIO_SCHAR       fit_this_node[],
     BOOLEAN            floating_flag,
     int                oversample,
-    Real               max_step,
+    VIO_Real               max_step,
     int                n_iters,
     int                n_iters_recompute );
 
-private  void  usage(
+static  void  usage(
     char   executable_name[] )
 {
     STRING  usage_format = "\
@@ -73,15 +73,15 @@ int  main(
     int                  i, n_objects, n_m_objects;
     int                  n_iters, n_iters_recompute, n_points;
     int                  *n_neighbours, **neighbours, oversample;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list, **m_object_list;
     polygons_struct      *surface, *model_surface;
-    Volume               volume;
-    Point                *surface_points, *model_points;
-    Real                 threshold, model_weight, centroid_weight;
-    Real                 max_outward, max_inward, tangent_weight;
-    Smallest_int         *fit_this_node;
-    Real                 min_value, max_value, value, max_step;
+    VIO_Volume               volume;
+    VIO_Point                *surface_points, *model_points;
+    VIO_Real                 threshold, model_weight, centroid_weight;
+    VIO_Real                 max_outward, max_inward, tangent_weight;
+    VIO_SCHAR         *fit_this_node;
+    VIO_Real                 min_value, max_value, value, max_step;
     BOOLEAN              floating_flag;
 
     initialize_argument_processing( argc, argv );
@@ -155,7 +155,7 @@ int  main(
                 return( 1 );
             }
 
-            fit_this_node[i] = (Smallest_int)
+            fit_this_node[i] = (VIO_SCHAR)
                             (min_value <= value && value <= max_value);
         }
 
@@ -187,7 +187,7 @@ int  main(
 
 
 
-private  int   get_neighbours_neighbours(
+static  int   get_neighbours_neighbours(
     int    node,
     int    n_neighbours[],
     int    *neighbours[],
@@ -226,11 +226,11 @@ private  int   get_neighbours_neighbours(
     return( n_nn );
 }
 
-private  void  create_model_coefficients(
+static  void  create_model_coefficients(
     int              n_nodes,
     int              to_parameter[],
-    Point            surface_points[],
-    Point            model_points[],
+    VIO_Point            surface_points[],
+    VIO_Point            model_points[],
     int              n_neighbours[],
     int              *neighbours[],
     int              n_parms_involved[],
@@ -239,11 +239,11 @@ private  void  create_model_coefficients(
     ftype            *node_weights[] )
 {
     int              node, eq, dim, dim1, n, ind;
-    Real             *x_flat, *y_flat, *z_flat, con;
+    VIO_Real             *x_flat, *y_flat, *z_flat, con;
     int              *neigh_indices, n_nn, max_neighbours;
     BOOLEAN          ignoring;
-    Real             *weights[N_DIMENSIONS][N_DIMENSIONS];
-    progress_struct  progress;
+    VIO_Real             *weights[VIO_N_DIMENSIONS][VIO_N_DIMENSIONS];
+    VIO_progress_struct  progress;
 
     max_neighbours = 0;
     for_less( node, 0, n_nodes )
@@ -260,8 +260,8 @@ private  void  create_model_coefficients(
     ALLOC( y_flat, max_neighbours );
     ALLOC( z_flat, max_neighbours );
 
-    for_less( dim, 0, N_DIMENSIONS )
-    for_less( dim1, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
+    for_less( dim1, 0, VIO_N_DIMENSIONS )
         ALLOC( weights[dim][dim1], max_neighbours );
 
     initialize_progress_report( &progress, FALSE, n_nodes,
@@ -309,11 +309,11 @@ private  void  create_model_coefficients(
             continue;
         }
 
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             ind = 1;
             for_less( n, 0, n_nn )
-            for_less( dim1, 0, N_DIMENSIONS )
+            for_less( dim1, 0, VIO_N_DIMENSIONS )
             {
                 if( weights[dim][dim1][n] != 0.0 &&
                     to_parameter[neigh_indices[n]] >= 0 )
@@ -332,7 +332,7 @@ private  void  create_model_coefficients(
 
             con = 0.0;
             for_less( n, 0, n_nn )
-            for_less( dim1, 0, N_DIMENSIONS )
+            for_less( dim1, 0, VIO_N_DIMENSIONS )
             {
                 if( weights[dim][dim1][n] != 0.0 )
                 {
@@ -361,8 +361,8 @@ private  void  create_model_coefficients(
 
     terminate_progress_report( &progress );
 
-    for_less( dim, 0, N_DIMENSIONS )
-    for_less( dim1, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
+    for_less( dim1, 0, VIO_N_DIMENSIONS )
         FREE( weights[dim][dim1] );
 
     FREE( neigh_indices );
@@ -371,7 +371,7 @@ private  void  create_model_coefficients(
     FREE( z_flat );
 }
 
-private  BOOLEAN  this_is_unique_edge(
+static  BOOLEAN  this_is_unique_edge(
     int              node,
     int              neigh,
     int              n_neighbours[],
@@ -383,11 +383,11 @@ private  BOOLEAN  this_is_unique_edge(
         return( FALSE );
 }
 
-private  void  create_centroid_coefficients(
+static  void  create_centroid_coefficients(
     int              n_nodes,
     int              to_parameter[],
-    Point            surface_points[],
-    Point            model_points[],
+    VIO_Point            surface_points[],
+    VIO_Point            model_points[],
     int              n_neighbours[],
     int              *neighbours[],
     int              n_parms_involved[],
@@ -397,8 +397,8 @@ private  void  create_centroid_coefficients(
 {
     int              node, neigh_node, eq, dim, n, n_involved;
     int              neigh_parm_index, ind;
-    Real             con;
-    progress_struct  progress;
+    VIO_Real             con;
+    VIO_progress_struct  progress;
 
     initialize_progress_report( &progress, FALSE, n_nodes,
                                 "Creating Stretch Coefficients" );
@@ -416,7 +416,7 @@ private  void  create_centroid_coefficients(
                 ++n_involved;
         }
 
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             con = 0.0;
             n_parms_involved[eq] = n_involved;
@@ -433,13 +433,13 @@ private  void  create_centroid_coefficients(
                 if( neigh_parm_index >= 0 )
                 {
                     node_weights[eq][ind] = (ftype) (-1.0 /
-                                      (Real) n_neighbours[node]);
+                                      (VIO_Real) n_neighbours[node]);
                     parm_list[eq][ind] = IJ(neigh_parm_index,dim,3);
                     ++ind;
                 }
                 else
                     con += -RPoint_coord(model_points[neigh_node],dim)/
-                            (Real) n_neighbours[node];
+                            (VIO_Real) n_neighbours[node];
             }
 
             constants[eq] = (ftype) con;
@@ -452,26 +452,26 @@ private  void  create_centroid_coefficients(
     terminate_progress_report( &progress );
 }
 
-private  void  create_image_coefficients(
-    Real                        weight,
-    Volume                      volume,
+static  void  create_image_coefficients(
+    VIO_Real                        weight,
+    VIO_Volume                      volume,
     voxel_coef_struct           *voxel_lookup,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
     boundary_definition_struct  *boundary,
-    Real                        tangent_weight,
-    Real                        max_outward,
-    Real                        max_inward,
+    VIO_Real                        tangent_weight,
+    VIO_Real                        max_outward,
+    VIO_Real                        max_inward,
     BOOLEAN                     floating_flag,
     int                         oversample,
     int                         n_nodes,
     int                         n_neighbours[],
     int                         *neighbours[],
     int                         to_parameter[],
-    Real                        parameters[],
-    Point                       surface_points[],
+    VIO_Real                        parameters[],
+    VIO_Point                       surface_points[],
     int                         n_parameters,
-    Real                        *constant,
+    VIO_Real                        *constant,
     ftype                       linear_terms[],
     ftype                       square_terms[],
     int                         n_cross_terms[],
@@ -482,14 +482,14 @@ private  void  create_image_coefficients(
     int        node, n, n_to_do, neigh, n2, neigh2, w, parm_index;
     int        n_involved, inv_index, neigh_parm_index, n_vectors, v;
     int        *indices, dim;
-    Real       dist, dx, dy, dz, value, x, y, z, alpha, cons;
-    Point      origin, p, search_point, p1, p2;
-    Point      neigh_points[1000];
-    Vector     normal, vert, hor, point_normal, search_normal, neigh_normal;
-    Vector     perp, vectors[3];
-    Real       angle, vector_weights[3], *node_weights;
-    Transform  transform;
-    progress_struct  progress;
+    VIO_Real       dist, dx, dy, dz, value, x, y, z, alpha, cons;
+    VIO_Point      origin, p, search_point, p1, p2;
+    VIO_Point      neigh_points[1000];
+    VIO_Vector     normal, vert, hor, point_normal, search_normal, neigh_normal;
+    VIO_Vector     perp, vectors[3];
+    VIO_Real       angle, vector_weights[3], *node_weights;
+    VIO_Transform  transform;
+    VIO_progress_struct  progress;
 
     ALLOC( indices, n_parameters );
     ALLOC( node_weights, n_parameters );
@@ -541,7 +541,7 @@ private  void  create_image_coefficients(
 
                 ADD_TO_LSQ( n_parameters, constant, linear_terms, square_terms,
                             n_cross_terms, cross_parms, cross_terms,
-                            0, NULL, NULL, weight * (Real) n_to_do * dist,
+                            0, NULL, NULL, weight * (VIO_Real) n_to_do * dist,
                             alloc_increment );
 
                 continue;
@@ -556,7 +556,7 @@ private  void  create_image_coefficients(
 
         if( tangent_weight == 1.0 )
         {
-            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
             {
                 indices[0] = IJ(parm_index,dim,3);
                 node_weights[0] = weight;
@@ -720,20 +720,20 @@ private  void  create_image_coefficients(
 
             for_less( w, 0, oversample )
             {
-                alpha = (Real) (w+1) / (Real) (oversample+1);
+                alpha = (VIO_Real) (w+1) / (VIO_Real) (oversample+1);
 
                 if( angle == 0.0 )
                     search_normal = point_normal;
                 else
                 {
                     make_rotation_about_axis( &perp,
-                                              (Real) alpha * angle,
+                                              (VIO_Real) alpha * angle,
                                               &transform );
 
                     transform_vector( &transform,
-                                      (Real) Vector_x(point_normal),
-                                      (Real) Vector_y(point_normal),
-                                      (Real) Vector_z(point_normal),
+                                      (VIO_Real) Vector_x(point_normal),
+                                      (VIO_Real) Vector_y(point_normal),
+                                      (VIO_Real) Vector_z(point_normal),
                                       &x, &y, &z );
                     fill_Vector( search_normal, x, y, z );
                 }
@@ -764,7 +764,7 @@ private  void  create_image_coefficients(
                                     square_terms, n_cross_terms,
                                     cross_parms, cross_terms,
                                     0, NULL, NULL,
-                                    weight * (Real) n_to_do * dist,
+                                    weight * (VIO_Real) n_to_do * dist,
                                     alloc_increment );
 
                         continue;
@@ -779,7 +779,7 @@ private  void  create_image_coefficients(
 
                 if( tangent_weight == 1.0 )
                 {
-                    for_less( dim, 0, N_DIMENSIONS )
+                    for_less( dim, 0, VIO_N_DIMENSIONS )
                     {
                         inv_index = 0;
                         cons = -weight * RPoint_coord( p, dim );
@@ -900,24 +900,24 @@ private  void  create_image_coefficients(
     FREE( node_weights );
 }
 
-private  void   fit_polygons(
+static  void   fit_polygons(
     int                n_points,
     int                n_neighbours[],
     int                *neighbours[],
-    Point              surface_points[],
-    Point              model_points[],
-    Real               model_weight,
-    Real               centroid_weight,
-    Volume             volume,
-    Real               threshold,
+    VIO_Point              surface_points[],
+    VIO_Point              model_points[],
+    VIO_Real               model_weight,
+    VIO_Real               centroid_weight,
+    VIO_Volume             volume,
+    VIO_Real               threshold,
     char               normal_direction,
-    Real               tangent_weight,
-    Real               max_outward,
-    Real               max_inward,
-    Smallest_int       fit_this_node[],
+    VIO_Real               tangent_weight,
+    VIO_Real               max_outward,
+    VIO_Real               max_inward,
+    VIO_SCHAR       fit_this_node[],
     BOOLEAN            floating_flag,
     int                oversample,
-    Real               max_step,
+    VIO_Real               max_step,
     int                n_iters,
     int                n_iters_recompute )
 {
@@ -927,18 +927,18 @@ private  void   fit_polygons(
     int                         n_image_per_point;
     int                         n_oversample_equations;
     int                         n_moving_points, alloc_increment;
-    int                         sizes[N_DIMENSIONS];
+    int                         sizes[VIO_N_DIMENSIONS];
     int                         *to_parameter;
     int                         parm_index, p;
     int                         n_centroid_equations;
     ftype                       *constants, **node_weights;
-    Real                        *parameters, *weights, weight;
+    VIO_Real                        *parameters, *weights, weight;
     polygons_struct             save_p;
     boundary_definition_struct  boundary;
     voxel_coef_struct           voxel_lookup;
     bitlist_3d_struct           done_bits, surface_bits;
     bitlist_3d_struct           *done_bits_ptr, *surface_bits_ptr;
-    Real                        constant;
+    VIO_Real                        constant;
     int                         *n_cross_terms, **cross_parms;
     ftype                       *linear_terms, *square_terms, **cross_terms;
 
@@ -1002,7 +1002,7 @@ private  void   fit_polygons(
                                n_parms_involved,
                                parm_list, constants, node_weights );
 
-    model_weight = sqrt( model_weight / (Real) n_model_equations );
+    model_weight = sqrt( model_weight / (VIO_Real) n_model_equations );
 
     for_less( eq, 0, n_model_equations )
     {
@@ -1020,7 +1020,7 @@ private  void   fit_polygons(
                                      &constants[n_model_equations],
                                      &node_weights[n_model_equations] );
 
-        centroid_weight = sqrt( centroid_weight / (Real) n_centroid_equations );
+        centroid_weight = sqrt( centroid_weight / (VIO_Real) n_centroid_equations );
 
         for_less( eq, n_model_equations,
                       n_model_equations + n_centroid_equations )
@@ -1071,15 +1071,15 @@ private  void   fit_polygons(
         for_less( eq, 0, n_model_equations + n_centroid_equations )
         {
             for_less( p, 0, n_parms_involved[eq] )
-                weights[p] = (Real) node_weights[eq][p];
+                weights[p] = (VIO_Real) node_weights[eq][p];
 
             ADD_TO_LSQ( n_parameters, &constant, linear_terms,
                         square_terms, n_cross_terms, cross_parms, cross_terms,
                         n_parms_involved[eq], parm_list[eq], weights,
-                        (Real) constants[eq], alloc_increment );
+                        (VIO_Real) constants[eq], alloc_increment );
         }
 
-        weight = sqrt( 1.0 / (Real) (n_image_equations+n_oversample_equations));
+        weight = sqrt( 1.0 / (VIO_Real) (n_image_equations+n_oversample_equations));
 
         create_image_coefficients( weight, volume, &voxel_lookup,
                        done_bits_ptr, surface_bits_ptr,

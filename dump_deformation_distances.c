@@ -6,12 +6,12 @@ int  main(
     char   *argv[] )
 {
     FILE                 *file;
-    STRING               src_filename, transform_filename, output_filename;
+    VIO_STR               src_filename, transform_filename, output_filename;
     int                  i, p, n_objects, n_points;
-    Point                *points, trans;
-    Real                 distance, x, y, z;
-    General_transform    transform;
-    File_formats         format;
+    VIO_Point                *points, trans;
+    VIO_Real                 distance, x, y, z;
+    VIO_General_transform    transform;
+    VIO_File_formats         format;
     object_struct        **object_list;
 
     initialize_argument_processing( argc, argv );
@@ -41,9 +41,9 @@ int  main(
         for_less( p, 0, n_points )
         {
             general_transform_point( &transform,
-                                     (Real) Point_x(points[p]),
-                                     (Real) Point_y(points[p]),
-                                     (Real) Point_z(points[p]), &x, &y, &z );
+                                     (VIO_Real) Point_x(points[p]),
+                                     (VIO_Real) Point_y(points[p]),
+                                     (VIO_Real) Point_z(points[p]), &x, &y, &z );
 
             fill_Point( trans, x, y, z );
 

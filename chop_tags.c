@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <special_geometry.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  input.tag  output.tag  [x|y|z min max] [x|y|z min max] ...\n\
 \n\
      Clips tags between any number of x, y, or z limits.\n\n";
@@ -16,16 +16,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_tags_filename, output_tags_filename;
-    STRING               axis_name;
+    VIO_STR               input_tags_filename, output_tags_filename;
+    VIO_STR               axis_name;
     int                  tag, axis;
-    Real                 min_pos, max_pos;
+    VIO_Real                 min_pos, max_pos;
     int                  n_volumes, n_tag_points, *structure_ids, *patient_ids;
-    Real                 **tags1, **tags2, *weights;
-    STRING               *labels;
+    VIO_Real                 **tags1, **tags2, *weights;
+    VIO_STR               *labels;
     int                  n_new_tags, *new_structure_ids, *new_patient_ids;
-    Real                 **new_tags1, **new_tags2, *new_weights;
-    STRING               *new_labels;
+    VIO_Real                 **new_tags1, **new_tags2, *new_weights;
+    VIO_STR               *new_labels;
 
     initialize_argument_processing( argc, argv );
 
@@ -38,7 +38,7 @@ int  main(
 
     if( input_tag_file( input_tags_filename, &n_volumes, &n_tag_points,
                         &tags1, &tags2, &weights, &structure_ids,
-                        &patient_ids, &labels ) != OK )
+                        &patient_ids, &labels ) != VIO_OK )
         return( 1 );
 
     new_structure_ids = NULL;
@@ -118,7 +118,7 @@ int  main(
     if( output_tag_file( output_tags_filename, "Chopped off some tags",
                          n_volumes, n_tag_points, tags1, tags2,
                          weights, structure_ids,
-                         patient_ids, labels ) != OK )
+                         patient_ids, labels ) != VIO_OK )
         return( 1 );
 
     free_tag_points( n_volumes, n_tag_points, tags1, tags2,

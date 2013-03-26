@@ -5,14 +5,14 @@ int  main(
     char   *argv[] )
 {
     FILE             *output_file, *variance_file;
-    STRING           avg_filename, sample_filename, output_filename;
-    STRING           variance_filename;
+    VIO_STR           avg_filename, sample_filename, output_filename;
+    VIO_STR           variance_filename;
     int              p, i, j, n_objects, n_avg_objects, n_points, n_avg_points;
-    File_formats     format;
+    VIO_File_formats     format;
     object_struct    **object_list, **avg_object_list;
-    Point            *points, *avg_points;
-    Vector           offset;
-    Real             transform[3][3], tx, ty, tz, mahalanobis;
+    VIO_Point            *points, *avg_points;
+    VIO_Vector           offset;
+    VIO_Real             transform[3][3], tx, ty, tz, mahalanobis;
 
     initialize_argument_processing( argc, argv );
 
@@ -79,19 +79,19 @@ int  main(
             if( input_real( variance_file, &transform[i][j] ) != OK )
                 return( 1 );
 
-        tx = (Real) Vector_x(offset) * transform[0][0] +
-             (Real) Vector_y(offset) * transform[1][0] +
-             (Real) Vector_z(offset) * transform[2][0];
-        ty = (Real) Vector_x(offset) * transform[0][1] +
-             (Real) Vector_y(offset) * transform[1][1] +
-             (Real) Vector_z(offset) * transform[2][1];
-        tz = (Real) Vector_x(offset) * transform[0][2] +
-             (Real) Vector_y(offset) * transform[1][2] +
-             (Real) Vector_z(offset) * transform[2][2];
+        tx = (VIO_Real) Vector_x(offset) * transform[0][0] +
+             (VIO_Real) Vector_y(offset) * transform[1][0] +
+             (VIO_Real) Vector_z(offset) * transform[2][0];
+        ty = (VIO_Real) Vector_x(offset) * transform[0][1] +
+             (VIO_Real) Vector_y(offset) * transform[1][1] +
+             (VIO_Real) Vector_z(offset) * transform[2][1];
+        tz = (VIO_Real) Vector_x(offset) * transform[0][2] +
+             (VIO_Real) Vector_y(offset) * transform[1][2] +
+             (VIO_Real) Vector_z(offset) * transform[2][2];
 
-        mahalanobis = tx * (Real) Vector_x(offset) +
-                      ty * (Real) Vector_y(offset) +
-                      tz * (Real) Vector_z(offset);
+        mahalanobis = tx * (VIO_Real) Vector_x(offset) +
+                      ty * (VIO_Real) Vector_y(offset) +
+                      tz * (VIO_Real) Vector_z(offset);
 
         if( output_real( output_file, mahalanobis ) != OK ||
             output_newline( output_file ) != OK )

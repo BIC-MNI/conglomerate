@@ -6,11 +6,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename;
-    int        x, y, z, sizes[N_DIMENSIONS], n_done, i;
+    VIO_STR     input_filename;
+    int        x, y, z, sizes[VIO_N_DIMENSIONS], n_done, i;
     int        min_v, max_v, *counts;
-    Real       value, min_voxel, max_voxel, voxel;
-    Volume     volume;
+    VIO_Real       value, min_voxel, max_voxel, voxel;
+    VIO_Volume     volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -47,7 +47,7 @@ int  main(
     {
         get_volume_voxel_range( volume, &min_voxel, &max_voxel );
 
-        min_v = FLOOR( min_voxel );
+        min_v = VIO_FLOOR( min_voxel );
         max_v = CEILING( max_voxel );
 
         ALLOC( counts, max_v - min_v + 1 );
@@ -60,14 +60,14 @@ int  main(
         for_less( z, 0, sizes[Z] )
         {
             voxel = get_volume_voxel_value( volume, x, y, z, 0, 0 );
-            ++counts[ROUND(voxel) - min_v];
+            ++counts[VIO_ROUND(voxel) - min_v];
         }
 
         for_inclusive( i, min_v, max_v )
         {
             if( counts[i-min_v] > 0 )
             {
-                print( "%g : %d\n", convert_voxel_to_value(volume,(Real)i),
+                print( "%g : %d\n", convert_voxel_to_value(volume,(VIO_Real)i),
                        counts[i-min_v] );
             }
         }

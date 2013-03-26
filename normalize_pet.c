@@ -50,8 +50,8 @@
 #define RANGE_EPSILON (10.0 * FLT_EPSILON)
 
 /* Function prototypes */
-int match_volume_dimensions(Volume vol1, Volume vol2);
-int match_reals(Real value1, Real value2);
+int match_volume_dimensions(VIO_Volume vol1, VIO_Volume vol2);
+int match_reals(VIO_Real value1, VIO_Real value2);
 
 /* Variables for arguments */
 char *maskfile = NULL;
@@ -69,12 +69,12 @@ ArgvInfo argTable[] = {
 int main(int argc, char *argv[])
 {
    char *normfile, *infile, *outfile;
-   Volume volume;
-   Volume mask;
+   VIO_Volume volume;
+   VIO_Volume mask;
    int sizes[3];
    int ix, iy, iz;
-   Real sum1, sumv, value, mean, threshold, norm_factor, mask_value;
-   Real maximum, minimum, mask_min, mask_max;
+   VIO_Real sum1, sumv, value, mean, threshold, norm_factor, mask_value;
+   VIO_Real maximum, minimum, mask_min, mask_max;
    char *history, *pname;
    minc_input_options options;
    int need_threshold;
@@ -262,14 +262,14 @@ int main(int argc, char *argv[])
 @CREATED    : April 21, 1995 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-int match_volume_dimensions(Volume vol1, Volume vol2)
+int match_volume_dimensions(VIO_Volume vol1, VIO_Volume vol2)
 {
    int sizes1[5], sizes2[5];
    int ndims, idim;
    char **names1, **names2;
-   Real sep1[5], sep2[5];
-   Real voxel[5];
-   Real x1, y1, z1, x2, y2, z2;
+   VIO_Real sep1[5], sep2[5];
+   VIO_Real voxel[5];
+   VIO_Real x1, y1, z1, x2, y2, z2;
 
    /* Check dimensionality */
    ndims = get_volume_n_dimensions(vol1);
@@ -317,18 +317,18 @@ int match_volume_dimensions(Volume vol1, Volume vol2)
               value2 - real value 2
 @OUTPUT     : (nothing)
 @RETURNS    : TRUE if values match, FALSE if not
-@DESCRIPTION: Routine to compare two Real values, allowing a tolerance.
+@DESCRIPTION: Routine to compare two VIO_Real values, allowing a tolerance.
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : April 21, 1995 (Peter Neelin)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-int match_reals(Real value1, Real value2)
+int match_reals(VIO_Real value1, VIO_Real value2)
 {
 #define TOLERANCE ( 100.0 * FLT_EPSILON )
 
-   Real diff, denom;
+   VIO_Real diff, denom;
 
    diff = value1 - value2;
    denom = (value1 + value2) / 2.0;

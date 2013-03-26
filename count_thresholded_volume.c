@@ -4,16 +4,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, mask_volume_filename;
+    VIO_STR               volume_filename, mask_volume_filename;
     Real                 mask_value, value;
-    Real                 mask_voxel[MAX_DIMENSIONS];
+    Real                 mask_voxel[VIO_MAX_DIMENSIONS];
     Real                 xw, yw, zw;
     Real                 min_threshold, max_threshold;
-    Real                 separations[MAX_DIMENSIONS];
+    Real                 separations[VIO_MAX_DIMENSIONS];
     int                  x, y, z, n_found;
-    int                  mask_sizes[MAX_DIMENSIONS];
-    progress_struct      progress;
-    Volume               volume, mask_volume;
+    int                  mask_sizes[VIO_MAX_DIMENSIONS];
+    VIO_progress_struct      progress;
+    VIO_Volume               volume, mask_volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -45,7 +45,7 @@ int  main(
     get_volume_separations( mask_volume, separations );
 
     initialize_progress_report( &progress, FALSE, mask_sizes[X] * mask_sizes[Y],
-                                "Masking Volume" );
+                                "Masking VIO_Volume" );
 
     n_found = 0;
 
@@ -82,7 +82,7 @@ int  main(
     terminate_progress_report( &progress );
 
     print( "Number voxels: %d\n", n_found );
-    print( "Volume       : %g cubic mm\n", (Real) n_found * separations[X] *
+    print( "VIO_Volume       : %g cubic mm\n", (Real) n_found * separations[X] *
                                   separations[Y] * separations[Z] );
 
     return( 0 );

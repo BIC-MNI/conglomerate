@@ -3,13 +3,13 @@
 
 #define  BINTREE_FACTOR  0.4
 
-private  int   make_grid_lines(
+static  int   make_grid_lines(
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
-    Point             *origin,
-    Real              origin_u,
-    Real              origin_v,
-    Real              rot_angle,
+    VIO_Point             *origin,
+    VIO_Real              origin_u,
+    VIO_Real              origin_v,
+    VIO_Real              rot_angle,
     int               n_long,
     int               n_lat,
     object_struct     ***objects );
@@ -18,16 +18,16 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               input_filename, output_filename;
+    VIO_STR               input_filename, output_filename;
     int                  n_objects;
     int                  n_long, n_lat, n_created;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list, **objects;
     polygons_struct      *polygons;
-    Real                 origin_x, origin_y, origin_z;
-    Real                 origin_u, origin_v, rot_angle;
+    VIO_Real                 origin_x, origin_y, origin_z;
+    VIO_Real                 origin_u, origin_v, rot_angle;
     BOOLEAN              origin_specified;
-    Point                origin;
+    VIO_Point                origin;
 
     initialize_argument_processing( argc, argv );
 
@@ -71,18 +71,18 @@ int  main(
     return( 0 );
 }
 
-private  void  get_sphere_transform(
-    Point      *pos,
-    Real       u,
-    Real       v,
-    Real       angle,
-    Transform  *transform )
+static  void  get_sphere_transform(
+    VIO_Point      *pos,
+    VIO_Real       u,
+    VIO_Real       v,
+    VIO_Real       angle,
+    VIO_Transform  *transform )
 {
-    Real       z_angle, vert_angle, x, y, z;
-    Vector     axis, vert, up, vert_transformed, up_transformed;
-    Vector     axis_transformed;
-    Point      origin;
-    Transform  about_point, vert_rot, z_rot, change;
+    VIO_Real       z_angle, vert_angle, x, y, z;
+    VIO_Vector     axis, vert, up, vert_transformed, up_transformed;
+    VIO_Vector     axis_transformed;
+    VIO_Point      origin;
+    VIO_Transform  about_point, vert_rot, z_rot, change;
 
     CONVERT_POINT_TO_VECTOR( axis, *pos );
 
@@ -97,9 +97,9 @@ private  void  get_sphere_transform(
     make_rotation_about_axis( &vert, vert_angle, &vert_rot );
 
     transform_point( &vert_rot,
-                     (Real) Vector_x(up),
-                     (Real) Vector_y(up),
-                     (Real) Vector_z(up), &x, &y, &z );
+                     (VIO_Real) Vector_x(up),
+                     (VIO_Real) Vector_y(up),
+                     (VIO_Real) Vector_z(up), &x, &y, &z );
 
     fill_Vector( up_transformed, x, y, z );
     NORMALIZE_VECTOR( up_transformed, up_transformed );
@@ -109,9 +109,9 @@ private  void  get_sphere_transform(
     make_rotation_about_axis( &up_transformed, z_angle, &z_rot );
 
     transform_point( &z_rot,
-                     (Real) Vector_x(vert),
-                     (Real) Vector_y(vert),
-                     (Real) Vector_z(vert), &x, &y, &z );
+                     (VIO_Real) Vector_x(vert),
+                     (VIO_Real) Vector_y(vert),
+                     (VIO_Real) Vector_z(vert), &x, &y, &z );
     fill_Vector( vert_transformed, x, y, z );
     NORMALIZE_VECTOR( vert_transformed, vert_transformed );
     CROSS_VECTORS( axis_transformed, vert_transformed, up_transformed );
@@ -125,25 +125,25 @@ private  void  get_sphere_transform(
     concat_transforms( transform, &about_point, &change );
 }
 
-private  int   make_grid_lines(
+static  int   make_grid_lines(
     polygons_struct   *polygons,
     BOOLEAN           origin_specified,
-    Point             *origin,
-    Real              origin_u,
-    Real              origin_v,
-    Real              rot_angle,
+    VIO_Point             *origin,
+    VIO_Real              origin_u,
+    VIO_Real              origin_v,
+    VIO_Real              rot_angle,
     int               n_long,
     int               n_lat,
     object_struct     ***objects )
 {
-    Real             angle, c, s, x, y, z;
-    Point            centre, unit_origin;
+    VIO_Real             angle, c, s, x, y, z;
+    VIO_Point            centre, unit_origin;
     polygons_struct  unit_sphere;
     lines_struct     *lines;
-    Vector           normal;
+    VIO_Vector           normal;
     int              n_objects, l;
-    Transform        transform, inverse;
-    progress_struct  progress;
+    VIO_Transform        transform, inverse;
+    VIO_progress_struct  progress;
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
 
@@ -151,7 +151,7 @@ private  int   make_grid_lines(
                                polygons->n_items, &unit_sphere );
 
     create_polygons_bintree( &unit_sphere,
-                      ROUND( (Real)unit_sphere.n_items * BINTREE_FACTOR ) );
+                      VIO_ROUND( (VIO_Real)unit_sphere.n_items * BINTREE_FACTOR ) );
 
     if( origin_specified )
     {
@@ -181,16 +181,16 @@ private  int   make_grid_lines(
 
     for_less( l, 0, n_long )
     {
-        angle = 2.0 * PI * (Real) l / (Real) n_long;
+        angle = 2.0 * PI * (VIO_Real) l / (VIO_Real) n_long;
         c = cos( angle );
         s = sin( angle );
 
         fill_Vector( normal, c, -s, 0.0 );
 
         transform_point( &inverse,
-                         (Real) Point_x(normal),
-                         (Real) Point_y(normal),
-                         (Real) Point_z(normal), &x, &y, &z );
+                         (VIO_Real) Point_x(normal),
+                         (VIO_Real) Point_y(normal),
+                         (VIO_Real) Point_z(normal), &x, &y, &z );
 
         fill_Vector( normal, x, y, z );
         NORMALIZE_VECTOR( normal, normal );
@@ -216,7 +216,7 @@ private  int   make_grid_lines(
 
     for_less( l, 0, n_lat-1 )
     {
-        angle = INTERPOLATE( (Real) (l+1) / (Real) n_lat,
+        angle = INTERPOLATE( (VIO_Real) (l+1) / (VIO_Real) n_lat,
                              -PI/ 2.0, PI/ 2.0 );
         z = sin( angle );
 
@@ -224,15 +224,15 @@ private  int   make_grid_lines(
         fill_Vector( normal, 0.0, 0.0, 1.0 );
 
         transform_point( &inverse,
-                         (Real) Point_x(centre),
-                         (Real) Point_y(centre),
-                         (Real) Point_z(centre), &x, &y, &z );
+                         (VIO_Real) Point_x(centre),
+                         (VIO_Real) Point_y(centre),
+                         (VIO_Real) Point_z(centre), &x, &y, &z );
         fill_Point( centre, x, y, z );
 
         transform_point( &inverse,
-                         (Real) Point_x(normal),
-                         (Real) Point_y(normal),
-                         (Real) Point_z(normal), &x, &y, &z );
+                         (VIO_Real) Point_x(normal),
+                         (VIO_Real) Point_y(normal),
+                         (VIO_Real) Point_z(normal), &x, &y, &z );
         fill_Vector( normal, x, y, z );
         NORMALIZE_VECTOR( normal, normal );
 

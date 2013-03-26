@@ -3,27 +3,27 @@
 
 #define  BINTREE_FACTOR  0.4
 
-private  void  scan_lines_to_polygons(
+static  void  scan_lines_to_polygons(
     polygons_struct    *polygons,
     int                n_neighbours[],
     int                *neighbours[],
-    Real               vertex_values[],
-    Real               distance,
-    Real               scan_step,
+    VIO_Real               vertex_values[],
+    VIO_Real               distance,
+    VIO_Real               scan_step,
     lines_struct       *lines );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               polygons_filename, input_filename;
-    STRING               output_filename;
-    File_formats         format;
+    VIO_STR               polygons_filename, input_filename;
+    VIO_STR               output_filename;
+    VIO_File_formats         format;
     int                  i, point, *n_neighbours, **neighbours;
     int                  n_polygon_objects, n_objects;
     object_struct        **objects, **polygon_objects;
     polygons_struct      *polygons;
-    Real                 distance, scan_step, *vertex_values;
+    VIO_Real                 distance, scan_step, *vertex_values;
 
     initialize_argument_processing( argc, argv );
 
@@ -49,7 +49,7 @@ int  main(
                                      &n_neighbours, &neighbours, NULL, NULL );
 
     create_polygons_bintree( polygons,
-                             ROUND((Real) polygons->n_items * BINTREE_FACTOR ));
+                             VIO_ROUND((VIO_Real) polygons->n_items * BINTREE_FACTOR ));
 
     ALLOC( vertex_values, polygons->n_points );
 
@@ -85,19 +85,19 @@ int  main(
     return( 0 );
 }
 
-private  void  scan_lines_to_polygons(
+static  void  scan_lines_to_polygons(
     polygons_struct    *polygons,
     int                n_neighbours[],
     int                *neighbours[],
-    Real               vertex_values[],
-    Real               scan_distance,
-    Real               scan_step,
+    VIO_Real               vertex_values[],
+    VIO_Real               scan_distance,
+    VIO_Real               scan_step,
     lines_struct       *lines )
 {
     int         point, line, size, v, p1, p2, n_steps, n_to_do;
     int         step, poly, poly_size, vertex, poly_vertex, neigh, current, n;
-    Real        ratio, interval, priority;
-    Point       p, polygon_point;
+    VIO_Real        ratio, interval, priority;
+    VIO_Point       p, polygon_point;
     float       *distances, dist, new_dist;
     PRIORITY_QUEUE_STRUCT( int )  queue;
 
@@ -116,7 +116,7 @@ private  void  scan_lines_to_polygons(
             interval = distance_between_points( &lines->points[p1],
                                             &lines->points[p2] );
 
-            n_steps = ROUND( interval / scan_step );
+            n_steps = VIO_ROUND( interval / scan_step );
             if( v < size-2 )
                 n_to_do = n_steps;
             else
@@ -124,7 +124,7 @@ private  void  scan_lines_to_polygons(
 
             for_less( step, 0, n_to_do )
             {
-                ratio = (Real) step / (Real) n_steps;
+                ratio = (VIO_Real) step / (VIO_Real) n_steps;
                 INTERPOLATE_POINTS( p, lines->points[p1], lines->points[p2],
                                     ratio );
 
@@ -156,7 +156,7 @@ private  void  scan_lines_to_polygons(
         if( distances[poly_vertex] >= 0.0f )
         {
             INSERT_IN_PRIORITY_QUEUE( queue, poly_vertex,
-                                      (Real) -distances[poly_vertex] );
+                                      (VIO_Real) -distances[poly_vertex] );
         }
     }
 
@@ -166,7 +166,7 @@ private  void  scan_lines_to_polygons(
 
         priority = -priority;
 
-        if( priority > (Real) distances[current] * 1.01 )
+        if( priority > (VIO_Real) distances[current] * 1.01 )
             continue;
 
         for_less( n, 0, n_neighbours[current] )
@@ -181,7 +181,7 @@ private  void  scan_lines_to_polygons(
             {
                 distances[neigh] = new_dist;
                 INSERT_IN_PRIORITY_QUEUE( queue, neigh,
-                                          (Real) -distances[neigh] );
+                                          (VIO_Real) -distances[neigh] );
             }
         }
     }

@@ -8,17 +8,17 @@
 struct  conjugate_min_struct
 {
     int              n_parameters;
-    Real             *parameters;
-    Real             *derivative;
-    Real             *test_parameters;
-    Real             current_value;
-    Real             (*function) ( Real [], void * );
-    void             (*deriv_function) ( Real [], void *, Real [] );
+    VIO_Real             *parameters;
+    VIO_Real             *derivative;
+    VIO_Real             *test_parameters;
+    VIO_Real             current_value;
+    VIO_Real             (*function) ( VIO_Real [], void * );
+    void             (*deriv_function) ( VIO_Real [], void *, VIO_Real [] );
     void             *function_data;
-    Real             line_min_range_tolerance;
-    Real             line_min_domain_tolerance;
-    Real             termination_range_tolerance;
-    Real             termination_domain_tolerance;
+    VIO_Real             line_min_range_tolerance;
+    VIO_Real             line_min_domain_tolerance;
+    VIO_Real             termination_range_tolerance;
+    VIO_Real             termination_domain_tolerance;
     int              n_iterations;
     int              max_iterations;
     int              n_restarts;
@@ -28,19 +28,19 @@ struct  conjugate_min_struct
 };
 
 
-public   conjugate_min  conjugate_min_initialize(
+   conjugate_min  conjugate_min_initialize(
     int                    n_parameters,
-    Real                   initial[],
-    Real                   (*function) ( Real [], void * ),
-    void                   (*deriv_function) ( Real [], void *, Real [] ),
+    VIO_Real                   initial[],
+    VIO_Real                   (*function) ( VIO_Real [], void * ),
+    void                   (*deriv_function) ( VIO_Real [], void *, VIO_Real [] ),
     void                   *function_data,
-    Real                   termination_range_tolerance,
-    Real                   termination_domain_tolerance,
-    Real                   line_min_range_tolerance,
-    Real                   line_min_domain_tolerance,
+    VIO_Real                   termination_range_tolerance,
+    VIO_Real                   termination_domain_tolerance,
+    VIO_Real                   line_min_range_tolerance,
+    VIO_Real                   line_min_domain_tolerance,
     int                    max_iterations,
     int                    max_restarts,
-    Real                   *current_value )
+    VIO_Real                   *current_value )
 {
     int               parm;
     conjugate_min     conj;
@@ -82,12 +82,12 @@ public   conjugate_min  conjugate_min_initialize(
     return( conj );
 }
 
-public  BOOLEAN  conjugate_min_do_one_iteration(  
+  BOOLEAN  conjugate_min_do_one_iteration(  
     conjugate_min     conj,
-    Real              *resulting_value )
+    VIO_Real              *resulting_value )
 {
     BOOLEAN  success;
-    Real     new_value, max_movement;
+    VIO_Real     new_value, max_movement;
 
     if( conj->max_iterations >= 0 && conj->n_iterations >= conj->max_iterations)
         return( FALSE );
@@ -137,9 +137,9 @@ public  BOOLEAN  conjugate_min_do_one_iteration(
     return( success );
 }
 
-public  void  conjugate_min_get_current_position(  
+  void  conjugate_min_get_current_position(  
     conjugate_min     conj,
-    Real              parameters[] )
+    VIO_Real              parameters[] )
 {
     int    parm;
 
@@ -147,20 +147,20 @@ public  void  conjugate_min_get_current_position(
         parameters[parm] = conj->parameters[parm];
 }
 
-public  int  conjugate_min_get_n_iterations(  
+  int  conjugate_min_get_n_iterations(  
     conjugate_min     conj )
 {
     return( conj->n_iterations );
 }
 
-public  void  conjugate_min_print_iteration_info(  
+  void  conjugate_min_print_iteration_info(  
     conjugate_min     conj )
 {
     print( "Iter  %5d:   Value: %30.16g    N restarts: %2d\n",
            conj->n_iterations, conj->current_value, conj->n_restarts );
 }
 
-public  void  conjugate_min_terminate(  
+  void  conjugate_min_terminate(  
     conjugate_min     conj )
 {
     if( conj->n_parameters > 0 )
@@ -173,21 +173,21 @@ public  void  conjugate_min_terminate(
     delete_conjugate_gradient( conj->conjugate_dir_info );
 }
 
-public  Real  conjugate_minimize_function(
+  VIO_Real  conjugate_minimize_function(
     int                    n_parameters,
-    Real                   initial[],
-    Real                   (*function) ( Real [], void * ),
-    void                   (*deriv_function) ( Real [], void *, Real [] ),
+    VIO_Real                   initial[],
+    VIO_Real                   (*function) ( VIO_Real [], void * ),
+    void                   (*deriv_function) ( VIO_Real [], void *, VIO_Real [] ),
     void                   *function_data,
-    Real                   termination_range_tolerance,
-    Real                   termination_domain_tolerance,
-    Real                   line_min_range_tolerance,
-    Real                   line_min_domain_tolerance,
+    VIO_Real                   termination_range_tolerance,
+    VIO_Real                   termination_domain_tolerance,
+    VIO_Real                   line_min_range_tolerance,
+    VIO_Real                   line_min_domain_tolerance,
     int                    max_iterations,
     int                    max_restarts,
-    Real                   solution[] )
+    VIO_Real                   solution[] )
 {
-    Real            value;
+    VIO_Real            value;
     conjugate_min   conj;
 
     conj = conjugate_min_initialize( n_parameters, initial,

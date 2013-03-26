@@ -4,10 +4,10 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume     volume, new_volume;
-    Status     status;
+    VIO_Volume     volume, new_volume;
+    VIO_Status     status;
     int        nx, ny, nz;
-    STRING     input_filename, output_filename, history;
+    VIO_STR     input_filename, output_filename, history;
 
     initialize_argument_processing( argc, argv );
 

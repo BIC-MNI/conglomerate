@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  volume  output.tag\n\
        %s  volume  output.tag  id\n\
        %s  volume  output.tag  min_id  max_id\n\
@@ -21,15 +21,15 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, tag_filename;
-    Volume               volume;
+    VIO_STR               volume_filename, tag_filename;
+    VIO_Volume               volume;
     FILE                 *file;
-    Real                 min_id, max_id, value;
+    VIO_Real                 min_id, max_id, value;
     int                  x, y, z;
-    int                  sizes[N_DIMENSIONS];
+    int                  sizes[VIO_N_DIMENSIONS];
     int                  n_tags, structure_id;
-    Real                 tag[N_DIMENSIONS];
-    progress_struct      progress;
+    VIO_Real                 tag[VIO_N_DIMENSIONS];
+    VIO_progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
 
@@ -84,10 +84,10 @@ int  main(
                     min_id <= value && value <= max_id )
                 {
                     convert_3D_voxel_to_world( volume,
-                                               (Real) x, (Real) y, (Real) z,
+                                               (VIO_Real) x, (VIO_Real) y, (VIO_Real) z,
                                                &tag[X], &tag[Y], &tag[Z] );
 
-                    structure_id = ROUND( value );
+                    structure_id = VIO_ROUND( value );
 
                     if( output_one_tag( file, 1, tag, NULL, NULL,
                                         &structure_id, NULL, NULL ) != OK )

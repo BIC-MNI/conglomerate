@@ -6,10 +6,10 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING         input_filename, bg_name;
+    VIO_STR         input_filename, bg_name;
     int            x, y, x_min, x_max, y_min, y_max;
     pixels_struct  pixels;
-    Colour         bg_colour, col;
+    VIO_Colour         bg_colour, col;
 
     initialize_argument_processing( argc, argv );
 

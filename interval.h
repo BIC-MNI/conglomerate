@@ -46,7 +46,7 @@ extern unsigned long get_fpc_eir( void );
 
 typedef struct
 {
-    Real   low, high;
+    VIO_Real   low, high;
 } Interval;
 
 #define  SET_INTERVAL( i, l, h ) \
@@ -118,7 +118,7 @@ typedef struct
 
 #define  MULT_INTERVAL_REAL( result, i, r )                               \
     {                                                                     \
-        Real  al, bl, ah, bh;                                             \
+        VIO_Real  al, bl, ah, bh;                                             \
         SAVE_ROUNDING;                                                    \
                                                                           \
         _save = ROUND_DOWN;                                               \
@@ -146,7 +146,7 @@ typedef struct
 
 #define  MIN4( min, a, b, c, d )                                          \
     {                                                                     \
-        Real  min_ab, min_cd;                                             \
+        VIO_Real  min_ab, min_cd;                                             \
                                                                           \
         min_ab = MIN( a, b );                                             \
         min_cd = MIN( c, d );                                             \
@@ -155,7 +155,7 @@ typedef struct
 
 #define  MAX4( max, a, b, c, d )                                          \
     {                                                                     \
-        Real  max_ab, max_cd;                                             \
+        VIO_Real  max_ab, max_cd;                                             \
                                                                           \
         max_ab = MAX( a, b );                                             \
         max_cd = MAX( c, d );                                             \
@@ -164,8 +164,8 @@ typedef struct
 
 #define  MULT_INTERVALS( result, i1, i2 )                                 \
     {                                                                     \
-        Real  acl, adl, bcl, bdl;                                         \
-        Real  ach, adh, bch, bdh;                                         \
+        VIO_Real  acl, adl, bcl, bdl;                                         \
+        VIO_Real  ach, adh, bch, bdh;                                         \
         SAVE_ROUNDING;                                                    \
                                                                           \
         _save = ROUND_DOWN;                                               \
@@ -187,8 +187,8 @@ typedef struct
   
 #define  DIVIDE_INTERVAL_REAL( result, i, r )                               \
     {                                                                       \
-        Real  al, bl;                                                       \
-        Real  ah, bh;                                                       \
+        VIO_Real  al, bl;                                                       \
+        VIO_Real  ah, bh;                                                       \
                                                                             \
         SAVE_ROUNDING;                                                      \
         _save = ROUND_DOWN;                                                 \
@@ -207,8 +207,8 @@ typedef struct
 
 #define  DIVIDE_INTERVALS( result, i1, i2 )                                 \
     {                                                                       \
-        Real  acl, adl, bcl, bdl;                                           \
-        Real  ach, adh, bch, bdh;                                           \
+        VIO_Real  acl, adl, bcl, bdl;                                           \
+        VIO_Real  ach, adh, bch, bdh;                                           \
         if( (i2).low >= 0.0 || (i2).high <= 0.0 )                           \
         {                                                                   \
           SAVE_ROUNDING;                                                    \
@@ -292,7 +292,7 @@ typedef struct
 #define  COS_INTERVAL( result, i )                                        \
     {                                                                     \
         int     int_a_over_pi;                                            \
-        Real    a_over_pi, b_over_pi, cos_low, cos_high;                  \
+        VIO_Real    a_over_pi, b_over_pi, cos_low, cos_high;                  \
         SAVE_ROUNDING;                                                    \
         _save = ROUND_DOWN;                                               \
                                                                           \
@@ -340,7 +340,7 @@ typedef struct
 #define  SIN_INTERVAL( result, i )                                        \
     {                                                                     \
         int     int_a_over_pi;                                            \
-        Real    a_over_pi, b_over_pi, sin_low, sin_high;                  \
+        VIO_Real    a_over_pi, b_over_pi, sin_low, sin_high;                  \
                                                                           \
         SAVE_ROUNDING;                                                    \
         _save = ROUND_DOWN;                                               \
@@ -454,7 +454,7 @@ typedef struct
 
 typedef struct
 {
-    Interval  coord[N_DIMENSIONS];
+    Interval  coord[VIO_N_DIMENSIONS];
 } IPoint;
 
 typedef  void   (*Interval_function)( int        n_dimensions,

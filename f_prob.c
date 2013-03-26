@@ -1,15 +1,15 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  Real  gamma_func(
-    Real   x );
+static  VIO_Real  gamma_func(
+    VIO_Real   x );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
     int    D, m, n;
-    Real   resels, t, p, t1, t2, t3, v, nu;
+    VIO_Real   resels, t, p, t1, t2, t3, v, nu;
 
     initialize_argument_processing( argc, argv );
 
@@ -23,15 +23,15 @@ int  main(
         return( 1 );
     }
 
-    v = (Real) (n + m - 2);
-    nu = v - (Real) D + 1.0;
+    v = (VIO_Real) (n + m - 2);
+    nu = v - (VIO_Real) D + 1.0;
 
     t1 = resels * 4.0 * log(2.0) / 2.0 / PI;
-    t2 = gamma_func( (nu+(Real)D-2.0)/2.0 ) /
-         gamma_func( nu / 2.0 ) / gamma_func( (Real) D / 2.0 ) *
-         pow( (Real) D * t / nu, 0.5*(Real) (D-2) );
-    t3 = pow( 1.0 + (Real) D * t / nu, -0.5*(nu+(Real)D-2.0) ) *
-         ((nu-1.0)*(Real) D * t / nu - ((Real) D-1.0) );
+    t2 = gamma_func( (nu+(VIO_Real)D-2.0)/2.0 ) /
+         gamma_func( nu / 2.0 ) / gamma_func( (VIO_Real) D / 2.0 ) *
+         pow( (VIO_Real) D * t / nu, 0.5*(VIO_Real) (D-2) );
+    t3 = pow( 1.0 + (VIO_Real) D * t / nu, -0.5*(nu+(VIO_Real)D-2.0) ) *
+         ((nu-1.0)*(VIO_Real) D * t / nu - ((VIO_Real) D-1.0) );
     p = t1 * t2 * t3;
 
     print( "%g\n", p );
@@ -39,13 +39,13 @@ int  main(
     return( 0 );
 }
 
-private  Real  gamma_func(
-    Real   x )
+static  VIO_Real  gamma_func(
+    VIO_Real   x )
 {
-    Real   lg, g;
+    VIO_Real   lg, g;
 
     lg = gamma(x);
-    g = (Real) signgam * exp( lg );
+    g = (VIO_Real) signgam * exp( lg );
 
     return( g );
 }

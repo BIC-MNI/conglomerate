@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: dilate_volume input.mnc output.mnc  min max [6|26]\n\
 \n\
      Dilates all regions of value dilation_value, by n_dilations of 3X3X3,\n\
@@ -19,11 +19,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Real                 min_value, max_value;
-    Volume               volume, label_volume;
+    VIO_STR               input_filename, output_filename;
+    VIO_Real                 min_value, max_value;
+    VIO_Volume               volume, label_volume;
     int                  n_neighs, n_changed, label;
-    int                  range_changed[2][N_DIMENSIONS];
+    int                  range_changed[2][VIO_N_DIMENSIONS];
     Neighbour_types      connectivity;
 
     initialize_argument_processing( argc, argv );
@@ -48,7 +48,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
-                      NULL ) != OK )
+                      NULL ) != VIO_OK )
         return( 1 );
 
     label_volume = create_label_volume( volume, NC_BYTE );
@@ -62,11 +62,11 @@ int  main(
     do
     {
         n_changed = dilate_voxels_3d( NULL, label_volume,
-                                      1.0, (Real) (label-1),
+                                      1.0, (VIO_Real) (label-1),
                                       0.0, -1.0,
                                       0.0, 0.0,
                                       0.0, -1.0,
-                                      (Real) label, connectivity,
+                                      (VIO_Real) label, connectivity,
                                       range_changed );
         print( "%d\n", n_changed );
         ++label;
@@ -80,11 +80,11 @@ int  main(
     do
     {
         n_changed = dilate_voxels_3d( NULL, label_volume,
-                                      (Real) (label+1), (Real) (label+1),
+                                      (VIO_Real) (label+1), (VIO_Real) (label+1),
                                       0.0, -1.0,
                                       0.0, 0.0,
                                       0.0, -1.0,
-                                      (Real) label, connectivity,
+                                      (VIO_Real) label, connectivity,
                                       range_changed );
         print( "%d\n", n_changed );
         --label;

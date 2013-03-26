@@ -5,13 +5,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, input_tags;
-    Volume               volume;
+    VIO_STR               volume_filename, input_tags;
+    VIO_Volume               volume;
     int                  i, n_inside;
     int                  n_volumes, n_tag_points;
-    Real                 **tags_volume1, **tags_volume2, value;
-    Real                 voxel[N_DIMENSIONS], avg_threshold, tag_threshold;
-    int                  int_voxel[N_DIMENSIONS];
+    VIO_Real                 **tags_volume1, **tags_volume2, value;
+    VIO_Real                 voxel[VIO_N_DIMENSIONS], avg_threshold, tag_threshold;
+    int                  int_voxel[VIO_N_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 
@@ -45,7 +45,7 @@ int  main(
                                     tags_volume1[i][Z],
                                     voxel );
 
-            convert_real_to_int_voxel( N_DIMENSIONS, voxel, int_voxel );
+            convert_real_to_int_voxel( VIO_N_DIMENSIONS, voxel, int_voxel );
 
             if( int_voxel_is_within_volume( volume, int_voxel ) )
             {
@@ -57,7 +57,7 @@ int  main(
             }
         }
 
-        if( (Real) n_inside / (Real) n_tag_points < tag_threshold )
+        if( (VIO_Real) n_inside / (VIO_Real) n_tag_points < tag_threshold )
             print( "POSSIBLE TAG OUTLIER: %s\n", input_tags );
 
         free_tag_points( n_volumes, n_tag_points, tags_volume1, tags_volume2,

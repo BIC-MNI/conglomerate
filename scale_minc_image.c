@@ -5,11 +5,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume             volume;
-    STRING             input_filename, output_filename;
+    VIO_Volume             volume;
+    VIO_STR             input_filename, output_filename;
     int                x, y;
-    int                sizes[MAX_DIMENSIONS];
-    STRING             dim_names4d[] = {
+    int                sizes[VIO_MAX_DIMENSIONS];
+    VIO_STR             dim_names4d[] = {
                                          MIzspace,
                                          MIxspace,
                                          MIyspace,

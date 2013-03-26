@@ -2,36 +2,36 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  label_surface_voxels(
-    Volume    volume,
-    Volume    geodesic,
-    Real      threshold,
-    Real      surface_value,
-    Real      nonsurface_value,
-    Real      tolerance );
+static  void  label_surface_voxels(
+    VIO_Volume    volume,
+    VIO_Volume    geodesic,
+    VIO_Real      threshold,
+    VIO_Real      surface_value,
+    VIO_Real      nonsurface_value,
+    VIO_Real      tolerance );
 
-private  void  find_nearest_voxel(
-    Volume   volume,
-    Real     voxel[],
-    Real     value,
+static  void  find_nearest_voxel(
+    VIO_Volume   volume,
+    VIO_Real     voxel[],
+    VIO_Real     value,
     int      nearest[] );
 
-private  BOOLEAN  volume_range_contains_threshold(
-    Volume   volume,
-    Real     min_voxel[],
-    Real     max_voxel[],
-    Real     threshold );
+static  BOOLEAN  volume_range_contains_threshold(
+    VIO_Volume   volume,
+    VIO_Real     min_voxel[],
+    VIO_Real     max_voxel[],
+    VIO_Real     threshold );
 
-private  void  compute_geodesic_volume(
-    Volume   volume,
+static  void  compute_geodesic_volume(
+    VIO_Volume   volume,
     int      origin[],
-    Real     surface_value,
-    Real     nonsurface_value );
+    VIO_Real     surface_value,
+    VIO_Real     nonsurface_value );
 
-private  void  usage(
+static  void  usage(
     char   executable[] )
 {
-    STRING   usage_str = "\n\
+    VIO_STR   usage_str = "\n\
 Usage: %s   input.mnc  output.mnc   threshold  x y z \n\
             [x_size]  [y_size]  [z_size]\n\
 \n\
@@ -44,14 +44,14 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING              input_filename, output_filename, *dim_names;
-    Volume              volume, geodesic;
-    int                 dim, origin[N_DIMENSIONS];
-    int                 sizes[N_DIMENSIONS], geo_sizes[N_DIMENSIONS];
-    Real                threshold, x_world, y_world, z_world;
-    Real                voxel[N_DIMENSIONS], max_voxel, tolerance;
-    Transform           new_to_old;
-    General_transform   *volume_transform, mod_transform, new_transform;
+    VIO_STR              input_filename, output_filename, *dim_names;
+    VIO_Volume              volume, geodesic;
+    int                 dim, origin[VIO_N_DIMENSIONS];
+    int                 sizes[VIO_N_DIMENSIONS], geo_sizes[VIO_N_DIMENSIONS];
+    VIO_Real                threshold, x_world, y_world, z_world;
+    VIO_Real                voxel[VIO_N_DIMENSIONS], max_voxel, tolerance;
+    VIO_Transform           new_to_old;
+    VIO_General_transform   *volume_transform, mod_transform, new_transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -78,14 +78,14 @@ int  main(
 
     dim_names = get_volume_dimension_names( volume );
 
-    geodesic = create_volume( N_DIMENSIONS, dim_names, NC_BYTE, FALSE,
+    geodesic = create_volume( VIO_N_DIMENSIONS, dim_names, NC_BYTE, FALSE,
                               0.0, 0.0 );
 
     delete_dimension_names( volume, dim_names );
 
     get_volume_sizes( volume, sizes );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         if( geo_sizes[dim] < 1 )
             geo_sizes[dim] = sizes[dim] + 1;
@@ -98,12 +98,12 @@ int  main(
 
     make_identity_transform( &new_to_old );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
-        Transform_elem( new_to_old, dim, dim ) = (Real) (sizes[dim]+1) /
-                                                 (Real) geo_sizes[dim];
-        Transform_elem( new_to_old, dim, 3 ) = 0.5 * (Real) (sizes[dim]+1) /
-                                               (Real) geo_sizes[dim] - 1.0;
+        Transform_elem( new_to_old, dim, dim ) = (VIO_Real) (sizes[dim]+1) /
+                                                 (VIO_Real) geo_sizes[dim];
+        Transform_elem( new_to_old, dim, 3 ) = 0.5 * (VIO_Real) (sizes[dim]+1) /
+                                               (VIO_Real) geo_sizes[dim] - 1.0;
     }
 
     create_linear_transform( &mod_transform, &new_to_old );
@@ -129,19 +129,19 @@ int  main(
     return( 0 );
 }
 
-private  void  label_surface_voxels(
-    Volume    volume,
-    Volume    geodesic,
-    Real      threshold,
-    Real      surface_value,
-    Real      nonsurface_value,
-    Real      tolerance )
+static  void  label_surface_voxels(
+    VIO_Volume    volume,
+    VIO_Volume    geodesic,
+    VIO_Real      threshold,
+    VIO_Real      surface_value,
+    VIO_Real      nonsurface_value,
+    VIO_Real      tolerance )
 {
     int       x, y, z, v3, v4, dim, dx, dy, dz;
-    Real      voxel[N_DIMENSIONS], x_world, y_world, z_world, label;
-    Real      min_voxel[N_DIMENSIONS], max_voxel[N_DIMENSIONS];
-    int       sizes[N_DIMENSIONS], geo_sizes[N_DIMENSIONS];
-    progress_struct   progress;
+    VIO_Real      voxel[VIO_N_DIMENSIONS], x_world, y_world, z_world, label;
+    VIO_Real      min_voxel[VIO_N_DIMENSIONS], max_voxel[VIO_N_DIMENSIONS];
+    int       sizes[VIO_N_DIMENSIONS], geo_sizes[VIO_N_DIMENSIONS];
+    VIO_progress_struct   progress;
 
     get_volume_sizes( geodesic, geo_sizes );
     get_volume_sizes( volume, sizes );
@@ -155,15 +155,15 @@ private  void  label_surface_voxels(
         for_less( dy, 0, 2 )
         for_less( dz, 0, 2 )
         {
-            voxel[X] = (Real) x - 0.5 + (Real) dx;
-            voxel[Y] = (Real) y - 0.5 + (Real) dy;
-            voxel[Z] = (Real) z - 0.5 + (Real) dz;
+            voxel[X] = (VIO_Real) x - 0.5 + (VIO_Real) dx;
+            voxel[Y] = (VIO_Real) y - 0.5 + (VIO_Real) dy;
+            voxel[Z] = (VIO_Real) z - 0.5 + (VIO_Real) dz;
 
             convert_voxel_to_world( geodesic, voxel,
                                     &x_world, &y_world, &z_world );
             convert_world_to_voxel( volume, x_world, y_world, z_world, voxel );
 
-            for_less( dim, 0, N_DIMENSIONS )
+            for_less( dim, 0, VIO_N_DIMENSIONS )
             {
                 if( dx == 0 && dy == 0 && dz == 0 ||
                     voxel[dim] < min_voxel[dim] )
@@ -178,7 +178,7 @@ private  void  label_surface_voxels(
             }
         }
 
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             min_voxel[dim] -= tolerance;
             max_voxel[dim] += tolerance;
@@ -192,7 +192,7 @@ private  void  label_surface_voxels(
         else
             label = nonsurface_value;
 
-        set_volume_voxel_value( geodesic, x, y, z, 0, 0, (Real) label );
+        set_volume_voxel_value( geodesic, x, y, z, 0, 0, (VIO_Real) label );
 
         update_progress_report( &progress,
                                 z + 1 + geo_sizes[Z] * (y + x * geo_sizes[Y]) );
@@ -202,23 +202,23 @@ private  void  label_surface_voxels(
     terminate_progress_report( &progress );
 }
 
-private  void  find_nearest_voxel(
-    Volume   volume,
-    Real     voxel[],
-    Real     value,
+static  void  find_nearest_voxel(
+    VIO_Volume   volume,
+    VIO_Real     voxel[],
+    VIO_Real     value,
     int      nearest[] )
 {
-    int      dim, face, d, origin[N_DIMENSIONS], sizes[N_DIMENSIONS];
+    int      dim, face, d, origin[VIO_N_DIMENSIONS], sizes[VIO_N_DIMENSIONS];
     int      dist, max_dist, x, y, z;
-    int      limits[2][N_DIMENSIONS];
+    int      limits[2][VIO_N_DIMENSIONS];
     BOOLEAN  found;
 
     get_volume_sizes( volume, sizes );
 
     max_dist = 0;
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
-        origin[dim] = ROUND( voxel[dim] );
+        origin[dim] = VIO_ROUND( voxel[dim] );
         if( origin[dim] < 0 )
             origin[dim] = 0;
         else if( origin[dim] >= sizes[dim] )
@@ -234,11 +234,11 @@ private  void  find_nearest_voxel(
     dist = 0;
     while( dist <= max_dist && !found )
     {
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             for_less( face, 0, 2 )
             {
-                for_less( d, 0, N_DIMENSIONS )
+                for_less( d, 0, VIO_N_DIMENSIONS )
                 {
                     limits[0][d] = origin[d] - dist;
                     limits[1][d] = origin[d] + dist;
@@ -246,7 +246,7 @@ private  void  find_nearest_voxel(
 
                 limits[face][d] = limits[1-face][d];
 
-                for_less( d, 0, N_DIMENSIONS )
+                for_less( d, 0, VIO_N_DIMENSIONS )
                 {
                     if( limits[0][d] < 0 )
                         limits[0][d] = 0;
@@ -278,24 +278,24 @@ private  void  find_nearest_voxel(
     }
 }
 
-private  BOOLEAN  volume_range_contains_threshold(
-    Volume   volume,
-    Real     min_voxel[],
-    Real     max_voxel[],
-    Real     threshold )
+static  BOOLEAN  volume_range_contains_threshold(
+    VIO_Volume   volume,
+    VIO_Real     min_voxel[],
+    VIO_Real     max_voxel[],
+    VIO_Real     threshold )
 {
-    int      dim, sizes[N_DIMENSIONS];
-    Real     value, x, y, z, voxel[N_DIMENSIONS];
+    int      dim, sizes[VIO_N_DIMENSIONS];
+    VIO_Real     value, x, y, z, voxel[VIO_N_DIMENSIONS];
     BOOLEAN  x_is_int, y_is_int, z_is_int, above, below;
 
     get_volume_sizes( volume, sizes );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
     {
         if( min_voxel[dim] < -1.0 )
             min_voxel[dim] = -1.0;
-        if( max_voxel[dim] > (Real) sizes[dim] )
-            max_voxel[dim] = (Real) sizes[dim];
+        if( max_voxel[dim] > (VIO_Real) sizes[dim] )
+            max_voxel[dim] = (VIO_Real) sizes[dim];
     }
 
     above = FALSE;
@@ -348,7 +348,7 @@ private  BOOLEAN  volume_range_contains_threshold(
 
                 z += 1.0;
                 if( !IS_INT(z) )
-                    z = (Real) (int) z;
+                    z = (VIO_Real) (int) z;
                 if( z > max_voxel[Z] )
                 {
                     z = max_voxel[Z];
@@ -363,7 +363,7 @@ private  BOOLEAN  volume_range_contains_threshold(
 
             y += 1.0;
             if( !IS_INT(y) )
-                y = (Real) (int) y;
+                y = (VIO_Real) (int) y;
             if( y > max_voxel[Y] )
             {
                 y = max_voxel[Y];
@@ -379,7 +379,7 @@ private  BOOLEAN  volume_range_contains_threshold(
 
         x += 1.0;
         if( !IS_INT(x) )
-            x = (Real) (int) x;
+            x = (VIO_Real) (int) x;
         if( x > max_voxel[X] )
         {
             x = max_voxel[X];
@@ -394,28 +394,28 @@ private  BOOLEAN  volume_range_contains_threshold(
 
 typedef struct
 {
-    int   voxel[N_DIMENSIONS];
+    int   voxel[VIO_N_DIMENSIONS];
 } xyz_struct;
 
-private  void  compute_geodesic_volume(
-    Volume   volume,
+static  void  compute_geodesic_volume(
+    VIO_Volume   volume,
     int      origin[],
-    Real     surface_value,
-    Real     nonsurface_value )
+    VIO_Real     surface_value,
+    VIO_Real     nonsurface_value )
 {
     int                           dim, dist;
-    int                           start[N_DIMENSIONS], end[N_DIMENSIONS];
-    int                           sizes[N_DIMENSIONS];
+    int                           start[VIO_N_DIMENSIONS], end[VIO_N_DIMENSIONS];
+    int                           sizes[VIO_N_DIMENSIONS];
     int                           x, y, z;
     QUEUE_STRUCT( xyz_struct )    queue;
     xyz_struct                    entry;
-    Real                          current;
+    VIO_Real                          current;
 
     get_volume_sizes( volume, sizes );
 
     INITIALIZE_QUEUE( queue );
 
-    for_less( dim, 0, N_DIMENSIONS )
+    for_less( dim, 0, VIO_N_DIMENSIONS )
         entry.voxel[dim] = origin[dim];
 
     dist = 0;
@@ -430,7 +430,7 @@ private  void  compute_geodesic_volume(
                                                 entry.voxel[1],
                                                 entry.voxel[2], 0, 0 );
 
-        for_less( dim, 0, N_DIMENSIONS )
+        for_less( dim, 0, VIO_N_DIMENSIONS )
         {
             if( entry.voxel[dim] == 0 )
                 start[dim] = entry.voxel[dim];
@@ -451,7 +451,7 @@ private  void  compute_geodesic_volume(
 
             if( current != nonsurface_value && dist < (int) current )
             {
-                set_volume_real_value( volume, x, y, z, 0, 0, (Real) dist );
+                set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) dist );
                 entry.voxel[0] = x;
                 entry.voxel[1] = y;
                 entry.voxel[2] = z;

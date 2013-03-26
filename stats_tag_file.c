@@ -1,30 +1,30 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  int  get_stats_for_one_file(
+static  int  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min_range,
-    Real            y_max_range,
-    Real            *x_min,
-    Real            *x_max,
-    Real            *x_mean,
-    Real            *y_min,
-    Real            *y_max,
-    Real            *y_mean,
-    Real            *z_min,
-    Real            *z_max,
-    Real            *z_mean,
+    VIO_Real            y_min_range,
+    VIO_Real            y_max_range,
+    VIO_Real            *x_min,
+    VIO_Real            *x_max,
+    VIO_Real            *x_mean,
+    VIO_Real            *y_min,
+    VIO_Real            *y_max,
+    VIO_Real            *y_mean,
+    VIO_Real            *z_min,
+    VIO_Real            *z_max,
+    VIO_Real            *z_mean,
     int             *total_in_file );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    Real                 x_min, x_max, y_min, y_max, z_min, z_max;
-    Real                 x_mean, y_mean, z_mean;
-    STRING               filename;
+    VIO_Real                 x_min, x_max, y_min, y_max, z_min, z_max;
+    VIO_Real                 x_mean, y_mean, z_mean;
+    VIO_STR               filename;
     int                  n_objects, total_in_file;
     object_struct        **object_list;
 
@@ -36,7 +36,7 @@ int  main(
         return( 1 );
     }
 
-    if( input_objects_any_format( (Volume) NULL, filename,
+    if( input_objects_any_format( (VIO_Volume) NULL, filename,
                                   WHITE, 1.0, BOX_MARKER,
                                   &n_objects, &object_list ) != OK )
         return( 1 );
@@ -58,26 +58,26 @@ int  main(
     return( 0 );
 }
 
-private  int  get_stats_for_one_file(
+static  int  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min_range,
-    Real            y_max_range,
-    Real            *x_min,
-    Real            *x_max,
-    Real            *x_mean,
-    Real            *y_min,
-    Real            *y_max,
-    Real            *y_mean,
-    Real            *z_min,
-    Real            *z_max,
-    Real            *z_mean,
+    VIO_Real            y_min_range,
+    VIO_Real            y_max_range,
+    VIO_Real            *x_min,
+    VIO_Real            *x_max,
+    VIO_Real            *x_mean,
+    VIO_Real            *y_min,
+    VIO_Real            *y_max,
+    VIO_Real            *y_mean,
+    VIO_Real            *z_min,
+    VIO_Real            *z_max,
+    VIO_Real            *z_mean,
     int             *total_in_file )
 {
     int             i, n_samples;
-    Real            *x_positions, *y_positions, *z_positions;
-    Real            std_dev, median;
+    VIO_Real            *x_positions, *y_positions, *z_positions;
+    VIO_Real            std_dev, median;
     marker_struct   *marker;
 
     *total_in_file = 0;
@@ -97,8 +97,8 @@ private  int  get_stats_for_one_file(
                  marker->structure_id == structure_id ||
                  marker->structure_id == structure_id + 1000) &&
                 (y_min_range >= y_max_range ||
-                 (Real) Point_y(marker->position) >= y_min_range &&
-                 (Real) Point_y(marker->position) <= y_max_range ) )
+                 (VIO_Real) Point_y(marker->position) >= y_min_range &&
+                 (VIO_Real) Point_y(marker->position) <= y_max_range ) )
             {
                 SET_ARRAY_SIZE( x_positions, n_samples, n_samples+1,
                                 DEFAULT_CHUNK_SIZE );
@@ -107,9 +107,9 @@ private  int  get_stats_for_one_file(
                 SET_ARRAY_SIZE( z_positions, n_samples, n_samples+1,
                                 DEFAULT_CHUNK_SIZE );
 
-                x_positions[n_samples] = (Real) Point_x(marker->position);
-                y_positions[n_samples] = (Real) Point_y(marker->position);
-                z_positions[n_samples] = (Real) Point_z(marker->position);
+                x_positions[n_samples] = (VIO_Real) Point_x(marker->position);
+                y_positions[n_samples] = (VIO_Real) Point_y(marker->position);
+                z_positions[n_samples] = (VIO_Real) Point_z(marker->position);
 
                 ++n_samples;
             }

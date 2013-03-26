@@ -6,69 +6,69 @@
 
 #define  GRID  40
 
-private  void    find_plane(
-    Point      points[],
-    Vector     *normal );
-private  void  create_plane_from_points(
-    Point             points[],
-    Real              dist,
+static  void    find_plane(
+    VIO_Point      points[],
+    VIO_Vector     *normal );
+static  void  create_plane_from_points(
+    VIO_Point             points[],
+    VIO_Real              dist,
     polygons_struct   *polygons );
-private  void   get_plane_normal(
-    Vector    *base_normal,
-    Real      angle,
-    Vector    *normal );
-private  Real  get_voxel_plane_volume(
-    Volume    volume,
-    Real      x,
-    Real      y,
-    Real      z,
+static  void   get_plane_normal(
+    VIO_Vector    *base_normal,
+    VIO_Real      angle,
+    VIO_Vector    *normal );
+static  VIO_Real  get_voxel_plane_volume(
+    VIO_Volume    volume,
+    VIO_Real      x,
+    VIO_Real      y,
+    VIO_Real      z,
     int       n_planes,
-    Vector    normals[],
-    Real      constants[] );
-private  int  get_voxel_plane_status(
-    Volume    volume,
-    Real      x,
-    Real      y,
-    Real      z,
+    VIO_Vector    normals[],
+    VIO_Real      constants[] );
+static  int  get_voxel_plane_status(
+    VIO_Volume    volume,
+    VIO_Real      x,
+    VIO_Real      y,
+    VIO_Real      z,
     int       n_planes,
-    Vector    normals[],
-    Real      constants[] );
-private  void  create_segment_plane(
-    Point             *origin,
-    Vector            *normal,
-    Real              size,
+    VIO_Vector    normals[],
+    VIO_Real      constants[] );
+static  void  create_segment_plane(
+    VIO_Point             *origin,
+    VIO_Vector            *normal,
+    VIO_Real              size,
     polygons_struct   *polygons );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    BOOLEAN              create_plane, volume_desired, segment;
-    Real                 sum_x, sum_y, sum_z, sum_yy, sum_yz, sum_zz;
-    Real                 separations[MAX_DIMENSIONS], angle;
-    STRING               three_tags_filename, input_tags_filename;
-    STRING               output_tags_filename, plane_filename;
-    STRING               volume_filename;
-    Real                 min_dist, max_dist, dist, voxel_volume;
-    Real                 angle_increment, angle_offset;
+    VIO_BOOL              create_plane, volume_desired, segment;
+    VIO_Real                 sum_x, sum_y, sum_z, sum_yy, sum_yz, sum_zz;
+    VIO_Real                 separations[VIO_MAX_DIMENSIONS], angle;
+    VIO_STR               three_tags_filename, input_tags_filename;
+    VIO_STR               output_tags_filename, plane_filename;
+    VIO_STR               volume_filename;
+    VIO_Real                 min_dist, max_dist, dist, voxel_volume;
+    VIO_Real                 angle_increment, angle_offset;
     int                  i, n_objects, plane_status;
-    Point                points[3], origin, point, centroid;
-    Vector               normal, plane_normal;
-    Vector               left_normal, right_normal;
-    Real                 left_constant, right_constant;
+    VIO_Point                points[3], origin, point, centroid;
+    VIO_Vector               normal, plane_normal;
+    VIO_Vector               left_normal, right_normal;
+    VIO_Real                 left_constant, right_constant;
     object_struct        *object, **object_list;
-    Vector               princ_normal, normals[4];
-    Real                 plane_constants[4];
+    VIO_Vector               princ_normal, normals[4];
+    VIO_Real                 plane_constants[4];
     int                  n_volumes, n_tag_points, *structure_ids, *patient_ids;
-    Real                 **tags1, **tags2, *weights, volume;
-    STRING               *labels;
+    VIO_Real                 **tags1, **tags2, *weights, volume;
+    VIO_STR               *labels;
     int                  n_new_tags, *new_structure_ids, *new_patient_ids;
-    Real                 **new_tags1, **new_tags2, *new_weights;
-    STRING               *new_labels;
+    VIO_Real                 **new_tags1, **new_tags2, *new_weights;
+    VIO_STR               *new_labels;
 #ifdef PROGRESS
-    progress_struct      progress;
+    VIO_progress_struct      progress;
 #endif
-    Volume               vol;
+    VIO_Volume               vol;
     volume_input_struct  volume_input;
 
     initialize_argument_processing( argc, argv );
@@ -90,7 +90,7 @@ int  main(
 
     if( min_dist > max_dist )
     {
-        Real  swap;
+        VIO_Real  swap;
 
         swap = min_dist;
         min_dist = max_dist;
@@ -280,9 +280,9 @@ int  main(
             sum_zz += tags1[i][Z] * tags1[i][Z];
         }
 
-        fill_Point( centroid, sum_x / (Real) n_tag_points,
-                              sum_y / (Real) n_tag_points,
-                              sum_z / (Real) n_tag_points );
+        fill_Point( centroid, sum_x / (VIO_Real) n_tag_points,
+                              sum_y / (VIO_Real) n_tag_points,
+                              sum_z / (VIO_Real) n_tag_points );
 
         if( sum_yy > 0.0 )
         {
@@ -343,7 +343,7 @@ int  main(
                 }
             }
 
-            print( "Angle: %4.0f to %4.0f,    Volume: %g\n",
+            print( "Angle: %4.0f to %4.0f,    VIO_Volume: %g\n",
                    angle, angle + angle_increment, volume );
 
             angle += angle_increment;
@@ -399,25 +399,25 @@ int  main(
     return( 0 );
 }
 
-private  void    find_plane(
-    Point      points[],
-    Vector     *normal )
+static  void    find_plane(
+    VIO_Point      points[],
+    VIO_Vector     *normal )
 {
-    Vector   v1, v2;
+    VIO_Vector   v1, v2;
 
     SUB_POINTS( v1, points[1], points[0] );
     SUB_POINTS( v2, points[2], points[0] );
     CROSS_VECTORS( *normal, v1, v2 );
 }
 
-private  void  get_xy_pos(
-    Vector  x_axis,
-    Vector  y_axis,
-    Real    x,
-    Real    y,
-    Point   *point )
+static  void  get_xy_pos(
+    VIO_Vector  x_axis,
+    VIO_Vector  y_axis,
+    VIO_Real    x,
+    VIO_Real    y,
+    VIO_Point   *point )
 {
-    Vector   x_offset, y_offset, v;
+    VIO_Vector   x_offset, y_offset, v;
 
     SCALE_VECTOR( x_offset, x_axis, x );
     SCALE_VECTOR( y_offset, y_axis, y );
@@ -425,15 +425,15 @@ private  void  get_xy_pos(
     CONVERT_VECTOR_TO_POINT( *point, v );
 }
 
-private  void  create_plane_from_points(
-    Point             points[],
-    Real              dist,
+static  void  create_plane_from_points(
+    VIO_Point             points[],
+    VIO_Real              dist,
     polygons_struct   *polygons )
 {
     int      i;
-    Vector   v1, v2, v3, offset, v;
-    Real     x_min, x_max, y_min, y_max, x, y, dx, dy;
-    Point    point;
+    VIO_Vector   v1, v2, v3, offset, v;
+    VIO_Real     x_min, x_max, y_min, y_max, x, y, dx, dy;
+    VIO_Point    point;
 
     SUB_POINTS( v1, points[1], points[0] );
     SUB_POINTS( v2, points[2], points[0] );
@@ -510,43 +510,43 @@ private  void  create_plane_from_points(
     }
 }
 
-private  Real  get_voxel_plane_volume(
-    Volume    volume,
-    Real      x,
-    Real      y,
-    Real      z,
+static  VIO_Real  get_voxel_plane_volume(
+    VIO_Volume    volume,
+    VIO_Real      x,
+    VIO_Real      y,
+    VIO_Real      z,
     int       n_planes,
-    Vector    normals[],
-    Real      constants[] )
+    VIO_Vector    normals[],
+    VIO_Real      constants[] )
 {
     int    i, j, axis, a1, a2, p;
-    Real   v[MAX_DIMENSIONS], voxel[MAX_DIMENSIONS];
-    Real   separations[MAX_DIMENSIONS];
-    Real   d1, d2;
-    Real   xw, yw, zw, vol, alpha, t_min, t_max;
-    Point  point;
+    VIO_Real   v[VIO_MAX_DIMENSIONS], voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real   separations[VIO_MAX_DIMENSIONS];
+    VIO_Real   d1, d2;
+    VIO_Real   xw, yw, zw, vol, alpha, t_min, t_max;
+    VIO_Point  point;
 
     get_volume_separations( volume, separations );
 
     convert_3D_world_to_voxel( volume, x, y, z,
                                 &voxel[0], &voxel[1], &voxel[2] );
 
-    voxel[0] = (Real) ROUND( voxel[0] );
-    voxel[1] = (Real) ROUND( voxel[1] );
-    voxel[2] = (Real) ROUND( voxel[2] );
+    voxel[0] = (VIO_Real) VIO_ROUND( voxel[0] );
+    voxel[1] = (VIO_Real) VIO_ROUND( voxel[1] );
+    voxel[2] = (VIO_Real) VIO_ROUND( voxel[2] );
 
     axis = X;
-    a1 = (axis + 1) % N_DIMENSIONS;
-    a2 = (axis + 2) % N_DIMENSIONS;
+    a1 = (axis + 1) % VIO_N_DIMENSIONS;
+    a2 = (axis + 2) % VIO_N_DIMENSIONS;
 
     vol = 0.0;
 
     for_less( i, 0, GRID )
     {
-        v[a1] = voxel[a1] + ((Real) i + 0.5) / (Real) GRID - 0.5;
+        v[a1] = voxel[a1] + ((VIO_Real) i + 0.5) / (VIO_Real) GRID - 0.5;
         for_less( j, 0, GRID )
         {
-            v[a2] = voxel[a2] + ((Real) j + 0.5) / (Real) GRID - 0.5;
+            v[a2] = voxel[a2] + ((VIO_Real) j + 0.5) / (VIO_Real) GRID - 0.5;
 
             t_min = 0.0;
             t_max = 1.0;
@@ -588,25 +588,25 @@ private  Real  get_voxel_plane_volume(
         }
     }
 
-    vol = (Real) vol / (Real) (GRID * GRID) *
+    vol = (VIO_Real) vol / (VIO_Real) (GRID * GRID) *
           separations[0] * separations[1] * separations[2];
 
     return( vol );
 }
 
-private  int  get_voxel_plane_status(
-    Volume    volume,
-    Real      x,
-    Real      y,
-    Real      z,
+static  int  get_voxel_plane_status(
+    VIO_Volume    volume,
+    VIO_Real      x,
+    VIO_Real      y,
+    VIO_Real      z,
     int       n_planes,
-    Vector    normals[],
-    Real      constants[] )
+    VIO_Vector    normals[],
+    VIO_Real      constants[] )
 {
     int    i;
-    Real   separations[MAX_DIMENSIONS];
-    Real   d, max_dist;
-    Point  point;
+    VIO_Real   separations[VIO_MAX_DIMENSIONS];
+    VIO_Real   d, max_dist;
+    VIO_Point  point;
 
     get_volume_separations( volume, separations );
 
@@ -629,13 +629,13 @@ private  int  get_voxel_plane_status(
     return( 1 );
 }
 
-private  void  create_segment_plane(
-    Point             *origin,
-    Vector            *normal,
-    Real              size,
+static  void  create_segment_plane(
+    VIO_Point             *origin,
+    VIO_Vector            *normal,
+    VIO_Real              size,
     polygons_struct   *polygons )
 {
-    Vector   v1, v2;
+    VIO_Vector   v1, v2;
 
     create_two_orthogonal_vectors( normal, &v1, &v2 );
 
@@ -680,19 +680,19 @@ private  void  create_segment_plane(
 }
 
 
-private  void   get_plane_normal(
-    Vector    *base_normal,
-    Real      angle,
-    Vector    *normal )
+static  void   get_plane_normal(
+    VIO_Vector    *base_normal,
+    VIO_Real      angle,
+    VIO_Vector    *normal )
 {
-    Real       x, y, z;
-    Transform  transform;
+    VIO_Real       x, y, z;
+    VIO_Transform  transform;
 
     make_rotation_transform( angle * DEG_TO_RAD, X, &transform );
     transform_vector( &transform,
-                      (Real) Vector_x(*base_normal),
-                      (Real) Vector_y(*base_normal),
-                      (Real) Vector_z(*base_normal),
+                      (VIO_Real) Vector_x(*base_normal),
+                      (VIO_Real) Vector_y(*base_normal),
+                      (VIO_Real) Vector_z(*base_normal),
                       &x, &y, &z );
     fill_Vector( *normal, x, y, z );
 

@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input1.mnc  min1 max1  input2.mnc  min2 max2 output.mnc\n\
 \n\
 \n\
@@ -18,12 +18,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume1_filename, volume2_filename, output_filename;
-    Real                 min1, max1, min2, max2, value1, value2;
-    Real                 neither, first_only, second_only, both, value;
+    VIO_STR               volume1_filename, volume2_filename, output_filename;
+    VIO_Real                 min1, max1, min2, max2, value1, value2;
+    VIO_Real                 neither, first_only, second_only, both, value;
     BOOLEAN              in_one, in_two;
     int                  v0, v1, v2, v3, v4;
-    Volume               volume1, volume2, output_volume;
+    VIO_Volume               volume1, volume2, output_volume;
 
     initialize_argument_processing( argc, argv );
 

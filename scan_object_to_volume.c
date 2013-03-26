@@ -5,13 +5,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, object_filename;
-    STRING               output_filename;
-    Volume               volume, label_volume;
-    File_formats         format;
+    VIO_STR               input_volume_filename, object_filename;
+    VIO_STR               output_filename;
+    VIO_Volume               volume, label_volume;
+    VIO_File_formats         format;
     int                  obj, n_objects, scan_value;
     object_struct        **objects;
-    Real                 max_distance;
+    VIO_Real                 max_distance;
 
     initialize_argument_processing( argc, argv );
 

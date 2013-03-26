@@ -2,16 +2,16 @@
 #include  <bicpl.h>
 #include  <special_geometry.h>
 
-private  void  create_2d_coordinates(
+static  void  create_2d_coordinates(
     polygons_struct  *polygons );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename;
+    VIO_STR               src_filename, dest_filename;
     int                  n_objects;
-    File_formats         format;
+    VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
 
@@ -38,9 +38,9 @@ int  main(
     return( 0 );
 }
 
-private  int  create_path_between_nodes(
+static  int  create_path_between_nodes(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
     int              start_point,
@@ -83,13 +83,13 @@ private  int  create_path_between_nodes(
     return( n_path );
 }
 
-private  void  compute_point_position(
-    Real   x1,
-    Real   dist02,
-    Real   dist12,
-    Point  *point )
+static  void  compute_point_position(
+    VIO_Real   x1,
+    VIO_Real   dist02,
+    VIO_Real   dist12,
+    VIO_Point  *point )
 {
-    Real  x, y, rem;
+    VIO_Real  x, y, rem;
 
     x = (x1 * x1 + dist02 * dist02 - dist12 * dist12) / (2.0 * x1);
     rem = dist02 * dist02 - x * x;
@@ -101,17 +101,17 @@ private  void  compute_point_position(
     fill_Point( *point, x, y, 0.0 );
 }
 
-private  void  create_2d_coordinates(
+static  void  create_2d_coordinates(
     polygons_struct  *polygons )
 {
     int                  point, *n_neighbours, **neighbours, origin, opposite;
     int                  *path, *vertices_in_path, n, path_index, p0, p1, p2;
     int                  current_point, n_points, start_point, vertex;
     int                  path_size;
-    Real                 axis_length, dist1, dist2;
+    VIO_Real                 axis_length, dist1, dist2;
     float                *distances_from_origin, *distances_from_opposite;
-    Smallest_int         *interior_flags;
-    progress_struct      progress;
+    VIO_SCHAR         *interior_flags;
+    VIO_progress_struct      progress;
     QUEUE_STRUCT( int )  queue;
 
     check_polygons_neighbours_computed( polygons );
@@ -217,12 +217,12 @@ private  void  create_2d_coordinates(
     initialize_progress_report( &progress, FALSE, polygons->n_points,
                                 "Computing Coords" );
 
-    axis_length = (Real) distances_from_origin[opposite];
+    axis_length = (VIO_Real) distances_from_origin[opposite];
 
     for_less( point, 0, polygons->n_points )
     {
-        dist1 = (Real) distances_from_origin[point];
-        dist2 = (Real) distances_from_opposite[point];
+        dist1 = (VIO_Real) distances_from_origin[point];
+        dist2 = (VIO_Real) distances_from_opposite[point];
 
         compute_point_position( axis_length, dist1, dist2,
                                 &polygons->points[point] );

@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  labels.mnc [min_value max_value]\n\
 \n\
      Displays a count of the number of voxels of the different labels in the\n\
@@ -16,25 +16,25 @@ Usage: %s  labels.mnc [min_value max_value]\n\
 typedef  struct
 {
     int   count;
-    Real  x_min;
-    Real  y_min;
-    Real  z_min;
-    Real  x_max;
-    Real  y_max;
-    Real  z_max;
+    VIO_Real  x_min;
+    VIO_Real  y_min;
+    VIO_Real  z_min;
+    VIO_Real  x_max;
+    VIO_Real  y_max;
+    VIO_Real  z_max;
 } label_info;
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename;
-    Real                 min_volume, max_volume, voxel[N_DIMENSIONS];
-    Real                 min_value, max_value, label, xw, yw, zw;
+    VIO_STR               volume_filename;
+    VIO_Real                 min_volume, max_volume, voxel[VIO_N_DIMENSIONS];
+    VIO_Real                 min_value, max_value, label, xw, yw, zw;
     int                  v0, v1, v2, v3, v4, n_labels, index;
     int                  i;
     label_info           *counts;
-    Volume               volume;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -54,7 +54,7 @@ int  main(
 
     get_volume_real_range( volume, &min_volume, &max_volume );
 
-    n_labels = ROUND( max_volume ) - ROUND( min_volume ) + 1;
+    n_labels = VIO_ROUND( max_volume ) - VIO_ROUND( min_volume ) + 1;
 
     ALLOC( counts, n_labels );
 
@@ -63,11 +63,11 @@ int  main(
 
     BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
         label = get_volume_real_value( volume, v0, v1, v2, v3, v4 );
-        index = ROUND(label) - ROUND(min_volume);
+        index = VIO_ROUND(label) - VIO_ROUND(min_volume);
 
-        voxel[0] = (Real) v0;
-        voxel[1] = (Real) v1;
-        voxel[2] = (Real) v2;
+        voxel[0] = (VIO_Real) v0;
+        voxel[1] = (VIO_Real) v1;
+        voxel[2] = (VIO_Real) v2;
         convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
 
         if( counts[index].count == 0 || xw < counts[index].x_min )
@@ -88,9 +88,9 @@ int  main(
         ++counts[index].count;
     END_ALL_VOXELS
 
-    for_inclusive( i, ROUND(min_volume), ROUND(max_volume) )
+    for_inclusive( i, VIO_ROUND(min_volume), VIO_ROUND(max_volume) )
     {
-        index = i-ROUND(min_volume);
+        index = i-VIO_ROUND(min_volume);
         if( i == 0 || counts[index].count == 0 )
             continue;
 

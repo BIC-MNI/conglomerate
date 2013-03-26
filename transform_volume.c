@@ -2,10 +2,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  input.xfm  output.mnc\n\
 \n\
      Changes the voxel_to_world transform by appending the input transform to\n\
@@ -20,9 +20,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename, output_filename, transform_filename;
-    Volume     volume;
-    General_transform   transform, new_transform;
+    VIO_STR     input_filename, output_filename, transform_filename;
+    VIO_Volume     volume;
+    VIO_General_transform   transform, new_transform;
 
     initialize_argument_processing( argc, argv );
 

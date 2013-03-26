@@ -5,16 +5,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, input_surface_filename;
-    STRING               output_volume_filename;
-    Real                 set_value, separations[MAX_DIMENSIONS];
+    VIO_STR               input_volume_filename, input_surface_filename;
+    VIO_STR               output_volume_filename;
+    Real                 set_value, separations[VIO_MAX_DIMENSIONS];
     Real                 min_value, max_value, value;
-    STRING               history;
-    File_formats         format;
-    Volume               volume, label_volume;
-    int                  x, y, z, n_objects, label, voxel[MAX_DIMENSIONS];
-    int                  sizes[MAX_DIMENSIONS];
-    int                  range_changed[2][N_DIMENSIONS];
+    VIO_STR               history;
+    VIO_File_formats         format;
+    VIO_Volume               volume, label_volume;
+    int                  x, y, z, n_objects, label, voxel[VIO_MAX_DIMENSIONS];
+    int                  sizes[VIO_MAX_DIMENSIONS];
+    int                  range_changed[2][VIO_N_DIMENSIONS];
     object_struct        **objects;
     BOOLEAN              set_value_specified;
 
@@ -42,7 +42,7 @@ int  main(
 
     label_volume = create_label_volume( volume, NC_BYTE );
 
-    STRING * original_dimnames = create_output_dim_names( volume, 
+    VIO_STR * original_dimnames = create_output_dim_names( volume, 
                                                           input_volume_filename,
                                                           NULL, sizes );
 

@@ -1,10 +1,10 @@
 #include <volume_io.h>
 #include <special_geometry.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  dest.msh|obj  src.mesh|obj  output.obj\n\
 \n\
      Sets the trimesh points to the given points.\n\n";
@@ -16,8 +16,8 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING             dest_mesh_filename, src_mesh_filename;
-    STRING             output_filename;
+    VIO_STR             dest_mesh_filename, src_mesh_filename;
+    VIO_STR             output_filename;
     object_struct      *object;
     tri_mesh_struct    src_mesh, dest_mesh;
 

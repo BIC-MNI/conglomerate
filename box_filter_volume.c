@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING   executable )
+static  void  usage(
+    VIO_STR   executable )
 {
-    STRING   usage_str = "\n\
+    VIO_STR   usage_str = "\n\
 Usage: %s input.mnc output.mnc x_width y_width z_width\n\
            [world|voxel] [byte]\n\
 \n\
@@ -19,15 +19,15 @@ int  main(
     char  *argv[] )
 {
     int        c;
-    Volume     volume, new_volume;
-    Status     status;
-    Real       voxel_filter_widths[N_DIMENSIONS];
-    Real       filter_widths[N_DIMENSIONS];
-    Real       separations[MAX_DIMENSIONS];
-    nc_type    data_type;
-    BOOLEAN    world_space, byte_flag;
-    STRING     input_filename, output_filename, history, dummy;
-    STRING     space_text;
+    VIO_Volume     volume, new_volume;
+    VIO_Status     status;
+    VIO_Real       voxel_filter_widths[VIO_N_DIMENSIONS];
+    VIO_Real       filter_widths[VIO_N_DIMENSIONS];
+    VIO_Real       separations[VIO_MAX_DIMENSIONS];
+    nc_type     data_type;
+    VIO_BOOL    world_space, byte_flag;
+    VIO_STR     input_filename, output_filename, history, dummy;
+    VIO_STR     space_text;
 
     initialize_argument_processing( argc, argv );
 
@@ -38,9 +38,9 @@ int  main(
         return( 1 );
     }
 
-    (void) get_real_argument( 3.0, &filter_widths[X] );
-    (void) get_real_argument( 3.0, &filter_widths[Y] );
-    (void) get_real_argument( 3.0, &filter_widths[Z] );
+    (void) get_real_argument( 3.0, &filter_widths[VIO_X] );
+    (void) get_real_argument( 3.0, &filter_widths[VIO_Y] );
+    (void) get_real_argument( 3.0, &filter_widths[VIO_Z] );
 
     world_space = get_string_argument( "", &space_text ) &&
                   equal_strings( space_text, "world" );
@@ -67,13 +67,13 @@ int  main(
                       NC_BYTE, FALSE, 0.0, 255.0,
                       TRUE, &volume, (minc_input_options *) NULL ) ;
 
-    if( status != OK )
+    if( status != VIO_OK )
         return( 1 );
 
 /*
     set_n_bytes_cache_threshold( save_threshold );
     set_default_max_bytes_in_cache( save_max_bytes );
-    for_less( dim, 0, MAX_DIMENSIONS )
+    for_less( dim, 0, VIO_MAX_DIMENSIONS )
         block_sizes[dim] = 8;
     set_default_cache_block_sizes( block_sizes );
 */
@@ -83,8 +83,8 @@ int  main(
     if( world_space )
     {
         get_volume_separations( volume, separations );
-        for_less( c, 0, N_DIMENSIONS )
-            voxel_filter_widths[c] /= FABS( separations[c] );
+        for_less( c, 0, VIO_N_DIMENSIONS )
+            voxel_filter_widths[c] /= VIO_FABS( separations[c] );
     }
 
     new_volume = create_box_filtered_volume( volume, data_type, FALSE,

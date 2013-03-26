@@ -1,10 +1,10 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  void  usage(
-    STRING  executable )
+static  void  usage(
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc output.mnc\n\
 \n\
      Interchanges voxel values with their left-right opposites, thereby\n\
@@ -17,10 +17,10 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Volume               volume;
-    Real                 voxel_left, voxel_right;
-    int                  x, y, z, sizes[N_DIMENSIONS];
+    VIO_STR               input_filename, output_filename;
+    VIO_Volume               volume;
+    VIO_Real                 voxel_left, voxel_right;
+    int                  x, y, z, sizes[VIO_N_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 

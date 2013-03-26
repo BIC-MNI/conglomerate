@@ -5,15 +5,15 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src_polygons_filename, dest_lines_filename;
-    STRING               axis_name;
-    File_formats         format;
+    VIO_STR               src_polygons_filename, dest_lines_filename;
+    VIO_STR               axis_name;
+    VIO_File_formats         format;
     int                  i, axis;
-    Point                plane_origin;
-    Vector               plane_normal;
-    Real                 position, nx, ny, nz, x, y, z;
+    VIO_Point                plane_origin;
+    VIO_Vector               plane_normal;
+    VIO_Real                 position, nx, ny, nz, x, y, z;
     int                  n_objects, n_dest_objects;
-    Colour               colour;
+    VIO_Colour               colour;
     object_struct        **objects, **dest_objects, *object;
 
     initialize_argument_processing( argc, argv );
@@ -55,8 +55,8 @@ int  main(
         fill_Point( plane_origin, 0.0, 0.0, 0.0 );
         fill_Vector( plane_normal, 0.0, 0.0, 0.0 );
 
-        Point_coord( plane_origin, axis ) = (Point_coord_type) position;
-        Vector_coord( plane_normal, axis ) = (Point_coord_type) 1.0;
+        Point_coord( plane_origin, axis ) = (VIO_Point_coord_type) position;
+        Vector_coord( plane_normal, axis ) = (VIO_Point_coord_type) 1.0;
     }
 
     if( input_graphics_file( src_polygons_filename,
