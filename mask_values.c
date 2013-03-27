@@ -33,8 +33,8 @@ int  main(
         return( 1 );
     }
 
-    if( input_texture_values( input1_filename, &n_values1, &values1 ) != OK ||
-        input_texture_values( input2_filename, &n_values2, &values2 ) != OK ||
+    if( input_texture_values( input1_filename, &n_values1, &values1 ) != VIO_OK ||
+        input_texture_values( input2_filename, &n_values2, &values2 ) != VIO_OK ||
         n_values1 != n_values2 )
     {
         print_error( "Error in values.\n" );

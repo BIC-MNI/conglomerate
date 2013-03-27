@@ -8,14 +8,14 @@ int  main(
     char   *argv[] )
 {
     FILE             *file;
-    STRING           input1_filename, input2_filename;
+    VIO_STR           input1_filename, input2_filename;
     int              i, n_objects, which, n_samples, obj_index, n_intersections;
     File_formats     format;
     object_struct    **object_list[2];
     polygons_struct  *polygons[2];
-    Point            point;
-    Vector           direction;
-    Real             avg, var, sum_x, sum_xx, dist, std_dev;
+    VIO_Point            point;
+    VIO_Vector           direction;
+    VIO_Real             avg, var, sum_x, sum_xx, dist, std_dev;
 
     initialize_argument_processing( argc, argv );
 
@@ -28,7 +28,7 @@ int  main(
     }
 
     if( input_graphics_file( input1_filename, &format, &n_objects,
-                             &object_list[0] ) != OK || n_objects != 1 ||
+                             &object_list[0] ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0][0]) != POLYGONS )
     {
         print_error( "Error reading %s.\n", input1_filename );
@@ -38,7 +38,7 @@ int  main(
     polygons[0] = get_polygons_ptr( object_list[0][0] );
 
     if( input_graphics_file( input2_filename, &format, &n_objects,
-                             &object_list[1] ) != OK || n_objects != 1 ||
+                             &object_list[1] ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[1][0]) != POLYGONS )
     {
         print_error( "Error reading %s.\n", input2_filename );
@@ -55,7 +55,7 @@ int  main(
     for_less( which, 0, 2 )
     {
         create_polygons_bintree( polygons[1-which],
-                                 ROUND( (Real) polygons[1-which]->n_items *
+                                 ROUND( (VIO_Real) polygons[1-which]->n_items *
                                         BINTREE_FACTOR ) );
 
         for_less( i, 0, polygons[which]->n_points )
@@ -85,8 +85,8 @@ int  main(
         delete_bintree_if_any( &polygons[1-which]->bintree );
     }
 
-    avg = sum_x / (Real) n_samples;
-    var = (sum_xx - sum_x * sum_x / (Real) n_samples) / (Real) (n_samples-1);
+    avg = sum_x / (VIO_Real) n_samples;
+    var = (sum_xx - sum_x * sum_x / (VIO_Real) n_samples) / (VIO_Real) (n_samples-1);
 
     if( var > 0.0 )
         std_dev = sqrt( var );

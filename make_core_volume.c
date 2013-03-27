@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    static  STRING  usage_str = "\n\
+    static  VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  output.mnc  xc yc zc coef\n\
 \n\n";
 
@@ -15,12 +15,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename;
-    STRING               output_filename;
+    VIO_STR               volume_filename;
+    VIO_STR               output_filename;
     int                  v0, v1, v2, v3, v4;
-    Real                 v[MAX_DIMENSIONS], xr, yr, zr;
-    Volume               volume;
-    Real                 xc, yc, zc, xw, yw, zw, d, coef, min_value, max_value;
+    VIO_Real                 v[MAX_DIMENSIONS], xr, yr, zr;
+    VIO_Volume               volume;
+    VIO_Real                 xc, yc, zc, xw, yw, zw, d, coef, min_value, max_value;
 
     initialize_argument_processing( argc, argv );
 
@@ -40,7 +40,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     min_value = 0.0;
@@ -49,9 +49,9 @@ int  main(
 
     BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
 
-        v[0] = (Real) v0;
-        v[1] = (Real) v1;
-        v[2] = (Real) v2;
+        v[0] = (VIO_Real) v0;
+        v[1] = (VIO_Real) v1;
+        v[2] = (VIO_Real) v2;
         convert_voxel_to_world( volume, v, &xw, &yw, &zw );
 
         d = (xw - xc) * (xw - xc) / xr / xr +

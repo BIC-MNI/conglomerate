@@ -10,7 +10,7 @@ int   main(
     char                  *output_prefix;
     char                  **input_filenames, *input_filename, *example_filename;
     char                  *dim_names_2d[3], *dim_names_3d[3];
-    BOOLEAN               this_is_tag_file, tag_files_present;
+    VIO_BOOL               this_is_tag_file, tag_files_present;
     int                   n_input_files, d, i, vol, x_dim, max_voxel, n_dims;
     int                   sizes_3d[3], sizes_2d[3];
     int                   v[5], n_slices, n_chunk_dims;
@@ -21,7 +21,7 @@ int   main(
     VIO_Volume                example_volume;
     VIO_Real                  **tags1, **tags2, voxel_pos[VIO_N_DIMENSIONS];
     VIO_Real                  fraction_done, value;
-    BOOLEAN               this_present, opposite_present;
+    VIO_BOOL               this_present, opposite_present;
     int                   ind;
     VIO_STR                *file_dim_names;
     VIO_STR                output_filename;
@@ -116,7 +116,7 @@ int   main(
         n_chunk_dims = 2;
 
     if( get_file_dimension_names( example_filename, &n_dims,
-                                  &file_dim_names ) != OK ||
+                                  &file_dim_names ) != VIO_OK ||
         n_dims != VIO_N_DIMENSIONS )
     {
         print_error( "Error reading dimension names from %s.\n",
@@ -143,7 +143,7 @@ int   main(
 
     if( start_volume_input( example_filename, VIO_N_DIMENSIONS, dim_names_3d,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE,
-                            &example_volume, NULL, &input_info ) != OK )
+                            &example_volume, NULL, &input_info ) != VIO_OK )
     {
         return( 1 );
     }
@@ -168,7 +168,7 @@ int   main(
 
     if( start_volume_input( example_filename, n_chunk_dims, dim_names_2d,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE,
-                            &input_volume, NULL, &input_info ) != OK )
+                            &input_volume, NULL, &input_info ) != VIO_OK )
     {
         return( 1 );
     }
@@ -221,7 +221,7 @@ int   main(
             return( 1 );
 
         if( copy_auxiliary_data_from_minc_file( output_files[i],
-                                                example_filename, "" ) != OK )
+                                                example_filename, "" ) != VIO_OK )
             return( 1 );
     }
 
@@ -259,15 +259,15 @@ int   main(
 
                     if( input_tag_file( input_filenames[vol], &n_tag_volumes,
                                         &n_tag_points, &tags1, &tags2,
-                                        NULL, NULL, NULL, NULL ) != OK )
+                                        NULL, NULL, NULL, NULL ) != VIO_OK )
                         return( 1 );
 
                     for_less( i, 0, n_tag_points )
                     {
                         convert_world_to_voxel( example_volume,
-                                                tags1[i][X],
-                                                tags1[i][Y],
-                                                tags1[i][Z],
+                                                tags1[i][VIO_X],
+                                                tags1[i][VIO_Y],
+                                                tags1[i][VIO_Z],
                                                 voxel_pos );
 
                         convert_real_to_int_voxel( VIO_N_DIMENSIONS, voxel_pos, v );
@@ -291,7 +291,7 @@ int   main(
                 if( start_volume_input( input_filenames[vol],
                                         n_chunk_dims, dim_names_2d,
                                         NC_UNSPECIFIED, FALSE, 0.0, 0.0, FALSE,
-                                        &input_volume, NULL, &input_info ) !=OK)
+                                        &input_volume, NULL, &input_info ) !=VIO_OK)
                 {
                     return( 1 );
                 }
@@ -360,7 +360,7 @@ int   main(
 
         for_less( i, 0, N_OUTPUT )
         {
-            if( output_minc_volume( output_files[i] ) != OK )
+            if( output_minc_volume( output_files[i] ) != VIO_OK )
                 return( 1 );
         }
 

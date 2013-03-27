@@ -1,8 +1,8 @@
 #include <volume_io.h>
 #include <bicpl.h>
 
-public  Status  get_image_file_size(
-    STRING         filename,
+public  VIO_Status  get_image_file_size(
+    VIO_STR         filename,
     int            *x_size,
     int            *y_size,
     int            *nc )
@@ -18,21 +18,21 @@ public  Status  get_image_file_size(
     {
         print_error( "Error opening file %s or finding command 'get_image_size.pl'\n",
                      filename );
-        return( ERROR );
+        return( VIO_ERROR );
     }
 
-    if( input_int( file, x_size ) != OK ||
-        input_int( file, y_size ) != OK ||
-        input_int( file, nc ) != OK )
-        return( ERROR );
+    if( input_int( file, x_size ) != VIO_OK ||
+        input_int( file, y_size ) != VIO_OK ||
+        input_int( file, nc ) != VIO_OK )
+        return( VIO_ERROR );
 
     pclose( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
-public  Status  read_image_file(
-    STRING         filename,
+public  VIO_Status  read_image_file(
+    VIO_STR         filename,
     pixels_struct  *pixels )
 {
     char           command[EXTREMELY_LARGE_STRING_SIZE+1];
@@ -41,8 +41,8 @@ public  Status  read_image_file(
     unsigned char  colour[4];
     Colour         col;
 
-    if( get_image_file_size( filename, &x_size, &y_size, &nc ) != OK )
-        return( ERROR );
+    if( get_image_file_size( filename, &x_size, &y_size, &nc ) != VIO_OK )
+        return( VIO_ERROR );
 
     /*---  create the image with the correct size */
 
@@ -59,7 +59,7 @@ public  Status  read_image_file(
     {
         print_error( "Error opening file %s or finding command 'convert'\n",
                      filename );
-        return( ERROR );
+        return( VIO_ERROR );
     }
 
     for_less( y, 0, y_size )
@@ -67,10 +67,10 @@ public  Status  read_image_file(
         for_less( x, 0, x_size )
         {
             if( io_binary_data( file, READ_FILE, colour, sizeof(colour[0]),
-                                nc ) != OK )
+                                nc ) != VIO_OK )
             {
                 print( "Error reading pixel[%d][%d]\n", x, y );
-                return( ERROR );
+                return( VIO_ERROR );
             }
 
             if( nc == 3 )
@@ -90,11 +90,11 @@ public  Status  read_image_file(
 
     pclose( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
-public  Status  write_image_file(
-    STRING         filename,
+public  VIO_Status  write_image_file(
+    VIO_STR         filename,
     pixels_struct  *pixels )
 {
     char           command[EXTREMELY_LARGE_STRING_SIZE+1];
@@ -122,7 +122,7 @@ public  Status  write_image_file(
     {
         print_error( "Error opening file %s or finding command 'convert'\n",
                      filename );
-        return( ERROR );
+        return( VIO_ERROR );
     }
 
     for_less( y, 0, y_size )
@@ -142,30 +142,30 @@ public  Status  write_image_file(
             colour[3] = (unsigned char) a;
 
 /*
-            colour[0] = (unsigned char) ((Real) r * (Real) a / 255.0 + 0.5);
-            colour[1] = (unsigned char) ((Real) g * (Real) a / 255.0 + 0.5);
-            colour[2] = (unsigned char) ((Real) b * (Real) a / 255.0 + 0.5);
+            colour[0] = (unsigned char) ((VIO_Real) r * (VIO_Real) a / 255.0 + 0.5);
+            colour[1] = (unsigned char) ((VIO_Real) g * (VIO_Real) a / 255.0 + 0.5);
+            colour[2] = (unsigned char) ((VIO_Real) b * (VIO_Real) a / 255.0 + 0.5);
 */
 
             if( io_binary_data( file, WRITE_FILE, colour, sizeof(colour[0]),
-                                4 ) != OK )
+                                4 ) != VIO_OK )
             {
                 print( "Error writing pixel[%d][%d]\n", x, y );
-                return( ERROR );
+                return( VIO_ERROR );
             }
         }
     }
 
     pclose( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING          input_filename, output_filename;
+    VIO_STR          input_filename, output_filename;
     pixels_struct   pixels;
 
     initialize_argument_processing( argc, argv );
@@ -177,13 +177,13 @@ int  main(
         return( 1 );
     }
 
-    if( read_image_file( input_filename, &pixels ) != OK )
+    if( read_image_file( input_filename, &pixels ) != VIO_OK )
     {
         print_error( "Error on input.\n" );
         return( 1 );
     }
 
-    if( write_image_file( output_filename, &pixels ) != OK )
+    if( write_image_file( output_filename, &pixels ) != VIO_OK )
     {
         print_error( "Error on output.\n" );
         return( 1 );

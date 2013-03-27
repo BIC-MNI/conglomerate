@@ -38,7 +38,7 @@ int  main(
     }
 
     if( input_graphics_file( polygons_filename, &format,
-                             &n_polygon_objects, &polygon_objects ) != OK ||
+                             &n_polygon_objects, &polygon_objects ) != VIO_OK ||
         n_polygon_objects < 1 ||
         get_object_type( polygon_objects[0] ) != POLYGONS )
         return( 1 );
@@ -57,7 +57,7 @@ int  main(
            get_string_argument( NULL, &output_filename ) )
     {
         if( input_graphics_file( input_filename,
-                                 &format, &n_objects, &objects ) != OK )
+                                 &format, &n_objects, &objects ) != VIO_OK )
             return( 1 );
 
         for_less( point, 0, polygons->n_points )
@@ -74,7 +74,7 @@ int  main(
         }
 
         if( output_texture_values( output_filename, BINARY_FORMAT,
-                                   polygons->n_points, vertex_values ) != OK )
+                                   polygons->n_points, vertex_values ) != VIO_OK )
             return( 1 );
 
         delete_object_list( n_objects, objects );

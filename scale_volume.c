@@ -5,12 +5,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename;
-    STRING               output_filename;
-    Real                 x1, y1, x2, y2, m, b, value_at_centre, centre;
-    Real                 value;
+    VIO_STR               volume_filename;
+    VIO_STR               output_filename;
+    VIO_Real                 x1, y1, x2, y2, m, b, value_at_centre, centre;
+    VIO_Real                 value;
     int                  v[MAX_DIMENSIONS], axis, sizes[MAX_DIMENSIONS];
-    Volume               volume;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -27,7 +27,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );

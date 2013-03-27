@@ -33,7 +33,7 @@ int  main(
     }
 
     if( input_volume_header_only( input_filename, 3, XYZ_dimension_names,
-                                  &volume, NULL ) != OK )
+                                  &volume, NULL ) != VIO_OK )
         return( 1 );
 
     labels = copy_volume_definition( volume, NC_BYTE, FALSE, 0.0, 255.0 );
@@ -41,9 +41,9 @@ int  main(
 
     get_volume_sizes( labels, sizes );
 
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    for_less( z, 0, sizes[Z] )
+    for_less( x, 0, sizes[VIO_X] )
+    for_less( y, 0, sizes[VIO_Y] )
+    for_less( z, 0, sizes[VIO_Z] )
     {
         set_volume_real_value( labels, x, y, z, 0, 0, 0.0 );
     }
@@ -56,10 +56,10 @@ int  main(
         hor = col % 10;
         vert = col / 10;
 
-        x_start = VIO_ROUND( (VIO_Real) hor / 10.0 * (VIO_Real) sizes[X] ) + 1;
-        x_end = VIO_ROUND( (VIO_Real) (hor+1) / 10.0 * (VIO_Real) sizes[X] ) - 1;
-        y_start = VIO_ROUND( (VIO_Real) vert / (VIO_Real) n_up * (VIO_Real) sizes[Y] ) + 1;
-        y_end = VIO_ROUND( (VIO_Real) (vert+1) / (VIO_Real) n_up * (VIO_Real) sizes[Y] ) - 1;
+        x_start = VIO_ROUND( (VIO_Real) hor / 10.0 * (VIO_Real) sizes[VIO_X] ) + 1;
+        x_end = VIO_ROUND( (VIO_Real) (hor+1) / 10.0 * (VIO_Real) sizes[VIO_X] ) - 1;
+        y_start = VIO_ROUND( (VIO_Real) vert / (VIO_Real) n_up * (VIO_Real) sizes[VIO_Y] ) + 1;
+        y_end = VIO_ROUND( (VIO_Real) (vert+1) / (VIO_Real) n_up * (VIO_Real) sizes[VIO_Y] ) - 1;
 
         for_inclusive( x, x_start, x_end )
         for_inclusive( y, y_start, y_end )

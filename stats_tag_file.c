@@ -38,7 +38,7 @@ int  main(
 
     if( input_objects_any_format( (VIO_Volume) NULL, filename,
                                   WHITE, 1.0, BOX_MARKER,
-                                  &n_objects, &object_list ) != OK )
+                                  &n_objects, &object_list ) != VIO_OK )
         return( 1 );
 
     (void) get_stats_for_one_file( n_objects, object_list,

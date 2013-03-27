@@ -43,7 +43,7 @@ static  void   fit_polygons(
     VIO_Real               max_outward,
     VIO_Real               max_inward,
     VIO_SCHAR       fit_this_node[],
-    BOOLEAN            floating_flag,
+    VIO_BOOL            floating_flag,
     int                oversample,
     VIO_Real               max_step,
     int                n_iters,
@@ -52,7 +52,7 @@ static  void   fit_polygons(
 static  void  usage(
     char   executable_name[] )
 {
-    STRING  usage_format = "\
+    VIO_STR  usage_format = "\
 Usage:     %s  input.obj output.obj model.obj model_weight centroid_weight \n\
                   volume.mnc threshold +|-|0  tangent_weight out_dist in_dist\n\
                   float/nofloat oversample\n\
@@ -66,9 +66,9 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               input_filename, output_filename, model_filename;
-    STRING               surface_direction, volume_filename, floating_string;
-    STRING               values_filename;
+    VIO_STR               input_filename, output_filename, model_filename;
+    VIO_STR               surface_direction, volume_filename, floating_string;
+    VIO_STR               values_filename;
     FILE                 *file;
     int                  i, n_objects, n_m_objects;
     int                  n_iters, n_iters_recompute, n_points;
@@ -82,7 +82,7 @@ int  main(
     VIO_Real                 max_outward, max_inward, tangent_weight;
     VIO_SCHAR         *fit_this_node;
     VIO_Real                 min_value, max_value, value, max_step;
-    BOOLEAN              floating_flag;
+    VIO_BOOL              floating_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -114,7 +114,7 @@ int  main(
     floating_flag = equal_strings( floating_string, "float" );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -127,7 +127,7 @@ int  main(
     delete_object_list( n_objects, object_list );
 
     if( input_graphics_file( model_filename, &format, &n_m_objects,
-                             &m_object_list ) != OK || n_m_objects != 1 ||
+                             &m_object_list ) != VIO_OK || n_m_objects != 1 ||
         get_object_type(m_object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -138,18 +138,18 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     if( values_filename != NULL )
     {
         ALLOC( fit_this_node, n_points );
-        if( open_file( values_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( values_filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
         for_less( i, 0, n_points )
         {
-            if( input_real( file, &value ) != OK )
+            if( input_real( file, &value ) != VIO_OK )
             {
                 print_error( "Error reading values.\n" );
                 return( 1 );
@@ -172,7 +172,7 @@ int  main(
                   n_iters, n_iters_recompute );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -241,7 +241,7 @@ static  void  create_model_coefficients(
     int              node, eq, dim, dim1, n, ind;
     VIO_Real             *x_flat, *y_flat, *z_flat, con;
     int              *neigh_indices, n_nn, max_neighbours;
-    BOOLEAN          ignoring;
+    VIO_BOOL          ignoring;
     VIO_Real             *weights[VIO_N_DIMENSIONS][VIO_N_DIMENSIONS];
     VIO_progress_struct  progress;
 
@@ -326,7 +326,7 @@ static  void  create_model_coefficients(
             ALLOC( node_weights[eq], n_parms_involved[eq] );
 
             ind = 0;
-            parm_list[eq][ind] = IJ(to_parameter[node],dim,3);
+            parm_list[eq][ind] = VIO_IJ(to_parameter[node],dim,3);
             node_weights[eq][ind] = (ftype) 1.0;
             ++ind;
 
@@ -338,7 +338,7 @@ static  void  create_model_coefficients(
                 {
                     if( to_parameter[neigh_indices[n]] >= 0 )
                     {
-                        parm_list[eq][ind] = IJ(to_parameter[neigh_indices[n]],
+                        parm_list[eq][ind] = VIO_IJ(to_parameter[neigh_indices[n]],
                                                 dim1,3);
                         node_weights[eq][ind] = (ftype) -weights[dim][dim1][n];
                         ++ind;
@@ -371,7 +371,7 @@ static  void  create_model_coefficients(
     FREE( z_flat );
 }
 
-static  BOOLEAN  this_is_unique_edge(
+static  VIO_BOOL  this_is_unique_edge(
     int              node,
     int              neigh,
     int              n_neighbours[],
@@ -424,7 +424,7 @@ static  void  create_centroid_coefficients(
             ALLOC( parm_list[eq], n_parms_involved[eq] );
             ind = 0;
             node_weights[eq][ind] = (ftype) 1.0;
-            parm_list[eq][ind] = IJ(to_parameter[node],dim,3);
+            parm_list[eq][ind] = VIO_IJ(to_parameter[node],dim,3);
             ++ind;
             for_less( n, 0, n_neighbours[node] )
             {
@@ -434,7 +434,7 @@ static  void  create_centroid_coefficients(
                 {
                     node_weights[eq][ind] = (ftype) (-1.0 /
                                       (VIO_Real) n_neighbours[node]);
-                    parm_list[eq][ind] = IJ(neigh_parm_index,dim,3);
+                    parm_list[eq][ind] = VIO_IJ(neigh_parm_index,dim,3);
                     ++ind;
                 }
                 else
@@ -462,7 +462,7 @@ static  void  create_image_coefficients(
     VIO_Real                        tangent_weight,
     VIO_Real                        max_outward,
     VIO_Real                        max_inward,
-    BOOLEAN                     floating_flag,
+    VIO_BOOL                     floating_flag,
     int                         oversample,
     int                         n_nodes,
     int                         n_neighbours[],
@@ -510,9 +510,9 @@ static  void  create_image_coefficients(
             if( neigh_parm_index >= 0 )
             {
                 fill_Point( neigh_points[n],
-                            parameters[IJ(neigh_parm_index,X,3)],
-                            parameters[IJ(neigh_parm_index,Y,3)],
-                            parameters[IJ(neigh_parm_index,Z,3)] );
+                            parameters[VIO_IJ(neigh_parm_index,VIO_X,3)],
+                            parameters[VIO_IJ(neigh_parm_index,VIO_Y,3)],
+                            parameters[VIO_IJ(neigh_parm_index,VIO_Z,3)] );
             }
             else
                 neigh_points[n] = surface_points[neigh];
@@ -521,9 +521,9 @@ static  void  create_image_coefficients(
         find_polygon_normal( n_neighbours[node], neigh_points, &normal );
 
         fill_Point( origin,
-                    parameters[IJ(parm_index,X,3)],
-                    parameters[IJ(parm_index,Y,3)],
-                    parameters[IJ(parm_index,Z,3)] );
+                    parameters[VIO_IJ(parm_index,VIO_X,3)],
+                    parameters[VIO_IJ(parm_index,VIO_Y,3)],
+                    parameters[VIO_IJ(parm_index,VIO_Z,3)] );
 
         if( !find_boundary_in_direction( volume, NULL, voxel_lookup,
                                          done_bits, surface_bits,
@@ -558,7 +558,7 @@ static  void  create_image_coefficients(
         {
             for_less( dim, 0, VIO_N_DIMENSIONS )
             {
-                indices[0] = IJ(parm_index,dim,3);
+                indices[0] = VIO_IJ(parm_index,dim,3);
                 node_weights[0] = weight;
                 cons = -weight * RPoint_coord( p, dim );
                 ADD_TO_LSQ( n_parameters, constant, linear_terms, square_terms,
@@ -604,9 +604,9 @@ static  void  create_image_coefficients(
                 node_weights[0] = vector_weights[v] * RVector_x(vectors[v]);
                 node_weights[1] = vector_weights[v] * RVector_y(vectors[v]);
                 node_weights[2] = vector_weights[v] * RVector_z(vectors[v]);
-                indices[0] = IJ( parm_index, 0, 3 );
-                indices[1] = IJ( parm_index, 1, 3 );
-                indices[2] = IJ( parm_index, 2, 3 );
+                indices[0] = VIO_IJ( parm_index, 0, 3 );
+                indices[1] = VIO_IJ( parm_index, 1, 3 );
+                indices[2] = VIO_IJ( parm_index, 2, 3 );
 
                 ADD_TO_LSQ( n_parameters, constant, linear_terms,
                             square_terms, n_cross_terms, cross_parms,
@@ -639,9 +639,9 @@ static  void  create_image_coefficients(
             if( neigh_parm_index >= 0 )
             {
                 fill_Point( neigh_points[n],
-                            parameters[IJ(neigh_parm_index,X,3)],
-                            parameters[IJ(neigh_parm_index,Y,3)],
-                            parameters[IJ(neigh_parm_index,Z,3)] );
+                            parameters[VIO_IJ(neigh_parm_index,VIO_X,3)],
+                            parameters[VIO_IJ(neigh_parm_index,VIO_Y,3)],
+                            parameters[VIO_IJ(neigh_parm_index,VIO_Z,3)] );
             }
             else
                 neigh_points[n] = surface_points[neigh];
@@ -666,9 +666,9 @@ static  void  create_image_coefficients(
                 if( neigh_parm_index >= 0 )
                 {
                     fill_Point( neigh_points[n2],
-                                parameters[IJ(neigh_parm_index,X,3)],
-                                parameters[IJ(neigh_parm_index,Y,3)],
-                                parameters[IJ(neigh_parm_index,Z,3)] );
+                                parameters[VIO_IJ(neigh_parm_index,VIO_X,3)],
+                                parameters[VIO_IJ(neigh_parm_index,VIO_Y,3)],
+                                parameters[VIO_IJ(neigh_parm_index,VIO_Z,3)] );
                 }
                 else
                     neigh_points[n2] = surface_points[neigh2];
@@ -688,8 +688,8 @@ static  void  create_image_coefficients(
                 CROSS_VECTORS( vert, perp, point_normal );
                 x = DOT_VECTORS( neigh_normal, point_normal );
                 y = DOT_VECTORS( neigh_normal, vert );
-                angle = 2.0 * PI - compute_clockwise_rotation( x, y );
-                if( angle < 0.0 || angle > PI )
+                angle = 2.0 * M_PI - compute_clockwise_rotation( x, y );
+                if( angle < 0.0 || angle > M_PI )
                     handle_internal_error( "angle < 0.0 || 180.0" );
             }
 
@@ -698,9 +698,9 @@ static  void  create_image_coefficients(
             if( parm_index >= 0 )
             {
                 fill_Point( p1,
-                            parameters[IJ(parm_index,X,3)],
-                            parameters[IJ(parm_index,Y,3)],
-                            parameters[IJ(parm_index,Z,3)] );
+                            parameters[VIO_IJ(parm_index,VIO_X,3)],
+                            parameters[VIO_IJ(parm_index,VIO_Y,3)],
+                            parameters[VIO_IJ(parm_index,VIO_Z,3)] );
                 ++n_involved;
             }
             else
@@ -710,9 +710,9 @@ static  void  create_image_coefficients(
             if( neigh_parm_index >= 0 )
             {
                 fill_Point( p2,
-                            parameters[IJ(neigh_parm_index,X,3)],
-                            parameters[IJ(neigh_parm_index,Y,3)],
-                            parameters[IJ(neigh_parm_index,Z,3)] );
+                            parameters[VIO_IJ(neigh_parm_index,VIO_X,3)],
+                            parameters[VIO_IJ(neigh_parm_index,VIO_Y,3)],
+                            parameters[VIO_IJ(neigh_parm_index,VIO_Z,3)] );
                 ++n_involved;
             }
             else
@@ -787,7 +787,7 @@ static  void  create_image_coefficients(
                         if( parm_index >= 0 )
                         {
                             node_weights[inv_index] = weight * (1.0 - alpha);
-                            indices[inv_index] = IJ(parm_index,dim,3);
+                            indices[inv_index] = VIO_IJ(parm_index,dim,3);
                             ++inv_index;
                         }
                         else
@@ -797,7 +797,7 @@ static  void  create_image_coefficients(
                         if( neigh_parm_index >= 0 )
                         {
                             node_weights[inv_index] = weight * alpha;
-                            indices[inv_index] = IJ(neigh_parm_index,dim,3);
+                            indices[inv_index] = VIO_IJ(neigh_parm_index,dim,3);
                             ++inv_index;
                         }
                         else
@@ -855,9 +855,9 @@ static  void  create_image_coefficients(
                                               * RVector_y(vectors[v]);
                             node_weights[2] = vector_weights[v] * (1.0 - alpha)
                                               * RVector_z(vectors[v]);
-                            indices[0] = IJ( parm_index, 0, 3 );
-                            indices[1] = IJ( parm_index, 1, 3 );
-                            indices[2] = IJ( parm_index, 2, 3 );
+                            indices[0] = VIO_IJ( parm_index, 0, 3 );
+                            indices[1] = VIO_IJ( parm_index, 1, 3 );
+                            indices[2] = VIO_IJ( parm_index, 2, 3 );
                             inv_index += 3;
                         }
                         else
@@ -872,9 +872,9 @@ static  void  create_image_coefficients(
                                                alpha * RVector_y(vectors[v]);
                             node_weights[inv_index+2] = vector_weights[v] *
                                                alpha * RVector_z(vectors[v]);
-                            indices[inv_index+0] = IJ( neigh_parm_index, 0, 3 );
-                            indices[inv_index+1] = IJ( neigh_parm_index, 1, 3 );
-                            indices[inv_index+2] = IJ( neigh_parm_index, 2, 3 );
+                            indices[inv_index+0] = VIO_IJ( neigh_parm_index, 0, 3 );
+                            indices[inv_index+1] = VIO_IJ( neigh_parm_index, 1, 3 );
+                            indices[inv_index+2] = VIO_IJ( neigh_parm_index, 2, 3 );
                             inv_index += 3;
                         }
                         else
@@ -915,7 +915,7 @@ static  void   fit_polygons(
     VIO_Real               max_outward,
     VIO_Real               max_inward,
     VIO_SCHAR       fit_this_node[],
-    BOOLEAN            floating_flag,
+    VIO_BOOL            floating_flag,
     int                oversample,
     VIO_Real               max_step,
     int                n_iters,
@@ -1038,9 +1038,9 @@ static  void   fit_polygons(
         parm_index = to_parameter[point];
         if( parm_index >= 0 )
         {
-            parameters[IJ(parm_index,X,3)] = RPoint_x(surface_points[point]);
-            parameters[IJ(parm_index,Y,3)] = RPoint_y(surface_points[point]);
-            parameters[IJ(parm_index,Z,3)] = RPoint_z(surface_points[point]);
+            parameters[VIO_IJ(parm_index,VIO_X,3)] = RPoint_x(surface_points[point]);
+            parameters[VIO_IJ(parm_index,VIO_Y,3)] = RPoint_y(surface_points[point]);
+            parameters[VIO_IJ(parm_index,VIO_Z,3)] = RPoint_z(surface_points[point]);
         }
     }
 
@@ -1052,8 +1052,8 @@ static  void   fit_polygons(
 
     if( done_bits_ptr != NULL )
     {
-        create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &done_bits );
-        create_bitlist_3d( sizes[X], sizes[Y], sizes[Z], &surface_bits );
+        create_bitlist_3d( sizes[VIO_X], sizes[VIO_Y], sizes[VIO_Z], &done_bits );
+        create_bitlist_3d( sizes[VIO_X], sizes[VIO_Y], sizes[VIO_Z], &surface_bits );
     }
 
     ALLOC( weights, n_parameters );
@@ -1120,9 +1120,9 @@ static  void   fit_polygons(
         if( parm_index >= 0 )
         {
             fill_Point( surface_points[point],
-                        parameters[IJ(parm_index,X,3)],
-                        parameters[IJ(parm_index,Y,3)],
-                        parameters[IJ(parm_index,Z,3)] )
+                        parameters[VIO_IJ(parm_index,VIO_X,3)],
+                        parameters[VIO_IJ(parm_index,VIO_Y,3)],
+                        parameters[VIO_IJ(parm_index,VIO_Z,3)] )
         }
     }
 

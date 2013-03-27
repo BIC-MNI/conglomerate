@@ -16,13 +16,13 @@ private  void  usage(
 #define  Z_PLANE   55.0
 
 private  void  create_gradient_lines(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
-    Real            gradient_threshold,
-    BOOLEAN         deriv2_present,
-    Real            deriv2_threshold,
+    VIO_Real            gradient_threshold,
+    VIO_BOOL         deriv2_present,
+    VIO_Real            deriv2_threshold,
     int             continuity,
     lines_struct    *lines );
 
@@ -30,15 +30,15 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    BOOLEAN              value_range_present;
-    Status               status;
+    VIO_BOOL              value_range_present;
+    VIO_Status               status;
     int                  min_value, max_value, continuity;
-    Real                 gradient_threshold, deriv2_threshold;
-    BOOLEAN              deriv2_present;
+    VIO_Real                 gradient_threshold, deriv2_threshold;
+    VIO_BOOL              deriv2_present;
     char                 *input_filename;
     char                 *output_filename;
-    Volume               volume;
-    static STRING        dim_names[] = { MIxspace, MIyspace, MIzspace };
+    VIO_Volume               volume;
+    static VIO_STR        dim_names[] = { MIxspace, MIyspace, MIzspace };
     object_struct        *object;
 
     initialize_argument_processing( argc, argv );
@@ -61,7 +61,7 @@ int  main(
 
     /* read the input volume */
 
-    if( input_volume( input_filename, dim_names, &volume ) != OK )
+    if( input_volume( input_filename, dim_names, &volume ) != VIO_OK )
         return( 1 );
 
     object = create_object( LINES );
@@ -74,29 +74,29 @@ int  main(
     status = output_graphics_file( output_filename, BINARY_FORMAT,
                                    1, &object );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  create_gradient_lines(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
-    Real            gradient_threshold,
-    BOOLEAN         deriv2_present,
-    Real            deriv2_threshold,
+    VIO_Real            gradient_threshold,
+    VIO_BOOL         deriv2_present,
+    VIO_Real            deriv2_threshold,
     int             continuity,
     lines_struct    *lines )
 {
-    BOOLEAN          within_range, add_point;
+    VIO_BOOL          within_range, add_point;
     int              x, y, sizes[N_DIMENSIONS];
-    Real             dx, dy, dz, value, dot_product, prev_dot_product;
-    Real             dxx, dxy, dxz, dyy, dyz, dzz;
-    Real             grad, new_grad;
-    Real             x_world, y_world, z_world;
-    Real             grad_mag, prev_grad, dgx, dgy, dgz, mag_deriv2;
-    Real             *dxx_ptr;
-    Point            point;
+    VIO_Real             dx, dy, dz, value, dot_product, prev_dot_product;
+    VIO_Real             dxx, dxy, dxz, dyy, dyz, dzz;
+    VIO_Real             grad, new_grad;
+    VIO_Real             x_world, y_world, z_world;
+    VIO_Real             grad_mag, prev_grad, dgx, dgy, dgz, mag_deriv2;
+    VIO_Real             *dxx_ptr;
+    VIO_Point            point;
     progress_struct  progress;
 
     initialize_lines( lines, WHITE );
@@ -107,7 +107,7 @@ private  void  create_gradient_lines(
     if( deriv2_present )
         dxx_ptr = &dxx;
     else
-        dxx_ptr = (Real *) NULL;
+        dxx_ptr = (VIO_Real *) NULL;
 
     get_volume_sizes( volume, sizes );
     grad = 0.0;
@@ -116,10 +116,10 @@ private  void  create_gradient_lines(
 
     for_less( x, 0, X_SIZE )
     {
-        x_world = X_MIN + (X_MAX - X_MIN) * (Real) x / (Real) (X_SIZE-1);
+        x_world = X_MIN + (X_MAX - X_MIN) * (VIO_Real) x / (VIO_Real) (X_SIZE-1);
         for_less( y, 0, Y_SIZE )
         {
-            y_world = Y_MIN + (Y_MAX - Y_MIN) * (Real) y / (Real) (Y_SIZE-1);
+            y_world = Y_MIN + (Y_MAX - Y_MIN) * (VIO_Real) y / (VIO_Real) (Y_SIZE-1);
             z_world = Z_PLANE;
 
             (void) evaluate_volume_in_world( volume,

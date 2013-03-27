@@ -9,7 +9,7 @@ int  main(
     char                 **labels;
     int                  i;
     int                  n_volumes, n_tag_points;
-    Real                 **tags_volume1, **tags_volume2, *weights;
+    VIO_Real                 **tags_volume1, **tags_volume2, *weights;
     int                  *structure_ids, *patient_ids;
 
     initialize_argument_processing( argc, argv );
@@ -24,7 +24,7 @@ int  main(
     if( input_tag_file( input_tags, &n_volumes, &n_tag_points,
 
                         &tags_volume1, &tags_volume2, &weights,
-                        &structure_ids, &patient_ids, &labels ) != OK )
+                        &structure_ids, &patient_ids, &labels ) != VIO_OK )
         return( 1 );
 
     (void) output_tag_file( output_tags, (char *) NULL,

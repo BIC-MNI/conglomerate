@@ -18,7 +18,7 @@ int  main(
     int            n_slices, n_components;
     pixels_struct  *pixels;
     nc_type        vol_type;
-    BOOLEAN        two_d_allowed;
+    VIO_BOOL        two_d_allowed;
 
     initialize_argument_processing( argc, argv );
 
@@ -54,7 +54,7 @@ int  main(
     {
         SET_ARRAY_SIZE( pixels, n_slices, n_slices+1, DEFAULT_CHUNK_SIZE );
 
-        if( input_rgb_file( input_filename, &pixels[n_slices] ) != OK )
+        if( input_rgb_file( input_filename, &pixels[n_slices] ) != VIO_OK )
             return( 1 );
 
         ++n_slices;

@@ -28,7 +28,7 @@ int  main(
     object_struct        **objects;
     VIO_Volume               volume;
     VIO_Real                 x_pos, y_height, pos, min_pos, max_pos;
-    BOOLEAN              put_x_pos;
+    VIO_BOOL              put_x_pos;
 
     initialize_argument_processing( argc, argv );
 
@@ -48,11 +48,11 @@ int  main(
     put_x_pos = get_real_argument( 0.0, &x_pos );
 
     if( axis_name[0] == 'x' || axis_name[0] == 'X' )
-        axis = X;
+        axis = VIO_X;
     else if( axis_name[0] == 'y' || axis_name[0] == 'Y' )
-        axis = Y;
+        axis = VIO_Y;
     else if( axis_name[0] == 'z' || axis_name[0] == 'Z' )
-        axis = Z;
+        axis = VIO_Z;
     else
         axis = -1;
 
@@ -62,7 +62,7 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -77,12 +77,12 @@ int  main(
 
     initialize_histogram( &histogram, delta, min_value - scale/2.0 );
 
-    start[X] = 0;
-    end[X] = sizes[X];
-    start[Y] = 0;
-    end[Y] = sizes[Y];
-    start[Z] = 0;
-    end[Z] = sizes[Z];
+    start[VIO_X] = 0;
+    end[VIO_X] = sizes[VIO_X];
+    start[VIO_Y] = 0;
+    end[VIO_Y] = sizes[VIO_Y];
+    start[VIO_Z] = 0;
+    end[VIO_Z] = sizes[VIO_Z];
 
     if( axis >= 0 && axis < VIO_N_DIMENSIONS )
     {
@@ -106,11 +106,11 @@ int  main(
         }
     }
 
-    for_less( x, start[X], end[X] )
+    for_less( x, start[VIO_X], end[VIO_X] )
     {
-        for_less( y, start[Y], end[Y] )
+        for_less( y, start[VIO_Y], end[VIO_Y] )
         {
-            for_less( z, start[Z], end[Z] )
+            for_less( z, start[VIO_Z], end[VIO_Z] )
             {
                 value = get_volume_real_value( volume, x, y, z, 0, 0 );
                 add_to_histogram( &histogram, value );

@@ -16,8 +16,8 @@ int  main(
     int                v[VIO_MAX_DIMENSIONS], i, int_value;
     int                n_dims, sizes[VIO_MAX_DIMENSIONS], dim;
     VIO_STR             *dim_names, *dim_names_rgb;
-    Real               value;
-    Real               separations[VIO_MAX_DIMENSIONS];
+    VIO_Real               value;
+    VIO_Real               separations[VIO_MAX_DIMENSIONS];
     VIO_Colour             colour, *label_map;
     VIO_General_transform  transform;
     int                n_colour_comps, n_colours;
@@ -34,10 +34,10 @@ int  main(
 
     if( input_volume( input_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
-    if( load_colour_map( colour_map_filename, &n_colours, &label_map ) != OK )
+    if( load_colour_map( colour_map_filename, &n_colours, &label_map ) != VIO_OK )
         return( 1 );
 
     n_colour_comps = 3;
@@ -127,20 +127,20 @@ static  VIO_Status  load_colour_map(
     int      index, i;
 
     if( open_file_with_default_suffix( filename, "map",
-                                       READ_FILE, ASCII_FORMAT, &file ) != OK )
-        return( ERROR );
+                                       READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
+        return( VIO_ERROR );
 
     *n_colours = 0;
     *colours = NULL;
 
-    status = OK;
+    status = VIO_OK;
 
-    while( input_int( file, &index ) == OK )
+    while( input_int( file, &index ) == VIO_OK )
     {
-        if( input_line( file, &line ) != OK )
+        if( input_line( file, &line ) != VIO_OK )
         {
             print_error( "Error loading labels colour map.\n" );
-            status = ERROR;
+            status = VIO_ERROR;
             break;
         }
 

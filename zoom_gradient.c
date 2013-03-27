@@ -17,9 +17,9 @@ private  void  usage(
     print( "Usage: %s  input_filename  output_prefix\n", executable_name );
 }
 
-private  Volume  create_gradient_volume(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+private  VIO_Volume  create_gradient_volume(
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
     Real            scaling );
@@ -28,13 +28,13 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    BOOLEAN              value_range_present;
+    VIO_BOOL              value_range_present;
     int                  min_value, max_value;
     Real                 scaling;
     char                 *input_filename;
     char                 *output_prefix;
     int                  axis_index[3] = { Z, Y, X };
-    Volume               volume, gradient_volume;
+    VIO_Volume               volume, gradient_volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -54,7 +54,7 @@ int  main(
 
     /* read the input volume */
 
-    if( input_volume( input_filename, &volume ) != OK )
+    if( input_volume( input_filename, &volume ) != VIO_OK )
         return( 1 );
 
     /* create the gradient volume */
@@ -69,14 +69,14 @@ int  main(
     return( 0 );
 }
 
-private  Volume  create_gradient_volume(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+private  VIO_Volume  create_gradient_volume(
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
     Real            scaling )
 {
-    BOOLEAN          within_range;
+    VIO_BOOL          within_range;
     int              sizes[N_DIMENSIONS], gradient_sizes[N_DIMENSIONS];
     Real             thickness[N_DIMENSIONS];
     Real             value;
@@ -90,7 +90,7 @@ private  Volume  create_gradient_volume(
     get_volume_sizes( volume, sizes );
     get_volume_separations( volume, thickness );
 
-    gradient_volume = create_volume( 3, (STRING *) NULL, volume->nc_data_type,
+    gradient_volume = create_volume( 3, (VIO_STR *) NULL, volume->nc_data_type,
                                      volume->signed_flag, 0.0, 0.0 );
 
     gradient_sizes[X] = NX;
@@ -108,13 +108,13 @@ private  Volume  create_gradient_volume(
 
     for_less( x, 0, NX )
     {
-        xv = INTERPOLATE( ((Real) x + 0.5) / (Real) NX, X_MIN, X_MAX );
+        xv = VIO_INTERPOLATE( ((Real) x + 0.5) / (Real) NX, X_MIN, X_MAX );
         for_less( y, 0, NY )
         {
-            yv = INTERPOLATE( ((Real) y + 0.5) / (Real) NY, Y_MIN, Y_MAX );
+            yv = VIO_INTERPOLATE( ((Real) y + 0.5) / (Real) NY, Y_MIN, Y_MAX );
             for_less( z, 0, NZ )
             {
-                zv = INTERPOLATE( ((Real) z + 0.5) / (Real) NZ, Z_MIN, Z_MAX );
+                zv = VIO_INTERPOLATE( ((Real) z + 0.5) / (Real) NZ, Z_MIN, Z_MAX );
 
                 (void) evaluate_volume( volume, xv, yv, zv, TRUE,
                                          &value, &dx, &dy, &dz );

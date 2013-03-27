@@ -10,15 +10,15 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     int                  sizes1[MAX_DIMENSIONS], sizes2[MAX_DIMENSIONS];
     int                  x, y, z, right_x;
-    Real                 left_value, right_value, min_value1, max_value1;
-    Real                 min_value2, max_value2;
-    Real                 new_min, new_max, value;
+    VIO_Real                 left_value, right_value, min_value1, max_value1;
+    VIO_Real                 min_value2, max_value2;
+    VIO_Real                 new_min, new_max, value;
     char                 *input_filename1, *input_filename2;
     char                 *output_filename;
-    Volume               volume1, volume2, new_volume;
+    VIO_Volume               volume1, volume2, new_volume;
     progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
@@ -39,13 +39,13 @@ int  main(
     /* read the input volume */
 
     if( input_volume( input_filename1, 3, XYZ_dimension_names, NC_UNSPECIFIED, FALSE,
-                    0.0, 0.0, TRUE, &volume1, (minc_input_options *) 0 ) != OK )
+                    0.0, 0.0, TRUE, &volume1, (minc_input_options *) 0 ) != VIO_OK )
         return( 1 );
 
     if( input_filename2 != (char *) NULL )
     {
         if( input_volume( input_filename2, 3, XYZ_dimension_names, NC_UNSPECIFIED, FALSE,
-                    0.0, 0.0, TRUE, &volume2, (minc_input_options *) 0 ) != OK )
+                    0.0, 0.0, TRUE, &volume2, (minc_input_options *) 0 ) != VIO_OK )
         return( 1 );
     }
     else
@@ -111,8 +111,8 @@ int  main(
                             new_volume, "left-minus-right",
                             (minc_output_options *) NULL );
 
-    if( status != OK )
+    if( status != VIO_OK )
         print( "Unsuccessful.\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

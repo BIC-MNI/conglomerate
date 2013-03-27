@@ -8,13 +8,13 @@ int  main(
     char   *argv[] )
 {
     FILE             *file;
-    STRING           input1_filename, input2_filename, output_filename;
+    VIO_STR           input1_filename, input2_filename, output_filename;
     int              i, n_objects, which;
     File_formats     format;
     object_struct    **object_list[2];
     polygons_struct  *polygons[2];
-    Point            point;
-    Real             dist, max_d_A[2], d_A_B;
+    VIO_Point            point;
+    VIO_Real             dist, max_d_A[2], d_A_B;
 
     initialize_argument_processing( argc, argv );
 
@@ -28,7 +28,7 @@ int  main(
     }
 
     if( input_graphics_file( input1_filename, &format, &n_objects,
-                             &object_list[0] ) != OK || n_objects != 1 ||
+                             &object_list[0] ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0][0]) != POLYGONS )
     {
         print_error( "Error reading %s.\n", input1_filename );
@@ -38,7 +38,7 @@ int  main(
     polygons[0] = get_polygons_ptr( object_list[0][0] );
 
     if( input_graphics_file( input2_filename, &format, &n_objects,
-                             &object_list[1] ) != OK || n_objects != 1 ||
+                             &object_list[1] ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[1][0]) != POLYGONS )
     {
         print_error( "Error reading %s.\n", input2_filename );
@@ -50,7 +50,7 @@ int  main(
     for_less( which, 0, 2 )
     {
         create_polygons_bintree( polygons[1-which],
-                                 ROUND( (Real) polygons[1-which]->n_items *
+                                 ROUND( (VIO_Real) polygons[1-which]->n_items *
                                         BINTREE_FACTOR ) );
 
         max_d_A[which] = -1.0;

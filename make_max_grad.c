@@ -5,17 +5,17 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Volume               volume, image;
-    STRING               input_filename, output_filename, axis_name;
+    VIO_Volume               volume, image;
+    VIO_STR               input_filename, output_filename, axis_name;
     int                  degree, x_size, y_size, axis_index, a1, a2;
     int                  x, y, v[N_DIMENSIONS];
-    Real                 axis_pos, voxel[N_DIMENSIONS], slice_pos, grad;
+    VIO_Real                 axis_pos, voxel[N_DIMENSIONS], slice_pos, grad;
     float                **grad_mag;
-    Real                 dx, dy, dz, value, max_value, max_value2;
-    Real                 world[N_DIMENSIONS];
-    Real                 separations[N_DIMENSIONS];
-    Real                 separations_2d[N_DIMENSIONS];
-    Real                 avg_value, max;
+    VIO_Real                 dx, dy, dz, value, max_value, max_value2;
+    VIO_Real                 world[N_DIMENSIONS];
+    VIO_Real                 separations[N_DIMENSIONS];
+    VIO_Real                 separations_2d[N_DIMENSIONS];
+    VIO_Real                 avg_value, max;
     int                  sizes[N_DIMENSIONS];
     int                  sizes_2d[N_DIMENSIONS];
     int                  dir, n_dirs, *x_dirs, *y_dirs, tx, ty;
@@ -37,7 +37,7 @@ int  main(
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     axis_index = (int) (axis_name[0] - 'x');
@@ -52,9 +52,9 @@ int  main(
     sizes_2d[axis_index] = 2;
 
     separations_2d[a1] = separations[a1] *
-                         (Real) sizes[a1] / (Real) sizes_2d[a1];
+                         (VIO_Real) sizes[a1] / (VIO_Real) sizes_2d[a1];
     separations_2d[a2] = separations[a2] *
-                         (Real) sizes[a2] / (Real) sizes_2d[a2];
+                         (VIO_Real) sizes[a2] / (VIO_Real) sizes_2d[a2];
     separations_2d[axis_index] = 1.0;
 
     world[a1] = 0.0;
@@ -89,8 +89,8 @@ int  main(
     for_less( x, 0, x_size )
     for_less( y, 0, y_size )
     {
-        voxel[a1] = (Real) x;
-        voxel[a2] = (Real) y;
+        voxel[a1] = (VIO_Real) x;
+        voxel[a2] = (VIO_Real) y;
         voxel[axis_index] = 0.0;
         convert_voxel_to_world( image, voxel, &world[X], &world[Y], &world[Z] );
         convert_world_to_voxel( volume, world[X], world[Y], world[Z], voxel );
@@ -108,7 +108,7 @@ int  main(
                                   NULL, NULL, NULL, NULL, NULL, NULL );
 
         grad_mag[x][y] = (float) (dx * dx + dy * dy + dz * dz);
-        max = MAX( max, (Real) grad_mag[x][y] );
+        max = MAX( max, (VIO_Real) grad_mag[x][y] );
     }
 
     n_dirs = get_neighbour_directions( EIGHT_NEIGHBOURS, &x_dirs, &y_dirs );
@@ -117,7 +117,7 @@ int  main(
     for_less( x, 0, x_size )
     for_less( y, 0, y_size )
     {
-        grad = (Real) grad_mag[x][y];
+        grad = (VIO_Real) grad_mag[x][y];
 
         max_value = 0.0;
         for_less( dir, 0, n_dirs )
@@ -125,9 +125,9 @@ int  main(
             tx = x + x_dirs[dir];
             ty = y + y_dirs[dir];
             if( tx >= 0 && tx < x_size && ty >= 0 && ty < y_size &&
-                (Real) grad_mag[tx][ty] > max_value )
+                (VIO_Real) grad_mag[tx][ty] > max_value )
             {
-                max_value = (Real) grad_mag[tx][ty];
+                max_value = (VIO_Real) grad_mag[tx][ty];
             }
         }
 
@@ -137,10 +137,10 @@ int  main(
             tx = x + x_dirs[dir];
             ty = y + y_dirs[dir];
             if( tx >= 0 && tx < x_size && ty >= 0 && ty < y_size &&
-                (Real) grad_mag[tx][ty] < max_value &&
-                (Real) grad_mag[tx][ty] > max_value2 )
+                (VIO_Real) grad_mag[tx][ty] < max_value &&
+                (VIO_Real) grad_mag[tx][ty] > max_value2 )
             {
-                max_value2 = (Real) grad_mag[tx][ty];
+                max_value2 = (VIO_Real) grad_mag[tx][ty];
             }
         }
 
@@ -159,7 +159,7 @@ int  main(
         avg_value += value;
     }
 
-    avg_value /= (Real) x_size * (Real) y_size;
+    avg_value /= (VIO_Real) x_size * (VIO_Real) y_size;
 
     print( "Avg: %g\n", avg_value );
 

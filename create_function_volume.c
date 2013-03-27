@@ -1,27 +1,27 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  Real  function(
-    Real   x,
-    Real   y,
-    Real   z,
-    Real   func_param );
+private  VIO_Real  function(
+    VIO_Real   x,
+    VIO_Real   y,
+    VIO_Real   z,
+    VIO_Real   func_param );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               output_filename;
+    VIO_STR               output_filename;
     int                  i, x, y, z, sizes[N_DIMENSIONS];
-    Real                 voxel[N_DIMENSIONS], world[N_DIMENSIONS];
+    VIO_Real                 voxel[N_DIMENSIONS], world[N_DIMENSIONS];
     char                 history[10000];
     int                  n_values;
-    Real                 min_value, max_value, value;
-    Real                 x_min, x_max, y_min, y_max, z_min, z_max;
-    Real                 func_param, separations[N_DIMENSIONS];
-    Real                 x_world, y_world, z_world;
+    VIO_Real                 min_value, max_value, value;
+    VIO_Real                 x_min, x_max, y_min, y_max, z_min, z_max;
+    VIO_Real                 func_param, separations[N_DIMENSIONS];
+    VIO_Real                 x_world, y_world, z_world;
     nc_type              data_type;
-    Volume               volume;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -66,9 +66,9 @@ int  main(
 
     set_volume_translation( volume, voxel, world );
 
-    separations[X] = (x_max - x_min) / (Real) sizes[X];
-    separations[Y] = (y_max - y_min) / (Real) sizes[Y];
-    separations[Z] = (z_max - z_min) / (Real) sizes[Z];
+    separations[X] = (x_max - x_min) / (VIO_Real) sizes[X];
+    separations[Y] = (y_max - y_min) / (VIO_Real) sizes[Y];
+    separations[Z] = (z_max - z_min) / (VIO_Real) sizes[Z];
 
     set_volume_separations( volume, separations );
 
@@ -76,13 +76,13 @@ int  main(
 
     for_less( x, 0, sizes[X] )
     {
-        x_world = x_min + separations[X] * ((Real) x + 0.5);
+        x_world = x_min + separations[X] * ((VIO_Real) x + 0.5);
         for_less( y, 0, sizes[Y] )
         {
-            y_world = y_min + separations[Y] * ((Real) y + 0.5);
+            y_world = y_min + separations[Y] * ((VIO_Real) y + 0.5);
             for_less( z, 0, sizes[Z] )
             {
-                z_world = z_min + separations[Z] * ((Real) z + 0.5);
+                z_world = z_min + separations[Z] * ((VIO_Real) z + 0.5);
 
                 value = function( x_world, y_world, z_world, func_param );
 
@@ -115,11 +115,11 @@ int  main(
     return( 0 );
 }
 
-private  Real  function(
-    Real   x,
-    Real   y,
-    Real   z,
-    Real   func_param )
+private  VIO_Real  function(
+    VIO_Real   x,
+    VIO_Real   y,
+    VIO_Real   z,
+    VIO_Real   func_param )
 {
     if( func_param == 0.0 )
         return( x );

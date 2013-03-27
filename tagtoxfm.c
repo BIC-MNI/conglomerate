@@ -7,8 +7,8 @@ int main(int argc, char *argv[])
 {
     char *pname, *tagfile, *xfmfile;
     int i, n_volumes, n_tag_points, n_degrees;
-    Real **tags_volume1, **tags_volume2;
-    Real rms, tx, ty, tz, dx, dy, dz;
+    VIO_Real **tags_volume1, **tags_volume2;
+    VIO_Real rms, tx, ty, tz, dx, dy, dz;
     Trans_type      transform_type;
     General_transform transform;
     FILE *fp;
@@ -54,10 +54,10 @@ int main(int argc, char *argv[])
 
     if ((open_file_with_default_suffix(tagfile,
                    get_default_tag_file_suffix(),
-                   READ_FILE, ASCII_FORMAT, &fp) != OK) ||
+                   READ_FILE, ASCII_FORMAT, &fp) != VIO_OK) ||
         (input_tag_points(fp, &n_volumes, &n_tag_points, 
                           &tags_volume1, &tags_volume2, 
-                          NULL, NULL, NULL, NULL) != OK)) {
+                          NULL, NULL, NULL, NULL) != VIO_OK)) {
        (void) fprintf(stderr, "%s: Error reading tag file %s\n", 
                       pname, tagfile);
        exit(EXIT_FAILURE);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 
    /* Save transformation */
 
-   if (output_transform_file(xfmfile, comment, &transform) != OK) {
+   if (output_transform_file(xfmfile, comment, &transform) != VIO_OK) {
       (void) fprintf(stderr, "%s: Error writing xfm file %s\n", 
                      pname, xfmfile);
       exit(EXIT_FAILURE);
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
        rms += dx * dx + dy * dy + dz * dz;
    }
 
-   rms = sqrt( rms / (Real) n_tag_points );
+   rms = sqrt( rms / (VIO_Real) n_tag_points );
 
    print( "Rms: %g\n", rms );
 

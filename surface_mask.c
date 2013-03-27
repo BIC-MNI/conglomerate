@@ -7,8 +7,8 @@ int  main(
 {
     VIO_STR               input_volume_filename, input_surface_filename;
     VIO_STR               output_volume_filename;
-    Real                 set_value, separations[VIO_MAX_DIMENSIONS];
-    Real                 min_value, max_value, value;
+    VIO_Real                 set_value, separations[VIO_MAX_DIMENSIONS];
+    VIO_Real                 min_value, max_value, value;
     VIO_STR               history;
     VIO_File_formats         format;
     VIO_Volume               volume, label_volume;
@@ -16,7 +16,7 @@ int  main(
     int                  sizes[VIO_MAX_DIMENSIONS];
     int                  range_changed[2][VIO_N_DIMENSIONS];
     object_struct        **objects;
-    BOOLEAN              set_value_specified;
+    VIO_BOOL              set_value_specified;
 
     initialize_argument_processing( argc, argv );
 
@@ -37,7 +37,7 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     label_volume = create_label_volume( volume, NC_BYTE );
@@ -47,7 +47,7 @@ int  main(
                                                           NULL, sizes );
 
     if( input_graphics_file( input_surface_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects < 1 )
@@ -86,11 +86,11 @@ int  main(
     if( !set_value_specified )
         set_value = get_volume_real_min( volume );
 
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, sizes[VIO_X] )
     {
-        for_less( y, 0, sizes[Y] )
+        for_less( y, 0, sizes[VIO_Y] )
         {
-            for_less( z, 0, sizes[Z] )
+            for_less( z, 0, sizes[VIO_Z] )
             {
                 label = (int) get_volume_real_value( label_volume, x, y, z,
                                                      0, 0 );

@@ -120,7 +120,7 @@ static  VIO_Real  one_iteration_lines(
     VIO_Point                        *equilibrium_point,
     VIO_Point                        *boundary_point )
 {
-    BOOLEAN          found_flag;
+    VIO_BOOL          found_flag;
     VIO_Real             base_length, model_distance, boundary_distance;
     VIO_Point            centroid, model_point, search_origin;
     VIO_Vector           normal, pos_model_dir, neg_model_dir;
@@ -172,7 +172,7 @@ static  void  perturb_line_points(
     int              size, start_index, end_index;
     int              neighbours[2], i;
     VIO_Point            equilibrium_point;
-    BOOLEAN          closed;
+    VIO_BOOL          closed;
     VIO_progress_struct  progress;
     VIO_Real             dist_from_equil;
 
@@ -243,7 +243,7 @@ static  void  perturb_line_points(
     lines_struct   *lines )
 {
     int      axis, p;
-    BOOLEAN  found_axis;
+    VIO_BOOL  found_axis;
 
     found_axis = FALSE;
 
@@ -265,7 +265,7 @@ static  void  perturb_line_points(
     if( !found_axis )
     {
         print_error( "No axis found.\n" );
-        axis = X;
+        axis = VIO_X;
     }
 
     return( axis );

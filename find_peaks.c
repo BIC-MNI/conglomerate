@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
 
    /* Read in the volume */
    if (input_volume(infile, VOXEL_NDIMS, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                    TRUE, &volume, &options) != OK) {
+                    TRUE, &volume, &options) != VIO_OK) {
       (void) fprintf(stderr, "Error loading volume %s\n", infile);
       return EXIT_FAILURE;
    }
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
    }
    if (output_tag_file(outfile, history, 2, total_ntags, 
                        output_tags, output_tags, 
-                       NULL, NULL, NULL, output_labels) != OK) {
+                       NULL, NULL, NULL, output_labels) != VIO_OK) {
       (void) fprintf(stderr, "Error writing out labels\n");
       return EXIT_FAILURE;
    }

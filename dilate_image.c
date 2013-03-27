@@ -5,7 +5,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING            input_filename, output_filename;
+    VIO_STR            input_filename, output_filename;
     int               n_neighbours;
     int               x, y, dir, n_dirs, *dx, *dy, tx, ty;
     Neighbour_types   conn;
@@ -28,7 +28,7 @@ int  main(
     else
         conn = EIGHT_NEIGHBOURS;
 
-    if( input_rgb_file( input_filename, &in_pixels ) != OK )
+    if( input_rgb_file( input_filename, &in_pixels ) != VIO_OK )
         return( 1 );
 
     if( in_pixels.pixel_type != RGB_PIXEL )
@@ -72,7 +72,7 @@ int  main(
         }
     }
 
-    if( output_rgb_file( output_filename, &out_pixels ) != OK )
+    if( output_rgb_file( output_filename, &out_pixels ) != VIO_OK )
         return( 1 );
 
     return( 0 );

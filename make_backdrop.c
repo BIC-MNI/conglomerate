@@ -61,15 +61,15 @@ int  main(
 
 private  void  add_point(
     polygons_struct  *polygons,
-    Real             x,
-    Real             y,
-    Real             z,
-    Real             nx,
-    Real             ny,
-    Real             nz )
+    VIO_Real             x,
+    VIO_Real             y,
+    VIO_Real             z,
+    VIO_Real             nx,
+    VIO_Real             ny,
+    VIO_Real             nz )
 {
-    Point   point;
-    Vector  normal;
+    VIO_Point   point;
+    VIO_Vector  normal;
 
     fill_Point( point, x, y, z );
     fill_Vector( normal, nx, ny, nz );
@@ -81,7 +81,7 @@ private  void  add_point(
 private  void  build_polygons(
     polygons_struct  *polygons )
 {
-    Real  depth;
+    VIO_Real  depth;
 
     start_new_polygon( polygons );
 

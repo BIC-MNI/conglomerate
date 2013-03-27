@@ -2,11 +2,11 @@
 #include <mni.h>
 #include <module.h>
 
-public  Status  process_object(
+public  VIO_Status  process_object(
     object_struct  *object )
 {
     if( object->object_type == POLYGONS )
         compute_polygon_normals( get_polygons_ptr(object) );
 
-    return( OK );
+    return( VIO_OK );
 }

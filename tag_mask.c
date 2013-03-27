@@ -4,13 +4,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *input_volume_filename, *input_tags_filename;
     char                 *output_volume_filename;
-    STRING               history;
-    Volume               volume;
+    VIO_STR               history;
+    VIO_Volume               volume;
     int                  i, n_objects;
-    Real                 value_to_set, voxel[N_DIMENSIONS];
+    VIO_Real                 value_to_set, voxel[N_DIMENSIONS];
     object_struct        **objects;
     marker_struct        *marker;
 
@@ -27,19 +27,19 @@ int  main(
 
     (void) get_real_argument( 0.0, &value_to_set );
 
-    status = OK;
+    status = VIO_OK;
 
     status = input_volume( input_volume_filename, 3, XYZ_dimension_names,
                            NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                            TRUE, &volume, (minc_input_options *) NULL );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status =  status = input_objects_any_format( volume,
                                            input_tags_filename,
                                            GREEN, 1.0, BOX_MARKER,
                                            &n_objects, &objects );
 
-    if( status == OK )
+    if( status == VIO_OK )
     {
         for_less( i, 0, n_objects )
         {
@@ -71,5 +71,5 @@ int  main(
                                 (minc_output_options *) NULL );
     }
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

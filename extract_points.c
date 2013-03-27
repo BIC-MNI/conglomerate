@@ -4,11 +4,11 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status         status;
+    VIO_Status         status;
     FILE           *file;
     char           *input_filename, *output_filename;
     int            i, p, n_objects, n_points;
-    Point          *points;
+    VIO_Point          *points;
     File_formats   format;
     object_struct  **object_list;
 
@@ -24,14 +24,14 @@ int  main(
     status = input_graphics_file( input_filename, &format, &n_objects,
                                   &object_list );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file );
 
-    if( status == OK )
+    if( status == VIO_OK )
     {
         for_less( i, 0, n_objects )
         {
-            if( status == OK )
+            if( status == VIO_OK )
             {
                 n_points = get_object_points( object_list[i], &points );
                 (void) fprintf( file, "%d\n", n_points );
@@ -44,11 +44,11 @@ int  main(
         }
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = close_file( file );
 
-    if( status == OK )
+    if( status == VIO_OK )
         delete_object_list( n_objects, object_list );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

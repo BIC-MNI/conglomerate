@@ -34,7 +34,7 @@ int  main(
         return( 1 );
     }
 
-    if( input_volume_header_only( volume_filename, 3, NULL, &volume, NULL) !=OK)
+    if( input_volume_header_only( volume_filename, 3, NULL, &volume, NULL) !=VIO_OK)
         return( 1 );
 
     if( input_transform_file( transform_filename, &transform ) )
@@ -44,7 +44,7 @@ int  main(
 
     if( get_transform_type(volume_transform) != LINEAR )
     {
-        print( "Volume transform must be linear.\n" );
+        print( "VIO_Volume transform must be linear.\n" );
         return( 1 );
     }
 
@@ -67,7 +67,7 @@ int  main(
         NORMALIZE_VECTOR( axis_in_tal, axis_in_tal );
         c = RVector_coord( axis_in_tal, dim );
         c = VIO_FABS( c );
-        angle = RAD_TO_DEG * acos( c );
+        angle = VIO_RAD_TO_DEG * acos( c );
         print( "%c axis: %.4g degrees\n", "XYZ"[dim], angle );
     }
 

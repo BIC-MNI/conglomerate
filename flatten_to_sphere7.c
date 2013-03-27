@@ -7,25 +7,25 @@ typedef  float  dtype;
 
 private  void  flatten_polygons(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
-    Point            init_points[],
-    Real             radius,
+    VIO_Point            init_points[],
+    VIO_Real             radius,
     int              n_iters );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, initial_filename;
+    VIO_STR               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters, poly;
     int                  *n_neighbours, **neighbours, n_points;
-    Real                 radius;
+    VIO_Real                 radius;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons, p;
-    Point                *init_points, *points;
+    VIO_Point                *init_points, *points;
 
     initialize_argument_processing( argc, argv );
 
@@ -40,7 +40,7 @@ int  main(
     (void) get_int_argument( 100, &n_iters );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -61,7 +61,7 @@ int  main(
     if( get_string_argument( NULL, &initial_filename ) )
     {
         if( input_graphics_file( initial_filename, &format, &n_i_objects,
-                                 &i_object_list ) != OK || n_i_objects != 1 ||
+                                 &i_object_list ) != VIO_OK || n_i_objects != 1 ||
             get_object_type(i_object_list[0]) != POLYGONS )
             return( 1 );
 
@@ -92,7 +92,7 @@ int  main(
     delete_polygon_point_neighbours( &p, n_neighbours, neighbours, NULL, NULL );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                         &object_list ) != OK || n_objects != 1 ||
+                         &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -100,13 +100,13 @@ int  main(
     FREE( polygons->points );
     polygons->points = points;
 
-    if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
+    if( output_graphics_file( dest_filename, format, 1, object_list ) != VIO_OK )
         print_error( "Error outputting: %s\n", dest_filename );
 
     return( 0 );
 }
 
-private  Real  evaluate_fit(
+private  VIO_Real  evaluate_fit(
     int     n_parameters,
     dtype   parameters[],
     dtype   volumes[],
@@ -115,7 +115,7 @@ private  Real  evaluate_fit(
 {
     int     p, n_points, n, p_index;
     int     n_index, next_index;
-    Real    fit, diff;
+    VIO_Real    fit, diff;
     dtype   nx, ny, nz, x1, y1, z1, x2, y2, z2, vol;
     dtype   x3, y3, z3, cx, cy, cz;
 
@@ -125,7 +125,7 @@ private  Real  evaluate_fit(
 
     for_less( p, 0, n_points )
     {
-        p_index = IJ(p,0,3);
+        p_index = VIO_IJ(p,0,3);
         x1 = parameters[p_index+0];
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
@@ -138,12 +138,12 @@ private  Real  evaluate_fit(
 
         for_less( n, 0, n_neighbours[p] )
         {
-            n_index = IJ(neighbours[p][n],0,3);
+            n_index = VIO_IJ(neighbours[p][n],0,3);
             x2 = parameters[n_index+0];
             y2 = parameters[n_index+1];
             z2 = parameters[n_index+2];
 
-            next_index = IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
+            next_index = VIO_IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
             x3 = parameters[next_index+0];
             y3 = parameters[next_index+1];
             z3 = parameters[next_index+2];
@@ -162,7 +162,7 @@ private  Real  evaluate_fit(
         cz /= (dtype) n_neighbours[p];
         vol = nx * (x1 - cx) + ny * (y1 - cy) + nz * (z1 - cz);
 
-        diff = (Real) (vol - volumes[p]);
+        diff = (VIO_Real) (vol - volumes[p]);
         fit += diff * diff;
     }
 
@@ -189,7 +189,7 @@ private  void  evaluate_fit_derivative(
 
     for_less( p, 0, n_points )
     {
-        p_index = IJ(p,0,3);
+        p_index = VIO_IJ(p,0,3);
         x1 = parameters[p_index+0];
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
@@ -202,12 +202,12 @@ private  void  evaluate_fit_derivative(
 
         for_less( n, 0, n_neighbours[p] )
         {
-            n_index = IJ(neighbours[p][n],0,3);
+            n_index = VIO_IJ(neighbours[p][n],0,3);
             x2 = parameters[n_index+0];
             y2 = parameters[n_index+1];
             z2 = parameters[n_index+2];
 
-            next_index = IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
+            next_index = VIO_IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
             x3 = parameters[next_index+0];
             y3 = parameters[next_index+1];
             z3 = parameters[next_index+2];
@@ -237,15 +237,15 @@ private  void  evaluate_fit_derivative(
 
         for_less( n, 0, n_neighbours[p] )
         {
-            n_index = IJ(neighbours[p][n],0,3);
+            n_index = VIO_IJ(neighbours[p][n],0,3);
 
-            prev_index = IJ(neighbours[p][(n-1+n_neighbours[p])%
+            prev_index = VIO_IJ(neighbours[p][(n-1+n_neighbours[p])%
                                           n_neighbours[p]],0,3);
             xp = parameters[prev_index+0];
             yp = parameters[prev_index+1];
             zp = parameters[prev_index+2];
 
-            next_index = IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
+            next_index = VIO_IJ(neighbours[p][(n+1)%n_neighbours[p]],0,3);
             x3 = parameters[next_index+0];
             y3 = parameters[next_index+1];
             z3 = parameters[next_index+2];
@@ -258,21 +258,21 @@ private  void  evaluate_fit_derivative(
 
 }
 
-private  Real  evaluate_fit_along_line(
+private  VIO_Real  evaluate_fit_along_line(
     int     n_parameters,
     dtype   parameters[],
     dtype   line_dir[],
     dtype   buffer[],
-    Real    dist,
+    VIO_Real    dist,
     dtype   volumes[],
     int     n_neighbours[],
     int     *neighbours[] )
 {
     int     p;
-    Real    fit;
+    VIO_Real    fit;
     
     for_less( p, 0, n_parameters )
-        buffer[p] = (float) ( (Real) parameters[p] + dist * (Real) line_dir[p]);
+        buffer[p] = (float) ( (VIO_Real) parameters[p] + dist * (VIO_Real) line_dir[p]);
 
     fit = evaluate_fit( n_parameters, buffer, volumes,
                         n_neighbours, neighbours );
@@ -282,18 +282,18 @@ private  Real  evaluate_fit_along_line(
 
 #define  GOLDEN_RATIO   0.618034
 
-private  Real  minimize_along_line(
-    Real    current_fit,
+private  VIO_Real  minimize_along_line(
+    VIO_Real    current_fit,
     int     n_parameters,
     dtype   parameters[],
     dtype   line_dir[],
     dtype   volumes[],
     int     n_neighbours[],
     int     *neighbours[],
-    BOOLEAN *changed )
+    VIO_BOOL *changed )
 {
     int      p, n_iters;
-    Real     t0, t1, t2, f0, f1, f2, t_next, f_next;
+    VIO_Real     t0, t1, t2, f0, f1, f2, t_next, f_next;
     float    *test_parameters;
 
     *changed = FALSE;
@@ -368,7 +368,7 @@ private  Real  minimize_along_line(
         *changed = TRUE;
         current_fit = f1;
         for_less( p, 0, n_parameters )
-            parameters[p] += (float) (t1 * (Real) line_dir[p]);
+            parameters[p] += (float) (t1 * (VIO_Real) line_dir[p]);
     }
 
     FREE( test_parameters );
@@ -379,22 +379,22 @@ private  Real  minimize_along_line(
 
 private  void  flatten_polygons(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
-    Point            init_points[],
-    Real             radius,
+    VIO_Point            init_points[],
+    VIO_Real             radius,
     int              n_iters )
 {
     int              p, point, max_neighbours, n_parameters;
-    Real             gg, dgg, gam, current_time, last_update_time, fit;
-    Real             len, step;
-    Point            centroid, *neigh_points, p1;
-    Vector           offset;
+    VIO_Real             gg, dgg, gam, current_time, last_update_time, fit;
+    VIO_Real             len, step;
+    VIO_Point            centroid, *neigh_points, p1;
+    VIO_Vector           offset;
     int              iter, update_rate, n, nn;
     dtype            *g, *h, *xi, *parameters, *unit_dir, *volumes;
     dtype            nx, ny, nz;
-    BOOLEAN          init_supplied, changed, debug, testing;
+    VIO_BOOL          init_supplied, changed, debug, testing;
 
     debug = getenv( "DEBUG" ) != NULL;
 
@@ -448,9 +448,9 @@ private  void  flatten_polygons(
 
     for_less( point, 0, n_points )
     {
-        parameters[IJ(point,0,3)] = (dtype) Point_x(init_points[point] );
-        parameters[IJ(point,1,3)] = (dtype) Point_y(init_points[point] );
-        parameters[IJ(point,2,3)] = (dtype) Point_z(init_points[point] );
+        parameters[VIO_IJ(point,0,3)] = (dtype) Point_x(init_points[point] );
+        parameters[VIO_IJ(point,1,3)] = (dtype) Point_y(init_points[point] );
+        parameters[VIO_IJ(point,2,3)] = (dtype) Point_z(init_points[point] );
     }
 
     if( init_supplied )
@@ -473,15 +473,15 @@ private  void  flatten_polygons(
     if( testing )
     {
         dtype  save;
-        Real   f1, f2, test_deriv;
+        VIO_Real   f1, f2, test_deriv;
 
         for_less( p, 0, n_parameters )
         {
             save = parameters[p];
-            parameters[p] = (dtype) ((Real) save - step);
+            parameters[p] = (dtype) ((VIO_Real) save - step);
             f1 = evaluate_fit( n_parameters, parameters, volumes,
                                n_neighbours, neighbours );
-            parameters[p] = (dtype) ((Real) save + step);
+            parameters[p] = (dtype) ((VIO_Real) save + step);
             f2 = evaluate_fit( n_parameters, parameters, volumes,
                                n_neighbours, neighbours );
             parameters[p] = save;
@@ -489,7 +489,7 @@ private  void  flatten_polygons(
             test_deriv = (f2 - f1) / 2.0 / step;
 
 /*
-            if( !numerically_close( test_deriv, (Real) xi[p] , 1.0e-5 ) )
+            if( !numerically_close( test_deriv, (VIO_Real) xi[p] , 1.0e-5 ) )
                 print( "Derivs mismatch %d d%c:  %g  %g\n",
                        p / 3, "XYZ"[p%3], test_deriv, xi[p] );
 */
@@ -513,11 +513,11 @@ private  void  flatten_polygons(
     {
         len = 0.0;
         for_less( p, 0, n_parameters )
-            len += (Real) xi[p] * (Real) xi[p];
+            len += (VIO_Real) xi[p] * (VIO_Real) xi[p];
 
         len = sqrt( len );
         for_less( p, 0, n_parameters )
-            unit_dir[p] = (dtype) ((Real) xi[p] / len);
+            unit_dir[p] = (dtype) ((VIO_Real) xi[p] / len);
 
         if( debug )
         {
@@ -556,15 +556,15 @@ private  void  flatten_polygons(
         if( testing )
         {
             dtype  save;
-            Real   f1, f2, test_deriv;
+            VIO_Real   f1, f2, test_deriv;
 
             for_less( p, 0, n_parameters )
             {
                 save = parameters[p];
-                parameters[p] = (dtype) ((Real) save - step);
+                parameters[p] = (dtype) ((VIO_Real) save - step);
                 f1 = evaluate_fit( n_parameters, parameters, volumes,
                                    n_neighbours, neighbours );
-                parameters[p] = (dtype) ((Real) save + step);
+                parameters[p] = (dtype) ((VIO_Real) save + step);
                 f2 = evaluate_fit( n_parameters, parameters, volumes,
                                    n_neighbours, neighbours );
                 parameters[p] = save;
@@ -572,7 +572,7 @@ private  void  flatten_polygons(
                 test_deriv = (f2 - f1) / 2.0 / step;
 
 /*
-                if( !numerically_close( test_deriv, (Real) xi[p] , 1.0e-5 ) )
+                if( !numerically_close( test_deriv, (VIO_Real) xi[p] , 1.0e-5 ) )
                     print( "Derivs mismatch %d d%c:  %g  %g\n",
                            p / 3, "XYZ"[p%3], test_deriv, xi[p] );
 */
@@ -585,10 +585,10 @@ private  void  flatten_polygons(
         dgg = 0.0;
         for_less( p, 0, n_parameters )
         {
-            gg += (Real) g[p] * (Real) g[p];
-            dgg += ((Real) xi[p] + (Real) g[p]) * (Real) xi[p];
+            gg += (VIO_Real) g[p] * (VIO_Real) g[p];
+            dgg += ((VIO_Real) xi[p] + (VIO_Real) g[p]) * (VIO_Real) xi[p];
 /*
-            dgg += ((Real) xi[p] * (Real) xi[p];
+            dgg += ((VIO_Real) xi[p] * (VIO_Real) xi[p];
 */
         }
 
@@ -600,7 +600,7 @@ private  void  flatten_polygons(
         for_less( p, 0, n_parameters )
         {
             g[p] = -xi[p];
-            h[p] = (dtype) ((Real) g[p] + gam * (Real) h[p]);
+            h[p] = (dtype) ((VIO_Real) g[p] + gam * (VIO_Real) h[p]);
             xi[p] = h[p];
         }
     }
@@ -608,9 +608,9 @@ private  void  flatten_polygons(
     for_less( point, 0, n_points )
     {
         fill_Point( points[point],
-                    parameters[IJ(point,0,3)],
-                    parameters[IJ(point,1,3)],
-                    parameters[IJ(point,2,3)] );
+                    parameters[VIO_IJ(point,0,3)],
+                    parameters[VIO_IJ(point,1,3)],
+                    parameters[VIO_IJ(point,2,3)] );
     }
 
     FREE( volumes );

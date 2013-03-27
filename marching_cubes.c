@@ -8,32 +8,32 @@ static  void  extract_isosurface(
     VIO_Volume            volume,
     Minc_file         label_file,
     VIO_Volume            label_volume,
-    Real              min_label,
-    Real              max_label,
+    VIO_Real              min_label,
+    VIO_Real              max_label,
     int               spatial_axes[],
     VIO_General_transform *voxel_to_world_transform,
     Marching_cubes_methods  method,
-    BOOLEAN           binary_flag,
-    Real              min_threshold,
-    Real              max_threshold,
-    Real              valid_low,
-    Real              valid_high,
+    VIO_BOOL           binary_flag,
+    VIO_Real              min_threshold,
+    VIO_Real              max_threshold,
+    VIO_Real              valid_low,
+    VIO_Real              valid_high,
     polygons_struct   *polygons );
 static  void  extract_surface(
     Marching_cubes_methods  method,
-    BOOLEAN           binary_flag,
-    Real              min_threshold,
-    Real              max_threshold,
-    Real              valid_low,
-    Real              valid_high,
+    VIO_BOOL           binary_flag,
+    VIO_Real              min_threshold,
+    VIO_Real              max_threshold,
+    VIO_Real              valid_low,
+    VIO_Real              valid_high,
     int               x_size,
     int               y_size,
-    Real              ***slices,
-    Real              min_label,
-    Real              max_label,
-    Real              ***label_slices,
+    VIO_Real              ***slices,
+    VIO_Real              min_label,
+    VIO_Real              max_label,
+    VIO_Real              ***label_slices,
     int               slice_index,
-    BOOLEAN           right_handed,
+    VIO_BOOL           right_handed,
     int               spatial_axes[],
     VIO_General_transform *voxel_to_world_transform,
     int               ***point_ids[],
@@ -62,11 +62,11 @@ int  main(
     VIO_STR               input_volume_filename, output_filename;
     VIO_STR               label_filename;
     VIO_Volume               volume, label_volume;
-    Real                 min_threshold, max_threshold;
-    Real                 min_label, max_label;
-    Real                 valid_low, valid_high;
+    VIO_Real                 min_threshold, max_threshold;
+    VIO_Real                 min_label, max_label;
+    VIO_Real                 valid_low, valid_high;
     Minc_file            minc_file, label_file;
-    BOOLEAN              binary_flag;
+    VIO_BOOL              binary_flag;
     int                  c, spatial_axes[VIO_N_DIMENSIONS];
     int                  int_method;
     Marching_cubes_methods  method;
@@ -117,7 +117,7 @@ int  main(
     if( start_volume_input( input_volume_filename, 3, dimension_names_3D,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             TRUE, &volume, (minc_input_options *) NULL,
-                            &volume_input ) != OK )
+                            &volume_input ) != VIO_OK )
         return( 0 );
 
 
@@ -175,7 +175,7 @@ int  main(
         delete_volume( label_volume );
     }
 
-    if( output_graphics_file( output_filename, BINARY_FORMAT, 1, &object ) !=OK)
+    if( output_graphics_file( output_filename, BINARY_FORMAT, 1, &object ) !=VIO_OK)
         return( 1 );
 
     delete_object( object );
@@ -193,7 +193,7 @@ int  main(
 
 static  void  clear_slice(
     VIO_Volume            volume,
-    Real              **slice )
+    VIO_Real              **slice )
 {
     int    x, y, sizes[VIO_MAX_DIMENSIONS];
 
@@ -207,10 +207,10 @@ static  void  clear_slice(
 static  void  input_slice(
     Minc_file         minc_file,
     VIO_Volume            volume,
-    Real              **slice )
+    VIO_Real              **slice )
 {
     int    sizes[VIO_MAX_DIMENSIONS];
-    Real   amount_done;
+    VIO_Real   amount_done;
 
     while( input_more_minc_file( minc_file, &amount_done ) )
     {}
@@ -223,8 +223,8 @@ static  void  input_slice(
                                    &slice[0][0] );
 }
 
-static  Real  get_slice_value(
-    Real      ***slices,
+static  VIO_Real  get_slice_value(
+    VIO_Real      ***slices,
     int       x_size,
     int       y_size,
     int       z,
@@ -256,16 +256,16 @@ static  void  clear_points(
 }
 
 static  void   get_world_point(
-    Real                slice,
-    Real                x,
-    Real                y,
+    VIO_Real                slice,
+    VIO_Real                x,
+    VIO_Real                y,
     int                 spatial_axes[],
     VIO_General_transform   *voxel_to_world_transform,
     VIO_Point               *point )
 {
     int            c;
-    Real           xw, yw, zw;
-    Real           real_voxel[VIO_N_DIMENSIONS], voxel_pos[VIO_N_DIMENSIONS];
+    VIO_Real           xw, yw, zw;
+    VIO_Real           real_voxel[VIO_N_DIMENSIONS], voxel_pos[VIO_N_DIMENSIONS];
 
     real_voxel[0] = slice;
     real_voxel[1] = x;
@@ -280,7 +280,7 @@ static  void   get_world_point(
     }
 
     general_transform_point( voxel_to_world_transform,
-                             voxel_pos[X], voxel_pos[Y], voxel_pos[Z],
+                             voxel_pos[VIO_X], voxel_pos[VIO_Y], voxel_pos[VIO_Z],
                              &xw, &yw, &zw );
 
     fill_Point( *point, xw, yw, zw );
@@ -291,28 +291,28 @@ static  void  extract_isosurface(
     VIO_Volume            volume,
     Minc_file         label_file,
     VIO_Volume            label_volume,
-    Real              min_label,
-    Real              max_label,
+    VIO_Real              min_label,
+    VIO_Real              max_label,
     int               spatial_axes[],
     VIO_General_transform *voxel_to_world_transform,
     Marching_cubes_methods  method,
-    BOOLEAN           binary_flag,
-    Real              min_threshold,
-    Real              max_threshold,
-    Real              valid_low,
-    Real              valid_high,
+    VIO_BOOL           binary_flag,
+    VIO_Real              min_threshold,
+    VIO_Real              max_threshold,
+    VIO_Real              valid_low,
+    VIO_Real              valid_high,
     polygons_struct   *polygons )
 {
     int             n_slices, sizes[VIO_MAX_DIMENSIONS], x_size, y_size, slice;
     int             ***point_ids[2], ***tmp_point_ids;
     int             max_edges;
-    Real            **slices[2], **tmp_slices;
-    Real            **label_slices[2];
+    VIO_Real            **slices[2], **tmp_slices;
+    VIO_Real            **label_slices[2];
     VIO_progress_struct progress;
     VIO_Surfprop        spr;
     VIO_Point           point000, point100, point010, point001;
     VIO_Vector          v100, v010, v001, perp;
-    BOOLEAN         right_handed;
+    VIO_BOOL         right_handed;
 
     get_world_point( 0.0, 0.0, 0.0, spatial_axes, voxel_to_world_transform,
                      &point000 );
@@ -333,8 +333,8 @@ static  void  extract_isosurface(
     n_slices = get_n_input_volumes( minc_file );
 
     get_volume_sizes( volume, sizes );
-    x_size = sizes[X];
-    y_size = sizes[Y];
+    x_size = sizes[VIO_X];
+    y_size = sizes[VIO_Y];
 
     VIO_ALLOC2D( slices[0], x_size, y_size );
     VIO_ALLOC2D( slices[1], x_size, y_size );
@@ -431,45 +431,45 @@ static  int   get_point_index(
     int                 x_size,
     int                 y_size,
     voxel_point_type    *point,
-    Real                corners[2][2][2],
+    VIO_Real                corners[2][2][2],
     int                 spatial_axes[],
     VIO_General_transform   *voxel_to_world_transform,
-    BOOLEAN             binary_flag,
-    Real                min_threshold,
-    Real                max_threshold,
+    VIO_BOOL             binary_flag,
+    VIO_Real                min_threshold,
+    VIO_Real                max_threshold,
     int                 ***point_ids[],
     polygons_struct     *polygons )
 {
     int            voxel[VIO_N_DIMENSIONS], edge, point_index;
     int            edge_voxel[VIO_N_DIMENSIONS];
-    Real           v[VIO_N_DIMENSIONS];
+    VIO_Real           v[VIO_N_DIMENSIONS];
     VIO_Point          world_point;
     Point_classes  point_class;
 
-    voxel[X] = x + point->coord[X];
-    voxel[Y] = y + point->coord[Y];
-    voxel[Z] = point->coord[Z];
+    voxel[VIO_X] = x + point->coord[VIO_X];
+    voxel[VIO_Y] = y + point->coord[VIO_Y];
+    voxel[VIO_Z] = point->coord[VIO_Z];
     edge = point->edge_intersected;
 
-    point_index = point_ids[voxel[Z]][voxel[X]+1][voxel[Y]+1][edge];
+    point_index = point_ids[voxel[VIO_Z]][voxel[VIO_X]+1][voxel[VIO_Y]+1][edge];
     if( point_index < 0 )
     {
-        edge_voxel[X] = point->coord[X];
-        edge_voxel[Y] = point->coord[Y];
-        edge_voxel[Z] = point->coord[Z];
+        edge_voxel[VIO_X] = point->coord[VIO_X];
+        edge_voxel[VIO_Y] = point->coord[VIO_Y];
+        edge_voxel[VIO_Z] = point->coord[VIO_Z];
         point_class = get_isosurface_point( corners, edge_voxel, edge,
                                             binary_flag,
                                             min_threshold, max_threshold, v );
 
-        get_world_point( v[Z] + (Real) slice_index,
-                         v[X] + (Real) x, v[Y] + (Real) y,
+        get_world_point( v[VIO_Z] + (VIO_Real) slice_index,
+                         v[VIO_X] + (VIO_Real) x, v[VIO_Y] + (VIO_Real) y,
                          spatial_axes, voxel_to_world_transform, &world_point );
 
         point_index = polygons->n_points;
         ADD_ELEMENT_TO_ARRAY( polygons->points, polygons->n_points,
                               world_point, CHUNK_SIZE );
 
-        point_ids[voxel[Z]][voxel[X]+1][voxel[Y]+1][edge] = point_index;
+        point_ids[voxel[VIO_Z]][voxel[VIO_X]+1][voxel[VIO_Y]+1][edge] = point_index;
     }
 
     return( point_index );
@@ -477,19 +477,19 @@ static  int   get_point_index(
 
 static  void  extract_surface(
     Marching_cubes_methods  method,
-    BOOLEAN           binary_flag,
-    Real              min_threshold,
-    Real              max_threshold,
-    Real              valid_low,
-    Real              valid_high,
+    VIO_BOOL           binary_flag,
+    VIO_Real              min_threshold,
+    VIO_Real              max_threshold,
+    VIO_Real              valid_low,
+    VIO_Real              valid_high,
     int               x_size,
     int               y_size,
-    Real              ***slices,
-    Real              min_label,
-    Real              max_label,
-    Real              ***label_slices,
+    VIO_Real              ***slices,
+    VIO_Real              min_label,
+    VIO_Real              max_label,
+    VIO_Real              ***label_slices,
     int               slice_index,
-    BOOLEAN           right_handed,
+    VIO_BOOL           right_handed,
     int               spatial_axes[],
     VIO_General_transform *voxel_to_world_transform,
     int               ***point_ids[],
@@ -498,8 +498,8 @@ static  void  extract_surface(
     int                x, y, *sizes, tx, ty, tz, n_polys, ind;
     int                p, point_index, poly, size, start_points, dir;
     voxel_point_type   *points;
-    Real               corners[2][2][2], label;
-    BOOLEAN            valid;
+    VIO_Real               corners[2][2][2], label;
+    VIO_BOOL            valid;
 
     for_less( x, -1, x_size )
     {

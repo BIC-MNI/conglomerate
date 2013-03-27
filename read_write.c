@@ -1,7 +1,7 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-public  Status  process_object(
+public  VIO_Status  process_object(
     object_struct  *object );
 
 private  void  usage(
@@ -17,21 +17,21 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status         status;
+    VIO_Status         status;
     char           *input_filename, *output_filename;
     int            i, n_objects;
     File_formats   format;
     object_struct  **object_list;
 
-    status = OK;
+    status = VIO_OK;
 
     if( argc == 1 )
     {
         usage( argv[0] );
-        status = ERROR;
+        status = VIO_ERROR;
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
     {
         input_filename = argv[1];
 
@@ -43,31 +43,31 @@ int  main(
         status = input_graphics_file( input_filename, &format, &n_objects,
                                       &object_list );
 
-        if( status == OK )
+        if( status == VIO_OK )
             print( "Objects input.\n" );
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
     {
         for_less( i, 0, n_objects )
         {
-            if( status == OK )
+            if( status == VIO_OK )
                 status = process_object( object_list[i] );
         }
 
-        if( status == OK )
+        if( status == VIO_OK )
             print( "Objects processed.\n" );
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = output_graphics_file( output_filename, format,
                                        n_objects, object_list );
 
-    if( status == OK )
+    if( status == VIO_OK )
         delete_object_list( n_objects, object_list );
 
-    if( status == OK )
+    if( status == VIO_OK )
         print( "Objects output.\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

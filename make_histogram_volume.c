@@ -8,17 +8,17 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Volume             volume, new_volume;
-    STRING             input_filename, output_filename;
+    VIO_Volume             volume, new_volume;
+    VIO_STR             input_filename, output_filename;
     int                v[MAX_DIMENSIONS], n_bins, bin;
     int                vv[MAX_DIMENSIONS], dim1, dim2, dim3;
     int                sizes[MAX_DIMENSIONS], n_dims;
     int                new_sizes[MAX_DIMENSIONS];
     int                n_slices, min_v1, max_v1, min_v2, max_v2, **total_counts;
     int                v1;
-    STRING             *new_dim_names;
-    Real               value, min_value, max_value;
-    Real               separations[MAX_DIMENSIONS], bin_separation;
+    VIO_STR             *new_dim_names;
+    VIO_Real               value, min_value, max_value;
+    VIO_Real               separations[MAX_DIMENSIONS], bin_separation;
     progress_struct    progress;
 
     initialize_argument_processing( argc, argv );
@@ -52,7 +52,7 @@ int  main(
 
     if( input_volume( input_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     min_value = get_volume_real_min( volume );
@@ -170,7 +170,7 @@ int  main(
         {
             value = get_volume_real_value( new_volume, 0, v1, bin, 0, 0 );
             set_volume_real_value( new_volume, 0, v1, bin, 0, 0,
-                                10000.0 * value / (Real) total_counts[0][v1] );
+                                10000.0 * value / (VIO_Real) total_counts[0][v1] );
         }
     }
     else
@@ -181,7 +181,7 @@ int  main(
         {
             value = get_volume_real_value( new_volume, v[0], v[1], v[2], 0, 0 );
             set_volume_real_value( new_volume, v[0], v[1], v[2], 0, 0,
-                    10000.0 * value / (Real) total_counts[v[dim1]][v[dim2]] );
+                    10000.0 * value / (VIO_Real) total_counts[v[dim1]][v[dim2]] );
         }
     }
 

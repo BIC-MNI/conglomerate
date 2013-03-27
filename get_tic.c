@@ -25,20 +25,20 @@ int  main(
     VIO_STR               volume_filename, voxel_flag_string;
     VIO_STR               component_string;
     char                 buffer[VIO_EXTREMELY_LARGE_STRING_SIZE];
-    Real                 mean, median, std_dev, value, pos[VIO_N_DIMENSIONS];
-    Real                 min_sample_value, max_sample_value;
+    VIO_Real                 mean, median, std_dev, value, pos[VIO_N_DIMENSIONS];
+    VIO_Real                 min_sample_value, max_sample_value;
     VIO_Volume               volume;
-    Real                 separations[VIO_MAX_DIMENSIONS];
+    VIO_Real                 separations[VIO_MAX_DIMENSIONS];
     int                  min_voxel[VIO_MAX_DIMENSIONS], max_voxel[VIO_MAX_DIMENSIONS];
     int                  start_voxel[VIO_MAX_DIMENSIONS], end_voxel[VIO_MAX_DIMENSIONS];
     int                  n_dims, axis, voxel_index;
     VIO_STR               *dim_names;
-    Real                 min_value, max_value, radius;
-    Real                 voxel_radius[VIO_MAX_DIMENSIONS], diff, dist;
-    Real                 voxel_centre[VIO_MAX_DIMENSIONS];
-    Real                 min_pos, max_pos, median_error;
-    BOOLEAN              done, use_world_space;
-    BOOLEAN              is_spatial_dim[VIO_MAX_DIMENSIONS];
+    VIO_Real                 min_value, max_value, radius;
+    VIO_Real                 voxel_radius[VIO_MAX_DIMENSIONS], diff, dist;
+    VIO_Real                 voxel_centre[VIO_MAX_DIMENSIONS];
+    VIO_Real                 min_pos, max_pos, median_error;
+    VIO_BOOL              done, use_world_space;
+    VIO_BOOL              is_spatial_dim[VIO_MAX_DIMENSIONS];
     int                  n_samples;
     int                  sizes[VIO_MAX_DIMENSIONS], voxel[VIO_MAX_DIMENSIONS];
     int                  dim, n_spatial_dims, spatial_dims[VIO_N_DIMENSIONS];
@@ -61,7 +61,7 @@ int  main(
 
     if( input_volume( volume_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     n_dims = get_volume_n_dimensions( volume );
@@ -181,7 +181,7 @@ int  main(
 
                         if( voxel_radius[voxel_index] > 0.0 )
                         {
-                            diff = ((Real) voxel[voxel_index] -
+                            diff = ((VIO_Real) voxel[voxel_index] -
                                            voxel_centre[voxel_index]) /
                                    voxel_radius[voxel_index];
 

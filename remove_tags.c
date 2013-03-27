@@ -4,16 +4,16 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *input_volume_filename, *input_tag_filename;
     char                 *output_tag_filename;
-    Real                 min_threshold, max_threshold;
-    Volume               volume;
-    Real                 value;
+    VIO_Real                 min_threshold, max_threshold;
+    VIO_Volume               volume;
+    VIO_Real                 value;
     int                  i, c, ind[MAX_DIMENSIONS];
-    Real                 voxel[MAX_DIMENSIONS];
+    VIO_Real                 voxel[MAX_DIMENSIONS];
     int                  n_tags, n_volumes;
-    Real                 **tags1, **tags2, *weights;
+    VIO_Real                 **tags1, **tags2, *weights;
     int                  *structure_ids, *patient_ids;
     char                 **labels;
     int                  new_n_tags;
@@ -37,7 +37,7 @@ int  main(
                            NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                            TRUE, &volume, (minc_input_options *) NULL );
 
-    if( status != OK )
+    if( status != VIO_OK )
         return( 1 );
 
     status = input_tag_file( input_tag_filename, &n_volumes,
@@ -45,7 +45,7 @@ int  main(
                              &weights, &structure_ids, &patient_ids,
                              &labels );
 
-    if( status != OK )
+    if( status != VIO_OK )
         return( 1 );
 
     new_n_tags = 0;
@@ -69,7 +69,7 @@ int  main(
                     tags1[new_n_tags][X] = tags1[i][X];
                     tags1[new_n_tags][Y] = tags1[i][Y];
                     tags1[new_n_tags][Z] = tags1[i][Z];
-                    if( weights != (Real *) NULL )
+                    if( weights != (VIO_Real *) NULL )
                         weights[new_n_tags] = weights[i];
                     if( structure_ids != (int *) NULL )
                         structure_ids[new_n_tags] = structure_ids[i];
@@ -94,5 +94,5 @@ int  main(
     free_tag_points( n_volumes, n_tags, tags1, tags2, weights, structure_ids,
                      patient_ids, labels );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

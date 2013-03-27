@@ -39,7 +39,7 @@ int  main(
     }
 
     if( input_graphics_file( src_filename,
-                             &format, &n_objects, &objects ) != OK ||
+                             &format, &n_objects, &objects ) != VIO_OK ||
         n_objects != 1 || get_object_type(objects[0]) != LINES )
     {
         print( "Expected one lines object in file: %s\n",
@@ -61,7 +61,7 @@ int  main(
 
     *lines = new_lines;
 
-    if( output_graphics_file( dest_filename, format, n_objects, objects ) != OK)
+    if( output_graphics_file( dest_filename, format, n_objects, objects ) != VIO_OK)
         return( 1 );
 
     delete_object_list( n_objects, objects );
@@ -75,7 +75,7 @@ static  void  reparameterize_lines(
     int           n_points )
 {
     int      size, i;
-    BOOLEAN  closed_flag;
+    VIO_BOOL  closed_flag;
     VIO_Real     total_length, ratio;
 
     size = GET_OBJECT_SIZE( *lines, 0 );

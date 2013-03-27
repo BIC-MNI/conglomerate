@@ -102,7 +102,7 @@ public void resample_volumes(Program_Flags *program_flags,
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
-   long mm_start[MAX_VAR_DIMS];   /* Vector for min/max variables */
+   long mm_start[MAX_VAR_DIMS];   /* VIO_Vector for min/max variables */
    long nslice, islice, slice_count;
    int idim, index, slice_index;
    double maximum, minimum, valid_range[2];
@@ -463,7 +463,7 @@ public void get_slice(long slice_num, VVolume *in_vol, VVolume *out_vol,
          }
 
          /* Do interpolation */
-         if (INTERPOLATE(volume, transf_coord, dptr) || volume->use_fill) {
+         if (VIO_INTERPOLATE(volume, transf_coord, dptr) || volume->use_fill) {
             if (*dptr > *maximum) *maximum = *dptr;
             if (*dptr < *minimum) *minimum = *dptr;
          }

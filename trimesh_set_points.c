@@ -31,10 +31,10 @@ int  main(
         return( 1 );
     }
 
-    if( tri_mesh_input( dest_mesh_filename, BINARY_FORMAT, &dest_mesh ) != OK )
+    if( tri_mesh_input( dest_mesh_filename, BINARY_FORMAT, &dest_mesh ) != VIO_OK )
         return( 1 );
 
-    if( tri_mesh_input( src_mesh_filename, BINARY_FORMAT, &src_mesh ) != OK )
+    if( tri_mesh_input( src_mesh_filename, BINARY_FORMAT, &src_mesh ) != VIO_OK )
         return( 1 );
 
     tri_mesh_reconcile_points( &dest_mesh, &src_mesh );

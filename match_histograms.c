@@ -7,15 +7,15 @@ private  void  match_histograms(
     lines_struct   *lines,
     lines_struct   *target,
     int            n_points,
-    Real           scale,
-    Real           oversize,
+    VIO_Real           scale,
+    VIO_Real           oversize,
     lines_struct   *new_hist,
     lines_struct   *offsets );
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.obj target.obj output.obj [n_points] [scale]\n\
 \n\
      Matches the histograms.\n\n";
@@ -27,9 +27,9 @@ int  main(
     int  argc,
     char *argv[] )
 {
-    STRING          input_filename, target_filename, output_filename;
+    VIO_STR          input_filename, target_filename, output_filename;
     int             n_objects, n_points;
-    Real            scale, oversize;
+    VIO_Real            scale, oversize;
     File_formats    format;
     object_struct   **object_list, **output_objects;
     lines_struct    *lines, *target;
@@ -49,7 +49,7 @@ int  main(
     (void) get_real_argument( 0.05, &oversize );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                                  &object_list ) != OK ||
+                                  &object_list ) != VIO_OK ||
         n_objects != 1 || get_object_type(object_list[0]) != LINES )
     {
         print_error( "File %s must contain one lines object.\n",
@@ -60,7 +60,7 @@ int  main(
     lines = get_lines_ptr( object_list[0] );
 
     if( input_graphics_file( target_filename, &format, &n_objects,
-                                  &object_list ) != OK ||
+                                  &object_list ) != VIO_OK ||
         n_objects != 1 || get_object_type(object_list[0]) != LINES )
     {
         print_error( "File %s must contain one lines object.\n",
@@ -87,31 +87,31 @@ private  void  match_histograms(
     lines_struct   *lines,
     lines_struct   *target,
     int            n_targets,
-    Real           scale,
-    Real           oversize,
+    VIO_Real           scale,
+    VIO_Real           oversize,
     lines_struct   *new_hist,
     lines_struct   *offsets )
 {
     int              extra, p, int_pos, **which, best_which;
     int              point_index, current, prev;
-    Real             min_pos, max_pos, pos, *target_values, *values;
-    Real             min_x, max_x, target_scale, target_trans;
-    Real             used_scale, used_trans, *best, *next_best, *tmp;
-    Real             best_so_far, diff, x;
-    Real             integral, a1, b1, a2, b2;
-    Real             value1, value2;
+    VIO_Real             min_pos, max_pos, pos, *target_values, *values;
+    VIO_Real             min_x, max_x, target_scale, target_trans;
+    VIO_Real             used_scale, used_trans, *best, *next_best, *tmp;
+    VIO_Real             best_so_far, diff, x;
+    VIO_Real             integral, a1, b1, a2, b2;
+    VIO_Real             value1, value2;
     progress_struct  progress;
 
     initialize_lines_with_size( new_hist, WHITE, lines->n_points, FALSE );
     initialize_lines( offsets, GREEN );
 
-    min_x = (Real) Point_x(target->points[0]);
-    max_x = (Real) Point_x(target->points[target->n_points-1]);
+    min_x = (VIO_Real) Point_x(target->points[0]);
+    max_x = (VIO_Real) Point_x(target->points[target->n_points-1]);
 
-    target_scale = (max_x - min_x) / (Real) (target->n_points-1);
+    target_scale = (max_x - min_x) / (VIO_Real) (target->n_points-1);
     target_trans = min_x;
 
-    extra = ROUND( (Real) target->n_points * oversize );
+    extra = ROUND( (VIO_Real) target->n_points * oversize );
 
     if( n_targets <= 1 )
         n_targets = target->n_points + 2 * extra;
@@ -119,34 +119,34 @@ private  void  match_histograms(
     if( n_targets < lines->n_points )
         n_targets = lines->n_points;
 
-    min_pos = (Real) - extra;
-    max_pos = (Real) (target->n_points - 1 + extra);
+    min_pos = (VIO_Real) - extra;
+    max_pos = (VIO_Real) (target->n_points - 1 + extra);
 
-    used_scale = target_scale * (max_pos - min_pos) / (Real) (n_targets-1);
+    used_scale = target_scale * (max_pos - min_pos) / (VIO_Real) (n_targets-1);
     used_trans = target_scale * min_pos + target_trans;
 
     ALLOC( target_values, n_targets );
     for_less( p, 0, n_targets )
     {
-        pos = INTERPOLATE( (Real) p / (Real) (n_targets-1), min_pos, max_pos );
-        int_pos = FLOOR( pos );
-        if( int_pos == target->n_points-1 && pos == (Real) int_pos )
+        pos = VIO_INTERPOLATE( (VIO_Real) p / (VIO_Real) (n_targets-1), min_pos, max_pos );
+        int_pos = VIO_FLOOR( pos );
+        if( int_pos == target->n_points-1 && pos == (VIO_Real) int_pos )
             --int_pos;
 
         if( int_pos < 0 || int_pos >= target->n_points-1 )
             target_values[p] = 0.0;
         else
         {
-            target_values[p] = ((Real) (int_pos+1) - pos) *
-                                    (Real) Point_y(target->points[int_pos]) +
-                               (pos - (Real) int_pos) *
-                                    (Real) Point_y(target->points[int_pos+1]);
+            target_values[p] = ((VIO_Real) (int_pos+1) - pos) *
+                                    (VIO_Real) Point_y(target->points[int_pos]) +
+                               (pos - (VIO_Real) int_pos) *
+                                    (VIO_Real) Point_y(target->points[int_pos+1]);
         }
     }
 
     ALLOC( values, lines->n_points );
     for_less( p, 0, lines->n_points )
-        values[p] = scale * (Real) Point_y(lines->points[p]);
+        values[p] = scale * (VIO_Real) Point_y(lines->points[p]);
 
     ALLOC( best, n_targets );
     ALLOC( next_best, n_targets );
@@ -172,9 +172,9 @@ private  void  match_histograms(
                 integral = 0.0;
                 for_less( p, prev, current )
                 {
-                    a1 = INTERPOLATE( (Real) (p-prev) / (Real)(current-prev),
+                    a1 = VIO_INTERPOLATE( (VIO_Real) (p-prev) / (VIO_Real)(current-prev),
                                       value1, value2 );
-                    a2 = INTERPOLATE( (Real) (p-prev+1) / (Real)(current-prev),
+                    a2 = VIO_INTERPOLATE( (VIO_Real) (p-prev+1) / (VIO_Real)(current-prev),
                                       value1, value2 );
                     b1 = target_values[p] - a1;
                     b2 = target_values[p+1] - a2;
@@ -218,10 +218,10 @@ private  void  match_histograms(
 
     for_down( p, lines->n_points-1, 0 )
     {
-        x = used_scale * (Real) best_which + used_trans;
+        x = used_scale * (VIO_Real) best_which + used_trans;
         fill_Point( new_hist->points[p],
                     x,
-                    scale * (Real) Point_y(lines->points[p]),
+                    scale * (VIO_Real) Point_y(lines->points[p]),
                     Point_z(lines->points[p]) );
 
         best_which = which[p][best_which];

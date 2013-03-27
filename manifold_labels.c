@@ -2,7 +2,7 @@
 #include  <bicpl.h>
 
 private  int  erode(
-    Volume    volume,
+    VIO_Volume    volume,
     int       c0,
     int       c1,
     int       c2,
@@ -12,9 +12,9 @@ private  int  erode(
     int       dz[] );
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc output.mnc\n\
             [6|26]\n\
 \n\
@@ -27,8 +27,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    Volume               volume, out_volume;
+    VIO_STR               input_filename, output_filename;
+    VIO_Volume               volume, out_volume;
     int                  v1, v2, v3, v4, v5, n_neighs, dim;
     int                  n_dirs, *dx, *dy, *dz, max_label;
     int                  total_added, n_eroded;
@@ -36,7 +36,7 @@ int  main(
     int                  sizes[N_DIMENSIONS];
     int                  min_voxel[N_DIMENSIONS];
     int                  max_voxel[N_DIMENSIONS];
-    Real                 value;
+    VIO_Real                 value;
     Neighbour_types      connectivity;
 
     initialize_argument_processing( argc, argv );
@@ -62,7 +62,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
-                      NULL ) != OK )
+                      NULL ) != VIO_OK )
         return( 1 );
 
     out_volume = copy_volume( volume );
@@ -169,7 +169,7 @@ typedef  struct
 } voxel_struct;
 
 private  void    get_connected_components(
-    BOOLEAN   inside[3][3][3],
+    VIO_BOOL   inside[3][3][3],
     int       components[3][3][3] )
 {
     int                            dx, dy, dz, n_components;
@@ -177,7 +177,7 @@ private  void    get_connected_components(
     int                            voxel[N_DIMENSIONS];
     QUEUE_STRUCT( voxel_struct )   queue;
     voxel_struct                   entry;
-    BOOLEAN                        inside_flag;
+    VIO_BOOL                        inside_flag;
 
     for_less( dx, 0, 3 )
     for_less( dy, 0, 3 )
@@ -234,8 +234,8 @@ private  void    get_connected_components(
     }
 }
 
-private  BOOLEAN    creates_diagonal_touching(
-    BOOLEAN   inside[3][3][3] )
+private  VIO_BOOL    creates_diagonal_touching(
+    VIO_BOOL   inside[3][3][3] )
 {
     int   dir0, dir1, dir2;
     int   v0, v1, v2, s0, s1, s2, e0, e1, e2, d0, d1, d2, count;
@@ -277,8 +277,8 @@ private  BOOLEAN    creates_diagonal_touching(
     return( FALSE );
 }
 
-private  BOOLEAN  can_delete_voxel(
-    Volume    volume,
+private  VIO_BOOL  can_delete_voxel(
+    VIO_Volume    volume,
     int       sizes[],
     int       v0,
     int       v1,
@@ -290,7 +290,7 @@ private  BOOLEAN  can_delete_voxel(
     int       post_components[3][3][3];
     int       prev_component;
     int       post_component;
-    BOOLEAN   inside[3][3][3];
+    VIO_BOOL   inside[3][3][3];
 
     for_less( dx, 0, 3 )
     for_less( dy, 0, 3 )
@@ -356,7 +356,7 @@ private  BOOLEAN  can_delete_voxel(
 }
 
 private  int  erode(
-    Volume    volume,
+    VIO_Volume    volume,
     int       c0,
     int       c1,
     int       c2,
@@ -368,8 +368,8 @@ private  int  erode(
     int           v0, v1, v2, v3, v4, t0, t1, t2;
     int           d0, d1, d2;
     int           dir, n_eroded, sizes[N_DIMENSIONS], n_iters, increment;
-    Real          value, priority, prev_time, diff_time, this_time;
-    Real          dist;
+    VIO_Real          value, priority, prev_time, diff_time, this_time;
+    VIO_Real          dist;
     PRIORITY_QUEUE_STRUCT( voxel_struct )   queue;
     voxel_struct                            entry;
     Smallest_int  ***in_queue;
@@ -413,7 +413,7 @@ private  int  erode(
             d0 = v0 - c0;
             d1 = v1 - c1;
             d2 = v2 - c2;
-            dist = (Real) (d0 * d0 + d1 * d1 + d2 * d2);
+            dist = (VIO_Real) (d0 * d0 + d1 * d1 + d2 * d2);
             INSERT_IN_PRIORITY_QUEUE( queue, entry, dist );
             in_queue[v0][v1][v2] = TRUE;
         }
@@ -458,7 +458,7 @@ private  int  erode(
                         d0 = t0 - c0;
                         d1 = t1 - c1;
                         d2 = t2 - c2;
-                        dist = (Real) (d0 * d0 + d1 * d1 + d2 * d2);
+                        dist = (VIO_Real) (d0 * d0 + d1 * d1 + d2 * d2);
                         INSERT_IN_PRIORITY_QUEUE( queue, entry, dist );
                         in_queue[t0][t1][t2] = TRUE;
                     }

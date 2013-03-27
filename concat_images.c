@@ -20,10 +20,10 @@ int  main(
         return( 1 );
     }
 
-    if( input_rgb_file( input_filename1, &in_pixels1 ) != OK )
+    if( input_rgb_file( input_filename1, &in_pixels1 ) != VIO_OK )
         return( 1 );
 
-    if( input_rgb_file( input_filename2, &in_pixels2 ) != OK )
+    if( input_rgb_file( input_filename2, &in_pixels2 ) != VIO_OK )
         return( 1 );
 
     if( in_pixels1.pixel_type != RGB_PIXEL ||
@@ -56,7 +56,7 @@ int  main(
         }
     }
 
-    if( output_rgb_file( output_filename, &out_pixels ) != OK )
+    if( output_rgb_file( output_filename, &out_pixels ) != VIO_OK )
         return( 1 );
 
     return( 0 );

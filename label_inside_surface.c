@@ -6,7 +6,7 @@
 #define  BINTREE_FACTOR  0.0
 
 private  void   label_inside_convex_hull(
-    Volume           volume,
+    VIO_Volume           volume,
     object_struct    *object,
     int              value_to_set );
 
@@ -17,10 +17,10 @@ int  main(
     char                 *input_volume_filename, *input_surface_filename;
     char                 *output_volume_filename;
     int                  n_objects;
-    Real                 value_to_set;
-    STRING               history;
+    VIO_Real                 value_to_set;
+    VIO_STR               history;
     File_formats         format;
-    Volume               volume;
+    VIO_Volume               volume;
     object_struct        **objects;
 
     initialize_argument_processing( argc, argv );
@@ -38,11 +38,11 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( input_surface_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 || get_object_type( objects[0] ) != POLYGONS )
@@ -51,7 +51,7 @@ int  main(
         return( 1 );
     }
 
-    label_inside_convex_hull( volume, objects[0], (Real) value_to_set );
+    label_inside_convex_hull( volume, objects[0], (VIO_Real) value_to_set );
 
     (void) strcpy( history, "Inside surface labeled." );
 
@@ -65,24 +65,24 @@ int  main(
 }
 
 private  void   label_inside_convex_hull(
-    Volume           volume,
+    VIO_Volume           volume,
     object_struct    *object,
     int              value_to_set )
 {
-    STRING               history;
-    BOOLEAN              inside;
+    VIO_STR               history;
+    VIO_BOOL              inside;
     File_formats         format;
     int                  i, j, c, x, y, z, obj_index, n_set, best;
     int                  sizes[MAX_DIMENSIONS], n_intersects, save_n_int;
     int                  n_points, int_index, next_z;
-    Real                 xw, yw, zw, dist, distances[2], limits[2][3];
-    Real                 voxel[MAX_DIMENSIONS], max_value, value;
-    Real                 boundary_voxel[MAX_DIMENSIONS], tmp;
-    Point                ray_origin, start_ray, end_ray, *points;
-    Point                point_range[2];
-    Point                ray_point;
-    Vector               ray_direction, offset;
-    Real                 **enter_dist, **exit_dist;
+    VIO_Real                 xw, yw, zw, dist, distances[2], limits[2][3];
+    VIO_Real                 voxel[MAX_DIMENSIONS], max_value, value;
+    VIO_Real                 boundary_voxel[MAX_DIMENSIONS], tmp;
+    VIO_Point                ray_origin, start_ray, end_ray, *points;
+    VIO_Point                point_range[2];
+    VIO_Point                ray_point;
+    VIO_Vector               ray_direction, offset;
+    VIO_Real                 **enter_dist, **exit_dist;
     polygons_struct      *polygons;
 
     polygons = get_polygons_ptr( object );
@@ -136,10 +136,10 @@ private  void   label_inside_convex_hull(
 
     for_less( x, 0, sizes[X] )
     {
-        voxel[X] = (Real) x;
+        voxel[X] = (VIO_Real) x;
         for_less( y, 0, sizes[Y] )
         {
-            voxel[Y] = (Real) y;
+            voxel[Y] = (VIO_Real) y;
 
             voxel[Z] = limits[0][Z];
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
@@ -198,7 +198,7 @@ private  void   label_inside_convex_hull(
                                                 Point_y(ray_point),
                                                 Point_z(ray_point),
                                                 boundary_voxel );
-                        next_z = CEILING( boundary_voxel[Z] );
+                        next_z = VIO_CEILING( boundary_voxel[Z] );
                         inside = ((int_index % 2) == 1);
                     }
                     else
@@ -226,7 +226,7 @@ private  void   label_inside_convex_hull(
     for_less( x, 1, sizes[X]-1 )
     {
         int      dx, dy, dir;
-        BOOLEAN  error;
+        VIO_BOOL  error;
 
         for_less( y, 1, sizes[Y]-1 )
         {

@@ -13,7 +13,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Real          start_time, end_time;
+    VIO_Real          start_time, end_time;
     int           n, method, i, n_primes;
     Smallest_int  *prime_flags;
 

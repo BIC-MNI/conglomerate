@@ -31,7 +31,7 @@ int  main(
     if( start_volume_input( volume_filename, 3, XYZ_dimension_names,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             TRUE, &volume, (minc_input_options *) NULL,
-                            &volume_input ) != OK )
+                            &volume_input ) != VIO_OK )
     {
         return( 1 );
     }
@@ -39,7 +39,7 @@ int  main(
     if( input_tag_file( input_tags, &n_volumes, &n_tag_points,
 
                         &tags_volume1, &tags_volume2,
-                        NULL, NULL, NULL, NULL ) != OK )
+                        NULL, NULL, NULL, NULL ) != VIO_OK )
         return( 1 );
 
     min_step = VIO_FLOOR( y_min / y_step );
@@ -57,14 +57,14 @@ int  main(
 
     for_less( i, 0, n_tag_points )
     {
-        step = VIO_FLOOR( tags_volume1[i][Y] / y_step ) - min_step;
+        step = VIO_FLOOR( tags_volume1[i][VIO_Y] / y_step ) - min_step;
         if( step < 0 || step >= n_steps )
             print_error( "Error in file: %s  at %d'th point\n", input_tags, i );
         else
             ++counts[step];
     }
 
-    voxel_volume = separations[X] * separations[Y] * separations[Z];
+    voxel_volume = separations[VIO_X] * separations[VIO_Y] * separations[VIO_Z];
 
     for_less( step, 0, n_steps )
         print( " %g", voxel_volume * (VIO_Real) counts[step] );

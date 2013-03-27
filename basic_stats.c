@@ -6,15 +6,15 @@ int  main(
 {
     FILE        *file;
     int         n;
-    Real        *x;
-    Real        value, min, max, mean, std_dev, median;
+    VIO_Real        *x;
+    VIO_Real        value, min, max, mean, std_dev, median;
     char        *filename;
 
     initialize_argument_processing( argc, argv );
 
     if( get_string_argument( "", &filename ) )
     {
-        if( open_file( filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
     }
     else
@@ -22,7 +22,7 @@ int  main(
 
     n = 0;
 
-    while( input_real( file, &value ) == OK )
+    while( input_real( file, &value ) == VIO_OK )
     {
         ADD_ELEMENT_TO_ARRAY( x, n, value, DEFAULT_CHUNK_SIZE );
     }

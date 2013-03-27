@@ -11,14 +11,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING             filename, output_filename, *filenames[2];
+    VIO_STR             filename, output_filename, *filenames[2];
     int                i, j, ni, nj, n_objects;
     int                surf, n_surfaces[2], group, object_index;
     VIO_File_formats       format;
     object_struct      **object_list;
     polygons_struct    *polygons;
     VIO_Real               left_x, right_x, y, z, avg;
-    BOOLEAN            **samples_valid;
+    VIO_BOOL            **samples_valid;
     VIO_Real               ***samples[2], **t_stat, t;
     VIO_Real               sx, sy, sz, prob, min_t, max_t, dist;
     VIO_Point              point, ray_origin, min_range, max_range, origin;
@@ -77,7 +77,7 @@ int  main(
         for_less( surf, 0, n_surfaces[group] )
         {
             if( input_graphics_file( filenames[group][surf],
-                                     &format, &n_objects, &object_list ) != OK )
+                                     &format, &n_objects, &object_list ) != VIO_OK )
             {
                 print( "Couldn't read %s.\n", filename );
                 return( 1 );
@@ -103,10 +103,10 @@ int  main(
             for_less( i, 0, ni )
             for_less( j, 0, nj )
             {
-                y = INTERPOLATE( (VIO_Real) i / (VIO_Real) (ni-1),
+                y = VIO_INTERPOLATE( (VIO_Real) i / (VIO_Real) (ni-1),
                                  (VIO_Real) Point_y(min_range),
                                  (VIO_Real) Point_y(max_range) );
-                z = INTERPOLATE( (VIO_Real) j / (VIO_Real) (nj-1),
+                z = VIO_INTERPOLATE( (VIO_Real) j / (VIO_Real) (nj-1),
                                  (VIO_Real) Point_z(min_range),
                                  (VIO_Real) Point_z(max_range) );
 

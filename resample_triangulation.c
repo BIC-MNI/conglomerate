@@ -10,8 +10,8 @@ typedef struct tri_node_struct
 typedef struct
 {
     int                n_points;
-    Point              *points;
-    Point              *model_points;
+    VIO_Point              *points;
+    VIO_Point              *model_points;
     int                n_triangles;
     tri_node_struct    *triangles;
 } tri_mesh_struct;
@@ -31,38 +31,38 @@ private   void   convert_mesh_to_polygons(
     tri_mesh_struct   *mesh,
     polygons_struct   *polygons );
 
-private  Status  output_triangular_mesh(
-    STRING         filename,
+private  VIO_Status  output_triangular_mesh(
+    VIO_STR         filename,
     File_formats   format,
     tri_mesh_struct  *mesh );
 
-private  Status  input_triangular_mesh(
-    STRING           filename,
+private  VIO_Status  input_triangular_mesh(
+    VIO_STR           filename,
     File_formats     format,
     tri_mesh_struct  *mesh );
 
 private  void  print_mesh_levels(
     tri_mesh_struct  *mesh );
 
-private  BOOLEAN  set_mesh_points(
+private  VIO_BOOL  set_mesh_points(
     tri_mesh_struct   *mesh,
     int               n_points,
-    Point             points[] );
+    VIO_Point             points[] );
 
-private  BOOLEAN  set_mesh_model_points(
+private  VIO_BOOL  set_mesh_model_points(
     tri_mesh_struct   *mesh,
     int               n_points,
-    Point             points[] );
+    VIO_Point             points[] );
 
 private   void   mesh_delete_small_triangles(
     tri_mesh_struct   *mesh,
     hash2_table_struct *edge_lookup,
-    Real              min_size );
+    VIO_Real              min_size );
 
 private   void   mesh_subdivide_large_triangles(
     tri_mesh_struct   *mesh,
     hash2_table_struct *edge_lookup,
-    Real              max_size,
+    VIO_Real              max_size,
     int               max_subdivisions );
 
 private   void   mesh_subdivide_dangerous_triangles(
@@ -73,27 +73,27 @@ private   void   mesh_subdivide_dangerous_triangles(
 private   void   mesh_subdivide_on_node_values(
     tri_mesh_struct   *mesh,
     hash2_table_struct *edge_lookup,
-    Real              min_value,
-    Real              max_value,
-    Real              values[],
-    Real              max_size,
+    VIO_Real              min_value,
+    VIO_Real              max_value,
+    VIO_Real              values[],
+    VIO_Real              max_size,
     int               max_subdivisions );
 
 private   void   mesh_coalesce_on_node_values(
     tri_mesh_struct   *mesh,
     hash2_table_struct *edge_lookup,
-    Real              min_value,
-    Real              max_value,
-    Real              values[],
-    Real              min_size );
+    VIO_Real              min_value,
+    VIO_Real              max_value,
+    VIO_Real              values[],
+    VIO_Real              min_size );
 
 private  void   delete_unused_nodes(
     tri_mesh_struct  *mesh );
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.obj|input.msh  model.obj input.obj output.msh output.obj\n\
          [-min_size min_size]\n\
          [-max_size max_size]\n\
@@ -110,15 +110,15 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING             input_mesh_filename, input_filename, output_filename;
-    STRING             output_mesh_filename, model_filename, option;
-    STRING             values_filename;
+    VIO_STR             input_mesh_filename, input_filename, output_filename;
+    VIO_STR             output_mesh_filename, model_filename, option;
+    VIO_STR             values_filename;
     int                n_objects, new_n_polys, max_subdivisions, n_values;
     File_formats       format;
     object_struct      **object_list, *object;
     polygons_struct    *polygons;
-    Real               value, max_value, *values, *values2, max_size;
-    Real               min_size;
+    VIO_Real               value, max_value, *values, *values2, max_size;
+    VIO_Real               min_size;
     tri_mesh_struct    mesh;
     hash2_table_struct edge_lookup;
 
@@ -139,13 +139,13 @@ int  main(
     if( filename_extension_matches( input_mesh_filename, "msh" ) )
     {
         if( input_triangular_mesh( input_mesh_filename, BINARY_FORMAT,
-                                   &mesh ) != OK )
+                                   &mesh ) != VIO_OK )
             return( 1 );
     }
     else
     {
         if( input_graphics_file( input_filename, &format, &n_objects,
-                                 &object_list ) != OK ||
+                                 &object_list ) != VIO_OK ||
             n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
         {
             print_error( "Error in input file.\n" );
@@ -160,7 +160,7 @@ int  main(
     }
 
     if( input_graphics_file( model_filename, &format, &n_objects,
-                             &object_list ) != OK ||
+                             &object_list ) != VIO_OK ||
         n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
     {
         print_error( "Error in input file.\n" );
@@ -175,7 +175,7 @@ int  main(
     delete_object_list( n_objects, object_list );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK ||
+                             &object_list ) != VIO_OK ||
         n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
     {
         print_error( "Error in input file.\n" );
@@ -224,7 +224,7 @@ int  main(
             print( "%s %g %g %s %g\n", option, value, max_value,
                      values_filename, max_size );
 
-            if( input_texture_values( values_filename, &n_values, &values )!=OK
+            if( input_texture_values( values_filename, &n_values, &values )!=VIO_OK
                 || n_values != mesh.n_points )
             {
                 print_error( "Error inputting node values.\n" );
@@ -246,7 +246,7 @@ int  main(
             print( "%s %g %g %s %g\n", option, value, max_value,
                    values_filename, min_size );
 
-            if( input_texture_values( values_filename, &n_values, &values )!=OK
+            if( input_texture_values( values_filename, &n_values, &values )!=VIO_OK
                 || n_values != mesh.n_points )
             {
                 print_error( "Error inputting node values.\n" );
@@ -352,8 +352,8 @@ private  void  tri_mesh_insert_triangle(
 
 private  int  tri_mesh_insert_point(
     tri_mesh_struct  *mesh,
-    Point            *model_point,
-    Point            *point )
+    VIO_Point            *model_point,
+    VIO_Point            *point )
 {
     int  ind;
 
@@ -368,73 +368,73 @@ private  int  tri_mesh_insert_point(
     return( ind );
 }
 
-private  Status  output_tri_node(
+private  VIO_Status  output_tri_node(
     FILE             *file,
     File_formats     format,
     tri_node_struct  *node )
 {
     int      child, *list;
-    BOOLEAN  leaf_flag;
+    VIO_BOOL  leaf_flag;
 
     leaf_flag = (node->children[0] == NULL);
 
     list = node->nodes;
     if( io_ints( file, WRITE_FILE, format, 3, &list ) ||
         io_boolean( file, WRITE_FILE, format, &leaf_flag ) )
-        return( ERROR );
+        return( VIO_ERROR );
 
     if( !leaf_flag )
     {
         for_less( child, 0, 4 )
         {
-            if( output_tri_node( file, format, node->children[child] ) != OK )
-                return( ERROR );
+            if( output_tri_node( file, format, node->children[child] ) != VIO_OK )
+                return( VIO_ERROR );
         }
     }
 
-    return( OK );
+    return( VIO_OK );
 }
 
-private  Status  output_triangular_mesh(
-    STRING         filename,
+private  VIO_Status  output_triangular_mesh(
+    VIO_STR         filename,
     File_formats   format,
     tri_mesh_struct  *mesh )
 {
     FILE   *file;
     int    tri;
 
-    if( open_file( filename, WRITE_FILE, format, &file ) != OK )
-        return( ERROR );
+    if( open_file( filename, WRITE_FILE, format, &file ) != VIO_OK )
+        return( VIO_ERROR );
 
-    if( io_int( file, WRITE_FILE, format, &mesh->n_points ) != OK )
-        return( ERROR );
+    if( io_int( file, WRITE_FILE, format, &mesh->n_points ) != VIO_OK )
+        return( VIO_ERROR );
 
-    if( io_int( file, WRITE_FILE, format, &mesh->n_triangles ) != OK )
-        return( ERROR );
+    if( io_int( file, WRITE_FILE, format, &mesh->n_triangles ) != VIO_OK )
+        return( VIO_ERROR );
 
     for_less( tri, 0, mesh->n_triangles )
     {
-        if( output_tri_node( file, format, &mesh->triangles[tri] ) != OK )
-            return( ERROR );
+        if( output_tri_node( file, format, &mesh->triangles[tri] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     (void) close_file( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
-private  Status  input_tri_node(
+private  VIO_Status  input_tri_node(
     FILE             *file,
     File_formats     format,
     tri_mesh_struct  *mesh,
     tri_node_struct  *node )
 {
     int      child, *list;
-    BOOLEAN  leaf_flag;
+    VIO_BOOL  leaf_flag;
 
     if( io_ints( file, READ_FILE, format, 3, &list ) ||
         io_boolean( file, READ_FILE, format, &leaf_flag ) )
-        return( ERROR );
+        return( VIO_ERROR );
 
     node->nodes[0] = list[0];
     node->nodes[1] = list[1];
@@ -456,18 +456,18 @@ private  Status  input_tri_node(
             ALLOC( node->children[child], 1 );
 
             if( input_tri_node( file, format, mesh, node->children[child] )
-                != OK )
-                return( ERROR );
+                != VIO_OK )
+                return( VIO_ERROR );
         }
     }
 
-    return( OK );
+    return( VIO_OK );
 }
 
-private  BOOLEAN  set_mesh_points(
+private  VIO_BOOL  set_mesh_points(
     tri_mesh_struct  *mesh,
     int              n_points,
-    Point            points[] )
+    VIO_Point            points[] )
 {
     int   point;
 
@@ -484,10 +484,10 @@ private  BOOLEAN  set_mesh_points(
     return( TRUE );
 }
 
-private  BOOLEAN  set_mesh_model_points(
+private  VIO_BOOL  set_mesh_model_points(
     tri_mesh_struct  *mesh,
     int              n_points,
-    Point            points[] )
+    VIO_Point            points[] )
 {
     int   point;
 
@@ -504,8 +504,8 @@ private  BOOLEAN  set_mesh_model_points(
     return( TRUE );
 }
 
-private  Status  input_triangular_mesh(
-    STRING           filename,
+private  VIO_Status  input_triangular_mesh(
+    VIO_STR           filename,
     File_formats     format,
     tri_mesh_struct  *mesh )
 {
@@ -514,29 +514,29 @@ private  Status  input_triangular_mesh(
 
     initialize_tri_mesh( mesh );
 
-    if( open_file( filename, READ_FILE, format, &file ) != OK )
-        return( ERROR );
+    if( open_file( filename, READ_FILE, format, &file ) != VIO_OK )
+        return( VIO_ERROR );
 
-    if( io_int( file, READ_FILE, format, &mesh->n_points ) != OK )
-        return( ERROR );
+    if( io_int( file, READ_FILE, format, &mesh->n_points ) != VIO_OK )
+        return( VIO_ERROR );
 
     mesh->model_points = NULL;
     mesh->points = NULL;
 
-    if( io_int( file, READ_FILE, format, &mesh->n_triangles ) != OK )
-        return( ERROR );
+    if( io_int( file, READ_FILE, format, &mesh->n_triangles ) != VIO_OK )
+        return( VIO_ERROR );
 
     SET_ARRAY_SIZE( mesh->triangles, 0, mesh->n_triangles, DEFAULT_CHUNK_SIZE );
 
     for_less( tri, 0, mesh->n_triangles )
     {
-        if( input_tri_node( file, format, mesh, &mesh->triangles[tri] ) != OK )
-            return( ERROR );
+        if( input_tri_node( file, format, mesh, &mesh->triangles[tri] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     (void) close_file( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
 private  void   mark_points_used(
@@ -818,7 +818,7 @@ private  void  insert_edge_midpoint(
     insert_in_hash2_table( edge_lookup, k0, k1, (void *) &midpoint );
 }
 
-private  BOOLEAN  lookup_edge_midpoint(
+private  VIO_BOOL  lookup_edge_midpoint(
     hash2_table_struct    *edge_lookup,
     int                   p0,
     int                   p1,
@@ -839,7 +839,7 @@ private  int  get_edge_midpoint(
     int                  p1 )
 {
     int     midpoint;
-    Point   mid, model_mid;
+    VIO_Point   mid, model_mid;
     int     k0, k1;
 
     midpoint = 0;  /* to avoid compiler message*/
@@ -955,7 +955,7 @@ private  void   add_to_polygons(
     int                      p2 )
 {
     int      mid0, mid1, mid2;
-    BOOLEAN  mid0_exists, mid1_exists, mid2_exists;
+    VIO_BOOL  mid0_exists, mid1_exists, mid2_exists;
 
     mid0_exists = lookup_edge_midpoint( edge_lookup, p0, p1, &mid0 );
     mid1_exists = lookup_edge_midpoint( edge_lookup, p1, p2, &mid1 );
@@ -1069,12 +1069,12 @@ private   void   convert_mesh_to_polygons(
     compute_polygon_normals( polygons );
 }
 
-private  Real  get_triangle_size(
-    Point   *p1,
-    Point   *p2,
-    Point   *p3 )
+private  VIO_Real  get_triangle_size(
+    VIO_Point   *p1,
+    VIO_Point   *p2,
+    VIO_Point   *p3 )
 {
-    Real  dist1, dist2, dist3;
+    VIO_Real  dist1, dist2, dist3;
 
     dist1 = sq_distance_between_points( p1, p2 );
     dist2 = sq_distance_between_points( p2, p3 );
@@ -1083,14 +1083,14 @@ private  Real  get_triangle_size(
     return( MAX3( dist1, dist2, dist3 ) );
 }
 
-private  BOOLEAN   delete_small_triangles(
+private  VIO_BOOL   delete_small_triangles(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
     tri_node_struct    *node,
-    Real               min_size_sq )
+    VIO_Real               min_size_sq )
 {
-    Real      size;
-    BOOLEAN   should_delete0, should_delete1, should_delete2, should_delete3;
+    VIO_Real      size;
+    VIO_BOOL   should_delete0, should_delete1, should_delete2, should_delete3;
 
     if( node->children[0] != NULL )
     {
@@ -1133,10 +1133,10 @@ private  void   subdivide_large_triangles(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
     tri_node_struct    *node,
-    Real               max_size_sq,
+    VIO_Real               max_size_sq,
     int                max_subdivisions )
 {
-    Real   size;
+    VIO_Real   size;
 
     if( max_subdivisions != 0 && node->children[0] == NULL )
     {
@@ -1167,7 +1167,7 @@ private  void   subdivide_large_triangles(
 private   void   mesh_delete_small_triangles(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
-    Real               min_size )
+    VIO_Real               min_size )
 {
     int                tri;
 
@@ -1185,7 +1185,7 @@ private   void   mesh_delete_small_triangles(
 private   void   mesh_subdivide_large_triangles(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
-    Real               max_size,
+    VIO_Real               max_size,
     int                max_subdivisions )
 {
     int                tri;
@@ -1202,14 +1202,14 @@ private   void   mesh_subdivide_large_triangles(
     }
 }
 
-private  BOOLEAN   subdivide_dangerous_triangles(
+private  VIO_BOOL   subdivide_dangerous_triangles(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
     tri_node_struct    *node,
     int                n_original_points,
     int                max_subdivisions )
 {
-    BOOLEAN  changed;
+    VIO_BOOL  changed;
     int      mid0, mid1, mid2;
 
     changed = FALSE;
@@ -1252,7 +1252,7 @@ private   void   mesh_subdivide_dangerous_triangles(
     hash2_table_struct *edge_lookup,
     int                max_subdivisions )
 {
-    BOOLEAN            changed;
+    VIO_BOOL            changed;
     int                tri, n_points;
 
     n_points = mesh->n_points;
@@ -1275,14 +1275,14 @@ private  void   subdivide_on_node_values(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
     tri_node_struct    *node,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               max_size_sq,
+    VIO_Real               values[],
+    VIO_Real               max_size_sq,
     int                max_subdivisions )
 {
-    Real   size;
+    VIO_Real   size;
     int    child, vertex;
 
     if( max_subdivisions != 0 && node->children[0] == NULL )
@@ -1324,10 +1324,10 @@ private  void   subdivide_on_node_values(
 private   void   mesh_subdivide_on_node_values(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
-    Real               min_value,
-    Real               max_value,
-    Real               values[],
-    Real               max_size,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
+    VIO_Real               values[],
+    VIO_Real               max_size,
     int                max_subdivisions )
 {
     int                tri, n_values;
@@ -1347,14 +1347,14 @@ private  void   coalesce_on_node_values(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
     tri_node_struct    *node,
-    Real               min_value,
-    Real               max_value,
+    VIO_Real               min_value,
+    VIO_Real               max_value,
     int                n_values,
-    Real               values[],
-    Real               min_size_sq )
+    VIO_Real               values[],
+    VIO_Real               min_size_sq )
 {
     int       i, list[6], child;
-    Real      size;
+    VIO_Real      size;
 
     if( node->children[0] != NULL )
     {
@@ -1422,10 +1422,10 @@ private  void   coalesce_on_node_values(
 private   void   mesh_coalesce_on_node_values(
     tri_mesh_struct    *mesh,
     hash2_table_struct *edge_lookup,
-    Real               min_value,
-    Real               max_value,
-    Real               values[],
-    Real               min_size )
+    VIO_Real               min_value,
+    VIO_Real               max_value,
+    VIO_Real               values[],
+    VIO_Real               min_size )
 {
     int                tri, n_values;
 

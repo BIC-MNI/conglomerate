@@ -34,7 +34,7 @@ int  main(
     /* just get the volume header, without reading the data */
 
     if( start_volume_input( volume1_filename, FALSE, &volume1,
-                            &volume_input ) != OK )
+                            &volume_input ) != VIO_OK )
         return( 1 );
 
     delete_volume( &volume1 );
@@ -44,13 +44,13 @@ int  main(
 
     print( "Reading %s\n", volume2_filename );
 
-    if( input_volume( volume2_filename, &volume2 ) != OK )
+    if( input_volume( volume2_filename, &volume2 ) != VIO_OK )
         return( 1 );
 
     /* read the transform */
 
     if( open_file_with_default_suffix( transform_filename, "xfm", READ_FILE,
-                                       ASCII_FORMAT, &file ) != OK )
+                                       ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     if( !input_transform( file, mni_transform ) )

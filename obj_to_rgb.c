@@ -21,7 +21,7 @@ int  main(
     }
 
     if( input_graphics_file( input_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 || get_object_type( objects[0] ) != PIXELS )

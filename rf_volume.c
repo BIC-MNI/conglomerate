@@ -5,13 +5,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename;
-    STRING               output_filename;
-    Real                 x, y, z, xc, yc, zc, xp, yp, zp, len, pos;
-    Real                 value, scaling, min_value, max_value;
+    VIO_STR               volume_filename;
+    VIO_STR               output_filename;
+    VIO_Real                 x, y, z, xc, yc, zc, xp, yp, zp, len, pos;
+    VIO_Real                 value, scaling, min_value, max_value;
     int                  v[MAX_DIMENSIONS], sizes[MAX_DIMENSIONS];
-    Real                 voxel[MAX_DIMENSIONS], scale;
-    Volume               volume;
+    VIO_Real                 voxel[MAX_DIMENSIONS], scale;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -32,23 +32,23 @@ int  main(
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
     get_volume_real_range( volume, &min_value, &max_value );
 
-    voxel[0] = (Real) (sizes[0]-1) / 2.0;
-    voxel[1] = (Real) (sizes[1]-1) / 2.0;
-    voxel[2] = (Real) (sizes[2]-1) / 2.0;
+    voxel[0] = (VIO_Real) (sizes[0]-1) / 2.0;
+    voxel[1] = (VIO_Real) (sizes[1]-1) / 2.0;
+    voxel[2] = (VIO_Real) (sizes[2]-1) / 2.0;
 
     convert_voxel_to_world( volume, voxel, &xc, &yc, &zc );
     
     BEGIN_ALL_VOXELS( volume, v[0], v[1], v[2], v[3], v[4] )
 
-        voxel[0] = (Real) v[0];
-        voxel[1] = (Real) v[1];
-        voxel[2] = (Real) v[2];
+        voxel[0] = (VIO_Real) v[0];
+        voxel[1] = (VIO_Real) v[1];
+        voxel[2] = (VIO_Real) v[2];
 
         convert_voxel_to_world( volume, voxel, &xp, &yp, &zp );
 

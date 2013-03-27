@@ -33,30 +33,30 @@ ArgvInfo argTable[] = {
 };
 
 int binary_object_mask( VIO_STR input_surface_filename,
-                        Real set_value,
-                        Real inside_value,
+                        VIO_Real set_value,
+                        VIO_Real inside_value,
                         VIO_Volume volume ) 
 {
 
-    Real                 separations[VIO_MAX_DIMENSIONS];
-    Real                 xw, yw, zw, value_to_set;
-    Real                 sign_before, sign_after;
+    VIO_Real                 separations[VIO_MAX_DIMENSIONS];
+    VIO_Real                 xw, yw, zw, value_to_set;
+    VIO_Real                 sign_before, sign_after;
     VIO_Point                origin, dest;
-    Real                 min_real_value, max_real_value;
-    Real                 *directions;
+    VIO_Real                 min_real_value, max_real_value;
+    VIO_Real                 *directions;
     VIO_Vector               direction;
     VIO_File_formats         format;
     int                  x, y, z, n_objects, k;
     int                  sizes[VIO_MAX_DIMENSIONS];
     int                  obj_index;
     int                  i, j, best, n_intersections, ind;
-    Real                 dist, *distances, tmp, voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 dist, *distances, tmp, voxel[VIO_MAX_DIMENSIONS];
     object_struct        **objects;
-    BOOLEAN              inside, erase_flag;
+    VIO_BOOL              inside, erase_flag;
     VIO_progress_struct      progress;
 
     if( input_graphics_file( input_surface_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects < 1 )
@@ -74,25 +74,25 @@ int binary_object_mask( VIO_STR input_surface_filename,
     if( BINTREE_FACTOR > 0.0 )
     {
         create_polygons_bintree( get_polygons_ptr(objects[0]),
-                     VIO_ROUND( (Real) get_polygons_ptr(objects[0])->n_items *
+                     VIO_ROUND( (VIO_Real) get_polygons_ptr(objects[0])->n_items *
                                                    BINTREE_FACTOR ) );
     }
 
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+    initialize_progress_report( &progress, FALSE, sizes[VIO_X] * sizes[VIO_Y],
                                 "Masking" );
 
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, sizes[VIO_X] )
     {
-        for_less( y, 0, sizes[Y] )
+        for_less( y, 0, sizes[VIO_Y] )
         {
-            voxel[X] = (Real) x;
-            voxel[Y] = (Real) y;
-            voxel[Z] = -OFFSET;
+            voxel[VIO_X] = (VIO_Real) x;
+            voxel[VIO_Y] = (VIO_Real) y;
+            voxel[VIO_Z] = -OFFSET;
 
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
             fill_Point( origin, xw, yw, zw );
 
-            voxel[Z] = (Real) sizes[Z] + OFFSET;
+            voxel[VIO_Z] = (VIO_Real) sizes[VIO_Z] + OFFSET;
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
             fill_Point( dest, xw, yw, zw );
             SUB_POINTS( direction, dest, origin );
@@ -107,7 +107,7 @@ int binary_object_mask( VIO_STR input_surface_filename,
             directions = get_intersect_directions();
 
             for_less( i, 0, n_intersections )
-                distances[i] = distances[i] / VIO_FABS( separations[Z] ) - OFFSET;
+                distances[i] = distances[i] / VIO_FABS( separations[VIO_Z] ) - OFFSET;
 
             for_less( i, 0, n_intersections-1 )
             {
@@ -192,10 +192,10 @@ int binary_object_mask( VIO_STR input_surface_filename,
             {
                 ind = 0;
                 inside = FALSE;
-                for_less( z, 0, sizes[Z] )
+                for_less( z, 0, sizes[VIO_Z] )
                 {
                     while( ind <= n_intersections-1 &&
-                           (Real) z >= distances[ind] )
+                           (VIO_Real) z >= distances[ind] )
                     {
                         inside = !inside;
                         ++ind;
@@ -228,7 +228,7 @@ int binary_object_mask( VIO_STR input_surface_filename,
                 FREE( directions );
             }
 
-            update_progress_report( &progress, x * sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * sizes[VIO_Y] + y + 1 );
         }
     }
     
@@ -247,11 +247,11 @@ int main ( int argc, char *argv[] )
 {
   VIO_STR               input_volume_filename, output_file_name;
   VIO_STR               surface_filename;
-  Real                 outside_value, inside_value;
+  VIO_Real                 outside_value, inside_value;
   VIO_Volume               binary_volume, out_volume;
   int                  sizes[VIO_MAX_DIMENSIONS];
   int                  x,y,z;
-  Real                 original_value, binary_value;
+  VIO_Real                 original_value, binary_value;
   minc_output_options  output_options;
   volume_input_struct  input_struct;
   VIO_STR               *original_dimnames;
@@ -298,7 +298,7 @@ int main ( int argc, char *argv[] )
 
   if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                     MI_ORIGINAL_TYPE, FALSE, 0.0, 0.0, TRUE, 
-                    &binary_volume, NULL ) != OK )
+                    &binary_volume, NULL ) != VIO_OK )
     return( 1 );
 
   out_volume = copy_volume(binary_volume);

@@ -51,7 +51,7 @@ int make_skel( int sizes[VIO_MAX_DIMENSIONS], short * val ) {
               if( j + dj < 0 || j + dj >= sizes[1] ) continue;
               for( dk = -1; dk <= 1; dk++ ) {
                 if( k + dk < 0 || k + dk >= sizes[2] ) continue;
-                if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
+                if( VIO_ABS(di) + VIO_ABS(dj) + VIO_ABS(dk) <= stencil ) {
                   jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                   if( val[jj] == nlevel ) found++;
                 }
@@ -89,7 +89,7 @@ int make_skel( int sizes[VIO_MAX_DIMENSIONS], short * val ) {
             if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
               if( k + dk < 0 || k + dk >= sizes[2] ) continue;
-              if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
+              if( VIO_ABS(di) + VIO_ABS(dj) + VIO_ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( val[jj] > val[ii] ) found++;
               }
@@ -116,7 +116,7 @@ int make_skel( int sizes[VIO_MAX_DIMENSIONS], short * val ) {
             if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
               if( k + dk < 0 || k + dk >= sizes[2] ) continue;
-              if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
+              if( VIO_ABS(di) + VIO_ABS(dj) + VIO_ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( val[jj] > 0 && flag[jj] == 0 ) flag[jj] = 1;
               }
@@ -142,7 +142,7 @@ int make_skel( int sizes[VIO_MAX_DIMENSIONS], short * val ) {
             if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
               if( k + dk < 0 || k + dk >= sizes[2] ) continue;
-              if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
+              if( VIO_ABS(di) + VIO_ABS(dj) + VIO_ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( flag[jj] > 0 ) count++;
               }
@@ -167,7 +167,7 @@ int make_skel( int sizes[VIO_MAX_DIMENSIONS], short * val ) {
 
     delete [] flag;
 
-    return( OK );
+    return( VIO_OK );
 }
 
 int skel( int sizes[VIO_MAX_DIMENSIONS], VIO_Volume volume ) {
@@ -205,7 +205,7 @@ int skel( int sizes[VIO_MAX_DIMENSIONS], VIO_Volume volume ) {
 
     // Make the skeleton.
 
-    int ret = OK;
+    int ret = VIO_OK;
     ret = make_skel( sizes, val );
 
     // Save back to volume.
@@ -238,7 +238,7 @@ int  main( int ac, char* av[] ) {
     VIO_Volume in_volume;
     if ( input_volume( av[1], 3, NULL, 
                        MI_ORIGINAL_TYPE, 0, 0, 0,
-                       TRUE, &in_volume, NULL ) != OK ) {
+                       TRUE, &in_volume, NULL ) != VIO_OK ) {
       cerr << "Error: cannot read volume file " << av[1] << endl;
       return 1;
     }
@@ -253,12 +253,12 @@ int  main( int ac, char* av[] ) {
     get_volume_sizes( in_volume, sizes );
 
     int ret = skel( sizes, in_volume );
-    if( ret != OK ) return( 1 );
+    if( ret != VIO_OK ) return( 1 );
 
     int rv = output_modified_volume( av[2], MI_ORIGINAL_TYPE,
                                      0, 0, 0, in_volume, av[1],
                                      time_stamp( ac, av ), NULL );
-    return ( rv != OK );
+    return ( rv != VIO_OK );
 
 }
 

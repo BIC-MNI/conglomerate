@@ -76,7 +76,7 @@ static  void  tri_mesh_insert_triangle(
 static  int  tri_mesh_insert_point(
     tri_mesh_struct  *mesh,
     VIO_Point            *point,
-    BOOLEAN          active_flag )
+    VIO_BOOL          active_flag )
 {
     ADD_ELEMENT_TO_ARRAY( mesh->points, mesh->n_points, *point,
                           DEFAULT_CHUNK_SIZE )
@@ -93,25 +93,25 @@ static  VIO_Status  output_tri_node(
     tri_node_struct  *node )
 {
     int      child, *list;
-    BOOLEAN  leaf_flag;
+    VIO_BOOL  leaf_flag;
 
     leaf_flag = (node->children[0] == NULL);
 
     list = node->nodes;
-    if( io_ints( file, WRITE_FILE, format, 3, &list ) != OK ||
-        io_boolean( file, WRITE_FILE, format, &leaf_flag ) != OK )
-        return( ERROR );
+    if( io_ints( file, WRITE_FILE, format, 3, &list ) != VIO_OK ||
+        io_boolean( file, WRITE_FILE, format, &leaf_flag ) != VIO_OK )
+        return( VIO_ERROR );
 
     if( !leaf_flag )
     {
         for_less( child, 0, 4 )
         {
-            if( output_tri_node( file, format, node->children[child] ) != OK )
-                return( ERROR );
+            if( output_tri_node( file, format, node->children[child] ) != VIO_OK )
+                return( VIO_ERROR );
         }
     }
 
-    return( OK );
+    return( VIO_OK );
 }
 
   VIO_Status  tri_mesh_output(
@@ -121,39 +121,39 @@ static  VIO_Status  output_tri_node(
 {
     FILE     *file;
     int      tri, point;
-    BOOLEAN  flag;
+    VIO_BOOL  flag;
 
-    if( open_file( filename, WRITE_FILE, format, &file ) != OK )
-        return( ERROR );
+    if( open_file( filename, WRITE_FILE, format, &file ) != VIO_OK )
+        return( VIO_ERROR );
 
-    if( io_int( file, WRITE_FILE, format, &mesh->n_points ) != OK )
-        return( ERROR );
+    if( io_int( file, WRITE_FILE, format, &mesh->n_points ) != VIO_OK )
+        return( VIO_ERROR );
 
-    if( io_int( file, WRITE_FILE, format, &mesh->n_triangles ) != OK )
-        return( ERROR );
+    if( io_int( file, WRITE_FILE, format, &mesh->n_triangles ) != VIO_OK )
+        return( VIO_ERROR );
 
     for_less( point, 0, mesh->n_points )
     {
-        if( io_point( file, WRITE_FILE, format, &mesh->points[point] ) != OK )
-            return( ERROR );
+        if( io_point( file, WRITE_FILE, format, &mesh->points[point] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     for_less( point, 0, mesh->n_points )
     {
-        flag = (BOOLEAN) mesh->active_flags[point];
-        if( io_boolean( file, WRITE_FILE, format, &flag ) != OK )
-            return( ERROR );
+        flag = (VIO_BOOL) mesh->active_flags[point];
+        if( io_boolean( file, WRITE_FILE, format, &flag ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     for_less( tri, 0, mesh->n_triangles )
     {
-        if( output_tri_node( file, format, &mesh->triangles[tri] ) != OK )
-            return( ERROR );
+        if( output_tri_node( file, format, &mesh->triangles[tri] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     (void) close_file( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
 static  VIO_Status  input_tri_node(
@@ -163,11 +163,11 @@ static  VIO_Status  input_tri_node(
     tri_node_struct  *node )
 {
     int      child, *list;
-    BOOLEAN  leaf_flag;
+    VIO_BOOL  leaf_flag;
 
-    if( io_ints( file, READ_FILE, format, 3, &list ) != OK ||
-        io_boolean( file, READ_FILE, format, &leaf_flag ) != OK )
-        return( ERROR );
+    if( io_ints( file, READ_FILE, format, 3, &list ) != VIO_OK ||
+        io_boolean( file, READ_FILE, format, &leaf_flag ) != VIO_OK )
+        return( VIO_ERROR );
 
     node->nodes[0] = list[0];
     node->nodes[1] = list[1];
@@ -189,15 +189,15 @@ static  VIO_Status  input_tri_node(
             ALLOC( node->children[child], 1 );
 
             if( input_tri_node( file, format, mesh, node->children[child] )
-                != OK )
-                return( ERROR );
+                != VIO_OK )
+                return( VIO_ERROR );
         }
     }
 
-    return( OK );
+    return( VIO_OK );
 }
 
-  BOOLEAN  tri_mesh_set_points(
+  VIO_BOOL  tri_mesh_set_points(
     tri_mesh_struct  *mesh,
     int              n_points,
     VIO_Point            points[] )
@@ -223,33 +223,33 @@ static  VIO_Status  input_tri_mesh_format(
 {
     FILE     *file;
     int      tri, point;
-    BOOLEAN  flag;
+    VIO_BOOL  flag;
 
     tri_mesh_initialize( mesh );
 
-    if( open_file( filename, READ_FILE, format, &file ) != OK )
-        return( ERROR );
+    if( open_file( filename, READ_FILE, format, &file ) != VIO_OK )
+        return( VIO_ERROR );
 
-    if( io_int( file, READ_FILE, format, &mesh->n_points ) != OK )
-        return( ERROR );
+    if( io_int( file, READ_FILE, format, &mesh->n_points ) != VIO_OK )
+        return( VIO_ERROR );
 
-    if( io_int( file, READ_FILE, format, &mesh->n_triangles ) != OK )
-        return( ERROR );
+    if( io_int( file, READ_FILE, format, &mesh->n_triangles ) != VIO_OK )
+        return( VIO_ERROR );
 
     SET_ARRAY_SIZE( mesh->points, 0, mesh->n_points, DEFAULT_CHUNK_SIZE );
 
     for_less( point, 0, mesh->n_points )
     {
-        if( io_point( file, READ_FILE, format, &mesh->points[point] ) != OK )
-            return( ERROR );
+        if( io_point( file, READ_FILE, format, &mesh->points[point] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     SET_ARRAY_SIZE( mesh->active_flags, 0, mesh->n_points, DEFAULT_CHUNK_SIZE );
 
     for_less( point, 0, mesh->n_points )
     {
-        if( io_boolean( file, READ_FILE, format, &flag ) != OK )
-            return( ERROR );
+        if( io_boolean( file, READ_FILE, format, &flag ) != VIO_OK )
+            return( VIO_ERROR );
 
         mesh->active_flags[point] = (VIO_SCHAR) flag;
     }
@@ -258,13 +258,13 @@ static  VIO_Status  input_tri_mesh_format(
 
     for_less( tri, 0, mesh->n_triangles )
     {
-        if( input_tri_node( file, format, mesh, &mesh->triangles[tri] ) != OK )
-            return( ERROR );
+        if( input_tri_node( file, format, mesh, &mesh->triangles[tri] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     (void) close_file( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
   VIO_Status  tri_mesh_input(
@@ -278,19 +278,19 @@ static  VIO_Status  input_tri_mesh_format(
 
     if( filename_extension_matches( filename, "obj" ) )
     {
-        if( input_graphics_file( filename, &format, &n_objects, &objects ) != OK
+        if( input_graphics_file( filename, &format, &n_objects, &objects ) != VIO_OK
             || n_objects != 1 ||
             get_object_type( objects[0] ) != POLYGONS )
         {
             print_error( "Error reading polygons as tri mesh.\n" );
-            return( ERROR );
+            return( VIO_ERROR );
         }
 
         tri_mesh_convert_from_polygons( get_polygons_ptr(objects[0]),
                                         mesh );
 
         delete_object_list( n_objects, objects );
-        status = OK; 
+        status = VIO_OK; 
     }
     else
         status = input_tri_mesh_format( filename, format, mesh );
@@ -317,7 +317,7 @@ static  void  insert_edge_midpoint(
     insert_in_hash2_table( edge_lookup, k0, k1, (void *) &midpoint );
 }
 
-static  BOOLEAN  lookup_edge_midpoint(
+static  VIO_BOOL  lookup_edge_midpoint(
     hash2_table_struct    *edge_lookup,
     int                   p0,
     int                   p1,
@@ -423,7 +423,7 @@ static  int  get_edge_midpoint(
     tri_mesh_struct      *mesh,
     int                  p0,
     int                  p1,
-    BOOLEAN              active_flag )
+    VIO_BOOL              active_flag )
 {
     int     midpoint;
     VIO_Point   mid;
@@ -456,7 +456,7 @@ static  int  get_edge_midpoint(
 static  void  subdivide_tri_node(
     tri_mesh_struct    *mesh,
     tri_node_struct    *node,
-    BOOLEAN            active_flag )
+    VIO_BOOL            active_flag )
 {
     int  midpoints[3];
 
@@ -770,7 +770,7 @@ static  void   add_to_polygons(
     int                      p2 )
 {
     int      mid0, mid1, mid2;
-    BOOLEAN  mid0_exists, mid1_exists, mid2_exists;
+    VIO_BOOL  mid0_exists, mid1_exists, mid2_exists;
 
     mid0_exists = lookup_edge_midpoint( &mesh->edge_lookup, p0, p1, &mid0 );
     mid1_exists = lookup_edge_midpoint( &mesh->edge_lookup, p1, p2, &mid1 );
@@ -909,7 +909,7 @@ static  void   coalesce_on_node_values(
 {
     int       i, list[6], child;
     VIO_Real      size;
-    BOOLEAN   coalesce;
+    VIO_BOOL   coalesce;
 
     if( node->children[0] != NULL )
     {
@@ -1029,7 +1029,7 @@ static  void   subdivide_on_node_values(
 {
     VIO_Real     size;
     int      child, vertex;
-    BOOLEAN  subdivide_flag;
+    VIO_BOOL  subdivide_flag;
 
     if( max_subdivisions != 0 && node->children[0] == NULL )
     {
@@ -1109,7 +1109,7 @@ static  void   subdivide_bordering_triangles(
     tri_node_struct    *node )
 {
     int      child, edge, p1, p2, midpoint;
-    BOOLEAN  subdivide_flag;
+    VIO_BOOL  subdivide_flag;
 
     if( node->children[0] == NULL )
     {
@@ -1224,11 +1224,11 @@ static  VIO_Status  output_fixed_midpoints(
             {
                 visited_flags[midpoint] = TRUE;
 
-                if( output_int( file, p1 ) != OK ||
-                    output_int( file, p2 ) != OK ||
-                    output_int( file, midpoint ) != OK ||
-                    output_newline( file ) != OK )
-                    return( ERROR );
+                if( output_int( file, p1 ) != VIO_OK ||
+                    output_int( file, p2 ) != VIO_OK ||
+                    output_int( file, midpoint ) != VIO_OK ||
+                    output_newline( file ) != VIO_OK )
+                    return( VIO_ERROR );
             }
         }
 
@@ -1236,12 +1236,12 @@ static  VIO_Status  output_fixed_midpoints(
         {
             if( output_fixed_midpoints( file, edge_lookup,
                                         active_flags, visited_flags,
-                                        node->children[child] ) != OK )
-                return( ERROR );
+                                        node->children[child] ) != VIO_OK )
+                return( VIO_ERROR );
         }
     }
 
-    return( OK );
+    return( VIO_OK );
 }
 
   VIO_Status  output_mesh_fixed_midpoints(
@@ -1252,8 +1252,8 @@ static  VIO_Status  output_fixed_midpoints(
     VIO_SCHAR  *visited_flags;
     FILE          *file;
 
-    if( open_file( filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
-        return( ERROR );
+    if( open_file( filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
+        return( VIO_ERROR );
 
     ALLOC( visited_flags, mesh->n_points );
 
@@ -1264,15 +1264,15 @@ static  VIO_Status  output_fixed_midpoints(
     {
         if( output_fixed_midpoints( file, &mesh->edge_lookup,
                                     mesh->active_flags, visited_flags,
-                                    &mesh->triangles[tri] ) != OK )
-            return( ERROR );
+                                    &mesh->triangles[tri] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
     FREE( visited_flags );
 
     (void) close_file( file );
 
-    return( OK );
+    return( VIO_OK );
 }
 
 static   void  make_meshes_same(

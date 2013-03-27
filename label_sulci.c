@@ -52,24 +52,24 @@ int  main(
     }
 
     if( input_graphics_file( surface_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type( object_list[0] ) != POLYGONS )
         return( 1 );
 
     surface = get_polygons_ptr( object_list[0] );
 
     if( input_graphics_file( sulcus_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
-    if( open_file( input_values_filename, READ_FILE, ASCII_FORMAT, &file )!=OK )
+    if( open_file( input_values_filename, READ_FILE, ASCII_FORMAT, &file )!=VIO_OK )
         return( 1 );
 
     ALLOC( values, surface->n_points );
 
     for_less( p, 0, surface->n_points )
     {
-        if( input_real( file, &values[p] ) != OK )
+        if( input_real( file, &values[p] ) != VIO_OK )
         {
             print_error( "Could not read %d'th value from file.\n", p );
             return( 1 );
@@ -101,13 +101,13 @@ int  main(
     print( "Set %d nodes.\n", n_set );
 
     if( open_file( output_values_filename, WRITE_FILE, ASCII_FORMAT, &file )
-              !=OK )
+              !=VIO_OK )
         return( 1 );
 
     for_less( p, 0, surface->n_points )
     {
-        if( output_real( file, values[p] ) != OK ||
-            output_newline( file ) != OK )
+        if( output_real( file, values[p] ) != VIO_OK ||
+            output_newline( file ) != VIO_OK )
         {
             print_error( "Could not write %d'th value from file.\n", p );
             return( 1 );
@@ -134,7 +134,7 @@ static  int  surface_fill(
     int                     n_changed;
     int                     step, next_step_index, max_steps;
     VIO_Point                   poly_point;
-    BOOLEAN                 new_step;
+    VIO_BOOL                 new_step;
     QUEUE_STRUCT( int )     queue;
 
     poly = find_closest_polygon_point( point, surface, &poly_point );

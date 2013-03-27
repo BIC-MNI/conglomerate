@@ -40,7 +40,7 @@ int  main(
     VIO_Real                 bottom_left[VIO_N_DIMENSIONS];
     VIO_Real                 zero[VIO_N_DIMENSIONS];
     object_struct        **objects;
-    BOOLEAN              use_volume;
+    VIO_BOOL              use_volume;
     VIO_Point                unit_point, on_sphere_point, centre, surface_point;
     VIO_Point                poly_points[1000], centroid;
     VIO_Real                 base_length;
@@ -69,7 +69,7 @@ int  main(
     /*--- input the surface */
 
      if( input_graphics_file( surface_filename, &format, &n_objects, &objects )
-         != OK )
+         != VIO_OK )
         return( 1 );
 
     /*--- check that the surface file contains a polyhedron */
@@ -84,7 +84,7 @@ int  main(
     {
         if( input_volume( volume_filename, 3, XYZ_dimension_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                          TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
             return( 1 );
 
         get_volume_real_range( volume, &min_value, &max_value );
@@ -239,7 +239,7 @@ int  main(
     terminate_progress_report( &progress );
 
     if( output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                       image, "Surface-to-image map.\n", NULL ) != OK )
+                       image, "Surface-to-image map.\n", NULL ) != VIO_OK )
         return( 1 );
 
 
@@ -267,8 +267,8 @@ static  void   map_2d_to_unit_sphere(
 {
     VIO_Real  angle_around, angle_up, x, y, z, r;
 
-    angle_around = ((VIO_Real) i + 0.5)  / (VIO_Real) ni * 2.0 * PI;
-    angle_up = -PI/2.0 + ((VIO_Real) j + 0.5) / (VIO_Real) nj * PI;
+    angle_around = ((VIO_Real) i + 0.5)  / (VIO_Real) ni * 2.0 * M_PI;
+    angle_up = -M_PI/2.0 + ((VIO_Real) j + 0.5) / (VIO_Real) nj * M_PI;
 
     z = sin( angle_up );
 

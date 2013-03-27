@@ -7,7 +7,7 @@ int  main(
 {
     char      *input_volume_filename, *output_filename;
     char      *second_output;
-    Volume    volume, label_volume, read_label_volume;
+    VIO_Volume    volume, label_volume, read_label_volume;
     int       sizes[N_DIMENSIONS], voxel[N_DIMENSIONS];
     int       true_label, test_label;
 
@@ -23,7 +23,7 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     label_volume = create_label_volume( volume, NC_BYTE );
@@ -37,12 +37,12 @@ int  main(
         set_volume_label_data( label_volume, voxel, 1 );
     }
 
-    if( save_label_volume( output_filename, NULL, label_volume ) != OK )
+    if( save_label_volume( output_filename, NULL, label_volume ) != VIO_OK )
         return( 1 );
 
     read_label_volume = create_label_volume( volume, NC_BYTE );
 
-    if( load_label_volume( output_filename, read_label_volume ) != OK )
+    if( load_label_volume( output_filename, read_label_volume ) != VIO_OK )
         return( 1 );
 
     for_less( voxel[X], 0, sizes[X] )
@@ -61,10 +61,10 @@ int  main(
     }
 
     if( save_label_volume( second_output, output_filename, read_label_volume )
-                               != OK )
+                               != VIO_OK )
         return( 1 );
 
-    if( load_label_volume( second_output, read_label_volume ) != OK )
+    if( load_label_volume( second_output, read_label_volume ) != VIO_OK )
         return( 1 );
 
     for_less( voxel[X], 0, sizes[X] )

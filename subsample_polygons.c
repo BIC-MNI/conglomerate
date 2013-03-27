@@ -8,9 +8,9 @@ private  void  subsample_polygons(
     int                new_n_points );
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.obj  output.obj  fraction\n\
 \n\
      Subsamples any polygons in the file, placing output in the original file\n\
@@ -23,13 +23,13 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename;
+    VIO_STR           input_filename, output_filename;
     int              i, n_objects;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons;
     int              new_n_points;
-    Real             fraction;
+    VIO_Real             fraction;
 
     initialize_argument_processing( argc, argv );
 
@@ -42,7 +42,7 @@ int  main(
     }
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     for_less( i, 0, n_objects )
@@ -51,7 +51,7 @@ int  main(
         {
             polygons = get_polygons_ptr( object_list[i] );
 
-            new_n_points = ROUND( fraction * (Real) polygons->n_points );
+            new_n_points = ROUND( fraction * (VIO_Real) polygons->n_points );
             subsample_polygons( polygons, new_n_points );
 
             compute_polygon_normals( get_polygons_ptr(object_list[i]) );
@@ -71,12 +71,12 @@ int  main(
 #define  MUST_RECOMPUTE   -1.0
 #define  CANNOT_DELETE    -2.0
 
-private  BOOLEAN  is_convex(
+private  VIO_BOOL  is_convex(
     int    n_points,
-    Point  points[] )
+    VIO_Point  points[] )
 {
     int  lowest, p, prev, cur, next;
-    Vector  v0, v1, cross;
+    VIO_Vector  v0, v1, cross;
 
     lowest = 0;
     for_less( p, 0, n_points )
@@ -107,14 +107,14 @@ private  BOOLEAN  is_convex(
 
 private  int   get_surrounding_polygon(
     int           n_points,
-    Point         points[],
+    VIO_Point         points[],
     int           point_index,
     int           n_neighbours[],
     int           *neighbours[],
-    Point         *neigh_points_ptr[] )
+    VIO_Point         *neigh_points_ptr[] )
 {
     int     n_neighs, current_index, first_index, current_point, next_point;
-    Point   *neigh_points;
+    VIO_Point   *neigh_points;
 
     for_less( current_index, 0, n_neighbours[point_index] )
     {
@@ -181,12 +181,12 @@ private  int   get_surrounding_polygon(
 
 private  void   get_flat_points(
     int           n_points,
-    Point         points[],
-    Vector        *normal,
-    Point         flat_points[] )
+    VIO_Point         points[],
+    VIO_Vector        *normal,
+    VIO_Point         flat_points[] )
 {
     int     n;
-    Vector  hor, vert;
+    VIO_Vector  hor, vert;
 
     create_two_orthogonal_vectors( normal, &hor, &vert );
     NORMALIZE_VECTOR( hor, hor );
@@ -202,11 +202,11 @@ private  void   get_flat_points(
     }
 }
 
-private  BOOLEAN   can_delete(
+private  VIO_BOOL   can_delete(
     int           n_points,
-    Point         flat_points[] )
+    VIO_Point         flat_points[] )
 {
-    BOOLEAN can_delete;
+    VIO_BOOL can_delete;
 
     can_delete = is_convex( n_points, flat_points );
 
@@ -218,7 +218,7 @@ private  int  delete_point(
     int           n_neighbours[],
     int           *neighbours[],
     Smallest_int  interior_flags[],
-    Real          flatness[] )
+    VIO_Real          flatness[] )
 {
     int    n, *save_neighbours, neigh, nn, n_valid_neighbours;
     int    n_deleted, save_n_neighs, two_neighs[2];
@@ -375,17 +375,17 @@ private  int  get_indices(
     return( size );
 }
 
-private  Real  get_flatness(
+private  VIO_Real  get_flatness(
     int     n_points,
-    Point   polygon_points[],
+    VIO_Point   polygon_points[],
     int     point_index,
     int     n_neighbours[],
     int     *neighbours[] )
 {
     int      n, n_neighs;
-    Real     flatness, constant, dist;
-    Point    *neigh_points, *flat_points;
-    Vector   normal;
+    VIO_Real     flatness, constant, dist;
+    VIO_Point    *neigh_points, *flat_points;
+    VIO_Vector   normal;
 
     n_neighs = get_surrounding_polygon( n_points, polygon_points, point_index,
                                         n_neighbours,
@@ -419,7 +419,7 @@ private  Real  get_flatness(
         flatness += dist * dist;
     }
 
-    flatness /= (Real) (1 + n_neighs);
+    flatness /= (VIO_Real) (1 + n_neighs);
 #endif
 
     FREE( neigh_points );
@@ -479,8 +479,8 @@ private  void  subsample_polygons(
     int              new_n_polys, *new_end_indices, *new_indices;
     int              *indices, *new_point_index, ind, size, i, min_index;
     Smallest_int     *interior_flags;  
-    Point            *new_points;
-    Real             *flatness;
+    VIO_Point            *new_points;
+    VIO_Real             *flatness;
     progress_struct  progress;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,

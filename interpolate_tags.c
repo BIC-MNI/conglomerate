@@ -35,20 +35,20 @@ int  main(
 
     if( input_tag_file( input_tags_filename, &n_volumes, &n_tag_points,
                         &tags1, &tags2, &weights, &structure_ids,
-                        &patient_ids, &labels ) != OK )
+                        &patient_ids, &labels ) != VIO_OK )
         return( 1 );
 
     for_less( tag, 0, n_tag_points )
     {
         for_less( dim, 0, VIO_N_DIMENSIONS )
-           tags2[tag][dim] = INTERPOLATE( ratio, tags2[tag][dim],
+           tags2[tag][dim] = VIO_INTERPOLATE( ratio, tags2[tag][dim],
                                                  tags1[tag][dim] );
     }
 
     if( output_tag_file( output_tags_filename, "Interpolated",
                          n_volumes, n_tag_points, tags1, tags2,
                          weights, structure_ids,
-                         patient_ids, labels ) != OK )
+                         patient_ids, labels ) != VIO_OK )
         return( 1 );
 
     free_tag_points( n_volumes, n_tag_points, tags1, tags2,

@@ -1,16 +1,16 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  Real  compute_cross_correlation(
-    Volume    volume1,
-    Volume    volume2,
-    Real      x,
-    Real      super_sampling );
+private  VIO_Real  compute_cross_correlation(
+    VIO_Volume    volume1,
+    VIO_Volume    volume2,
+    VIO_Real      x,
+    VIO_Real      super_sampling );
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input1.mnc input2.mnc  [x_min_offset]  [x_max_offset]  [x_increment]\n\
 \n\
      Evaluates the cross correlation of the two volumes, with the set of\n\
@@ -23,9 +23,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename1, input_filename2;
-    Volume     volume1, volume2;
-    Real       x, x_min, x_max, x_inc, value, super_sampling;
+    VIO_STR     input_filename1, input_filename2;
+    VIO_Volume     volume1, volume2;
+    VIO_Real       x, x_min, x_max, x_inc, value, super_sampling;
 
     initialize_argument_processing( argc, argv );
 
@@ -43,12 +43,12 @@ int  main(
 
     if( input_volume( input_filename1, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume1, NULL ) != OK )
+                      TRUE, &volume1, NULL ) != VIO_OK )
         return( 1 );
 
     if( input_volume( input_filename2, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume2, NULL ) != OK )
+                      TRUE, &volume2, NULL ) != VIO_OK )
         return( 1 );
 
     for( x = x_min;  x <= x_max;  x += x_inc )
@@ -64,16 +64,16 @@ int  main(
     return( 0 );
 }
 
-private  Real  compute_cross_correlation(
-    Volume    volume1,
-    Volume    volume2,
-    Real      x,
-    Real      super_sampling )
+private  VIO_Real  compute_cross_correlation(
+    VIO_Volume    volume1,
+    VIO_Volume    volume2,
+    VIO_Real      x,
+    VIO_Real      super_sampling )
 {
-    Real  voxel[MAX_DIMENSIONS];
+    VIO_Real  voxel[MAX_DIMENSIONS];
     int   sizes[MAX_DIMENSIONS], grid[MAX_DIMENSIONS];
     int   i, j, k, dim;
-    Real  value1, value2, corr, xw, yw, zw, diff;
+    VIO_Real  value1, value2, corr, xw, yw, zw, diff;
 
     corr = 0.0;
 
@@ -81,23 +81,23 @@ private  Real  compute_cross_correlation(
 
     for_less( dim, 0, N_DIMENSIONS )
     {
-        grid[dim] = ROUND( super_sampling * (Real) (sizes[dim] - 1) + 1.0 );
+        grid[dim] = ROUND( super_sampling * (VIO_Real) (sizes[dim] - 1) + 1.0 );
     }
 
     for_less( i, 0, grid[0] )
     {
-        voxel[0] = INTERPOLATE( (Real) i / (Real) (grid[0]-1),
-                                0.0, (Real) sizes[0] - 1.0 );
+        voxel[0] = VIO_INTERPOLATE( (VIO_Real) i / (VIO_Real) (grid[0]-1),
+                                0.0, (VIO_Real) sizes[0] - 1.0 );
 
         for_less( j, 0, grid[1] )
         {
-            voxel[1] = INTERPOLATE( (Real) j / (Real) (grid[1]-1),
-                                    0.0, (Real) sizes[1] - 1.0 );
+            voxel[1] = VIO_INTERPOLATE( (VIO_Real) j / (VIO_Real) (grid[1]-1),
+                                    0.0, (VIO_Real) sizes[1] - 1.0 );
 
             for_less( k, 0, grid[2] )
             {
-                voxel[2] = INTERPOLATE( (Real) k / (Real) (grid[2]-1),
-                                        0.0, (Real) sizes[2] - 1.0 );
+                voxel[2] = VIO_INTERPOLATE( (VIO_Real) k / (VIO_Real) (grid[2]-1),
+                                        0.0, (VIO_Real) sizes[2] - 1.0 );
 
                 (void) evaluate_volume( volume1, voxel, NULL, 0, FALSE, 0.0,
                                         &value1, NULL, NULL );
@@ -116,7 +116,7 @@ private  Real  compute_cross_correlation(
         }
     }
 
-    corr /= (Real) (grid[0] * grid[1] * grid[2]);
+    corr /= (VIO_Real) (grid[0] * grid[1] * grid[2]);
 
     return( corr );
 }

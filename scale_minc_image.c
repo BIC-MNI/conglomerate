@@ -14,7 +14,7 @@ int  main(
                                          MIxspace,
                                          MIyspace,
                                          MIvector_dimension };
-    Real               rgba[4], scale_factor;
+    VIO_Real               rgba[4], scale_factor;
     minc_input_options options;
 
     initialize_argument_processing( argc, argv );
@@ -33,7 +33,7 @@ int  main(
 
     if( input_volume( input_filename, 4, dim_names4d,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, &options ) != OK )
+                      TRUE, &volume, &options ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );

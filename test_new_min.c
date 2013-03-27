@@ -9,11 +9,11 @@
 static int count_f = 0;
 static int count_fd = 0;
 
-private  Real  function(
-    Real   parameters[],
+private  VIO_Real  function(
+    VIO_Real   parameters[],
     void   *function_data )
 {
-    Real   x1, x2;
+    VIO_Real   x1, x2;
 ++count_f;
 
     x1 = parameters[0];
@@ -23,11 +23,11 @@ private  Real  function(
 }
 
 private  void  function_deriv(
-    Real   parameters[],
+    VIO_Real   parameters[],
     void   *function_data,
-    Real   deriv[] )
+    VIO_Real   deriv[] )
 {
-    Real   x1, x2;
+    VIO_Real   x1, x2;
 
 ++count_fd;
 
@@ -42,13 +42,13 @@ private  void  function_deriv(
 #define  GOLDEN_RATIO   0.618034
 #define  DEFAULT_STEP           1.0e-10
 
-private  Real  evaluate_along_line(
+private  VIO_Real  evaluate_along_line(
     int      n_parameters,
-    Real     parameters[],
-    Real     line_direction[],
-    Real     t,
-    Real     test_parameters[],
-    Real     (*function) ( Real [], void * ),
+    VIO_Real     parameters[],
+    VIO_Real     line_direction[],
+    VIO_Real     t,
+    VIO_Real     test_parameters[],
+    VIO_Real     (*function) ( VIO_Real [], void * ),
     void     *function_data )
 {
     int   parm;
@@ -59,23 +59,23 @@ private  Real  evaluate_along_line(
     return( (*function) ( test_parameters, function_data ) );
 }
 
-private BOOLEAN  minimize_along_line(
+private VIO_BOOL  minimize_along_line(
     int      n_parameters,
-    Real     parameters[],
-    Real     line_direction[],
-    Real     test_parameters[],
-    Real     (*function) ( Real [], void * ),
+    VIO_Real     parameters[],
+    VIO_Real     line_direction[],
+    VIO_Real     test_parameters[],
+    VIO_Real     (*function) ( VIO_Real [], void * ),
     void     *function_data,
-    Real     range_tolerance,
-    Real     domain_tolerance,
-    Real     current_value,
-    Real     *final_value )
+    VIO_Real     range_tolerance,
+    VIO_Real     domain_tolerance,
+    VIO_Real     current_value,
+    VIO_Real     *final_value )
 {
     int              p;
-    Real             t0, t1, t2, f0, f1, f2, t_next, f_next, step, fsize;
-    Real             swap, bottom, new_size, old_size;
-    Real             search_ratio;
-    BOOLEAN          done, prev_failed;
+    VIO_Real             t0, t1, t2, f0, f1, f2, t_next, f_next, step, fsize;
+    VIO_Real             swap, bottom, new_size, old_size;
+    VIO_Real             search_ratio;
+    VIO_BOOL          done, prev_failed;
 
     search_ratio = SEARCH_RATIO;
 
@@ -230,23 +230,23 @@ private BOOLEAN  minimize_along_line(
     return( f1 != current_value );
 }
 
-public  Real  new_minimize(
+public  VIO_Real  new_minimize(
     int                    n_parameters,
-    Real                   initial[],
-    Real                   (*function) ( Real [], void * ),
-    void                   (*deriv_function) ( Real [], void *, Real [] ),
+    VIO_Real                   initial[],
+    VIO_Real                   (*function) ( VIO_Real [], void * ),
+    void                   (*deriv_function) ( VIO_Real [], void *, VIO_Real [] ),
     void                   *function_data,
-    Real                   line_min_range_tolerance,
-    Real                   line_min_domain_tolerance,
+    VIO_Real                   line_min_range_tolerance,
+    VIO_Real                   line_min_domain_tolerance,
     int                    max_iterations,
     int                    max_restarts,
-    Real                   solution[] )
+    VIO_Real                   solution[] )
 {
     int             parm, n_no_shrink, iter;
-    Real            value, *derivative, step, len;
-    Real            *test_pos, *test_parameters, *derivative_at_test;
-    Real            current_value, new_value;
-    BOOLEAN         success, shrunk;
+    VIO_Real            value, *derivative, step, len;
+    VIO_Real            *test_pos, *test_parameters, *derivative_at_test;
+    VIO_Real            current_value, new_value;
+    VIO_BOOL         success, shrunk;
 
     ALLOC( derivative, n_parameters );
     ALLOC( test_pos, n_parameters );
@@ -353,8 +353,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Real            initial[N_PARAMETERS], value;
-    Real            range_tolerance, domain_tolerance;
+    VIO_Real            initial[N_PARAMETERS], value;
+    VIO_Real            range_tolerance, domain_tolerance;
     int             n_iterations;
 
     initialize_argument_processing( argc, argv );

@@ -26,7 +26,7 @@ int  main(
     VIO_Point               point, centre, unit_point;
     polygons_struct     *polygons, unit_sphere;
     object_struct       **objects;
-    BOOLEAN             rotate_flag;
+    VIO_BOOL             rotate_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -41,7 +41,7 @@ int  main(
     rotate_flag = get_string_argument( NULL, &dummy );
 
     if( input_tag_file( tags_filename, &n_volumes, &n_tag_points,
-                        &tags1, &tags2, NULL, NULL, NULL, NULL ) != OK )
+                        &tags1, &tags2, NULL, NULL, NULL, NULL ) != VIO_OK )
         return( 1 );
 
     if( n_volumes != 2 )
@@ -51,7 +51,7 @@ int  main(
     }
 
     if( input_graphics_file( surface_filename,
-                             &format, &n_objects, &objects ) != OK ||
+                             &format, &n_objects, &objects ) != VIO_OK ||
         n_objects != 1 || get_object_type(objects[0]) != POLYGONS )
     {
         print_error( "Surface file must contain one polygons struct\n" );
@@ -69,16 +69,16 @@ int  main(
                                &unit_sphere );
 
     output_filename = concat_strings( output_prefix, ".u" );
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file1 ) != OK )
+    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file1 ) != VIO_OK )
         return( 1 );
 
     output_filename = concat_strings( output_prefix, ".v" );
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file2 ) != OK )
+    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file2 ) != VIO_OK )
         return( 1 );
 
     for_less( tag, 0, n_tag_points )
     {
-        fill_Point( point, tags1[tag][X], tags1[tag][Y], tags1[tag][Z] );
+        fill_Point( point, tags1[tag][VIO_X], tags1[tag][VIO_Y], tags1[tag][VIO_Z] );
         map_point_to_unit_sphere( polygons, &point, &unit_sphere, &unit_point );
 
         if( rotate_flag )
@@ -96,7 +96,7 @@ int  main(
 
         map_sphere_to_uv( x, y, z, &u1, &v1 );
 
-        fill_Point( point, tags2[tag][X], tags2[tag][Y], tags2[tag][Z] );
+        fill_Point( point, tags2[tag][VIO_X], tags2[tag][VIO_Y], tags2[tag][VIO_Z] );
         map_point_to_unit_sphere( polygons, &point, &unit_sphere, &unit_point );
 
         if( rotate_flag )
@@ -122,16 +122,16 @@ int  main(
 
         dv = v2 - v1;
 
-        if( output_real( file1, tags1[tag][X] ) != OK ||
-            output_real( file1, tags1[tag][Y] ) != OK ||
-            output_real( file1, tags1[tag][Z] ) != OK ||
-            output_real( file1, du ) != OK ||
-            output_newline( file1 ) != OK ||
-            output_real( file2, tags1[tag][X] ) != OK ||
-            output_real( file2, tags1[tag][Y] ) != OK ||
-            output_real( file2, tags1[tag][Z] ) != OK ||
-            output_real( file2, dv ) != OK ||
-            output_newline( file2 ) != OK )
+        if( output_real( file1, tags1[tag][VIO_X] ) != VIO_OK ||
+            output_real( file1, tags1[tag][VIO_Y] ) != VIO_OK ||
+            output_real( file1, tags1[tag][VIO_Z] ) != VIO_OK ||
+            output_real( file1, du ) != VIO_OK ||
+            output_newline( file1 ) != VIO_OK ||
+            output_real( file2, tags1[tag][VIO_X] ) != VIO_OK ||
+            output_real( file2, tags1[tag][VIO_Y] ) != VIO_OK ||
+            output_real( file2, tags1[tag][VIO_Z] ) != VIO_OK ||
+            output_real( file2, dv ) != VIO_OK ||
+            output_newline( file2 ) != VIO_OK )
             return( 1 );
     }
 

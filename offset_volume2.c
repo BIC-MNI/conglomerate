@@ -2,24 +2,24 @@
 #include  <bicpl.h>
 
 private  void  chamfer_volume(
-    Volume   volume,
+    VIO_Volume   volume,
     int      dist );
 private  void  expand_layer(
-    Volume             volume,
+    VIO_Volume             volume,
     int                iter,
     int                n_sets,
     int                n_in_set[],
     unsigned long      *sets[] );
 private  int  make_lists_of_required_voxels(
-    Volume          volume,
+    VIO_Volume          volume,
     int             dist,
     int             *n_in_set[],
     unsigned long   ***sets );
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc output.mnc  distance\n\
 \n\
 \n\n";
@@ -31,11 +31,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename, mask_filename;
-    STRING               *dim_names;
-    Real                 min_mask, max_mask, distance, value;
-    BOOLEAN              mask_volume_present;
-    Volume               volume, mask_volume;
+    VIO_STR               input_filename, output_filename, mask_filename;
+    VIO_STR               *dim_names;
+    VIO_Real                 min_mask, max_mask, distance, value;
+    VIO_BOOL              mask_volume_present;
+    VIO_Volume               volume, mask_volume;
     int                  i, n_dilations, n_neighs, n_changed, iter;
     int                  range_changed[2][N_DIMENSIONS];
     int                  x, y, z, sizes[N_DIMENSIONS];
@@ -55,7 +55,7 @@ int  main(
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
-                      NULL ) != OK )
+                      NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -126,12 +126,12 @@ int  main(
 }
 
 private  void  chamfer_volume(
-    Volume   volume,
+    VIO_Volume   volume,
     int      dist )
 {
     int      dx, dy, dz, tx, ty, tz, x, y, z, sizes[N_DIMENSIONS];
     int      n_changed, which_dist;
-    Real     neigh, current, min_neigh;
+    VIO_Real     neigh, current, min_neigh;
 
     get_volume_sizes( volume, sizes );
 
@@ -145,7 +145,7 @@ private  void  chamfer_volume(
         {
             current = get_volume_real_value( volume, x, y, z, 0, 0 );
 
-            if( current != (Real) which_dist )
+            if( current != (VIO_Real) which_dist )
                 continue;
 
             for_inclusive( dx, -1, 1 )
@@ -179,14 +179,14 @@ private  void  chamfer_volume(
 }
 
 private  void  get_27_neighbours(
-    Volume          volume,
+    VIO_Volume          volume,
     int             x,
     int             y,
     int             z,
     int             neighbours[3][3][3] )
 {
     int      dx, dy, dz, tx, ty, tz, sizes[N_DIMENSIONS];
-    Real     value;
+    VIO_Real     value;
 
     get_volume_sizes( volume, sizes );
 
@@ -312,7 +312,7 @@ private  void  count_connected(
     }
 }
 
-private BOOLEAN  has_shared_edges(
+private VIO_BOOL  has_shared_edges(
     int      cube[3][3][3] )
 {
     int   i, da, db;
@@ -341,7 +341,7 @@ private BOOLEAN  has_shared_edges(
     return( FALSE );
 }
 
-private BOOLEAN  has_shared_corner(
+private VIO_BOOL  has_shared_corner(
     int      cube[3][3][3] )
 {
     int   dx, dy, dz;
@@ -363,8 +363,8 @@ private BOOLEAN  has_shared_corner(
     return( FALSE );
 }
 
-private  BOOLEAN  check_connectivity(
-    Volume   volume,
+private  VIO_BOOL  check_connectivity(
+    VIO_Volume   volume,
     int      sizes[],
     int      x,
     int      y,
@@ -399,7 +399,7 @@ private  BOOLEAN  check_connectivity(
 }
 
 private  int  get_set_of_possibles(
-    Volume          volume,
+    VIO_Volume          volume,
     int             dist,
     int             x,
     int             y,
@@ -526,7 +526,7 @@ private  int  get_set_of_possibles(
                 ny = y + ty - (dist+1);
                 nz = z + tz - (dist+1);
 
-                set[n_of_max] = IJK( nx, ny, nz, sizes[Y], sizes[Z] );
+                set[n_of_max] = VIO_IJK( nx, ny, nz, sizes[Y], sizes[Z] );
                 ++n_of_max;
             }
         }
@@ -559,7 +559,7 @@ private  int  get_set_of_possibles(
 }
 
 private  int  make_lists_of_required_voxels(
-    Volume          volume,
+    VIO_Volume          volume,
     int             dist,
     int             *n_in_set[],
     unsigned long   ***sets )
@@ -567,7 +567,7 @@ private  int  make_lists_of_required_voxels(
     int             n_sets, max_size, sizes[N_DIMENSIONS];
     int             i, x, y, z, set_size;
     unsigned  long  *possibles;
-    Real            value;
+    VIO_Real            value;
     progress_struct progress;
 
     *n_in_set = NULL;
@@ -615,7 +615,7 @@ private  int  make_lists_of_required_voxels(
     return( n_sets );
 }
 
-private  BOOLEAN  alone_in_list(
+private  VIO_BOOL  alone_in_list(
     int                n_sets,
     int                n_in_set[],
     unsigned long      *sets[],
@@ -670,7 +670,7 @@ private  void  remove_from_lists(
 }
 
 private  void  expand_layer(
-    Volume             volume,
+    VIO_Volume             volume,
     int                iter,
     int                n_sets,
     int                n_in_set[],
@@ -678,7 +678,7 @@ private  void  expand_layer(
 {
     int      x, y, z, dx, dy, dz, sizes[N_DIMENSIONS];
     int      n_changed, neighbours[3][3][3];
-    BOOLEAN  can_remove;
+    VIO_BOOL  can_remove;
 
     get_volume_sizes( volume, sizes );
 
@@ -690,7 +690,7 @@ private  void  expand_layer(
         for_less( y, 0, sizes[Y] )
         for_less( z, 0, sizes[Z] )
         {
-            if( get_volume_real_value( volume, x, y, z, 0, 0 ) != (Real) iter )
+            if( get_volume_real_value( volume, x, y, z, 0, 0 ) != (VIO_Real) iter )
                 continue;
 
             get_27_neighbours( volume, x, y, z, neighbours );
@@ -718,12 +718,12 @@ private  void  expand_layer(
 
             if( can_remove && (iter == 0 ||
                   !alone_in_list( n_sets, n_in_set, sets,
-                                IJK( x, y, z, sizes[Y], sizes[Z] ) )) )
+                                VIO_IJK( x, y, z, sizes[Y], sizes[Z] ) )) )
             {
                 set_volume_real_value( volume, x, y, z, 0, 0, 250.0 );
                 if( iter > 0 )
                     remove_from_lists( n_sets, n_in_set, sets,
-                                       IJK( x, y, z, sizes[Y], sizes[Z] ) );
+                                       VIO_IJK( x, y, z, sizes[Y], sizes[Z] ) );
                 ++n_changed;
             }
         }

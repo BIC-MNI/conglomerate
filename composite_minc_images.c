@@ -19,7 +19,7 @@ int  main(
                                          MIxspace,
                                          MIyspace,
                                          MIvector_dimension };
-    Real               rgba1[4], rgba2[4], weight;
+    VIO_Real               rgba1[4], rgba2[4], weight;
     minc_input_options options;
     Composite_types    comp_type;
 
@@ -47,12 +47,12 @@ int  main(
 
     if( input_volume( input_filename1, 4, dim_names4d,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume1, &options ) != OK )
+                      TRUE, &volume1, &options ) != VIO_OK )
         return( 1 );
 
     if( input_volume( input_filename2, 4, dim_names4d,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume2, &options ) != OK )
+                      TRUE, &volume2, &options ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume1, sizes );

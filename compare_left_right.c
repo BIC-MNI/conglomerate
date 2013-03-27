@@ -11,7 +11,7 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           filename, output_filename, *filenames;
+    VIO_STR           filename, output_filename, *filenames;
     FILE             *file;
     int              i, j, ni, nj, n_objects, n_surfaces, object_index;
     int              surf;
@@ -19,7 +19,7 @@ int  main(
     object_struct    **object_list;
     polygons_struct  *polygons;
     VIO_Real             left_x, right_x, y, z, dist, avg;
-    BOOLEAN          **samples_valid;
+    VIO_BOOL          **samples_valid;
     VIO_Real             ***samples, **means, **variance, **t_stat;
     VIO_Real             sum_x, sum_xx, s, se, min_t, max_t, y_pos, z_pos;
     VIO_Real             sx, sy, sz, prob;
@@ -29,7 +29,7 @@ int  main(
     int              sizes[VIO_N_DIMENSIONS];
     VIO_Transform        linear;
     VIO_General_transform  transform;
-    BOOLEAN            outputting_flag;
+    VIO_BOOL            outputting_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -75,7 +75,7 @@ int  main(
         samples_valid[i][j] = TRUE;
 
     if( !outputting_flag &&
-        open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+        open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
     {
         return( 1 );
     }
@@ -83,7 +83,7 @@ int  main(
     for_less( surf, 0, n_surfaces )
     {
         if( input_graphics_file( filenames[surf], &format, &n_objects,
-                                 &object_list ) != OK )
+                                 &object_list ) != VIO_OK )
         {
             print( "Couldn't read %s.\n", filenames[surf] );
             return( 1 );
@@ -117,10 +117,10 @@ int  main(
             {
                 if( outputting_flag )
                 {
-                    y = INTERPOLATE( (VIO_Real) i / (VIO_Real) (ni-1),
+                    y = VIO_INTERPOLATE( (VIO_Real) i / (VIO_Real) (ni-1),
                                      (VIO_Real) Point_y(min_range),
                                      (VIO_Real) Point_y(max_range) );
-                    z = INTERPOLATE( (VIO_Real) j / (VIO_Real) (nj-1),
+                    z = VIO_INTERPOLATE( (VIO_Real) j / (VIO_Real) (nj-1),
                                      (VIO_Real) Point_z(min_range),
                                      (VIO_Real) Point_z(max_range) );
                 }
@@ -173,8 +173,8 @@ int  main(
                 }
             }
 
-            if( output_real( file, samples[surf][0][0] ) != OK ||
-                output_newline( file ) != OK )
+            if( output_real( file, samples[surf][0][0] ) != VIO_OK ||
+                output_newline( file ) != VIO_OK )
                 return( 1 );
 
             print( "%d:  %s\n", surf+1, filenames[surf] );

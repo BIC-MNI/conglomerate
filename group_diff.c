@@ -28,7 +28,7 @@ int  main(
     VIO_Real             mean[2], var[2], sum_x, sum_xx, dist;
     VIO_Real             conversion_to_f_statistic, value, **var_mat;
     VIO_Real             determinant;
-    BOOLEAN          one_d_flag, t_flag, m_dist_flag;
+    VIO_BOOL          one_d_flag, t_flag, m_dist_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -84,7 +84,7 @@ int  main(
         print( "File: %s\n", filename );
 
         if( input_graphics_file( filename, &format, &n_objects,
-                                 &object_list ) != OK ||
+                                 &object_list ) != VIO_OK ||
             n_objects != 1 ||
             get_object_type(object_list[0]) != POLYGONS )
         {
@@ -148,7 +148,7 @@ int  main(
     if( one_d_flag )
         compute_polygon_normals( &polygons );
 
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     VIO_ALLOC2D( inv_s, 3, 3 );
@@ -233,7 +233,7 @@ int  main(
                                                var_mat[1][1] * var_mat[2][0]);
 
                 value = exp( -0.5 * mahalanobis ) /
-                        pow(2.0*PI,(VIO_Real) VIO_N_DIMENSIONS/2.0) /
+                        pow(2.0*M_PI,(VIO_Real) VIO_N_DIMENSIONS/2.0) /
                         sqrt( determinant );
             }
             else if( m_dist_flag )

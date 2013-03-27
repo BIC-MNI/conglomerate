@@ -4,16 +4,16 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status           status;
+    VIO_Status           status;
     char             *input_filename;
     polygons_struct  *polygons;
     int              i, p, n_objects;
-    Real             x, y, z;
+    VIO_Real             x, y, z;
     File_formats     format;
     Transform        transform, x_rot, y_rot, z_rot;
     object_struct    **object_list;
 
-    status = OK;
+    status = VIO_OK;
 
     initialize_argument_processing( argc, argv );
 
@@ -24,16 +24,16 @@ int  main(
     }
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     for_less( i, 0, n_objects )
     {
-        if( status == OK && get_object_type(object_list[i]) == POLYGONS )
+        if( status == VIO_OK && get_object_type(object_list[i]) == POLYGONS )
         {
             polygons = get_polygons_ptr(object_list[i]);
 
-            print( "Volume: %g\n", get_closed_polyhedron_volume(polygons));
+            print( "VIO_Volume: %g\n", get_closed_polyhedron_volume(polygons));
 
             make_rotation_transform( get_random_0_to_1() * 2.0 * PI, X, &x_rot);
             make_rotation_transform( get_random_0_to_1() * 2.0 * PI, Y, &y_rot);
@@ -52,13 +52,13 @@ int  main(
                 fill_Point( polygons->points[p], x, y, z );
             }
 
-            print( "Rotated Volume: %g\n",
+            print( "Rotated VIO_Volume: %g\n",
                    get_closed_polyhedron_volume(polygons));
         }
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
         delete_object_list( n_objects, object_list );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

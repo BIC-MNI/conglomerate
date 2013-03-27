@@ -7,9 +7,9 @@ extern  float  cubic_approximate_unival(float kf_cvs[],int i,
                                         int num_intervals);
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    static  STRING  usage = "\
+    static  VIO_STR  usage = "\
 Usage: %s  b n_cvs knot1 knot2 ... knot_n_cvs-1\n\
                       cvs1 cvs2  ... cvs_n_cvs-1\n\
               u_pos\n\n";
@@ -17,12 +17,12 @@ Usage: %s  b n_cvs knot1 knot2 ... knot_n_cvs-1\n\
     print_error( usage, executable );
 }
 
-private  BOOLEAN  get_float_argument(
-    Real   def,
+private  VIO_BOOL  get_float_argument(
+    VIO_Real   def,
     float  *value )
 {
-    BOOLEAN status;
-    Real    rvalue;
+    VIO_BOOL status;
+    VIO_Real    rvalue;
 
     status = get_real_argument( def, &rvalue );
 
@@ -35,7 +35,7 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING        spline_name;
+    VIO_STR        spline_name;
     int           i, n_cvs, interval;
     float         *knots, *cvs, value, u_pos;
     initialize_argument_processing( argc, argv );

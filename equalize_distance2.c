@@ -8,21 +8,21 @@ private  void  reparameterize(
     polygons_struct   *model,
     int               method,
     int               grid_size,
-    Real              ratio,
-    Real              movement_threshold,
+    VIO_Real              ratio,
+    VIO_Real              movement_threshold,
     int               n_iters );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    STRING               model_filename;
+    VIO_STR               input_filename, output_filename;
+    VIO_STR               model_filename;
     File_formats         src_format, model_format;
     int                  n_src_objects, n_model_objects;
     object_struct        **src_objects, **model_objects;
     polygons_struct      *original, *model;
-    Real                 movement_threshold, ratio;
+    VIO_Real                 movement_threshold, ratio;
     int                  n_iters, method, grid_size;
 
     initialize_argument_processing( argc, argv );
@@ -42,7 +42,7 @@ int  main(
     (void) get_real_argument( 0.0, &movement_threshold );
 
     if( input_graphics_file( input_filename, &src_format,
-                             &n_src_objects, &src_objects ) != OK ||
+                             &n_src_objects, &src_objects ) != VIO_OK ||
         n_src_objects != 1 || get_object_type(src_objects[0]) != POLYGONS )
     {
         print_error( "Error in %s\n", input_filename );
@@ -50,7 +50,7 @@ int  main(
     }
 
     if( input_graphics_file( model_filename, &model_format,
-                             &n_model_objects, &model_objects ) != OK ||
+                             &n_model_objects, &model_objects ) != VIO_OK ||
         n_model_objects != 1 || get_object_type(model_objects[0]) != POLYGONS )
     {
         print_error( "Error in %s\n", model_filename );
@@ -77,7 +77,7 @@ int  main(
                     movement_threshold, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
-                              src_objects ) != OK )
+                              src_objects ) != VIO_OK )
         return( 1 );
 
     delete_object_list( n_src_objects, src_objects );
@@ -87,17 +87,17 @@ int  main(
     return( 0 );
 }
 
-private  Real  dot_vectors(
-    Real  v1[],
-    Real  v2[] )
+private  VIO_Real  dot_vectors(
+    VIO_Real  v1[],
+    VIO_Real  v2[] )
 {
     return( v1[X] * v2[X] + v1[Y] * v2[Y] + v1[Z] * v2[Z] );
 }
 
 private  void  sub_vectors(
-    Real  v1[],
-    Real  v2[],
-    Real  sub[] )
+    VIO_Real  v1[],
+    VIO_Real  v2[],
+    VIO_Real  sub[] )
 {
     sub[X] = v1[X] - v2[X];
     sub[Y] = v1[Y] - v2[Y];
@@ -105,26 +105,26 @@ private  void  sub_vectors(
 }
 
 private  void  cross_vectors(
-    Real  v1[],
-    Real  v2[],
-    Real  c[] )
+    VIO_Real  v1[],
+    VIO_Real  v2[],
+    VIO_Real  c[] )
 {
     c[X] = v1[Y] * v2[Z] - v1[Z] * v2[Y];
     c[Y] = v1[Z] * v2[X] - v1[X] * v2[Z];
     c[Z] = v1[X] * v2[Y] - v1[Y] * v2[X];
 }
 
-private  Real  evaluate_fit(
-    Real    point[],
+private  VIO_Real  evaluate_fit(
+    VIO_Real    point[],
     int     n_neighbours,
-    Real    (*neighbours)[N_DIMENSIONS],
-    Real    lengths[],
-    Real    normal[] )
+    VIO_Real    (*neighbours)[N_DIMENSIONS],
+    VIO_Real    lengths[],
+    VIO_Real    normal[] )
 {
     int    n, next_n;
-    Real   v1[N_DIMENSIONS], v2[N_DIMENSIONS];
-    Real   test_normal[N_DIMENSIONS];
-    Real   fit, dist, diff, dx, dy, dz, len_t, len_n;
+    VIO_Real   v1[N_DIMENSIONS], v2[N_DIMENSIONS];
+    VIO_Real   test_normal[N_DIMENSIONS];
+    VIO_Real   fit, dist, diff, dx, dy, dz, len_t, len_n;
 
     fit = 0.0;
 
@@ -159,12 +159,12 @@ private  Real  evaluate_fit(
 }
 
 private  void  get_edge_deriv(
-    Real    point[],
-    Real    length,
-    Real    neighbour[],
-    Real    deriv[] )
+    VIO_Real    point[],
+    VIO_Real    length,
+    VIO_Real    neighbour[],
+    VIO_Real    deriv[] )
 {
-    Real   dist, diff, dx, dy, dz, factor;
+    VIO_Real   dist, diff, dx, dy, dz, factor;
 
     dx = point[X] - neighbour[X];
     dy = point[Y] - neighbour[Y];
@@ -184,12 +184,12 @@ private  void  get_edge_deriv(
 
 private  void  get_plane_normal(
     int     n_points,
-    Real    (*points)[N_DIMENSIONS],
+    VIO_Real    (*points)[N_DIMENSIONS],
     int     indices[],
-    Real    normal[] )
+    VIO_Real    normal[] )
 {
     int     i, next_i;
-    Real    vx, vy, vz, x, y, z, tx, ty, tz;
+    VIO_Real    vx, vy, vz, x, y, z, tx, ty, tz;
 
     vx = 0.0;
     vy = 0.0;
@@ -221,10 +221,10 @@ private  void  get_plane_normal(
 }
 
 private  void  remove_vector_component(
-    Real    direction[],
-    Real    plane_normal[] )
+    VIO_Real    direction[],
+    VIO_Real    plane_normal[] )
 {
-    Real   factor, bottom;
+    VIO_Real   factor, bottom;
 
     bottom = dot_vectors( plane_normal, plane_normal );
 
@@ -241,17 +241,17 @@ private  void  remove_vector_component(
     direction[Z] -= factor * plane_normal[Z];
 }
 
-private  Real  find_distance_to_edge(
-    Real    origin[],
-    Real    direction[],
-    Real    plane_normal[],
-    Real    p1[],
-    Real    p2[] )
+private  VIO_Real  find_distance_to_edge(
+    VIO_Real    origin[],
+    VIO_Real    direction[],
+    VIO_Real    plane_normal[],
+    VIO_Real    p1[],
+    VIO_Real    p2[] )
 {
-    Real   dist;
-    Real   edge[N_DIMENSIONS];
-    Real   ortho_dir[N_DIMENSIONS];
-    Real   test_normal[N_DIMENSIONS];
+    VIO_Real   dist;
+    VIO_Real   edge[N_DIMENSIONS];
+    VIO_Real   ortho_dir[N_DIMENSIONS];
+    VIO_Real   test_normal[N_DIMENSIONS];
 
     sub_vectors( p2, p1, edge );
 
@@ -269,15 +269,15 @@ private  Real  find_distance_to_edge(
     return( dist );
 }
 
-private  Real  find_distance_to_neighbour_edge(
-    Real    origin[],
-    Real    direction[],
-    Real    p1[],
-    Real    p2[] )
+private  VIO_Real  find_distance_to_neighbour_edge(
+    VIO_Real    origin[],
+    VIO_Real    direction[],
+    VIO_Real    p1[],
+    VIO_Real    p2[] )
 {
-    Real   dist;
-    Real   edge[N_DIMENSIONS];
-    Real   ortho_dir[N_DIMENSIONS];
+    VIO_Real   dist;
+    VIO_Real   edge[N_DIMENSIONS];
+    VIO_Real   ortho_dir[N_DIMENSIONS];
 
     sub_vectors( p2, p1, edge );
 
@@ -291,22 +291,22 @@ private  Real  find_distance_to_neighbour_edge(
     return( dist );
 }
 
-private  Real  optimize_vertex(
+private  VIO_Real  optimize_vertex(
     polygons_struct   *model,
-    Real              (*original_points)[N_DIMENSIONS],
-    Real              point[],
+    VIO_Real              (*original_points)[N_DIMENSIONS],
+    VIO_Real              point[],
     int               n_neighbours,
-    Real              (*neighbours)[N_DIMENSIONS],
-    Real              lengths[],
+    VIO_Real              (*neighbours)[N_DIMENSIONS],
+    VIO_Real              lengths[],
     int               *which_triangle,
-    Real              ratio )
+    VIO_Real              ratio )
 {
     int    n, dim, v, vertex[10000], size, exit_neighbour;
-    Real   deriv[N_DIMENSIONS], edge_deriv[N_DIMENSIONS], movement, mag;
-    Real   normal[N_DIMENSIONS], max_dist, dist_to_edge;
-    Real   new_point[N_DIMENSIONS];
-    Real   dx, dy, dz, step, len, max_dist_to_neighbour, max_step;
-    Real   best_fit, new_fit, position, new_position;
+    VIO_Real   deriv[N_DIMENSIONS], edge_deriv[N_DIMENSIONS], movement, mag;
+    VIO_Real   normal[N_DIMENSIONS], max_dist, dist_to_edge;
+    VIO_Real   new_point[N_DIMENSIONS];
+    VIO_Real   dx, dy, dz, step, len, max_dist_to_neighbour, max_step;
+    VIO_Real   best_fit, new_fit, position, new_position;
 
     deriv[X] = 0.0;
     deriv[Y] = 0.0;
@@ -436,18 +436,18 @@ private  Real  optimize_vertex(
     return( movement );
 }
 
-private  Real  perturb_vertices(
+private  VIO_Real  perturb_vertices(
     polygons_struct   *model,
-    Real              (*original_points)[N_DIMENSIONS],
-    Real              model_lengths[],
+    VIO_Real              (*original_points)[N_DIMENSIONS],
+    VIO_Real              model_lengths[],
     int               n_neighbours[],
     int               *neighbours[],
-    Real              (*new_points)[N_DIMENSIONS],
+    VIO_Real              (*new_points)[N_DIMENSIONS],
     int               which_triangle[],
-    Real              ratio )
+    VIO_Real              ratio )
 {
     int    d, point_index, max_neighbours, n, ind;
-    Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
+    VIO_Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
 
     max_neighbours = 0;
     for_less( point_index, 0, model->n_points )
@@ -487,13 +487,13 @@ private  void  get_errors(
     int   n_points,
     int   n_neighbours[],
     int   *neighbours[],
-    Real  (*points)[N_DIMENSIONS],
-    Real  model_lengths[],
-    Real  *max_error,
-    Real  *avg_error )
+    VIO_Real  (*points)[N_DIMENSIONS],
+    VIO_Real  model_lengths[],
+    VIO_Real  *max_error,
+    VIO_Real  *avg_error )
 {
     int    ind, point, n;
-    Real   dx, dy, dz, dist, diff;
+    VIO_Real   dx, dy, dz, dist, diff;
 
     *max_error = 0.0;
     *avg_error = 0.0;
@@ -518,24 +518,24 @@ private  void  get_errors(
         }
     }
 
-    *avg_error /= (Real) ind;
+    *avg_error /= (VIO_Real) ind;
 }
 
 private  void  reparameterize_by_minimization(
     polygons_struct   *model,
     int               n_neighbours[],
     int               *neighbours[],
-    Real              model_lengths[],
-    Real              (*original_points)[N_DIMENSIONS],
-    Real              (*new_points)[N_DIMENSIONS],
+    VIO_Real              model_lengths[],
+    VIO_Real              (*original_points)[N_DIMENSIONS],
+    VIO_Real              (*new_points)[N_DIMENSIONS],
     int               which_triangle[],
-    Real              ratio,
-    Real              movement_threshold,
+    VIO_Real              ratio,
+    VIO_Real              movement_threshold,
     int               n_iters )
 {
     int   iter;
-    Real  movement;
-    Real  max_error, avg_error;
+    VIO_Real  movement;
+    VIO_Real  max_error, avg_error;
 
     iter = 0;
     movement = -1.0;
@@ -559,17 +559,17 @@ private  void  reparameterize(
     polygons_struct   *model,
     int               method,
     int               grid_size,
-    Real              ratio,
-    Real              movement_threshold,
+    VIO_Real              ratio,
+    VIO_Real              movement_threshold,
     int               n_iters )
 {
     int   total_neighbours, ind, point, n, *n_neighbours, **neighbours, dim;
     int   *which_triangle, size, vertex, poly;
-    Real  *model_lengths, (*new_points)[N_DIMENSIONS];
-    Real  (*original_points)[N_DIMENSIONS];
-    Real  scale, total_model, total_original;
-    Real  max_error, avg_error;
-    Point             *model_points;
+    VIO_Real  *model_lengths, (*new_points)[N_DIMENSIONS];
+    VIO_Real  (*original_points)[N_DIMENSIONS];
+    VIO_Real  scale, total_model, total_original;
+    VIO_Real  max_error, avg_error;
+    VIO_Point             *model_points;
 
     create_polygon_point_neighbours( original, FALSE, &n_neighbours,
                                      &neighbours, NULL, NULL );
@@ -666,7 +666,7 @@ private  void  reparameterize(
     }
 
     create_polygons_bintree( model,
-                         ROUND( BINTREE_FACTOR * (Real) original->n_items ) );
+                         ROUND( BINTREE_FACTOR * (VIO_Real) original->n_items ) );
 
     for_less( point, 0, original->n_points )
     {

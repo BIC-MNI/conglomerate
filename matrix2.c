@@ -5,17 +5,17 @@ private  void  print_stats(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min_range,
-    Real            y_max_range );
+    VIO_Real            y_min_range,
+    VIO_Real            y_max_range );
 
-private  BOOLEAN  get_next_filename(
+private  VIO_BOOL  get_next_filename(
     char      *filename[] )
 {
     static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
+    static    VIO_BOOL  in_list = FALSE;
+    static    VIO_STR   filename_string;
     char               *argument;
-    BOOLEAN            found;
+    VIO_BOOL            found;
 
     found = FALSE;
 
@@ -24,7 +24,7 @@ private  BOOLEAN  get_next_filename(
         if( in_list )
         {
             if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
-                 == OK )
+                 == VIO_OK )
             {
                 *filename = filename_string;
                 found = TRUE;
@@ -48,7 +48,7 @@ private  BOOLEAN  get_next_filename(
             }
             else
             {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK)
                     break;
                 in_list = TRUE;
             }
@@ -65,11 +65,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *landmark_filename;
-    STRING               *filenames, name, prev_name;
-    BOOLEAN              left, left_found, right_found;
-    Volume               volume;
+    VIO_STR               *filenames, name, prev_name;
+    VIO_BOOL              left, left_found, right_found;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
     int                  n_files, n_objects;
     object_struct        **object_list;
@@ -78,7 +78,7 @@ int  main(
     initialize_argument_processing( argc, argv );
 
     n_files = 0;
-    volume = (Volume) NULL;
+    volume = (VIO_Volume) NULL;
 
     while( get_next_filename( &landmark_filename ) )
     {
@@ -86,7 +86,7 @@ int  main(
             filename_extension_matches( landmark_filename, "mni" ) ||
             filename_extension_matches( landmark_filename, "fre" ) )
         {
-            if( volume != (Volume) NULL )
+            if( volume != (VIO_Volume) NULL )
                 cancel_volume_input( volume, &volume_input );
  
             status = start_volume_input(
@@ -112,7 +112,7 @@ int  main(
                                            GREEN, 1.0, BOX_MARKER,
                                            &n_objects, &object_list );
 
-        if( status != OK )
+        if( status != VIO_OK )
             return( 1 );
 
         if( strstr( filenames[p], "cing_l" ) != (char *) NULL )
@@ -184,10 +184,10 @@ int  main(
         delete_object_list( n_objects, object_list );
     }
 
-    if( volume != (Volume) NULL )
+    if( volume != (VIO_Volume) NULL )
         cancel_volume_input( volume, &volume_input );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  print_stats(
@@ -195,8 +195,8 @@ private  void  print_stats(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min_range,
-    Real            y_max_range )
+    VIO_Real            y_min_range,
+    VIO_Real            y_max_range )
 {
     int             i, n_samples;
     marker_struct   *marker;

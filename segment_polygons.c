@@ -10,7 +10,7 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               polygons_filename, dest_filename, lines_filename;
+    VIO_STR               polygons_filename, dest_filename, lines_filename;
     int                  n_objects, n_l_objects;
     File_formats         format;
     object_struct        **object_list, **l_object_list;
@@ -29,14 +29,14 @@ int  main(
     }
 
     if( input_graphics_file( polygons_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
     polygons = get_polygons_ptr( object_list[0] );
 
     if( input_graphics_file( lines_filename, &format, &n_l_objects,
-                             &l_object_list ) != OK || n_l_objects != 1 ||
+                             &l_object_list ) != VIO_OK || n_l_objects != 1 ||
         get_object_type(l_object_list[0]) != LINES )
         return( 1 );
 
@@ -59,7 +59,7 @@ private  void  segment_polygons(
     int           n_done, current, neigh;
     QUEUE_STRUCT( int )  queue;
     Smallest_int  *flags;
-    Real          dist, best_dist;
+    VIO_Real          dist, best_dist;
 
     check_polygons_neighbours_computed( polygons );
 

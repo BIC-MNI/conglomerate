@@ -70,7 +70,7 @@ int clean_color( int sizes[VIO_MAX_DIMENSIONS], short * val, short color,
               for( dk = -1; dk <= 1; dk++ ) {
                 if( k + dk < 0 || k + dk >= sizes[2] ) continue;
 
-                if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
+                if( VIO_ABS(di) + VIO_ABS(dj) + VIO_ABS(dk) <= stencil ) {
                   jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                   if( val[jj] == color && vflag[jj] == -1 ) {
                     vstack[stack_size] = jj;
@@ -126,7 +126,7 @@ int clean_color( int sizes[VIO_MAX_DIMENSIONS], short * val, short color,
             if( j + dj < 0 || j + dj >= sizes[1] ) continue;
             for( dk = -1; dk <= 1; dk++ ) {
               if( k + dk < 0 || k + dk >= sizes[2] ) continue;
-              if( ABS(di) + ABS(dj) + ABS(dk) <= stencil ) {
+              if( VIO_ABS(di) + VIO_ABS(dj) + VIO_ABS(dk) <= stencil ) {
                 jj = (i+di) * sizes[1] * sizes[2] + (j+dj) * sizes[2] + k+dk;
                 if( val[jj] != color ) min_color = min( min_color, val[jj] );
               }
@@ -150,7 +150,7 @@ int clean_color( int sizes[VIO_MAX_DIMENSIONS], short * val, short color,
     delete[] vflag;
     delete[] vstack;
 
-    return( OK );
+    return( VIO_OK );
 }
 
 int extract_color( int sizes[VIO_MAX_DIMENSIONS], short color,
@@ -185,7 +185,7 @@ int extract_color( int sizes[VIO_MAX_DIMENSIONS], short color,
 
     // Try to remove dangling pieces of color matter.
 
-    int ret = OK;
+    int ret = VIO_OK;
     ret = clean_color( sizes, val, color, stencil, max_connect );
 
     // Save back to volume.
@@ -222,7 +222,7 @@ int  main( int ac, char* av[] ) {
     VIO_Volume in_volume;
     if ( input_volume( av[1], 3, NULL, 
                        MI_ORIGINAL_TYPE, 0, 0, 0,
-                       TRUE, &in_volume, NULL ) != OK ) {
+                       TRUE, &in_volume, NULL ) != VIO_OK ) {
       cerr << "Error: cannot read volume file " << av[1] << endl;
       return 1;
     }
@@ -253,12 +253,12 @@ int  main( int ac, char* av[] ) {
     }
 
     int ret = extract_color( sizes, color, stencil, max_connect, in_volume );
-    if( ret != OK ) return( 1 );
+    if( ret != VIO_OK ) return( 1 );
 
     int rv = output_modified_volume( av[2], MI_ORIGINAL_TYPE,
                                      0, 0, 0, in_volume, av[1],
                                      time_stamp( ac, av ), NULL );
-    return ( rv != OK );
+    return ( rv != VIO_OK );
 
 }
 

@@ -4,9 +4,9 @@
 #define  DEFAULT_DEGREE   0
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s surface.obj  output.mnc nx ny\n\
                  gray|hot|spectral|red|green|blue min_limit max_limit\n\
                  under_colour over_colour\n\
@@ -23,12 +23,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               surface_filename;
-    STRING               output_filename, colour_coding_name;
-    STRING               under_colour_name, over_colour_name;
-    Point                *electrode_pos, *electrode_unit_pos;
-    STRING               *electrode_names;
-    Point                centre;
+    VIO_STR               surface_filename;
+    VIO_STR               output_filename, colour_coding_name;
+    VIO_STR               under_colour_name, over_colour_name;
+    VIO_Point                *electrode_pos, *electrode_unit_pos;
+    VIO_STR               *electrode_names;
+    VIO_Point                centre;
     FILE                 *file;
     File_formats         format;
     polygons_struct      *surface, unit_sphere;
@@ -65,7 +65,7 @@ int  main(
     /*--- input the surface */
 
      if( input_graphics_file( surface_filename, &format, &n_objects, &objects )
-         != OK )
+         != VIO_OK )
         return( 1 );
 
     /*--- check that the surface file contains a polyhedron */
@@ -80,7 +80,7 @@ int  main(
     {
         if( input_volume( volume_filename, 3, XYZ_dimension_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                          TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
     }
 
@@ -127,16 +127,16 @@ int  main(
     /*--- output the electrode positions on the unit sphere */
 
     if( open_file( unit_electrode_filename, WRITE_FILE, ASCII_FORMAT, &file )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     for_less( i, 0, n_electrodes )
     {
-        if( output_string( file, electrode_names[i] ) != OK ||
-            output_string( file, " " ) != OK ||
+        if( output_string( file, electrode_names[i] ) != VIO_OK ||
+            output_string( file, " " ) != VIO_OK ||
             io_point( file, WRITE_FILE, ASCII_FORMAT, &electrode_unit_pos[i] )
-            != OK ||
-            output_newline( file ) != OK )
+            != VIO_OK ||
+            output_newline( file ) != VIO_OK )
             return( 1 );
     }
 
@@ -145,14 +145,14 @@ int  main(
     /*--- output the vertex positions on the unit sphere */
 
     if( open_file( unit_vertices_filename, WRITE_FILE, ASCII_FORMAT, &file )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     for_less( i, 0, surface->n_points )
     {
         if( io_point( file, WRITE_FILE, ASCII_FORMAT, &unit_sphere.points[i] )
-            != OK ||
-            output_newline( file ) != OK )
+            != VIO_OK ||
+            output_newline( file ) != VIO_OK )
             return( 1 );
     }
 
@@ -175,35 +175,35 @@ int  main(
 @OUTPUT     : n_electrodes
               electrode_names
               electrode_pos
-@RETURNS    : OK or ERROR
+@RETURNS    : VIO_OK or VIO_ERROR
 @DESCRIPTION: Reads a file of electrode 3D positions and voltages.
 @CREATED    : 1993            David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private  Status   input_eeg_file(
-    STRING  filename,
+private  VIO_Status   input_eeg_file(
+    VIO_STR  filename,
     int     *n_electrodes,
-    STRING  *electrode_names[],
-    Point   *electrode_pos[] )
+    VIO_STR  *electrode_names[],
+    VIO_Point   *electrode_pos[] )
 {
-    Real     x, y, z;
-    STRING   name;
+    VIO_Real     x, y, z;
+    VIO_STR   name;
     FILE     *file;
 
     /*--- open the file */
 
-    if( open_file( filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
-        return( ERROR );
+    if( open_file( filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
+        return( VIO_ERROR );
 
     *n_electrodes = 0;
 
     /*--- read name, x, y, z until none left */
 
-    while( input_string( file, &name, ' ' ) == OK &&
-           input_real( file, &x ) == OK &&
-           input_real( file, &y ) == OK &&
-           input_real( file, &z ) == OK )
+    while( input_string( file, &name, ' ' ) == VIO_OK &&
+           input_real( file, &x ) == VIO_OK &&
+           input_real( file, &y ) == VIO_OK &&
+           input_real( file, &z ) == VIO_OK )
     {
         SET_ARRAY_SIZE( *electrode_names, *n_electrodes, (*n_electrodes)+1,
                         DEFAULT_CHUNK_SIZE );
@@ -216,5 +216,5 @@ private  Status   input_eeg_file(
 
     (void) close_file( file );
 
-    return( OK );
+    return( VIO_OK );
 }

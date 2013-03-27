@@ -49,12 +49,12 @@ static  void  get_voxel_line_tricubic(
     d10 = coefs[5] - coefs[4];
     d11 = coefs[7] - coefs[6];
 
-    du = line_direction[X];
-    dv = line_direction[Y];
-    dw = line_direction[Z];
-    ou = line_origin[X] - (VIO_Real) x;
-    ov = line_origin[Y] - (VIO_Real) y;
-    ow = line_origin[Z] - (VIO_Real) z;
+    du = line_direction[VIO_X];
+    dv = line_direction[VIO_Y];
+    dw = line_direction[VIO_Z];
+    ou = line_origin[VIO_X] - (VIO_Real) x;
+    ov = line_origin[VIO_Y] - (VIO_Real) y;
+    ow = line_origin[VIO_Z] - (VIO_Real) z;
 
     c00a = coefs[0] + ow * d00;
     c01a = coefs[2] + ow * d01;
@@ -115,12 +115,12 @@ static  void  get_voxel_line_tricubic(
     else
         voxel_offset = 0.0;
 
-    du = line_direction[X];
-    dv = line_direction[Y];
-    dw = line_direction[Z];
-    ou = line_origin[X] - ((VIO_Real) x + voxel_offset);
-    ov = line_origin[Y] - ((VIO_Real) y + voxel_offset);
-    ow = line_origin[Z] - ((VIO_Real) z + voxel_offset);
+    du = line_direction[VIO_X];
+    dv = line_direction[VIO_Y];
+    dw = line_direction[VIO_Z];
+    ou = line_origin[VIO_X] - ((VIO_Real) x + voxel_offset);
+    ov = line_origin[VIO_Y] - ((VIO_Real) y + voxel_offset);
+    ow = line_origin[VIO_Z] - ((VIO_Real) z + voxel_offset);
 
     find_coefs_of_line( degrees_continuity, voxel_coefs, ou, ov, ow, du, dv, dw,
                         line_poly );
@@ -355,7 +355,7 @@ static  void   add_components(
             u1f = coef;
         }
         else
-            u1f = coef * line[u1][X];
+            u1f = coef * line[u1][VIO_X];
     for_less( u2, 0, 2 )
     {
         if( du < 2 )
@@ -365,7 +365,7 @@ static  void   add_components(
             u2f = u1f;
         }
         else
-            u2f = u1f * line[u2][X];
+            u2f = u1f * line[u2][VIO_X];
     for_less( u3, 0, 2 )
     {
         if( du < 3 )
@@ -375,7 +375,7 @@ static  void   add_components(
             u3f = u2f;
         }
         else
-            u3f = u2f * line[u3][X];
+            u3f = u2f * line[u3][VIO_X];
     for_less( v1, 0, 2 )
     {
         if( dv < 1 )
@@ -385,7 +385,7 @@ static  void   add_components(
             v1f = u3f;
         }
         else
-            v1f = u3f * line[v1][Y];
+            v1f = u3f * line[v1][VIO_Y];
     for_less( v2, 0, 2 )
     {
         if( dv < 2 )
@@ -395,7 +395,7 @@ static  void   add_components(
             v2f = v1f;
         }
         else
-            v2f = v1f * line[v2][Y];
+            v2f = v1f * line[v2][VIO_Y];
     for_less( v3, 0, 2 )
     {
         if( dv < 3 )
@@ -405,7 +405,7 @@ static  void   add_components(
             v3f = v2f;
         }
         else
-            v3f = v2f * line[v3][Y];
+            v3f = v2f * line[v3][VIO_Y];
     for_less( w1, 0, 2 )
     {
         if( dw < 1 )
@@ -415,7 +415,7 @@ static  void   add_components(
             w1f = v3f;
         }
         else
-            w1f = v3f * line[w1][Z];
+            w1f = v3f * line[w1][VIO_Z];
     for_less( w2, 0, 2 )
     {
         if( dw < 2 )
@@ -425,7 +425,7 @@ static  void   add_components(
             w2f = w1f;
         }
         else
-            w2f = w1f * line[w2][Z];
+            w2f = w1f * line[w2][VIO_Z];
     for_less( w3, 0, 2 )
     {
         if( dw < 3 )
@@ -435,7 +435,7 @@ static  void   add_components(
             w3f = w2f;
         }
         else
-            w3f = w2f * line[w3][Z];
+            w3f = w2f * line[w3][VIO_Z];
         
         line_coefs[u1+u2+u3+v1+v2+v3+w1+w2+w3] += w3f;
     }

@@ -78,7 +78,7 @@ int  main(
     int        n_labels;
     int        *values;
     VIO_STR     *labels;
-    BOOLEAN    list_all, by_value;
+    VIO_BOOL    list_all, by_value;
 
     /* --- check for enough arguments */
 

@@ -5,28 +5,28 @@
 #define  N_PARAMETERS   2
 
 #ifndef NEW
-static  Real  min_diff = -.02;
-static  Real  max_diff = .02;
-static  Real  d_offset = .1;
-static  Real  init_differential_weight = 1.0e0;
-static  Real  end_differential_weight = 1.0e8;
+static  VIO_Real  min_diff = -.02;
+static  VIO_Real  max_diff = .02;
+static  VIO_Real  d_offset = .1;
+static  VIO_Real  init_differential_weight = 1.0e0;
+static  VIO_Real  end_differential_weight = 1.0e8;
 #else
-static  Real  min_diff = -0.1;
-static  Real  max_diff = 0.1;
-static  Real  d_offset = 0.1;
-static  Real  init_differential_weight = 1.0e3;
-static  Real  end_differential_weight = 1.0e3;
+static  VIO_Real  min_diff = -0.1;
+static  VIO_Real  max_diff = 0.1;
+static  VIO_Real  d_offset = 0.1;
+static  VIO_Real  init_differential_weight = 1.0e3;
+static  VIO_Real  end_differential_weight = 1.0e3;
 #endif
 
-private  Real   differential_weights(
-    Real   diff,
-    Real   min_diff,
-    Real   max_diff,
-    Real   diff_offset,
-    Real   ln_start_weight,
-    Real   ln_end_weight )
+private  VIO_Real   differential_weights(
+    VIO_Real   diff,
+    VIO_Real   min_diff,
+    VIO_Real   max_diff,
+    VIO_Real   diff_offset,
+    VIO_Real   ln_start_weight,
+    VIO_Real   ln_end_weight )
 {
-    Real   fit;
+    VIO_Real   fit;
 
     if( diff < min_diff )
         diff = min_diff - diff;
@@ -44,15 +44,15 @@ private  Real   differential_weights(
     return( fit );
 }
 
-private  Real   differential_weights_deriv(
-    Real   diff,
-    Real   min_diff,
-    Real   max_diff,
-    Real   diff_offset,
-    Real   ln_start_weight,
-    Real   ln_end_weight )
+private  VIO_Real   differential_weights_deriv(
+    VIO_Real   diff,
+    VIO_Real   min_diff,
+    VIO_Real   max_diff,
+    VIO_Real   diff_offset,
+    VIO_Real   ln_start_weight,
+    VIO_Real   ln_end_weight )
 {
-    Real   deriv, sign, ln_weight, weight;
+    VIO_Real   deriv, sign, ln_weight, weight;
 
     if( diff < min_diff )
     {
@@ -82,11 +82,11 @@ private  Real   differential_weights_deriv(
     return( deriv );
 }
 
-private  Real  function(
-    Real   parameters[],
+private  VIO_Real  function(
+    VIO_Real   parameters[],
     void   *function_data )
 {
-    Real   x1, x2, fit, radius_error;
+    VIO_Real   x1, x2, fit, radius_error;
 
     x1 = parameters[0];
     x2 = parameters[1];
@@ -103,11 +103,11 @@ private  Real  function(
 }
 
 private  void  function_deriv(
-    Real   parameters[],
+    VIO_Real   parameters[],
     void   *function_data,
-    Real   deriv[] )
+    VIO_Real   deriv[] )
 {
-    Real   x1, x2, radius_error, d;
+    VIO_Real   x1, x2, radius_error, d;
 
     x1 = parameters[0];
     x2 = parameters[1];
@@ -130,9 +130,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Real            initial[N_PARAMETERS], value;
-    Real            range_tolerance, domain_tolerance;
-    Real            line_min_range_tolerance, line_min_domain_tolerance;
+    VIO_Real            initial[N_PARAMETERS], value;
+    VIO_Real            range_tolerance, domain_tolerance;
+    VIO_Real            line_min_range_tolerance, line_min_domain_tolerance;
     int             n_iterations;
 
     initialize_argument_processing( argc, argv );

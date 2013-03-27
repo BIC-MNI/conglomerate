@@ -23,20 +23,20 @@ int  main(
 {
     VIO_STR               volume_filename, label_filename, dummy;
     VIO_STR               dump_filename;
-    Real                 mean, median, std_dev, value;
-    Real                 min_sample_value, max_sample_value;
+    VIO_Real                 mean, median, std_dev, value;
+    VIO_Real                 min_sample_value, max_sample_value;
     VIO_Volume               volume, label_volume;
-    BOOLEAN              median_required, first_pass;
-    Real                 separations[VIO_MAX_DIMENSIONS];
-    Real                 min_world[VIO_MAX_DIMENSIONS], max_world[VIO_MAX_DIMENSIONS];
-    Real                 min_voxel[VIO_MAX_DIMENSIONS], max_voxel[VIO_MAX_DIMENSIONS];
-    Real                 min_xyz_voxel[VIO_MAX_DIMENSIONS];
-    Real                 max_xyz_voxel[VIO_MAX_DIMENSIONS];
-    Real                 real_v[VIO_MAX_DIMENSIONS], world[VIO_MAX_DIMENSIONS];
-    Real                 min_value, max_value;
-    Real                 median_min, median_max, median_error;
+    VIO_BOOL              median_required, first_pass;
+    VIO_Real                 separations[VIO_MAX_DIMENSIONS];
+    VIO_Real                 min_world[VIO_MAX_DIMENSIONS], max_world[VIO_MAX_DIMENSIONS];
+    VIO_Real                 min_voxel[VIO_MAX_DIMENSIONS], max_voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 min_xyz_voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 max_xyz_voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 real_v[VIO_MAX_DIMENSIONS], world[VIO_MAX_DIMENSIONS];
+    VIO_Real                 min_value, max_value;
+    VIO_Real                 median_min, median_max, median_error;
     FILE                 *file;
-    BOOLEAN              dumping, labels_present, first, done;
+    VIO_BOOL              dumping, labels_present, first, done;
     int                  c, n_samples, v[VIO_MAX_DIMENSIONS];
     statistics_struct    stats;
 
@@ -57,7 +57,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_separations( volume, separations );
@@ -78,17 +78,17 @@ int  main(
             if( filename_extension_matches( label_filename,
                                             get_default_tag_file_suffix() ) )
             {
-                if( open_file( label_filename, READ_FILE, ASCII_FORMAT, &file )!=OK)
+                if( open_file( label_filename, READ_FILE, ASCII_FORMAT, &file )!=VIO_OK)
                     return( 1 );
 
-                if( input_tags_as_labels( file, volume, label_volume ) != OK )
+                if( input_tags_as_labels( file, volume, label_volume ) != VIO_OK )
                     return( 1 );
 
                 (void) close_file( file );
             }
             else
             {
-                if( load_label_volume( label_filename, label_volume ) != OK )
+                if( load_label_volume( label_filename, label_volume ) != VIO_OK )
                     return( 1 );
             }
         }
@@ -96,7 +96,7 @@ int  main(
 
     if( dumping )
     {
-        if( open_file( dump_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( dump_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
     }
 
@@ -122,16 +122,16 @@ int  main(
                 {
                     if( dumping )
                     {
-                        if( output_real( file, value ) != OK ||
-                            output_newline( file ) != OK )
+                        if( output_real( file, value ) != VIO_OK ||
+                            output_newline( file ) != VIO_OK )
                             return( 1 );
                     }
 
                     for_less( c, 0, VIO_N_DIMENSIONS )
-                        real_v[c] = (Real) v[c];
+                        real_v[c] = (VIO_Real) v[c];
 
                     convert_voxel_to_world( volume, real_v,
-                                            &world[X], &world[Y], &world[Z]);
+                                            &world[VIO_X], &world[VIO_Y], &world[VIO_Z]);
 
                     if( first )
                     {
@@ -182,8 +182,8 @@ int  main(
                 median_max = convert_value_to_voxel( volume,
                                                      median + median_error );
 
-                median_min = (Real) VIO_ROUND( median_min );
-                median_max = (Real) VIO_ROUND( median_max );
+                median_min = (VIO_Real) VIO_ROUND( median_min );
+                median_max = (VIO_Real) VIO_ROUND( median_max );
 
                 if( median_min == median_max )
                 {
@@ -215,8 +215,8 @@ int  main(
 
         print( "N Voxels : %d\n", n_samples );
         print( "VIO_Volume   : %g\n",
-                      (Real) n_samples * separations[X] * separations[Y] *
-                                         separations[Z] );
+                      (VIO_Real) n_samples * separations[VIO_X] * separations[VIO_Y] *
+                                         separations[VIO_Z] );
         print( "Min      : %g\n", min_sample_value );
         print( "Max      : %g\n", max_sample_value );
         print( "Mean     : %g\n", mean );

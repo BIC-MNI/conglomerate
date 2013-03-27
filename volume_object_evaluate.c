@@ -68,11 +68,11 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, &options ) != OK )
+                      TRUE, &volume, &options ) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( object_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 )
@@ -80,7 +80,7 @@ int  main(
 
     n_points = get_object_points( objects[0], &points );
 
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     for_less( point, 0, n_points )
@@ -99,12 +99,12 @@ int  main(
           // rgb_values[0] = get_Colour_r_0_1( value );
           // rgb_values[1] = get_Colour_g_0_1( value );
           // rgb_values[2] = get_Colour_b_0_1( value );
-          if( output_int( file, (int)value ) != OK ||
-              output_newline( file ) != OK )
+          if( output_int( file, (int)value ) != VIO_OK ||
+              output_newline( file ) != VIO_OK )
               return( 1 );
         } else {
-          if( output_real( file, value ) != OK ||
-              output_newline( file ) != OK )
+          if( output_real( file, value ) != VIO_OK ||
+              output_newline( file ) != VIO_OK )
               return( 1 );
         }
     }

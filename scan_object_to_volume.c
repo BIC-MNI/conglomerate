@@ -28,11 +28,11 @@ int  main(
     (void) get_real_argument( 1.0, &max_distance );
 
     if( input_volume_header_only( input_volume_filename, 3,
-                            File_order_dimension_names, &volume, NULL) != OK )
+                            File_order_dimension_names, &volume, NULL) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( object_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     label_volume = create_label_volume( volume, NC_BYTE );

@@ -10,7 +10,7 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, initial_filename;
+    VIO_STR               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
     VIO_File_formats         format;
     object_struct        **object_list, **i_object_list;
@@ -30,7 +30,7 @@ int  main(
     (void) get_int_argument( 100, &n_iters );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -39,7 +39,7 @@ int  main(
     if( get_string_argument( NULL, &initial_filename ) )
     {
         if( input_graphics_file( initial_filename, &format, &n_i_objects,
-                                 &i_object_list ) != OK || n_i_objects != 1 ||
+                                 &i_object_list ) != VIO_OK || n_i_objects != 1 ||
             get_object_type(i_object_list[0]) != POLYGONS )
             return( 1 );
 
@@ -55,7 +55,7 @@ int  main(
 
     flatten_polygons( polygons, init_points, n_iters );
 
-    if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
+    if( output_graphics_file( dest_filename, format, 1, object_list ) != VIO_OK )
         print_error( "Error outputting: %s\n", dest_filename );
 
     return( 0 );
@@ -349,14 +349,14 @@ static  void  create_coefficients(
     VIO_Real             *weights[3][3];
     VIO_Real             radius, con, *node_weights;
     int              *indices;
-    BOOLEAN          found, ignoring;
+    VIO_BOOL          found, ignoring;
     VIO_progress_struct  progress;
 #ifdef SPHERE
     polygons_struct  unit_sphere;
     static  VIO_Point            centre = { 0.0f, 0.0f, 0.0f };
 #endif
 
-    radius = sqrt( get_polygons_surface_area( polygons ) / 4.0 / PI );
+    radius = sqrt( get_polygons_surface_area( polygons ) / 4.0 / M_PI );
 
 #ifdef SPHERE
     radius = 10.0;

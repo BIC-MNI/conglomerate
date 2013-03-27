@@ -19,12 +19,12 @@ private  void  usage(
 #define  Z_PLANE   55.0
 
 private  void  create_gradient_lines(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
-    Real            scaling,
-    Real            deriv2_scaling,
+    VIO_Real            scaling,
+    VIO_Real            deriv2_scaling,
     int             continuity,
     lines_struct    *lines );
 
@@ -32,14 +32,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    BOOLEAN              value_range_present;
-    Status               status;
+    VIO_BOOL              value_range_present;
+    VIO_Status               status;
     int                  min_value, max_value, continuity;
-    Real                 scaling, deriv2_scaling;
+    VIO_Real                 scaling, deriv2_scaling;
     char                 *input_filename;
     char                 *output_filename;
-    Volume               volume;
-    static STRING        dim_names[] = { MIxspace, MIyspace, MIzspace };
+    VIO_Volume               volume;
+    static VIO_STR        dim_names[] = { MIxspace, MIyspace, MIzspace };
     object_struct        *object;
 
     initialize_argument_processing( argc, argv );
@@ -62,7 +62,7 @@ int  main(
 
     /* read the input volume */
 
-    if( input_volume( input_filename, dim_names, &volume ) != OK )
+    if( input_volume( input_filename, dim_names, &volume ) != VIO_OK )
         return( 1 );
 
     object = create_object( LINES );
@@ -74,16 +74,16 @@ int  main(
     status = output_graphics_file( output_filename, BINARY_FORMAT,
                                    1, &object );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  make_arrow(
     lines_struct   *lines,
-    Point          *centre,
-    Vector         *deriv,
-    Vector         *deriv2 )
+    VIO_Point          *centre,
+    VIO_Vector         *deriv,
+    VIO_Vector         *deriv2 )
 {
-    Point   p;
+    VIO_Point   p;
 
     start_new_line( lines );
     add_point_to_line( lines, centre );
@@ -97,17 +97,17 @@ private  void  make_arrow(
 }
 
 private  void  compute_curvature(
-    Real   dx,
-    Real   dy,
-    Real   dxx,
-    Real   dxy,
-    Real   dyy,
-    Real   *x_tangent,
-    Real   *y_tangent,
-    Real   *x_normal,
-    Real   *y_normal )
+    VIO_Real   dx,
+    VIO_Real   dy,
+    VIO_Real   dxx,
+    VIO_Real   dxy,
+    VIO_Real   dyy,
+    VIO_Real   *x_tangent,
+    VIO_Real   *y_tangent,
+    VIO_Real   *x_normal,
+    VIO_Real   *y_normal )
 {
-    Real   tx, ty, mag_tangent;
+    VIO_Real   tx, ty, mag_tangent;
 
     *x_tangent = -dy;
     *y_tangent = dx;
@@ -125,23 +125,23 @@ private  void  compute_curvature(
 }
 
 private  void  create_gradient_lines(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
-    Real            scaling,
-    Real            deriv2_scaling,
+    VIO_Real            scaling,
+    VIO_Real            deriv2_scaling,
     int             continuity,
     lines_struct    *lines )
 {
-    BOOLEAN          within_range;
+    VIO_BOOL          within_range;
     int              x, y;
-    Point            centre;
-    Vector           deriv, deriv2;
-    Real             dx, dy, dz, value, ignore;
-    Real             dxx, dxy, dxz, dyy, dyz, dzz;
-    Real             grad_mag, dgx, dgy, dgz;
-    Real             x_world, y_world, z_world;
+    VIO_Point            centre;
+    VIO_Vector           deriv, deriv2;
+    VIO_Real             dx, dy, dz, value, ignore;
+    VIO_Real             dxx, dxy, dxz, dyy, dyz, dzz;
+    VIO_Real             grad_mag, dgx, dgy, dgz;
+    VIO_Real             x_world, y_world, z_world;
     progress_struct  progress;
 
     initialize_lines( lines, WHITE );
@@ -151,10 +151,10 @@ private  void  create_gradient_lines(
 
     for_less( x, 0, X_SIZE )
     {
-        x_world = X_MIN + (X_MAX - X_MIN) * (Real) x / (Real) (X_SIZE-1);
+        x_world = X_MIN + (X_MAX - X_MIN) * (VIO_Real) x / (VIO_Real) (X_SIZE-1);
         for_less( y, 0, Y_SIZE )
         {
-            y_world = Y_MIN + (Y_MAX - Y_MIN) * (Real) y / (Real) (Y_SIZE-1);
+            y_world = Y_MIN + (Y_MAX - Y_MIN) * (VIO_Real) y / (VIO_Real) (Y_SIZE-1);
             z_world = Z_PLANE;
 
 #ifdef TWO_DIMENSIONS

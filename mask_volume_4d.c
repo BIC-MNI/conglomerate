@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  mask_volume.mnc  output.mnc\n\
          [min] [max] [value_to_set]\n\
 \n\
@@ -22,14 +22,14 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, mask_volume_filename;
-    STRING               output_filename;
-    Real                 mask_value, min_mask, max_mask;
-    Real                 value_to_set;
+    VIO_STR               volume_filename, mask_volume_filename;
+    VIO_STR               output_filename;
+    VIO_Real                 mask_value, min_mask, max_mask;
+    VIO_Real                 value_to_set;
     int                  x, y, z, sizes[MAX_DIMENSIONS], n_changed, v;
     progress_struct      progress;
-    Volume               volume, mask_volume;
-    BOOLEAN              value_specified;
+    VIO_Volume               volume, mask_volume;
+    VIO_BOOL              value_specified;
     minc_input_options   options;
 
     initialize_argument_processing( argc, argv );
@@ -50,14 +50,14 @@ int  main(
     set_minc_input_vector_to_colour_flag( &options, TRUE );
 
     if( input_volume_header_only( volume_filename, 3, XYZ_dimension_names,
-                                  &volume, &options ) != OK )
+                                  &volume, &options ) != VIO_OK )
         return( 1 );
 
     mask_volume = create_label_volume( volume, NC_UNSPECIFIED );
 
     set_all_volume_label_data( mask_volume, 0 );
 
-    if( load_label_volume( mask_volume_filename, mask_volume ) != OK )
+    if( load_label_volume( mask_volume_filename, mask_volume ) != VIO_OK )
         return( 1 );
 
     delete_volume( volume );
@@ -68,7 +68,7 @@ int  main(
 
     if( input_volume( volume_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, &options ) != OK )
+                      TRUE, &volume, &options ) != VIO_OK )
         return( 1 );
 
     if( !value_specified )
@@ -79,7 +79,7 @@ int  main(
     get_volume_sizes( volume, sizes );
 
     initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
-                                "Masking Volume" );
+                                "Masking VIO_Volume" );
 
     for_less( x, 0, sizes[X] )
     {
@@ -99,7 +99,7 @@ int  main(
                 }
                 else
                 {
-                    Real  r, g, b, intensity;
+                    VIO_Real  r, g, b, intensity;
 
                     r = get_volume_real_value( volume, x, y, z, 0, 0 );
                     g = get_volume_real_value( volume, x, y, z, 1, 0 );

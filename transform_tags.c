@@ -23,14 +23,14 @@ int  main(
     VIO_STR              input_filename, output_filename, transform_filename;
     VIO_STR              dummy;
     int                 i;
-    BOOLEAN             invert;
+    VIO_BOOL             invert;
     VIO_General_transform   transform;
     int                 n_volumes, n_tag_points;
     VIO_Real                **tags_volume1, **tags_volume2, *weights;
     int                 *structure_ids, *patient_ids;
     VIO_STR              *labels;
 
-    status = OK;
+    status = VIO_OK;
 
     initialize_argument_processing( argc, argv );
 
@@ -47,27 +47,27 @@ int  main(
 
     if( input_tag_file( input_filename, &n_volumes, &n_tag_points,
                         &tags_volume1, &tags_volume2, &weights,
-                        &structure_ids, &patient_ids, &labels ) != OK )
+                        &structure_ids, &patient_ids, &labels ) != VIO_OK )
         return( 1 );
 
-    if( input_transform_file( transform_filename, &transform ) != OK )
+    if( input_transform_file( transform_filename, &transform ) != VIO_OK )
         return( 1 );
 
-    if( status == OK )
+    if( status == VIO_OK )
     {
         for_less( i, 0, n_tag_points )
         {
             if( invert )
             {
                 general_inverse_transform_point( &transform,
-                 tags_volume1[i][X], tags_volume1[i][Y], tags_volume1[i][Z],
-                 &tags_volume1[i][X], &tags_volume1[i][Y], &tags_volume1[i][Z]);
+                 tags_volume1[i][VIO_X], tags_volume1[i][VIO_Y], tags_volume1[i][VIO_Z],
+                 &tags_volume1[i][VIO_X], &tags_volume1[i][VIO_Y], &tags_volume1[i][VIO_Z]);
             }
             else
             {
                 general_transform_point( &transform,
-                 tags_volume1[i][X], tags_volume1[i][Y], tags_volume1[i][Z],
-                 &tags_volume1[i][X], &tags_volume1[i][Y], &tags_volume1[i][Z]);
+                 tags_volume1[i][VIO_X], tags_volume1[i][VIO_Y], tags_volume1[i][VIO_Z],
+                 &tags_volume1[i][VIO_X], &tags_volume1[i][VIO_Y], &tags_volume1[i][VIO_Z]);
             }
 
             if( n_volumes == 2 )
@@ -75,16 +75,16 @@ int  main(
                 if( invert )
                 {
                     general_inverse_transform_point( &transform,
-                     tags_volume2[i][X], tags_volume2[i][Y], tags_volume2[i][Z],
-                     &tags_volume2[i][X], &tags_volume2[i][Y],
-                     &tags_volume2[i][Z] );
+                     tags_volume2[i][VIO_X], tags_volume2[i][VIO_Y], tags_volume2[i][VIO_Z],
+                     &tags_volume2[i][VIO_X], &tags_volume2[i][VIO_Y],
+                     &tags_volume2[i][VIO_Z] );
                 }
                 else
                 {
                     general_transform_point( &transform,
-                     tags_volume2[i][X], tags_volume2[i][Y], tags_volume2[i][Z],
-                     &tags_volume2[i][X], &tags_volume2[i][Y],
-                     &tags_volume2[i][Z] );
+                     tags_volume2[i][VIO_X], tags_volume2[i][VIO_Y], tags_volume2[i][VIO_Z],
+                     &tags_volume2[i][VIO_X], &tags_volume2[i][VIO_Y],
+                     &tags_volume2[i][VIO_Z] );
                 }
             }
         }
@@ -95,13 +95,13 @@ int  main(
                               tags_volume1, tags_volume2, weights,
                               structure_ids, patient_ids, labels );
 
-    if( status == OK )
+    if( status == VIO_OK )
         delete_general_transform( &transform );
 
-    if( status == OK )
+    if( status == VIO_OK )
         free_tag_points( n_volumes, n_tag_points,
                          tags_volume1, tags_volume2, weights,
                          structure_ids, patient_ids, labels );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

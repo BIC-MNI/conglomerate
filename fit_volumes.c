@@ -5,21 +5,21 @@
 typedef  struct
 {
     int       n_parameters;
-    Volume    volume1;
-    Volume    volume2;
+    VIO_Volume    volume1;
+    VIO_Volume    volume2;
     int       n_samples[N_DIMENSIONS];
 } function_data_struct;
 
-private  Real  compute_cross_correlation(
-    Volume     volume1,
-    Volume     volume2,
+private  VIO_Real  compute_cross_correlation(
+    VIO_Volume     volume1,
+    VIO_Volume     volume2,
     Transform  *transform,
     int        nx,
     int        ny,
     int        nz );
 
-private  Real  function(
-    Real   parameters[],
+private  VIO_Real  function(
+    VIO_Real   parameters[],
     void   *function_data )
 {
     Transform              transform;
@@ -39,13 +39,13 @@ private  Real  function(
 }
 
 private  void  function_deriv(
-    Real   parameters[],
+    VIO_Real   parameters[],
     void   *function_data,
-    Real   deriv[] )
+    VIO_Real   deriv[] )
 {
     Transform              transform;
     function_data_struct   *func_data;
-    Real                   transform_deriv[4][4];
+    VIO_Real                   transform_deriv[4][4];
 
     func_data = (function_data_struct *) function_data;
 
@@ -65,11 +65,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING                 input_filename1, input_filename2;
-    Real                   *initial, *solution, value;
-    Real                   range_tolerance, domain_tolerance;
-    Real                   sampling[N_DIMENSIONS];
-    Real                   separations[N_DIMENSIONS];
+    VIO_STR                 input_filename1, input_filename2;
+    VIO_Real                   *initial, *solution, value;
+    VIO_Real                   range_tolerance, domain_tolerance;
+    VIO_Real                   sampling[N_DIMENSIONS];
+    VIO_Real                   separations[N_DIMENSIONS];
     int                    n_iterations, dim, parm;
     int                    sizes[N_DIMENSIONS];
     function_data_struct   func_data;
@@ -92,7 +92,7 @@ int  main(
 
     if( input_volume( input_filename1, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &func_data.volume1, NULL ) != OK )
+                      TRUE, &func_data.volume1, NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( func_data.volume1, sizes );
@@ -106,7 +106,7 @@ int  main(
     {
         if( input_volume( input_filename2, 3, File_order_dimension_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &func_data.volume2, NULL ) != OK )
+                          TRUE, &func_data.volume2, NULL ) != VIO_OK )
             return( 1 );
     }
 
@@ -118,7 +118,7 @@ int  main(
 
     for_less( dim, 0, N_DIMENSIONS )
     {
-        func_data.n_samples[dim] = ROUND( (Real) sizes[dim] *
+        func_data.n_samples[dim] = ROUND( (VIO_Real) sizes[dim] *
                                           FABS(separations[dim]) /
                                           sampling[dim] );
     }
@@ -137,20 +137,20 @@ int  main(
     return( 0 );
 }
 
-private  Real  compute_cross_correlation(
-    Volume     volume1,
-    Volume     volume2,
+private  VIO_Real  compute_cross_correlation(
+    VIO_Volume     volume1,
+    VIO_Volume     volume2,
     Transform  *transform,
     int        nx,
     int        ny,
     int        nz )
 {
-    Real  voxel[MAX_DIMENSIONS];
-    Real  voxel2[MAX_DIMENSIONS];
-    Real  delta[MAX_DIMENSIONS];
+    VIO_Real  voxel[MAX_DIMENSIONS];
+    VIO_Real  voxel2[MAX_DIMENSIONS];
+    VIO_Real  delta[MAX_DIMENSIONS];
     int   sizes[MAX_DIMENSIONS];
     int   i, j, k;
-    Real  value1, value2, corr, xw, yw, zw, diff;
+    VIO_Real  value1, value2, corr, xw, yw, zw, diff;
 
     corr = 0.0;
 
@@ -158,14 +158,14 @@ private  Real  compute_cross_correlation(
 
     voxel[0] = 0.0;
     voxel[1] = 0.0;
-    voxel[2] = INTERPOLATE( ((Real) 0 + 0.5) / (Real) nz,
-                                        -0.5, (Real) sizes[Z] - 0.5 );
+    voxel[2] = VIO_INTERPOLATE( ((VIO_Real) 0 + 0.5) / (VIO_Real) nz,
+                                        -0.5, (VIO_Real) sizes[Z] - 0.5 );
     convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
     transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
     convert_world_to_voxel( volume2, xw, yw, zw, voxel2 );
 
-    voxel[2] = INTERPOLATE( ((Real) 1 + 0.5) / (Real) nz,
-                                        -0.5, (Real) sizes[Z] - 0.5 );
+    voxel[2] = VIO_INTERPOLATE( ((VIO_Real) 1 + 0.5) / (VIO_Real) nz,
+                                        -0.5, (VIO_Real) sizes[Z] - 0.5 );
     convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
     transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
     convert_world_to_voxel( volume2, xw, yw, zw, delta );
@@ -176,18 +176,18 @@ private  Real  compute_cross_correlation(
 
     for_less( i, 0, nx )
     {
-        voxel[X] = INTERPOLATE( ((Real) i + 0.5) / (Real) nx,
-                                -0.5, (Real) sizes[X] - 0.5 );
+        voxel[X] = VIO_INTERPOLATE( ((VIO_Real) i + 0.5) / (VIO_Real) nx,
+                                -0.5, (VIO_Real) sizes[X] - 0.5 );
 
         for_less( j, 0, ny )
         {
-            voxel[Y] = INTERPOLATE( ((Real) j + 0.5) / (Real) ny,
-                                    -0.5, (Real) sizes[Y] - 0.5 );
+            voxel[Y] = VIO_INTERPOLATE( ((VIO_Real) j + 0.5) / (VIO_Real) ny,
+                                    -0.5, (VIO_Real) sizes[Y] - 0.5 );
 
             for_less( k, 0, nz )
             {
-                voxel[Z] = INTERPOLATE( ((Real) k + 0.5) / (Real) nz,
-                                        -0.5, (Real) sizes[Z] - 0.5 );
+                voxel[Z] = VIO_INTERPOLATE( ((VIO_Real) k + 0.5) / (VIO_Real) nz,
+                                        -0.5, (VIO_Real) sizes[Z] - 0.5 );
 
                 if( k == 0 )
                 {
@@ -213,7 +213,7 @@ private  Real  compute_cross_correlation(
         }
     }
 
-    corr /= (Real) (nx * ny * nz);
+    corr /= (VIO_Real) (nx * ny * nz);
 
     return( corr );
 }

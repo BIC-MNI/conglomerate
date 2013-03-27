@@ -4,9 +4,9 @@
 #define   OFFSET  0.5625
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc output.mnc  \n\
 \n\
      Flips the brain about the anatomical origin\n\n";
@@ -18,11 +18,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING     input_filename, output_filename;
-    Volume     volume, out_volume;
+    VIO_STR     input_filename, output_filename;
+    VIO_Volume     volume, out_volume;
     int        v0, v1, v2, v3, v4;
-    Real       value, xw, yw, zw;
-    Real       v[MAX_DIMENSIONS];
+    VIO_Real       value, xw, yw, zw;
+    VIO_Real       v[MAX_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 
@@ -35,7 +35,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     out_volume = copy_volume_definition( volume, NC_UNSPECIFIED, FALSE,
@@ -43,9 +43,9 @@ int  main(
 
     BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
 
-        v[0] = (Real) v0;
-        v[1] = (Real) v1;
-        v[2] = (Real) v2;
+        v[0] = (VIO_Real) v0;
+        v[1] = (VIO_Real) v1;
+        v[2] = (VIO_Real) v2;
 
         convert_voxel_to_world( volume, v, &xw, &yw, &zw );
 

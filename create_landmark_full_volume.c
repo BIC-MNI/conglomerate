@@ -127,7 +127,7 @@ int  main(
                                            GREEN, 1.0, BOX_MARKER,
                                            &n_objects, &object_list );
 
-        if( status != OK )
+        if( status != VIO_OK )
             return( 1 );
 
         for_less( i, 0, n_objects )
@@ -166,7 +166,7 @@ int  main(
                         {
                             min_limit = voxel[c] - radius / separations[c];
                             max_limit = voxel[c] + radius / separations[c];
-                            min_voxel[c] = CEILING( min_limit );
+                            min_voxel[c] = VIO_CEILING( min_limit );
                             if( min_voxel[c] < 0 )
                                 min_voxel[c] = 0;
                             max_voxel[c] = (int) max_limit;
@@ -241,5 +241,5 @@ int  main(
                             0.0, 255.0, new_volume, history,
                             (minc_output_options *) NULL );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

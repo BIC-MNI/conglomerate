@@ -12,7 +12,7 @@ static  void  find_boundary_blocks(
     bitlist_3d_struct  *on_boundary,
     object_struct      *surface,
     VIO_Real               radius_of_curvature );
-static  BOOLEAN  block_within_distance(
+static  VIO_BOOL  block_within_distance(
     VIO_Point              *min_point,
     VIO_Real               block_size,
     int                x_size,
@@ -33,7 +33,7 @@ int  main(
     VIO_Real                 radius_of_curvature, dist;
     object_struct        **objects;
     polygons_struct      *polygons;
-    BOOLEAN              on_boundary;
+    VIO_BOOL              on_boundary;
     VIO_Point                centroid, sphere_centre, *points;
     VIO_Point                found_point;
     VIO_Vector               normal;
@@ -57,7 +57,7 @@ int  main(
     }
 
     if( input_graphics_file( src_polygons_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects < 1 || get_object_type( objects[0] ) != POLYGONS )
@@ -252,11 +252,11 @@ static  void  find_boundary_blocks(
                                 &x_max_real, &y_max_real, &z_max_real );
 
         x_min = MAX( 0, VIO_FLOOR( x_min_real ) );
-        x_max = MIN( x_size-1, CEILING( x_max_real ) );
+        x_max = MIN( x_size-1, VIO_CEILING( x_max_real ) );
         y_min = MAX( 0, VIO_FLOOR( y_min_real ) );
-        y_max = MIN( y_size-1, CEILING( y_max_real ) );
+        y_max = MIN( y_size-1, VIO_CEILING( y_max_real ) );
         z_min = MAX( 0, VIO_FLOOR( z_min_real ) );
-        z_max = MIN( z_size-1, CEILING( z_max_real ) );
+        z_max = MIN( z_size-1, VIO_CEILING( z_max_real ) );
 
         for_inclusive( x, x_min, x_max )
         for_inclusive( y, y_min, y_max )
@@ -360,7 +360,7 @@ static  void  find_boundary_blocks(
     delete_bitlist_3d( &visited_flags );
 }
 
-static  BOOLEAN  block_within_distance(
+static  VIO_BOOL  block_within_distance(
     VIO_Point              *min_point,
     VIO_Real               block_size,
     int                x_size,
@@ -387,11 +387,11 @@ static  BOOLEAN  block_within_distance(
                             &x_max_real, &y_max_real, &z_max_real );
 
     x_min = MAX( 0, VIO_FLOOR( x_min_real ) );
-    x_max = MIN( x_size-1, CEILING( x_max_real ) );
+    x_max = MIN( x_size-1, VIO_CEILING( x_max_real ) );
     y_min = MAX( 0, VIO_FLOOR( y_min_real ) );
-    y_max = MIN( y_size-1, CEILING( y_max_real ) );
+    y_max = MIN( y_size-1, VIO_CEILING( y_max_real ) );
     z_min = MAX( 0, VIO_FLOOR( z_min_real ) );
-    z_max = MIN( z_size-1, CEILING( z_max_real ) );
+    z_max = MIN( z_size-1, VIO_CEILING( z_max_real ) );
 
     for_inclusive( x, x_min, x_max )
     for_inclusive( y, y_min, y_max )

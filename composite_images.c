@@ -11,7 +11,7 @@ int  main(
     int               y_offset_flipped;
     pixels_struct     pixels, top_pixels;
     VIO_Colour            bottom, top, col;
-    BOOLEAN           add_flag;
+    VIO_BOOL           add_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -56,7 +56,7 @@ int  main(
             continue;
         }
 
-        if( input_rgb_file( input_filename, &top_pixels ) != OK )
+        if( input_rgb_file( input_filename, &top_pixels ) != VIO_OK )
             return( 1 );
 
         if( top_pixels.pixel_type != RGB_PIXEL )
@@ -112,7 +112,7 @@ int  main(
         ++n_files;
     }
 
-    if( output_rgb_file( output_filename, &pixels ) != OK )
+    if( output_rgb_file( output_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     return( 0 );

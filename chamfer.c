@@ -4,10 +4,10 @@ int  main( argc, argv )
     int    argc;
     char   *argv[];
 {
-    Status            status;
+    VIO_Status            status;
     char              *input_filename, *output_filename;
-    Real              threshold;
-    Volume            volume;
+    VIO_Real              threshold;
+    VIO_Volume            volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -29,18 +29,18 @@ int  main( argc, argv )
                             0.0, 0.0, new_volume, "chamfered",
                             (minc_output_options *) NULL );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
-private  Volume  create_chamfer_volume(
-    Volume   volume,
-    Real     threshold )
+private  VIO_Volume  create_chamfer_volume(
+    VIO_Volume   volume,
+    VIO_Real     threshold )
 {
     int      sizes[MAX_DIMENSIONS], ind[MAX_DIMENSIONS], neigh[MAX_DIMENSIONS];
     int      dir, c;
-    Volume   chamfer;
-    BOOLEAN  surface_flag;
-    Real     value, neigh_value;
+    VIO_Volume   chamfer;
+    VIO_BOOL  surface_flag;
+    VIO_Real     value, neigh_value;
 
     chamfer = copy_volume_definition( volume, NC_UNSPECIFIED, FALSE, 0.0, 0.0 );
 

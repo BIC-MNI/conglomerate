@@ -10,7 +10,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *tag_filename;
     int                  n_objects, total_tags;
     object_struct        **object_list;
@@ -24,7 +24,7 @@ int  main(
         return( 1 );
     }
 
-    status = input_objects_any_format( (Volume) NULL, tag_filename,
+    status = input_objects_any_format( (VIO_Volume) NULL, tag_filename,
                                        GREEN, 1.0, BOX_MARKER,
                                        &n_objects, &object_list );
 
@@ -47,7 +47,7 @@ int  main(
         print( "File %s contains %d non-tag objects.\n", tag_filename,
                n_objects - total_tags );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  int  add_structure_id(

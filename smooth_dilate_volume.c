@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: dilate_volume input.mnc output.mnc  d|e ratio\n\
                   [26/6] \n\
 \n\
@@ -14,27 +14,27 @@ Usage: dilate_volume input.mnc output.mnc  d|e ratio\n\
 }
 
 private  void  continuous_dilate_voxels_3d(
-    Real                 **input[3],
-    Volume               output,
+    VIO_Real                 **input[3],
+    VIO_Volume               output,
     int                  slice,
-    BOOLEAN              dilating_flag,
+    VIO_BOOL              dilating_flag,
     Neighbour_types      connectivity,
-    Real                 ratio );
+    VIO_Real                 ratio );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename, command;
-    Real                 ratio;
-    BOOLEAN              dilating;
-    Volume               volume, dilated, input_3d;
+    VIO_STR               input_filename, output_filename, command;
+    VIO_Real                 ratio;
+    VIO_BOOL              dilating;
+    VIO_Volume               volume, dilated, input_3d;
     int                  n_neighs, slice, n_slices, first_slice;
     int                  sizes_2d[2], v0, v1, v2;
     Neighbour_types      connectivity;
     static char          *dim_names[] = { "", "" };
     Minc_file            minc_file;
-    Real                 **slices[3], **swap, amount_done;
+    VIO_Real                 **slices[3], **swap, amount_done;
     progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
@@ -60,7 +60,7 @@ int  main(
     }
 
     if( input_volume_header_only( input_filename, 3,
-                       File_order_dimension_names, &input_3d, NULL ) != OK )
+                       File_order_dimension_names, &input_3d, NULL ) != VIO_OK )
         return( 1 );
 
     set_n_bytes_cache_threshold( 1 );
@@ -145,16 +145,16 @@ int  main(
 }
 
 private  void  continuous_dilate_voxels_3d(
-    Real                 **input[3],
-    Volume               output,
+    VIO_Real                 **input[3],
+    VIO_Volume               output,
     int                  slice,
-    BOOLEAN              dilating_flag,
+    VIO_BOOL              dilating_flag,
     Neighbour_types      connectivity,
-    Real                 ratio )
+    VIO_Real                 ratio )
 {
     int               dir, n_dirs, *dx, *dy, *dz, sizes[N_DIMENSIONS];
     int               v1, v2, t0, t1, t2;
-    Real              value, original, extreme;
+    VIO_Real              value, original, extreme;
 
     n_dirs = get_3D_neighbour_directions( connectivity, &dx, &dy, &dz );
     get_volume_sizes( output, sizes );
@@ -189,7 +189,7 @@ private  void  continuous_dilate_voxels_3d(
         if( dilating_flag && extreme > original ||
             !dilating_flag && extreme < original )
         {
-            value = INTERPOLATE( ratio, original, extreme );
+            value = VIO_INTERPOLATE( ratio, original, extreme );
         }
         else
             value = original;

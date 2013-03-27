@@ -82,11 +82,11 @@ struct  conjugate_min_struct
     return( conj );
 }
 
-  BOOLEAN  conjugate_min_do_one_iteration(  
+  VIO_BOOL  conjugate_min_do_one_iteration(  
     conjugate_min     conj,
     VIO_Real              *resulting_value )
 {
-    BOOLEAN  success;
+    VIO_BOOL  success;
     VIO_Real     new_value, max_movement;
 
     if( conj->max_iterations >= 0 && conj->n_iterations >= conj->max_iterations)

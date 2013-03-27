@@ -8,8 +8,8 @@ int  main(
     int   n_stations, n_positions, station, pos, i_next, i_curr;
     int   i, j, swap_int, best, *sorted;
     int   sum_pos, sum_total;
-    Real  **stations, weight, dx, *current_cost, *next_cost, *swap;
-    Real  best_cost, cost, threshold;
+    VIO_Real  **stations, weight, dx, *current_cost, *next_cost, *swap;
+    VIO_Real  best_cost, cost, threshold;
 
     initialize_argument_processing( argc, argv );
 
@@ -58,7 +58,7 @@ int  main(
 
         for_less( i_next, 0, n_positions )
         {
-            Real  test_best;
+            VIO_Real  test_best;
 
             /*---------------------- */
 
@@ -68,7 +68,7 @@ int  main(
             while( pos < n_positions && current_cost[sorted[pos]] <= threshold )
             {
                 i_curr = sorted[pos];
-                dx = (Real) (i_next - i_curr);
+                dx = (VIO_Real) (i_next - i_curr);
                 cost = current_cost[i_curr] + weight * dx * dx +
                        stations[station][i_next];
                 if( pos == 0 || cost < test_best )
@@ -88,7 +88,7 @@ int  main(
             best_cost = 0.0;
             for_less( i_curr, 0, n_positions )
             {
-                dx = (Real) (i_next - i_curr);
+                dx = (VIO_Real) (i_next - i_curr);
                 cost = current_cost[i_curr] + weight * dx * dx +
                        stations[station][i_next];
                 if( i_curr == 0 || cost < best_cost )
@@ -105,7 +105,7 @@ int  main(
         }
     }
 
-    print( "%g\n", (Real) sum_pos / (Real) sum_total );
+    print( "%g\n", (VIO_Real) sum_pos / (VIO_Real) sum_total );
 
     best_cost = 0.0;
     for_less( pos, 0, n_positions )

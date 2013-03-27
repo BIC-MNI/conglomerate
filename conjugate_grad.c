@@ -4,7 +4,7 @@
 
 struct  conjugate_grad_struct
 {
-    BOOLEAN  first_call;
+    VIO_BOOL  first_call;
     int      n_parameters;
     VIO_Real     *g;
     VIO_Real     *h;
@@ -47,14 +47,14 @@ struct  conjugate_grad_struct
     FREE( con );
 }
 
-  BOOLEAN  get_conjugate_unit_direction(
+  VIO_BOOL  get_conjugate_unit_direction(
     conjugate_grad   con,
     VIO_Real        derivative[],
     VIO_Real        unit_dir[] )
 {
     int      p;
     VIO_Real     len, gg, dgg, gam;
-    BOOLEAN  found;
+    VIO_BOOL  found;
 
     found = TRUE;
 

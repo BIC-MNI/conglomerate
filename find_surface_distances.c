@@ -35,7 +35,7 @@ int  main(
     }
 
     if( input_graphics_file( surface_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type( object_list[0] ) != POLYGONS )
     {
         print_error( "Error reading surface.\n" );
@@ -44,10 +44,10 @@ int  main(
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     polygons = get_polygons_ptr( object_list[0] );
@@ -71,8 +71,8 @@ int  main(
                                          &boundary_def, &dist ) )
             dist = 2.0 * max_outwards_distance;
 
-        if( output_real( file, dist ) != OK ||
-            output_newline( file ) != OK )
+        if( output_real( file, dist ) != VIO_OK ||
+            output_newline( file ) != VIO_OK )
             return( 1 );
 
         update_progress_report( &progress, p + 1 );

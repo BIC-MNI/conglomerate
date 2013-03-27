@@ -35,7 +35,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume, NULL )
-                      != OK )
+                      != VIO_OK )
         return( 1 );
 
     label_volume = create_label_volume( volume, NC_BYTE );
@@ -48,7 +48,7 @@ int  main(
 
     do
     {
-        int_voxel[Z] += 1;
+        int_voxel[VIO_Z] += 1;
         value = get_volume_real_value( volume, int_voxel[0], int_voxel[1],
                                        int_voxel[2], 0, 0 );
     }

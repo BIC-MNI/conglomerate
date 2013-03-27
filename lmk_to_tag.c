@@ -4,17 +4,17 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *input_filename, *input_lmk_file;
     char                 *output_tag_filename;
-    Volume               volume;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
     int                  n_objects;
     object_struct        **object_list;
     int                  i;
     marker_struct        *marker;
     int                  n_tags;
-    Real                 **tags, *weights;
+    VIO_Real                 **tags, *weights;
     int                  *structure_ids, *patient_ids;
     char                 **labels;
     FILE                 *file;
@@ -72,13 +72,13 @@ int  main(
                               get_default_tag_file_suffix(), WRITE_FILE,
                               ASCII_FORMAT, &file );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = output_tag_points( file, (char *) NULL, 1, n_tags,
-                                    tags, (Real **) NULL, weights,
+                                    tags, (VIO_Real **) NULL, weights,
                                     structure_ids, patient_ids, labels );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = close_file( file );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

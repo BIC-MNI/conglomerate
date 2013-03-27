@@ -2,15 +2,15 @@
 #include  <bicpl.h>
 
 private  void  reorder_volume(
-    Volume   volume,
-    Volume   new_volume,
+    VIO_Volume   volume,
+    VIO_Volume   new_volume,
     int      n_bits,
     int      bit_order[] );
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING   usage_str = "\n\
+    VIO_STR   usage_str = "\n\
 Usage: %s input.mnc output.mnc bit_index0 bit_index1 ...\n\
 \n\
      \n\n";
@@ -23,8 +23,8 @@ int  main(
     char  *argv[] )
 {
     int        i, bit_order[32], sizes[N_DIMENSIONS], x, y, z;
-    Volume     volume, new_volume;
-    STRING     input_filename, output_filename;
+    VIO_Volume     volume, new_volume;
+    VIO_STR     input_filename, output_filename;
 
     initialize_argument_processing( argc, argv );
 
@@ -46,7 +46,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     new_volume = copy_volume_definition( volume,
@@ -67,7 +67,7 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN  get_position(
+private  VIO_BOOL  get_position(
     int     n_bits,
     int     current_bits[],
     int     sizes[],
@@ -128,7 +128,7 @@ private  BOOLEAN  get_position(
 }
 
 private  void  output_bit(
-    Volume   volume,
+    VIO_Volume   volume,
     int      sizes[],
     int      which_bit )
 {
@@ -142,19 +142,19 @@ private  void  output_bit(
     x = which_bit / sizes[Y];
 
     value = (int) get_volume_voxel_value( volume, x, y, z, 0, 0 );
-    set_volume_voxel_value( volume, x, y, z, 0, 0, (Real) ( value | (1<<bit_index)) );
+    set_volume_voxel_value( volume, x, y, z, 0, 0, (VIO_Real) ( value | (1<<bit_index)) );
 }
 
 
 private  void  reorder_volume(
-    Volume   volume,
-    Volume   new_volume,
+    VIO_Volume   volume,
+    VIO_Volume   new_volume,
     int      n_bits,
     int      bit_order[] )
 {
     int       *current_bits, bit, sizes[N_DIMENSIONS];
     int       out_bit_index, value, which, x, y, z, bit_index;
-    BOOLEAN   done;
+    VIO_BOOL   done;
 
     get_volume_sizes( volume, sizes );
 

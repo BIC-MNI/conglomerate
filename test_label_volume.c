@@ -5,8 +5,8 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename;
-    Volume               volume, mask_volume;
+    VIO_STR               input_filename;
+    VIO_Volume               volume, mask_volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -16,12 +16,12 @@ int  main(
     }
 
     if( input_volume_header_only( input_filename, 3, XYZ_dimension_names,
-                                  &volume, NULL ) != OK )
+                                  &volume, NULL ) != VIO_OK )
         return( 1 );
 
     mask_volume = create_label_volume( volume, NC_UNSPECIFIED );
 
-    if( load_label_volume( input_filename, mask_volume ) != OK )
+    if( load_label_volume( input_filename, mask_volume ) != VIO_OK )
         return( 1 );
 
     return( 0 );

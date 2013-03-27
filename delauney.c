@@ -3,19 +3,19 @@
 
 private  void  create_delauney(
     int               n_points,
-    Real              (*points)[2],
+    VIO_Real              (*points)[2],
     polygons_struct   *triangles );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING          input_filename, output_filename;
+    VIO_STR          input_filename, output_filename;
     File_formats    format;
     int             n_objects;
     int             i, p, n_points, n_object_points;
-    Point           *object_points;
-    Real            (*points)[2];
+    VIO_Point           *object_points;
+    VIO_Real            (*points)[2];
     object_struct   **objects, *object;
     polygons_struct *triangles;
 
@@ -29,7 +29,7 @@ int  main(
     }
 
     if( input_graphics_file( input_filename, &format, &n_objects, &objects )
-                             != OK )
+                             != VIO_OK )
         return( 1 );
 
     n_points = 0;
@@ -61,11 +61,11 @@ int  main(
 
 private  void  find_closest_pair(
     int               n_points,
-    Real              (*points)[2],
+    VIO_Real              (*points)[2],
     int               *p1,
     int               *p2 )
 {
-    Real  closest, dist, dx, dy;
+    VIO_Real  closest, dist, dx, dy;
     int   i, j;
 
     closest = -1.0;
@@ -86,13 +86,13 @@ private  void  find_closest_pair(
     }
 }
 
-private  BOOLEAN  is_clockwise(
-    Real              (*points)[2],
+private  VIO_BOOL  is_clockwise(
+    VIO_Real              (*points)[2],
     int               p1,
     int               p2,
     int               p3 )
 {
-    Real  cross;
+    VIO_Real  cross;
 
     cross = (points[p2][0] - points[p1][0]) *
             (points[p3][1] - points[p1][1]) -
@@ -102,16 +102,16 @@ private  BOOLEAN  is_clockwise(
     return( cross > 0.0 );
 }
 
-private  BOOLEAN  get_circle_through_points(
-    Real    (*points)[2],
+private  VIO_BOOL  get_circle_through_points(
+    VIO_Real    (*points)[2],
     int     p1,
     int     p2,
     int     p3,
-    Real    *cx,
-    Real    *cy,
-    Real    *radius2 )
+    VIO_Real    *cx,
+    VIO_Real    *cy,
+    VIO_Real    *radius2 )
 {
-    Real   x1, y1, x2, y2, x3, y3, bottom, r2_a_b, c1, c2, c3;
+    VIO_Real   x1, y1, x2, y2, x3, y3, bottom, r2_a_b, c1, c2, c3;
 
     x1 = points[p1][0];
     y1 = points[p1][1];
@@ -138,16 +138,16 @@ private  BOOLEAN  get_circle_through_points(
     return( *radius2 > 0.0 );
 }
 
-private  BOOLEAN  get_third_point(
+private  VIO_BOOL  get_third_point(
     int               n_points,
-    Real              (*points)[2],
+    VIO_Real              (*points)[2],
     int               p1,
     int               p2,
     int               *p3 )
 {
     int       p;
-    Real      smallest_radius, cx, cy, radius2;
-    BOOLEAN   found, clockwise;
+    VIO_Real      smallest_radius, cx, cy, radius2;
+    VIO_BOOL   found, clockwise;
 
     smallest_radius = -1.0;
     found = FALSE;
@@ -176,7 +176,7 @@ private  BOOLEAN  get_third_point(
 
 private  void  create_delauney(
     int               n_points,
-    Real              (*points)[2],
+    VIO_Real              (*points)[2],
     polygons_struct   *triangles )
 {
     int                            p, p1, p2, p3, n_indices, tri[3];
@@ -207,10 +207,10 @@ private  void  create_delauney(
 
     INITIALIZE_QUEUE( queue );
 
-    entry = IJ( (unsigned long) p1, (unsigned long) p2,
+    entry = VIO_IJ( (unsigned long) p1, (unsigned long) p2,
                 (unsigned long) n_points );
     INSERT_IN_QUEUE( queue, entry );
-    entry = IJ( (unsigned long) p2, (unsigned long) p1,
+    entry = VIO_IJ( (unsigned long) p2, (unsigned long) p1,
                 (unsigned long) n_points );
     INSERT_IN_QUEUE( queue, entry );
 
@@ -251,7 +251,7 @@ private  void  create_delauney(
 
             if( !done_flags[next_p1][next_p2] )
             {
-                entry = IJ( (unsigned long) next_p1, (unsigned long) next_p2,
+                entry = VIO_IJ( (unsigned long) next_p1, (unsigned long) next_p2,
                             (unsigned long) n_points );
                 INSERT_IN_QUEUE( queue, entry );
             }

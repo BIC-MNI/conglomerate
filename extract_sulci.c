@@ -4,15 +4,15 @@
 
 private  void  extract_sulci(
     polygons_struct   *polygons,
-    Real              curvature_threshold,
+    VIO_Real              curvature_threshold,
     lines_struct      *lines )
 {
     int               i, ind, n_sulcal_points, point_index, poly, vertex;
     int               *indices, size;
-    BOOLEAN           *points_done;
-    Real              *curvatures, base_length;
-    Point             centroid;
-    Vector            normal;
+    VIO_BOOL           *points_done;
+    VIO_Real              *curvatures, base_length;
+    VIO_Point             centroid;
+    VIO_Vector            normal;
     progress_struct   progress;
 
     check_polygons_neighbours_computed( polygons );
@@ -111,7 +111,7 @@ int  main(
     char                 *input_filename, *output_filename;
     File_formats         format;
     int                  n_objects;
-    Real                 curvature_threshold;
+    VIO_Real                 curvature_threshold;
     object_struct        **objects, *lines;
 
     initialize_argument_processing( argc, argv );
@@ -127,7 +127,7 @@ int  main(
     (void) get_real_argument( 0.2, &curvature_threshold );
 
     if( input_graphics_file( input_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 || get_object_type( objects[0] ) != POLYGONS )
@@ -140,7 +140,7 @@ int  main(
     extract_sulci( get_polygons_ptr(objects[0]), curvature_threshold,
                    get_lines_ptr( lines ) );
 
-    if( output_graphics_file( output_filename, BINARY_FORMAT, 1, &lines ) != OK)
+    if( output_graphics_file( output_filename, BINARY_FORMAT, 1, &lines ) != VIO_OK)
         return( 1 );
 
     delete_object_list( n_objects, objects );

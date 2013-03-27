@@ -23,7 +23,7 @@ int  main(
     VIO_STR               input_filename, output_filename, mask_filename;
     VIO_STR               *dim_names;
     VIO_Real                 min_mask, max_mask, value_to_dilate;
-    BOOLEAN              mask_volume_present;
+    VIO_BOOL              mask_volume_present;
     VIO_Volume               volume, mask_volume;
     int                  i, n_dilations, n_neighs, n_changed;
     int                  range_changed[2][VIO_N_DIMENSIONS];
@@ -61,7 +61,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
-                      (minc_input_options *) NULL ) != OK )
+                      (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     if( mask_volume_present )
@@ -70,7 +70,7 @@ int  main(
 
         if( input_volume( mask_filename, 3, dim_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &mask_volume,
-                          (minc_input_options *) NULL ) != OK )
+                          (minc_input_options *) NULL ) != VIO_OK )
             return( 1 );
 
         delete_dimension_names( volume, dim_names );

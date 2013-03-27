@@ -26,7 +26,7 @@ int  main(
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                       TRUE, &volume, (minc_input_options *) NULL ) ;
 
-    if( status != OK )
+    if( status != VIO_OK )
         return( 1 );
 
     new_volume = smooth_resample_volume( volume, nx, ny, nz );

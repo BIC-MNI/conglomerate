@@ -20,7 +20,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Real             min_threshold, max_threshold;
+    VIO_Real             min_threshold, max_threshold;
     int              sizes[VIO_N_DIMENSIONS], v[VIO_MAX_DIMENSIONS];
     int              range_changed[2][VIO_N_DIMENSIONS];
     int              current_label, num_labels, n_neighbours;
@@ -53,7 +53,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     label_volume = create_label_volume( volume, NC_UNSPECIFIED );

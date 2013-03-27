@@ -29,7 +29,7 @@ int  main(
         return( 1 );
     }
 
-    if( input_volume_header_only( volume_filename, 3, NULL, &volume, NULL) !=OK)
+    if( input_volume_header_only( volume_filename, 3, NULL, &volume, NULL) !=VIO_OK)
         return( 1 );
 
     (void) sprintf( comment, "dump_transform %s\n", volume_filename );

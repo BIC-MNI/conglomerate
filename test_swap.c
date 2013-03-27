@@ -5,18 +5,18 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, label_filename, dummy;
-    STRING               dump_filename;
-    Real                 mean, std_dev, value;
-    Real                 min_sample_value, max_sample_value;
-    Volume               volume, label_volume;
-    Real                 separations[MAX_DIMENSIONS];
-    Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
-    Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
-    Real                 real_v[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
-    Real                 min_value, max_value;
+    VIO_STR               volume_filename, label_filename, dummy;
+    VIO_STR               dump_filename;
+    VIO_Real                 mean, std_dev, value;
+    VIO_Real                 min_sample_value, max_sample_value;
+    VIO_Volume               volume, label_volume;
+    VIO_Real                 separations[MAX_DIMENSIONS];
+    VIO_Real                 min_world[MAX_DIMENSIONS], max_world[MAX_DIMENSIONS];
+    VIO_Real                 min_voxel[MAX_DIMENSIONS], max_voxel[MAX_DIMENSIONS];
+    VIO_Real                 real_v[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
+    VIO_Real                 min_value, max_value;
     FILE                 *file;
-    BOOLEAN              first;
+    VIO_BOOL              first;
     int                  c, n_samples, v[MAX_DIMENSIONS], sizes[3];
     statistics_struct    stats;
 
@@ -30,10 +30,10 @@ int  main(
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
-    print( "Volume input\n" );
+    print( "VIO_Volume input\n" );
     flush_file( stdout );
 
     get_volume_separations( volume, separations );
@@ -49,7 +49,7 @@ int  main(
     print( "Label volume initialized.\n" );
     flush_file( stdout );
 
-    if( load_label_volume( label_filename, label_volume ) != OK )
+    if( load_label_volume( label_filename, label_volume ) != VIO_OK )
         return( 1 );
 
     print( "Label volume loaded.\n" );
@@ -64,7 +64,7 @@ int  main(
             value = get_volume_real_value( volume, v[0], v[1], v[2], v[3],v[4]);
 
             for_less( c, 0, N_DIMENSIONS )
-                real_v[c] = (Real) v[c];
+                real_v[c] = (VIO_Real) v[c];
 
             convert_voxel_to_world( volume, real_v,
                                     &world[X], &world[Y], &world[Z]);

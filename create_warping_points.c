@@ -45,7 +45,7 @@ int  main(
     }
 
     if( input_graphics_file( surface1_filename, &format, &n_objects, &objects )
-                                 != OK || n_objects != 1 ||
+                                 != VIO_OK || n_objects != 1 ||
         get_object_type(objects[0]) != POLYGONS )
     {
         print_error( "Surface file must contain polygons.\n" );
@@ -54,7 +54,7 @@ int  main(
     surface1 = get_polygons_ptr( objects[0] );
 
     if( input_graphics_file( surface2_filename, &format, &n_objects, &objects )
-                                 != OK || n_objects != 1 ||
+                                 != VIO_OK || n_objects != 1 ||
         get_object_type(objects[0]) != POLYGONS )
     {
         print_error( "Surface file must contain polygons.\n" );
@@ -93,7 +93,7 @@ surface2->bintree = NULL;
     for_less( i, 0, n_pairs )
     {
         if( input_graphics_file( filenames[i], &format, &n_objects, &objects1 )
-                                 != OK )
+                                 != VIO_OK )
         {
             return( 1 );
         }
@@ -105,7 +105,7 @@ surface2->bintree = NULL;
         }
 
         if( input_graphics_file( filenames[i+n_pairs], &format, &n_objects,
-                                 &objects2 ) != OK )
+                                 &objects2 ) != VIO_OK )
         {
             return( 1 );
         }
@@ -152,13 +152,13 @@ lines2->bintree = NULL;
             map_point_between_polygons( surface2, poly, &point_on_sulcus,
                                         surface1, &point_on_sulcus );
 
-            tags1[t][X] = RPoint_x(sulcal_points[t-n_tags]);
-            tags1[t][Y] = RPoint_y(sulcal_points[t-n_tags]);
-            tags1[t][Z] = RPoint_z(sulcal_points[t-n_tags]);
+            tags1[t][VIO_X] = RPoint_x(sulcal_points[t-n_tags]);
+            tags1[t][VIO_Y] = RPoint_y(sulcal_points[t-n_tags]);
+            tags1[t][VIO_Z] = RPoint_z(sulcal_points[t-n_tags]);
 
-            tags2[t][X] = RPoint_x(point_on_sulcus);
-            tags2[t][Y] = RPoint_y(point_on_sulcus);
-            tags2[t][Z] = RPoint_z(point_on_sulcus);
+            tags2[t][VIO_X] = RPoint_x(point_on_sulcus);
+            tags2[t][VIO_Y] = RPoint_y(point_on_sulcus);
+            tags2[t][VIO_Z] = RPoint_z(point_on_sulcus);
         }
 
         n_tags += n_tags_per_line;

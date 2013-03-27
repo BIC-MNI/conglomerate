@@ -60,7 +60,7 @@ int  main(
     }
 
     if( input_graphics_file( src_polygons_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     n_dest_objects = 0;
@@ -94,7 +94,7 @@ int  main(
     }
 
     if( output_graphics_file( dest_lines_filename, format, n_dest_objects,
-                              dest_objects ) != OK )
+                              dest_objects ) != VIO_OK )
         return( 1 );
 
     delete_object_list( n_objects, objects );

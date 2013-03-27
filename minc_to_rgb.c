@@ -39,7 +39,7 @@ int  main(
 
     if( input_volume_header_only( input_filename, -1,
                                   File_order_dimension_names,
-                                  &volume, &options ) != OK )
+                                  &volume, &options ) != VIO_OK )
         return( 1 );
 
     n_dims = get_volume_n_dimensions(volume) - 1;
@@ -51,12 +51,12 @@ int  main(
     if( input_volume( input_filename, n_dims,
                       n_dims==2 ? dim_names2d : dim_names3d,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, &options ) != OK )
+                      TRUE, &volume, &options ) != VIO_OK )
         return( 1 );
 
     if( get_volume_data_type(volume) != UNSIGNED_INT )
     {
-        print_error( "Volume is not an RGB Minc file.\n" );
+        print_error( "VIO_Volume is not an RGB Minc file.\n" );
         return( 1 );
     }
 

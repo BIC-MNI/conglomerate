@@ -2,9 +2,9 @@
 #include  <volume_io.h>
 
 private  void  usage(
-    STRING   executable_name )
+    VIO_STR   executable_name )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  output.mnc w1 w2 w3  [w input.mnc] [w input.mnc]\n\
 \n\
      \n\n";
@@ -18,22 +18,22 @@ int  main(
     char   *argv[] )
 {
     int                  v0, v1, v2, v3, v4;
-    Real                 weight, value_weight, deriv1_weight, deriv2_weight;
-    Real                 xw, yw, zw, add;
-    Real                 test_deriv1_mag, test_deriv2_mag;
-    Real                 deriv1_mag, deriv2_mag;
-    Real                 v[MAX_DIMENSIONS], xv, yv, zv;
-    Real                 diff, value, test_value;
-    Real                 deriv1[3], test_deriv1[3];
-    Real                 deriv2[6], test_deriv2[6], sim;
-    Real                 min_value, max_value;
+    VIO_Real                 weight, value_weight, deriv1_weight, deriv2_weight;
+    VIO_Real                 xw, yw, zw, add;
+    VIO_Real                 test_deriv1_mag, test_deriv2_mag;
+    VIO_Real                 deriv1_mag, deriv2_mag;
+    VIO_Real                 v[MAX_DIMENSIONS], xv, yv, zv;
+    VIO_Real                 diff, value, test_value;
+    VIO_Real                 deriv1[3], test_deriv1[3];
+    VIO_Real                 deriv2[6], test_deriv2[6], sim;
+    VIO_Real                 min_value, max_value;
     int                  degrees_continuity, sizes[MAX_DIMENSIONS];
     progress_struct      progress;
-    STRING               input_filename;
-    STRING               output_filename;
-    STRING               history;
-    Volume               volume, similarity_volume;
-    BOOLEAN              first;
+    VIO_STR               input_filename;
+    VIO_STR               output_filename;
+    VIO_STR               history;
+    VIO_Volume               volume, similarity_volume;
+    VIO_BOOL              first;
 
     initialize_argument_processing( argc, argv );
 
@@ -66,7 +66,7 @@ int  main(
 
         if( input_volume( input_filename, 3, XYZ_dimension_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                          TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
             return( 1 );
 
         /* --- create the similarity volume */
@@ -111,11 +111,11 @@ int  main(
                                 sizes[X] * sizes[Y] * sizes[Z], "Similarity:" );
 
         BEGIN_ALL_VOXELS( similarity_volume, v0, v1, v2, v3, v4 )
-            v[0] = (Real) v0;
-            v[1] = (Real) v1;
-            v[2] = (Real) v2;
-            v[3] = (Real) v3;
-            v[4] = (Real) v4;
+            v[0] = (VIO_Real) v0;
+            v[1] = (VIO_Real) v1;
+            v[2] = (VIO_Real) v2;
+            v[3] = (VIO_Real) v3;
+            v[4] = (VIO_Real) v4;
             convert_voxel_to_world( similarity_volume, v, &xw, &yw, &zw );
             evaluate_volume_in_world( volume, xw, yw, zw, degrees_continuity,
                                       FALSE, 0.0, &value,

@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc  output.mnc  output.mnc x|y|z slice_number\n\
 \n\
      Expands the specified slice to fill the volume.\n\n";
@@ -16,12 +16,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename, output_filename, axis_name;
+    VIO_STR               volume_filename, output_filename, axis_name;
     int                  voxel_pos, a1, a2, axis;
     int                  x, y, z, sizes[MAX_DIMENSIONS];
     int                  v, voxel[MAX_DIMENSIONS];
-    Volume               volume;
-    Real                 voxel_value;
+    VIO_Volume               volume;
+    VIO_Real                 voxel_value;
 
     initialize_argument_processing( argc, argv );
 
@@ -36,7 +36,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );

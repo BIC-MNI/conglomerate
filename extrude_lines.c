@@ -2,9 +2,9 @@
 #include  <volume_io.h>
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input_lines.obj  output_quadmesh.obj  x_norm y_norm z_norm \n\
                 min_dist  max_dist  n_along_line  n_along_norm  [degrees]\n\
 \n\
@@ -15,9 +15,9 @@ Usage: %s  input_lines.obj  output_quadmesh.obj  x_norm y_norm z_norm \n\
 
 private  void   extrude_lines(
     lines_struct      *lines,
-    Vector            *normal,
-    Real              min_dist,
-    Real              max_dist,
+    VIO_Vector            *normal,
+    VIO_Real              min_dist,
+    VIO_Real              max_dist,
     int               n_along_line,
     int               n_along_norm,
     int               degrees_continuity,
@@ -33,8 +33,8 @@ int  main(
     File_formats         format;
     int                  n_along_line, n_along_norm;
     int                  n_objects, degrees_continuity;
-    Real                 xn, yn, zn, min_dist, max_dist;
-    Vector               normal;
+    VIO_Real                 xn, yn, zn, min_dist, max_dist;
+    VIO_Vector               normal;
     lines_struct         *lines;
     object_struct        **objects, *object;
 
@@ -57,7 +57,7 @@ int  main(
     (void) get_int_argument( DEFAULT_DEGREES_CONTINUITY, &degrees_continuity );
 
     if( input_graphics_file( input_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 || get_object_type(objects[0]) != LINES )
@@ -83,7 +83,7 @@ int  main(
                    degrees_continuity, get_quadmesh_ptr(object) );
 
     if( output_graphics_file( output_filename, format, 1,
-                              &object ) != OK )
+                              &object ) != VIO_OK )
         return( 1 );
 
     delete_object_list( n_objects, objects );
@@ -94,14 +94,14 @@ int  main(
 
 private  void  evaluate_line(
     lines_struct   *lines,
-    Real           parametric_dist,
+    VIO_Real           parametric_dist,
     int            degrees_continuity,
-    Point          *point,
-    Vector         *line_normal )
+    VIO_Point          *point,
+    VIO_Vector         *line_normal )
 {
     int    p, size, this_index, next_index, i0, i3, dim;
-    Real   dist, inc_dist, ratio;
-    Real   coefs[4], derivs[2];
+    VIO_Real   dist, inc_dist, ratio;
+    VIO_Real   coefs[4], derivs[2];
     
     size = GET_OBJECT_SIZE( *lines, 0 );
 
@@ -162,18 +162,18 @@ private  void  evaluate_line(
 
 private  void   extrude_lines(
     lines_struct      *lines,
-    Vector            *normal,
-    Real              min_dist,
-    Real              max_dist,
+    VIO_Vector            *normal,
+    VIO_Real              min_dist,
+    VIO_Real              max_dist,
     int               n_along_line,
     int               n_along_norm,
     int               degrees_continuity,
     quadmesh_struct   *quadmesh )
 {
     int      l, d;
-    Vector   unit_normal, line_normal, surface_normal;
-    Real     total_length, dist;
-    Point    line_point, point;
+    VIO_Vector   unit_normal, line_normal, surface_normal;
+    VIO_Real     total_length, dist;
+    VIO_Point    line_point, point;
 
     total_length = get_lines_length( lines );
 
@@ -183,7 +183,7 @@ private  void   extrude_lines(
 
     for_less( l, 0, n_along_line )
     {
-        dist = (Real) l / (Real) (n_along_line-1) * total_length;
+        dist = (VIO_Real) l / (VIO_Real) (n_along_line-1) * total_length;
         evaluate_line( lines, dist, degrees_continuity,
                        &line_point, &line_normal );
         CROSS_VECTORS( surface_normal, line_normal, unit_normal );
@@ -191,7 +191,7 @@ private  void   extrude_lines(
 
         for_less( d, 0, n_along_norm )
         {
-            dist = INTERPOLATE( (Real) d / (Real) (n_along_norm-1),
+            dist = VIO_INTERPOLATE( (VIO_Real) d / (VIO_Real) (n_along_norm-1),
                                 min_dist, max_dist );
 
             GET_POINT_ON_RAY( point, line_point, unit_normal, dist );

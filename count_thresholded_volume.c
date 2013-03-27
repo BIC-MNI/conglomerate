@@ -5,11 +5,11 @@ int  main(
     char  *argv[] )
 {
     VIO_STR               volume_filename, mask_volume_filename;
-    Real                 mask_value, value;
-    Real                 mask_voxel[VIO_MAX_DIMENSIONS];
-    Real                 xw, yw, zw;
-    Real                 min_threshold, max_threshold;
-    Real                 separations[VIO_MAX_DIMENSIONS];
+    VIO_Real                 mask_value, value;
+    VIO_Real                 mask_voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 xw, yw, zw;
+    VIO_Real                 min_threshold, max_threshold;
+    VIO_Real                 separations[VIO_MAX_DIMENSIONS];
     int                  x, y, z, n_found;
     int                  mask_sizes[VIO_MAX_DIMENSIONS];
     VIO_progress_struct      progress;
@@ -31,33 +31,33 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     if( equal_strings( volume_filename, mask_volume_filename ) )
         mask_volume = volume;
     else if( input_volume( mask_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &mask_volume, NULL ) != OK )
+                      TRUE, &mask_volume, NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( mask_volume, mask_sizes );
     get_volume_separations( mask_volume, separations );
 
-    initialize_progress_report( &progress, FALSE, mask_sizes[X] * mask_sizes[Y],
+    initialize_progress_report( &progress, FALSE, mask_sizes[VIO_X] * mask_sizes[VIO_Y],
                                 "Masking VIO_Volume" );
 
     n_found = 0;
 
-    for_less( x, 0, mask_sizes[X] )
+    for_less( x, 0, mask_sizes[VIO_X] )
     {
-        mask_voxel[X] = (Real) x;
-        for_less( y, 0, mask_sizes[Y] )
+        mask_voxel[VIO_X] = (VIO_Real) x;
+        for_less( y, 0, mask_sizes[VIO_Y] )
         {
-            mask_voxel[Y] = (Real) y;
-            for_less( z, 0, mask_sizes[Z] )
+            mask_voxel[VIO_Y] = (VIO_Real) y;
+            for_less( z, 0, mask_sizes[VIO_Z] )
             {
-                mask_voxel[Z] = (Real) z;
+                mask_voxel[VIO_Z] = (VIO_Real) z;
                 mask_value = get_volume_real_value( mask_volume, x, y, z, 0, 0);
                 if( mask_value != 0.0 )
                 {
@@ -75,15 +75,15 @@ int  main(
                 }
             }
 
-            update_progress_report( &progress, x * mask_sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * mask_sizes[VIO_Y] + y + 1 );
         }
     }
 
     terminate_progress_report( &progress );
 
     print( "Number voxels: %d\n", n_found );
-    print( "VIO_Volume       : %g cubic mm\n", (Real) n_found * separations[X] *
-                                  separations[Y] * separations[Z] );
+    print( "VIO_Volume       : %g cubic mm\n", (VIO_Real) n_found * separations[VIO_X] *
+                                  separations[VIO_Y] * separations[VIO_Z] );
 
     return( 0 );
 }

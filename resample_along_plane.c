@@ -2,26 +2,26 @@
 #include  <bicpl.h>
 
 private  void    find_plane(
-    Point      points[],
-    Vector     *normal );
+    VIO_Point      points[],
+    VIO_Vector     *normal );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               three_tags_filename, output_filename;
-    STRING               volume_filename;
-    Point                points[3], origin, point, centroid;
-    Vector               normal, plane_normal;
+    VIO_STR               three_tags_filename, output_filename;
+    VIO_STR               volume_filename;
+    VIO_Point                points[3], origin, point, centroid;
+    VIO_Vector               normal, plane_normal;
     object_struct        *object, **object_list;
-    Vector               princ_normal, normals[4];
+    VIO_Vector               princ_normal, normals[4];
     int                  i, n_tag_points, n_volumes, *patient_ids, *structure_ids;
-    Real                 **tags1, **tags2, *weights;
-    STRING               *labels;
-    Real                 plane_constants[4], dir[3], separations[3];
-    Real                 voxel[3], xyz[3];
-    Volume               volume;
-    Vector               x_axis, y_axis, z_axis;
+    VIO_Real                 **tags1, **tags2, *weights;
+    VIO_STR               *labels;
+    VIO_Real                 plane_constants[4], dir[3], separations[3];
+    VIO_Real                 voxel[3], xyz[3];
+    VIO_Volume               volume;
+    VIO_Vector               x_axis, y_axis, z_axis;
     char                 command[10000];
 
     initialize_argument_processing( argc, argv );
@@ -35,12 +35,12 @@ int  main(
     }
 
     if( input_volume_header_only( volume_filename, 3, File_order_dimension_names,
-                                  &volume, NULL ) != OK )
+                                  &volume, NULL ) != VIO_OK )
         return( 1 );
 
     if( input_tag_file( three_tags_filename, &n_volumes, &n_tag_points,
                         &tags1, &tags2, &weights, &structure_ids,
-                        &patient_ids, &labels ) != OK )
+                        &patient_ids, &labels ) != VIO_OK )
         return( 1 );
 
     if( n_volumes != 1 || n_tag_points != 3 )
@@ -101,10 +101,10 @@ int  main(
 }
 
 private  void    find_plane(
-    Point      points[],
-    Vector     *normal )
+    VIO_Point      points[],
+    VIO_Vector     *normal )
 {
-    Vector   v1, v2;
+    VIO_Vector   v1, v2;
 
     SUB_POINTS( v1, points[1], points[0] );
     SUB_POINTS( v2, points[2], points[0] );

@@ -31,7 +31,7 @@ int  main(
         return( 1 );
     }
 
-    if( tri_mesh_input( input_mesh_filename, BINARY_FORMAT, &mesh ) != OK )
+    if( tri_mesh_input( input_mesh_filename, BINARY_FORMAT, &mesh ) != VIO_OK )
         return( 1 );
 
     object = create_object( POLYGONS );

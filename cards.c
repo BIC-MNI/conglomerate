@@ -8,7 +8,7 @@ static  int  get_value(
 static  int  get_suit(
     Card  card );
 
-static  Real  decide(
+static  VIO_Real  decide(
     int   n_cards,
     Card  hand[],
     int   n_iters );
@@ -20,8 +20,8 @@ static  int  get_bit(
     return( (i & (1 << which)) ? 1 : 0 );
 }
 
-static  Real  get_payoff(
-    Real      payoff[2][2][2][2][2],
+static  VIO_Real  get_payoff(
+    VIO_Real      payoff[2][2][2][2][2],
     int       i )
 {
     int   i1, i2, i3, i4, i5;
@@ -44,7 +44,7 @@ int main(
     int       n_iters;
     Card      cards[5], hand[5];
     int       sorted[32];
-    Real      payoff[2][2][2][2][2];
+    VIO_Real      payoff[2][2][2][2][2];
     int       n_cards;
 
     n_cards = MIN( 5, argc - 1 );
@@ -57,7 +57,7 @@ int main(
 
     if( n_cards < 5 )
     {
-        Real  gain;
+        VIO_Real  gain;
 
         gain = decide( n_cards, cards, n_iters );
 
@@ -193,7 +193,7 @@ static  Card  deal()
     return( card );
 }
 
-static  BOOLEAN  is_hand_flush(
+static  VIO_BOOL  is_hand_flush(
     Card  hand[] )
 {
     return( get_suit( hand[0] ) == get_suit( hand[1] ) &&
@@ -202,7 +202,7 @@ static  BOOLEAN  is_hand_flush(
             get_suit( hand[0] ) == get_suit( hand[4] ) );
 }
 
-static  BOOLEAN  is_hand_straight(
+static  VIO_BOOL  is_hand_straight(
     int   values[],
     int   *max_val )
 {
@@ -227,7 +227,7 @@ static  int  count_pairs(
     int    pairs[2],
     int    *pair_value )
 {
-    BOOLEAN  counted[5];
+    VIO_BOOL  counted[5];
     int      i, j, n_pairs;
 
     for_less( i, 0, 5 )
@@ -264,7 +264,7 @@ static  int  evaluate_hand(
     Card  hand[] )
 {
     int      i, n_pairs, max_value, pairs[2], values[5], pair_value;
-    BOOLEAN  is_flush, is_straight;
+    VIO_BOOL  is_flush, is_straight;
 
     for_less( i, 0, 5 )
         values[i] = get_value( hand[i] );
@@ -320,7 +320,7 @@ static  int  evaluate_hand(
     Card  hand[] )
 {
     int      i, n_pairs, max_value, pairs[2], values[5], pair_value;
-    BOOLEAN  is_flush, is_straight;
+    VIO_BOOL  is_flush, is_straight;
 
     for_less( i, 0, 5 )
         values[i] = get_value( hand[i] );
@@ -382,7 +382,7 @@ static  int  play(
     return( evaluate_hand( hand ) );
 }
 
-static  Real  decide(
+static  VIO_Real  decide(
     int   n_cards,
     Card  hand[],
     int   n_iters )
@@ -415,5 +415,5 @@ static  Real  decide(
         gain += play( n_cards, hand );
     }
 
-    return( (Real) gain / (Real) iter );
+    return( (VIO_Real) gain / (VIO_Real) iter );
 }

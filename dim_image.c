@@ -31,7 +31,7 @@ int  main(
         a_scale = 1.0;
     }
 
-    if( input_rgb_file( input_filename, &pixels ) != OK )
+    if( input_rgb_file( input_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     if( pixels.pixel_type != RGB_PIXEL )
@@ -59,7 +59,7 @@ int  main(
         }
     }
 
-    if( output_rgb_file( output_filename, &pixels ) != OK )
+    if( output_rgb_file( output_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     return( 0 );

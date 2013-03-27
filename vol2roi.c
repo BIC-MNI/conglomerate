@@ -22,14 +22,14 @@ typedef  struct
 } contour_struct;
 
 private  int  extract_contours(
-    Volume           volume,
+    VIO_Volume           volume,
     int              axis,
     int              slice,
-    Real             min_threshold,
-    Real             max_threshold,
+    VIO_Real             min_threshold,
+    VIO_Real             max_threshold,
     contour_struct   *contours[] );
 
-private  Status  write_contours(
+private  VIO_Status  write_contours(
     FILE             *file,
     int              n_contours,
     contour_struct   contours[] );
@@ -42,13 +42,13 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Real             min_threshold, max_threshold;
+    VIO_Real             min_threshold, max_threshold;
     FILE             *file;
     int              axis, slice, sizes[N_DIMENSIONS], n_contours;
     char             *axis_name;
     char             *volume_filename, *output_roi_filename;
-    Volume           volume;
-    BOOLEAN          min_present, max_present;
+    VIO_Volume           volume;
+    VIO_BOOL          min_present, max_present;
     progress_struct  progress;
     contour_struct   *contours;
 
@@ -99,12 +99,12 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
 
-    if( open_file( output_roi_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK)
+    if( open_file( output_roi_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK)
         return( 1 );
 
     initialize_progress_report( &progress, FALSE, sizes[axis],
@@ -114,7 +114,7 @@ int  main(
     {
         n_contours = extract_contours( volume, axis, slice, min_threshold,
                                        max_threshold, &contours );
-        if( write_contours( file, n_contours, contours ) != OK )
+        if( write_contours( file, n_contours, contours ) != VIO_OK )
             return( 1 );
 
         update_progress_report( &progress, slice + 1 );
@@ -148,62 +148,62 @@ private  void  delete_contours(
         FREE( contours );
 }
 
-private  Status  write_contour(
+private  VIO_Status  write_contour(
     FILE             *file,
     contour_struct   *contour )
 {
     int      i;
 
-    if( output_int( file, contour->roi_id ) != OK ||
-        output_int( file, contour->x_max ) != OK ||
-        output_int( file, contour->x_min ) != OK ||
-        output_int( file, contour->y_max ) != OK ||
-        output_int( file, contour->y_min ) != OK ||
-        output_newline( file ) != OK )
+    if( output_int( file, contour->roi_id ) != VIO_OK ||
+        output_int( file, contour->x_max ) != VIO_OK ||
+        output_int( file, contour->x_min ) != VIO_OK ||
+        output_int( file, contour->y_max ) != VIO_OK ||
+        output_int( file, contour->y_min ) != VIO_OK ||
+        output_newline( file ) != VIO_OK )
     {
-        return( ERROR );
+        return( VIO_ERROR );
     }
 
-    if( output_int( file, contour->n_pixels ) != OK ||
-        output_newline( file ) != OK )
+    if( output_int( file, contour->n_pixels ) != VIO_OK ||
+        output_newline( file ) != VIO_OK )
     {
-        return( ERROR );
+        return( VIO_ERROR );
     }
 
     for_less( i, 0, contour->n_pixels )
     {
-        if( output_int( file, contour->pixels[i].x ) != OK ||
-            output_int( file, contour->pixels[i].y ) != OK ||
-            output_newline( file ) != OK )
+        if( output_int( file, contour->pixels[i].x ) != VIO_OK ||
+            output_int( file, contour->pixels[i].y ) != VIO_OK ||
+            output_newline( file ) != VIO_OK )
         {
-            return( ERROR );
+            return( VIO_ERROR );
         }
     }
 
-    if( output_newline( file ) != OK )
-        return( ERROR );
+    if( output_newline( file ) != VIO_OK )
+        return( VIO_ERROR );
 
-    return( OK );
+    return( VIO_OK );
 }
 
-private  Status  write_contours(
+private  VIO_Status  write_contours(
     FILE             *file,
     int              n_contours,
     contour_struct   contours[] )
 {
     int      i;
 
-    if( output_int( file, n_contours ) != OK ||
-        output_newline( file ) != OK )
-        return( ERROR );
+    if( output_int( file, n_contours ) != VIO_OK ||
+        output_newline( file ) != VIO_OK )
+        return( VIO_ERROR );
 
     for_less( i, 0, n_contours )
     {
-        if( write_contour( file, &contours[i] ) != OK )
-            return( ERROR );
+        if( write_contour( file, &contours[i] ) != VIO_OK )
+            return( VIO_ERROR );
     }
 
-    return( OK );
+    return( VIO_OK );
 }
 
 private  float  get_value(
@@ -224,16 +224,16 @@ private  float  get_value(
 private  int   Delta_x[N_DIRECTIONS] = { 1, 1, 0, -1, -1, -1,  0,  1 };
 private  int   Delta_y[N_DIRECTIONS] = { 0, 1, 1,  1,  0, -1, -1, -1 };
 
-private  BOOLEAN  is_inside(
+private  VIO_BOOL  is_inside(
     int     x_size,
     int     y_size,
     float   **slice,
-    Real    min_threshold,
-    Real    max_threshold,
+    VIO_Real    min_threshold,
+    VIO_Real    max_threshold,
     int     x,
     int     y )
 {
-    Real   value;
+    VIO_Real   value;
 
     value = get_value( x_size, y_size, slice, x, y );
 
@@ -249,12 +249,12 @@ private  BOOLEAN  is_inside(
     return( TRUE );
 }
 
-private  BOOLEAN  is_boundary_pixel(
+private  VIO_BOOL  is_boundary_pixel(
     int     x_size,
     int     y_size,
     float   **slice,
-    Real    min_threshold,
-    Real    max_threshold,
+    VIO_Real    min_threshold,
+    VIO_Real    max_threshold,
     int     x,
     int     y )
 {
@@ -280,8 +280,8 @@ private  void  extract_contour(
     int             x_size,
     int             y_size,
     float           **slice,
-    Real            min_threshold,
-    Real            max_threshold,
+    VIO_Real            min_threshold,
+    VIO_Real            max_threshold,
     Smallest_int    **done,
     int             x_start,
     int             y_start,
@@ -362,17 +362,17 @@ private  void  extract_contour(
 }
 
 private  int  extract_contours(
-    Volume           volume,
+    VIO_Volume           volume,
     int              axis,
     int              slice,
-    Real             min_threshold,
-    Real             max_threshold,
+    VIO_Real             min_threshold,
+    VIO_Real             max_threshold,
     contour_struct   *contours[] )
 {
     int             a1, a2, n_contours, sizes[MAX_DIMENSIONS];
     int             x, y, ind[MAX_DIMENSIONS];
     float           **values;
-    Real            used_min, used_max;
+    VIO_Real            used_min, used_max;
     Smallest_int    **done;
     contour_struct  contour;
 

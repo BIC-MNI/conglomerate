@@ -55,11 +55,11 @@ int  main(
         return( 1 );
     }
 
-    if( tri_mesh_input( input_mesh_filename, BINARY_FORMAT, &mesh ) != OK )
+    if( tri_mesh_input( input_mesh_filename, BINARY_FORMAT, &mesh ) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( input_obj_filename, &format, &n_objects,
-                             &object_list ) != OK ||
+                             &object_list ) != VIO_OK ||
         n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
     {
         print_error( "Error in input file.\n" );
@@ -77,7 +77,7 @@ int  main(
 
     if( !equal_strings( input_sub_filename, "none" ) )
     {
-        if( input_texture_values( input_sub_filename, &n_values, &values ) != OK
+        if( input_texture_values( input_sub_filename, &n_values, &values ) != VIO_OK
             || n_values != original_n_points )
         {
             print_error( "Error inputting subdivide node values.\n" );
@@ -94,7 +94,7 @@ int  main(
     if( !equal_strings( input_coal_filename, "none" ) )
     {
         if( input_texture_values( input_coal_filename, &n_values,
-                                  &values ) != OK ||
+                                  &values ) != VIO_OK ||
             n_values != original_n_points )
         {
             print_error( "Error inputting coalesce node values.\n" );

@@ -26,7 +26,7 @@ int  main(
     v = (VIO_Real) (n + m - 2);
     nu = v - (VIO_Real) D + 1.0;
 
-    t1 = resels * 4.0 * log(2.0) / 2.0 / PI;
+    t1 = resels * 4.0 * log(2.0) / 2.0 / M_PI;
     t2 = gamma_func( (nu+(VIO_Real)D-2.0)/2.0 ) /
          gamma_func( nu / 2.0 ) / gamma_func( (VIO_Real) D / 2.0 ) *
          pow( (VIO_Real) D * t / nu, 0.5*(VIO_Real) (D-2) );

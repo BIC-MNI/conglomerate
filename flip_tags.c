@@ -38,7 +38,7 @@ int  main(
     if( start_volume_input( volume_filename, 3, XYZ_dimension_names,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             TRUE, &volume, (minc_input_options *) NULL,
-                            &volume_input ) != OK )
+                            &volume_input ) != VIO_OK )
     {
         return( 1 );
     }
@@ -46,21 +46,21 @@ int  main(
     if( input_tag_file( input_tags, &n_volumes, &n_tag_points,
 
                         &tags_volume1, &tags_volume2, &weights,
-                        &structure_ids, &patient_ids, NULL ) != OK )
+                        &structure_ids, &patient_ids, NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
 
     for_less( i, 0, n_tag_points )
     {
-        convert_world_to_voxel( volume, tags_volume1[i][X],
-                                        tags_volume1[i][Y],
-                                        tags_volume1[i][Z], voxel );
-        voxel[X] = (VIO_Real) sizes[X] - 1.0 - voxel[X];
+        convert_world_to_voxel( volume, tags_volume1[i][VIO_X],
+                                        tags_volume1[i][VIO_Y],
+                                        tags_volume1[i][VIO_Z], voxel );
+        voxel[VIO_X] = (VIO_Real) sizes[VIO_X] - 1.0 - voxel[VIO_X];
 
-        convert_voxel_to_world( volume, voxel, &tags_volume1[i][X],
-                                               &tags_volume1[i][Y],
-                                               &tags_volume1[i][Z] );
+        convert_voxel_to_world( volume, voxel, &tags_volume1[i][VIO_X],
+                                               &tags_volume1[i][VIO_Y],
+                                               &tags_volume1[i][VIO_Z] );
     }
 
     (void) output_tag_file( output_tags, (char *) NULL,

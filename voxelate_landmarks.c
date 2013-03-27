@@ -8,16 +8,16 @@ private  void  modify_volume(
 private  void  render_marker_to_volume(
     volume_struct  *volume,
     unsigned char  voxels[],
-    Real           render_size,
+    VIO_Real           render_size,
     marker_struct  *marker );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *filename, *landmark_filename;
-    Real                 render_size;
+    VIO_Real                 render_size;
     volume_struct        volume;
     volume_input_struct  volume_input;
     unsigned char        *voxels;
@@ -55,7 +55,7 @@ int  main(
                                       GREEN, 1.0, BOX_MARKER, &n_objects,
                                       &object_list );
 
-        if( status != OK )
+        if( status != VIO_OK )
             return( 1 );
 
         initialize_progress_report( &progress, FALSE, n_objects, "Voxelating" );
@@ -76,7 +76,7 @@ int  main(
 
     modify_volume( &volume, filename, voxels );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  modify_volume(
@@ -141,19 +141,19 @@ private  int  convert_index(
     file_indices[Y] = indices[axis_indices[Y]];
     file_indices[Z] = indices[axis_indices[Z]];
 
-    return( IJK( file_indices[X], file_indices[Y], file_indices[Z],
+    return( VIO_IJK( file_indices[X], file_indices[Y], file_indices[Z],
                  sizes[axis_indices[Y]], sizes[axis_indices[Z]] ) );
 }
 
 private  void  render_marker_to_volume(
     volume_struct  *volume,
     unsigned char  voxels[],
-    Real           render_size,
+    VIO_Real           render_size,
     marker_struct  *marker )
 {
     int    ind;
     int    x, y, z, x_min, x_max, y_min, y_max, z_min, z_max;
-    Real   x_voxel, y_voxel, z_voxel, dx, dy, dz;
+    VIO_Real   x_voxel, y_voxel, z_voxel, dx, dy, dz;
 
     convert_world_to_voxel( volume,
                             Point_x(marker->position),
@@ -172,17 +172,17 @@ private  void  render_marker_to_volume(
 
     for_inclusive( x, x_min, x_max )
     {
-        dx = ((Real) x - x_voxel) * volume->thickness[X];
+        dx = ((VIO_Real) x - x_voxel) * volume->thickness[X];
         for_inclusive( y, y_min, y_max )
         {
-            dy = ((Real) y - y_voxel) * volume->thickness[Y];
+            dy = ((VIO_Real) y - y_voxel) * volume->thickness[Y];
             for_inclusive( z, z_min, z_max )
             {
-                dz = ((Real) z - z_voxel) * volume->thickness[Z];
+                dz = ((VIO_Real) z - z_voxel) * volume->thickness[Z];
 
                 if( dx * dx + dy * dy + dz * dz <= render_size * render_size &&
-                    voxel_is_within_volume( volume, (Real) x, (Real) y,
-                                            (Real) z ) )
+                    voxel_is_within_volume( volume, (VIO_Real) x, (VIO_Real) y,
+                                            (VIO_Real) z ) )
                 {
                     ind = convert_index( volume->axis_index_from_file,
                                          volume->sizes, x, y, z );

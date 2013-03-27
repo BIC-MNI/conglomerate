@@ -8,13 +8,13 @@ typedef  enum  { TOWARDS_LOWER, TOWARDS_HIGHER, ANY_DIRECTION }
 
 typedef  struct
 {
-    Real               min_isovalue;
-    Real               max_isovalue;
-    Real               gradient_threshold;
-    Real               min_dot_product;
-    Real               max_dot_product;
+    VIO_Real               min_isovalue;
+    VIO_Real               max_isovalue;
+    VIO_Real               gradient_threshold;
+    VIO_Real               min_dot_product;
+    VIO_Real               max_dot_product;
     Normal_directions  normal_direction;
-    Real               tolerance;
+    VIO_Real               tolerance;
 } boundary_definition_struct;
 
 typedef  enum  { VOLUME_DATA }  Deform_data_types;
@@ -22,8 +22,8 @@ typedef  enum  { VOLUME_DATA }  Deform_data_types;
 typedef  struct
 {
     Deform_data_types   type;
-    Volume              volume;
-    Volume              label_volume;
+    VIO_Volume              volume;
+    VIO_Volume              label_volume;
 } deform_data_struct;
 
 typedef  enum { FLAT_MODEL, AVERAGE_MODEL,
@@ -35,42 +35,42 @@ typedef  struct
     int                       up_to_n_points;
 
     Deformation_model_types   model_type;
-    Real                      model_weight;
+    VIO_Real                      model_weight;
     object_struct             *model_object;
 
     int                       n_model_points;
-    Point                     *model_centroids;
-    Vector                    *model_normals;
-    Point                     *model_points;
+    VIO_Point                     *model_centroids;
+    VIO_Vector                    *model_normals;
+    VIO_Point                     *model_points;
 
-    Real                      min_curvature_offset;
-    Real                      max_curvature_offset;
+    VIO_Real                      min_curvature_offset;
+    VIO_Real                      max_curvature_offset;
 } deform_model_struct;
 
 typedef  struct
 {
     int                       n_models;
     deform_model_struct       *models;
-    BOOLEAN                   position_constrained;
-    Real                      max_position_offset;
-    Point                     *original_positions;
+    VIO_BOOL                   position_constrained;
+    VIO_Real                      max_position_offset;
+    VIO_Point                     *original_positions;
 } deformation_model_struct;
 
 typedef  struct
 {
     deform_data_struct            deform_data;
     deformation_model_struct      deformation_model;
-    Real                          fractional_step;
-    Real                          max_step;
-    Real                          max_search_distance;
+    VIO_Real                          fractional_step;
+    VIO_Real                          max_step;
+    VIO_Real                          max_search_distance;
     int                           degrees_continuity;
     boundary_definition_struct    boundary_definition;
     int                           max_iterations;
-    Real                          stop_threshold;
+    VIO_Real                          stop_threshold;
 
     int                           n_movements_alloced;
     float                         *prev_movements;
-    Real                          movement_threshold;
+    VIO_Real                          movement_threshold;
 } deform_struct;
 
 #define  MAX_IN_VOXEL_COEF_LOOKUP  10000
@@ -78,7 +78,7 @@ typedef  struct
 typedef  struct  voxel_lin_coef_struct
 {
     int                               hash_key;
-    Real                              coefs[8];
+    VIO_Real                              coefs[8];
     struct     voxel_lin_coef_struct  *prev;
     struct     voxel_lin_coef_struct  *next;
 }
@@ -96,28 +96,28 @@ typedef struct
 
 typedef struct
 {
-    Real    average;
-    Real    maximum;
+    VIO_Real    average;
+    VIO_Real    maximum;
     int     n_below[N_DEFORM_HISTOGRAM];
 } deform_stats;
 
 typedef struct
 {
     int                  axis;
-    Point                *save_points;
-    Real                 *curvature_factors;
-    Point                *equilibrium_points;
-    Point                *new_equilibrium_points;
-    Point                *boundary_points;
-    Point                *new_boundary_points;
-    Real                 temperature;
-    Real                 temperature_factor;
+    VIO_Point                *save_points;
+    VIO_Real                 *curvature_factors;
+    VIO_Point                *equilibrium_points;
+    VIO_Point                *new_equilibrium_points;
+    VIO_Point                *boundary_points;
+    VIO_Point                *new_boundary_points;
+    VIO_Real                 temperature;
+    VIO_Real                 temperature_factor;
     int                  temperature_step;
     int                  min_n_to_move;
     int                  max_n_to_move;
-    Real                 max_translation;
-    Real                 max_angle_rotation;
-    Real                 max_scale_offset;
+    VIO_Real                 max_translation;
+    VIO_Real                 max_angle_rotation;
+    VIO_Real                 max_scale_offset;
     int                  stop_criteria;
     int                  try;
     int                  max_tries;
@@ -125,9 +125,9 @@ typedef struct
     int                  n_successes;
     int                  n_pos_successes;
     int                  n_no_moves;
-    Real                 min_delta_energy;
-    Real                 max_delta_energy;
-    Real                 energy;
+    VIO_Real                 min_delta_energy;
+    VIO_Real                 max_delta_energy;
+    VIO_Real                 energy;
 } anneal_struct;
 
 #ifndef  public

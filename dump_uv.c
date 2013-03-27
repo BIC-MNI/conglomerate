@@ -24,7 +24,7 @@ int  main(
     }
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
     {
         print( "Couldn't read %s.\n", input_filename );
         return( 1 );
@@ -45,7 +45,7 @@ int  main(
     create_tetrahedral_sphere( &centre, 1.0, 1.0, 1.0,
                                polygons->n_items, &unit_sphere );
 
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     for_less( point, 0, polygons->n_points )

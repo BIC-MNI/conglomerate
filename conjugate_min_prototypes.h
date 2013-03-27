@@ -3,25 +3,25 @@
 
 public   conjugate_min  conjugate_min_initialize(
     int                    n_parameters,
-    Real                   initial[],
-    Real                   (*function) ( Real [], void * ),
-    void                   (*deriv_function) ( Real [], void *, Real [] ),
+    VIO_Real                   initial[],
+    VIO_Real                   (*function) ( VIO_Real [], void * ),
+    void                   (*deriv_function) ( VIO_Real [], void *, VIO_Real [] ),
     void                   *function_data,
-    Real                   termination_range_tolerance,
-    Real                   termination_domain_tolerance,
-    Real                   line_min_range_tolerance,
-    Real                   line_min_domain_tolerance,
+    VIO_Real                   termination_range_tolerance,
+    VIO_Real                   termination_domain_tolerance,
+    VIO_Real                   line_min_range_tolerance,
+    VIO_Real                   line_min_domain_tolerance,
     int                    max_iterations,
     int                    max_restarts,
-    Real                   *current_value );
+    VIO_Real                   *current_value );
 
-public  BOOLEAN  conjugate_min_do_one_iteration(  
+public  VIO_BOOL  conjugate_min_do_one_iteration(  
     conjugate_min     conj,
-    Real              *resulting_value );
+    VIO_Real              *resulting_value );
 
 public  void  conjugate_min_get_current_position(  
     conjugate_min     conj,
-    Real              parameters[] );
+    VIO_Real              parameters[] );
 
 public  int  conjugate_min_get_n_iterations(  
     conjugate_min     conj );
@@ -32,17 +32,17 @@ public  void  conjugate_min_print_iteration_info(
 public  void  conjugate_min_terminate(  
     conjugate_min     conj );
 
-public  Real  conjugate_minimize_function(
+public  VIO_Real  conjugate_minimize_function(
     int                    n_parameters,
-    Real                   initial[],
-    Real                   (*function) ( Real [], void * ),
-    void                   (*deriv_function) ( Real [], void *, Real [] ),
+    VIO_Real                   initial[],
+    VIO_Real                   (*function) ( VIO_Real [], void * ),
+    void                   (*deriv_function) ( VIO_Real [], void *, VIO_Real [] ),
     void                   *function_data,
-    Real                   termination_range_tolerance,
-    Real                   termination_domain_tolerance,
-    Real                   line_min_range_tolerance,
-    Real                   line_min_domain_tolerance,
+    VIO_Real                   termination_range_tolerance,
+    VIO_Real                   termination_domain_tolerance,
+    VIO_Real                   line_min_range_tolerance,
+    VIO_Real                   line_min_domain_tolerance,
     int                    max_iterations,
     int                    max_restarts,
-    Real                   solution[] );
+    VIO_Real                   solution[] );
 #endif

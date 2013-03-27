@@ -1,19 +1,19 @@
 
 #include  <bicpl.h>
 
-private  BOOLEAN  recursive_find_polygon(
+private  VIO_BOOL  recursive_find_polygon(
     bintree_node_struct   *node,
     polygons_struct       *polygons,
-    Point                 *point,
+    VIO_Point                 *point,
     int                   *poly_index );
 
-public  BOOLEAN  find_polygon_containing_point(
+public  VIO_BOOL  find_polygon_containing_point(
     bintree_struct  *bintree,
     polygons_struct *polygons,
-    Point           *point,
+    VIO_Point           *point,
     int             *poly_index )
 {
-    Real           closest;
+    VIO_Real           closest;
     range_struct   limits;
 
     get_bintree_limits( bintree, &limits );
@@ -27,16 +27,16 @@ public  BOOLEAN  find_polygon_containing_point(
 
 #define  MAX_POLYGON_SIZE   2100
 
-private  BOOLEAN  recursive_find_polygon(
+private  VIO_BOOL  recursive_find_polygon(
     bintree_node_struct   *node,
     polygons_struct       *polygons,
-    Point                 *point,
+    VIO_Point                 *point,
     int                   *poly_index )
 {
-    BOOLEAN               test_child, searching_left;
+    VIO_BOOL               test_child, searching_left;
     int                   poly, n_points;
-    Real                  dist;
-    Point                 points[MAX_POLYGON_SIZE];
+    VIO_Real                  dist;
+    VIO_Point                 points[MAX_POLYGON_SIZE];
     int                   i, n_objects, *object_list;
     bintree_node_struct   *left_child, *right_child;
 

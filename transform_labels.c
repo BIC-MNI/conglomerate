@@ -1,18 +1,18 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  BOOLEAN  fast_get_voxel_value(
+private  VIO_BOOL  fast_get_voxel_value(
     int        voxel_x2,
     int        voxel_y2,
     int        voxel_z2,
     Transform  *v2_to_v1,
-    Volume     labels,
-    Real       *label_value );
+    VIO_Volume     labels,
+    VIO_Real       *label_value );
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  labels.mnc  like.mnc  output.mnc\n\
 \n\
 \n";
@@ -24,20 +24,20 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               labels_filename, like_filename, output_filename;
+    VIO_STR               labels_filename, like_filename, output_filename;
     int                  sizes[MAX_DIMENSIONS];
     int                  x, y, z;
     int                  label_sizes[MAX_DIMENSIONS];
-    Real                 voxel[MAX_DIMENSIONS];
+    VIO_Real                 voxel[MAX_DIMENSIONS];
     int                  xs, ys, zs, super_sample;
     int                  n_samples;
     int                  degrees_continuity;
     int                  x_voxel, y_voxel, z_voxel;
-    Real                 weighted_n_voxels;
-    Volume               labels, new_labels, like_volume;
-    Real                 separations[MAX_DIMENSIONS];
-    Real                 label, target_label, sum;
-    Real                 x_voxel2, y_voxel2, z_voxel2;
+    VIO_Real                 weighted_n_voxels;
+    VIO_Volume               labels, new_labels, like_volume;
+    VIO_Real                 separations[MAX_DIMENSIONS];
+    VIO_Real                 label, target_label, sum;
+    VIO_Real                 x_voxel2, y_voxel2, z_voxel2;
     int                  n_found;
     progress_struct      progress;
     General_transform    *labels_trans, *like_trans;
@@ -59,11 +59,11 @@ int  main(
 
     if( input_volume( labels_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &labels,
-                      NULL ) != OK )
+                      NULL ) != VIO_OK )
         return( 1 );
 
     if( input_volume_header_only( like_filename, 3, XYZ_dimension_names,
-                                  &like_volume, NULL ) != OK )
+                                  &like_volume, NULL ) != VIO_OK )
         return( 1 );
 
     new_labels = copy_volume_definition( like_volume, NC_BYTE, FALSE, 0.0, 0.0);
@@ -143,16 +143,16 @@ int  main(
 
                 for_less( xs, 0, super_sample )
                 {
-                    x_voxel2 = x - 0.5 + ((Real) xs + 0.5) /
-                               (Real) super_sample;
+                    x_voxel2 = x - 0.5 + ((VIO_Real) xs + 0.5) /
+                               (VIO_Real) super_sample;
                     for_less( ys, 0, super_sample )
                     {
-                        y_voxel2 = y - 0.5 + ((Real) ys + 0.5) /
-                                   (Real)super_sample;
+                        y_voxel2 = y - 0.5 + ((VIO_Real) ys + 0.5) /
+                                   (VIO_Real)super_sample;
                         for_less( zs, 0, super_sample )
                         {
-                            z_voxel2 = z - 0.5 + ((Real) zs + 0.5) /
-                                                  (Real) super_sample;
+                            z_voxel2 = z - 0.5 + ((VIO_Real) zs + 0.5) /
+                                                  (VIO_Real) super_sample;
 
                             transform_point( &new_labels_to_labels,
                                              x_voxel2, y_voxel2, z_voxel2,
@@ -185,7 +185,7 @@ int  main(
                     }
                 }
 
-                sum /= (Real) n_samples;
+                sum /= (VIO_Real) n_samples;
             }
 
             sum /= target_label;
@@ -202,7 +202,7 @@ int  main(
 
     get_volume_separations( new_labels, separations );
 
-    print( "Volume  : %g\n", (Real) weighted_n_voxels *
+    print( "VIO_Volume  : %g\n", (VIO_Real) weighted_n_voxels *
                     separations[0] * separations[1] * separations[2] );
 
     (void) output_modified_volume( output_filename, NC_UNSPECIFIED,
@@ -221,18 +221,18 @@ private  void  get_range_of_voxel(
     int        max_voxel[] )
 {
     int    dx, dy, dz, int_x1, int_y1, int_z1;
-    Real   x1, y1, z1;
-    Real   x2, y2, z2;
+    VIO_Real   x1, y1, z1;
+    VIO_Real   x2, y2, z2;
 
     for_less( dx, 0, 2 )
     {
-        x2 = voxel_x2 - 0.5 + (Real) dx;
+        x2 = voxel_x2 - 0.5 + (VIO_Real) dx;
         for_less( dy, 0, 2 )
         {
-            y2 = voxel_y2 - 0.5 + (Real) dy;
+            y2 = voxel_y2 - 0.5 + (VIO_Real) dy;
             for_less( dz, 0, 2 )
             {
-                z2 = voxel_z2 - 0.5 + (Real) dz;
+                z2 = voxel_z2 - 0.5 + (VIO_Real) dz;
 
                 transform_point( v2_to_v1, x2, y2, z2, &x1, &y1, &z1 );
 
@@ -271,20 +271,20 @@ private  void  get_range_of_voxel(
     }
 }
 
-private  BOOLEAN  fast_get_voxel_value(
+private  VIO_BOOL  fast_get_voxel_value(
     int        voxel_x2,
     int        voxel_y2,
     int        voxel_z2,
     Transform  *v2_to_v1,
-    Volume     labels,
-    Real       *label_value )
+    VIO_Volume     labels,
+    VIO_Real       *label_value )
 {
-    BOOLEAN  first;
+    VIO_BOOL  first;
     int      x, y, z, dim;
     int      sizes[MAX_DIMENSIONS];
     int      min_voxel[MAX_DIMENSIONS];
     int      max_voxel[MAX_DIMENSIONS];
-    Real     value;
+    VIO_Real     value;
 
     get_range_of_voxel( voxel_x2, voxel_y2, voxel_z2, v2_to_v1,
                         min_voxel, max_voxel );

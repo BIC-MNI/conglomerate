@@ -40,7 +40,7 @@ int  main(
     for_less( surface, 0, n_surfaces )
     {
         if( input_graphics_file( filenames[surface], &format, &n_objects,
-                                 &object_list ) != OK )
+                                 &object_list ) != VIO_OK )
         {
             print( "Couldn't read %s.\n", filenames[surface] );
             return( 1 );
@@ -64,9 +64,9 @@ int  main(
         VIO_ALLOC2D( tags[surface], n_points[surface], 3 );
         for_less( i, 0, n_points[surface] )
         {
-            tags[surface][i][X] = (VIO_Real) Point_x(points[surface][i]);
-            tags[surface][i][Y] = (VIO_Real) Point_y(points[surface][i]);
-            tags[surface][i][Z] = (VIO_Real) Point_z(points[surface][i]);
+            tags[surface][i][VIO_X] = (VIO_Real) Point_x(points[surface][i]);
+            tags[surface][i][VIO_Y] = (VIO_Real) Point_y(points[surface][i]);
+            tags[surface][i][VIO_Z] = (VIO_Real) Point_z(points[surface][i]);
         }
     }
 

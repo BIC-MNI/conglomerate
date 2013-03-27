@@ -3,17 +3,17 @@
 #include  <interval.h>
 #include  <ieeefp.h>
 
-static Real  COEF2 = -1.7234e10;
-static Real  COEF1 = 2.23132e10;
+static VIO_Real  COEF2 = -1.7234e10;
+static VIO_Real  COEF1 = 2.23132e10;
 
-private  Real  function(
-    Real x )
+private  VIO_Real  function(
+    VIO_Real x )
 {
     return( x * x * x + COEF2 * x * x + COEF1 * x );
 }
 
-private  Real  function_deriv(
-    Real x )
+private  VIO_Real  function_deriv(
+    VIO_Real x )
 {
     return( 3.0 * x * x + 2.0 * COEF2 * x + COEF1 );
 }
@@ -36,12 +36,12 @@ private  Interval  interval_function(
     return( res );
 }
 
-private  Real  interval_get_deriv(
-    Real  x )
+private  VIO_Real  interval_get_deriv(
+    VIO_Real  x )
 {
     Interval   x_int, step_int, x2, x1, f1_int, f2_int, top, bottom, deriv_int;
-    Real       step, deriv, size;
-    Real       tolerance = 1.0e-8;
+    VIO_Real       step, deriv, size;
+    VIO_Real       tolerance = 1.0e-8;
 
     SET_INTERVAL( x_int, x, x );
     step = 1.0e-100;
@@ -84,9 +84,9 @@ int  main(
     char *argv[] )
 {
     int        i, start, end, n_steps;
-    Real       x, ln_coef1, ln_coef2;
-    Real       ln_min, ln_max, truth, test;
-    Real       range;
+    VIO_Real       x, ln_coef1, ln_coef2;
+    VIO_Real       ln_min, ln_max, truth, test;
+    VIO_Real       range;
 
     initialize_argument_processing( argc, argv );
 

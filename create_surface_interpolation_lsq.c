@@ -12,7 +12,7 @@ static  VIO_Real   create_surface_interpolation(
     VIO_Real             values[],
     VIO_Real             smoothness,
     int              n_iters,
-    BOOLEAN          node_values_initialized,
+    VIO_BOOL          node_values_initialized,
     VIO_Real             node_values[] );
 
 static  void  usage(
@@ -54,7 +54,7 @@ int  main(
     (void) get_string_argument( NULL, &initial_values );
 
     if( input_graphics_file( surface_filename,
-                             &format, &n_objects, &objects ) != OK ||
+                             &format, &n_objects, &objects ) != VIO_OK ||
         n_objects != 1 || get_object_type(objects[0]) != POLYGONS )
     {
         print_error( "File %s must contain 1 polygons object.\n",
@@ -66,14 +66,14 @@ int  main(
     points = NULL;
     values = NULL;
 
-    if( open_file( xyz_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+    if( open_file( xyz_filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
-    while( input_real( file, &x ) == OK )
+    while( input_real( file, &x ) == VIO_OK )
     {
-        if( input_real( file, &y ) != OK ||
-            input_real( file, &z ) != OK ||
-            input_real( file, &value ) != OK )
+        if( input_real( file, &y ) != VIO_OK ||
+            input_real( file, &z ) != VIO_OK ||
+            input_real( file, &value ) != VIO_OK )
         {
             print_error( "Error reading %s\n", xyz_filename );
             return( 1 );
@@ -94,12 +94,12 @@ int  main(
 
     if( initial_values != NULL )
     {
-        if( open_file( initial_values, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( initial_values, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
         for_less( point, 0, polygons->n_points )
         {
-            if( input_real( file, &node_values[point] ) != OK )
+            if( input_real( file, &node_values[point] ) != VIO_OK )
             {
                 print_error( "End of file in values file.\n" );
                 return( 1 );
@@ -113,13 +113,13 @@ int  main(
                                          smoothness, n_iters,
                                          initial_values != NULL, node_values );
 
-    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+    if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     for_less( point, 0, polygons->n_points )
     {
-        if( output_real( file, node_values[point] ) != OK ||
-            output_newline( file  ) != OK )
+        if( output_real( file, node_values[point] ) != VIO_OK ||
+            output_newline( file  ) != VIO_OK )
             return( 1 );
     }
 
@@ -223,7 +223,7 @@ static  void  create_coefficients(
 #ifdef  FLATTEN
         flatten_around_vertex( &polygons->points[node],
                                n_neighbours[node], neigh_points,
-                               (BOOLEAN) interior_flags[node],
+                               (VIO_BOOL) interior_flags[node],
                                x_flat, y_flat );
 
         if( !get_interpolation_weights_2d( 0.0, 0.0, n_neighbours[node],
@@ -267,7 +267,7 @@ static  VIO_Real   create_surface_interpolation(
     VIO_Real             values[],
     VIO_Real             smoothness,
     int              n_iters,
-    BOOLEAN          node_values_initialized,
+    VIO_BOOL          node_values_initialized,
     VIO_Real             node_values[] )
 {
     polygons_struct   *polygons;

@@ -12,7 +12,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status              status;
+    VIO_Status              status;
     char                *input_filename, *output_filename;
     int                 x, y, z;
     bitlist_3d_struct   input_bitlist, output_bitlist;
@@ -37,10 +37,10 @@ int  main(
 
     status = open_file( input_filename, READ_FILE, BINARY_FORMAT, &file );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = io_bitlist_3d( file, READ_FILE, &input_bitlist );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = close_file( file );
 
     for_less( x, 0, sizes[0] )
@@ -56,14 +56,14 @@ int  main(
 #endif
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = open_file( output_filename, WRITE_FILE, BINARY_FORMAT, &file );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = io_bitlist_3d( file, WRITE_FILE, &output_bitlist );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = close_file( file );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

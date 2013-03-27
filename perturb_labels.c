@@ -5,12 +5,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               labels_filename, output_filename;
+    VIO_STR               labels_filename, output_filename;
     int                  i, n_dirs, *dx, *dy, *dz;
     int                  sizes[MAX_DIMENSIONS];
-    Real                 value, label_value, threshold;
+    VIO_Real                 value, label_value, threshold;
     int                  x, y, z, tx, ty, tz, n_neighbours;
-    Volume               labels, new_labels;
+    VIO_Volume               labels, new_labels;
 
     initialize_argument_processing( argc, argv );
 
@@ -24,7 +24,7 @@ int  main(
 
     if( input_volume( labels_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &labels,
-                      NULL ) != OK )
+                      NULL ) != VIO_OK )
         return( 1 );
 
     new_labels = copy_volume_definition( labels, NC_UNSPECIFIED, FALSE,
@@ -60,7 +60,7 @@ int  main(
         }
 
         if( n_neighbours > 0 && get_random_0_to_1() <
-                               threshold * (Real) n_neighbours / (Real) n_dirs )
+                               threshold * (VIO_Real) n_neighbours / (VIO_Real) n_dirs )
             value = label_value;
 
         set_volume_real_value( new_labels, x, y, z, 0, 0, value );

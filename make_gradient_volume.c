@@ -54,7 +54,7 @@ int  main(
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     /* --- create the gradient volume */
@@ -79,11 +79,11 @@ static  VIO_Volume  create_gradient_volume(
     VIO_Volume           gradient_volume;
     int              volume_sizes[VIO_N_DIMENSIONS];
     int              x, y, z;
-    Real             dx, dy, dz;
-    Real             voxel[VIO_MAX_DIMENSIONS];
-    Real             grad, value;
-    Real             **first_deriv, ***second_deriv;
-    Real             min_value, max_value;
+    VIO_Real             dx, dy, dz;
+    VIO_Real             voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real             grad, value;
+    VIO_Real             **first_deriv, ***second_deriv;
+    VIO_Real             min_value, max_value;
     VIO_progress_struct  progress;
 
     gradient_volume = copy_volume_definition( volume, NC_FLOAT, FALSE,
@@ -113,18 +113,18 @@ static  VIO_Volume  create_gradient_volume(
     max_value = 0.0;
 
     initialize_progress_report( &progress, FALSE,
-                                volume_sizes[X] * volume_sizes[Y],
+                                volume_sizes[VIO_X] * volume_sizes[VIO_Y],
                                 "Creating Gradient" );
 
-    for_less( x, 0, volume_sizes[X] )
+    for_less( x, 0, volume_sizes[VIO_X] )
     {
-        voxel[X] = (Real) x;
-        for_less( y, 0, volume_sizes[Y] )
+        voxel[VIO_X] = (VIO_Real) x;
+        for_less( y, 0, volume_sizes[VIO_Y] )
         {
-            voxel[Y] = (Real) y;
-            for_less( z, 0, volume_sizes[Z] )
+            voxel[VIO_Y] = (VIO_Real) y;
+            for_less( z, 0, volume_sizes[VIO_Z] )
             {
-                voxel[Z] = (Real) z;
+                voxel[VIO_Z] = (VIO_Real) z;
                 evaluate_volume( volume, voxel, NULL, continuity,
                                  FALSE, 0.0, &value, first_deriv, second_deriv);
 
@@ -156,7 +156,7 @@ static  VIO_Volume  create_gradient_volume(
                     max_value = grad;
             }
 
-            update_progress_report( &progress, x * volume_sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * volume_sizes[VIO_Y] + y + 1 );
         }
     }
 

@@ -5,7 +5,7 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING            input_filename, output_filename1, output_filename2;
+    VIO_STR            input_filename, output_filename1, output_filename2;
     int               x, y, width;
     pixels_struct     in_pixels, out_pixels;
     Colour            col;
@@ -22,7 +22,7 @@ int  main(
         return( 1 );
     }
 
-    if( input_rgb_file( input_filename, &in_pixels ) != OK )
+    if( input_rgb_file( input_filename, &in_pixels ) != VIO_OK )
         return( 1 );
 
     if( in_pixels.pixel_type != RGB_PIXEL || in_pixels.x_size < width )
@@ -43,7 +43,7 @@ int  main(
         }
     }
 
-    if( output_rgb_file( output_filename1, &out_pixels ) != OK )
+    if( output_rgb_file( output_filename1, &out_pixels ) != VIO_OK )
         return( 1 );
 
     delete_pixels( &out_pixels );
@@ -61,7 +61,7 @@ int  main(
         }
     }
 
-    if( output_rgb_file( output_filename2, &out_pixels ) != OK )
+    if( output_rgb_file( output_filename2, &out_pixels ) != VIO_OK )
         return( 1 );
 
     delete_pixels( &out_pixels );

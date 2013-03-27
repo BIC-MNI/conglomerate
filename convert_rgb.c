@@ -4,7 +4,7 @@ int main(
     int   argc,
     char  *argv[] )
 {
-    Real   x, y, z, h, s, l,  r, g, b;
+    VIO_Real   x, y, z, h, s, l,  r, g, b;
 
     initialize_argument_processing( argc, argv );
 

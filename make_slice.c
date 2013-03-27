@@ -10,12 +10,12 @@ int  main(
     VIO_Volume               volume;
     volume_input_struct  volume_input;
     int                  axis, x_tess, y_tess, a1, a2;
-    BOOLEAN              voxel_slice, volume_present;
+    VIO_BOOL              voxel_slice, volume_present;
     object_struct        *object;
     polygons_struct      *polygons;
-    Real                 pos, x_min, x_max, y_min, y_max;
-    Real                 voxel[VIO_MAX_DIMENSIONS];
-    Real                 xw, yw, zw, xvw, yvw, zvw;
+    VIO_Real                 pos, x_min, x_max, y_min, y_max;
+    VIO_Real                 voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 xw, yw, zw, xvw, yvw, zvw;
     VIO_Point                origin;
     VIO_Vector               normal;
 
@@ -35,11 +35,11 @@ int  main(
     volume_present = !equal_strings( input_volume_filename, "-" );
 
     if( equal_strings( axis_name, "x" ) )
-        axis = X;
+        axis = VIO_X;
     else if( equal_strings( axis_name, "y" ) )
-        axis = Y;
+        axis = VIO_Y;
     else if( equal_strings( axis_name, "z" ) )
-        axis = Z;
+        axis = VIO_Z;
     else
         axis = -1;
 
@@ -81,20 +81,20 @@ int  main(
         start_volume_input( input_volume_filename, 3, XYZ_dimension_names,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             TRUE, &volume, (minc_input_options *) NULL,
-                            &volume_input ) != OK )
+                            &volume_input ) != VIO_OK )
         return( 1 );
 
     if( volume_present )
     {
         if( voxel_slice )
         {
-            voxel[X] = 0.0;
-            voxel[Y] = 0.0;
-            voxel[Z] = 0.0;
+            voxel[VIO_X] = 0.0;
+            voxel[VIO_Y] = 0.0;
+            voxel[VIO_Z] = 0.0;
             voxel[axis] = pos;
 
             if( space[0] == 'w' || space[0] == 'W' )
-                convert_world_to_voxel( volume, voxel[X], voxel[Y], voxel[Z],
+                convert_world_to_voxel( volume, voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z],
                                         voxel );
 
             object = create_object( QUADMESH );
@@ -146,7 +146,7 @@ int  main(
     }
 
     if( output_graphics_file( output_filename, BINARY_FORMAT, 1, &object )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     return( 0 );

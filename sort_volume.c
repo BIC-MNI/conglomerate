@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  avg.mnc input.mnc  output.mnc\n\
 \n\
 \n\n";
@@ -16,12 +16,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename, avg_filename;
+    VIO_STR               input_filename, output_filename, avg_filename;
     int                  v0, v1, v2, sizes[MAX_DIMENSIONS];
     int                  w0, w1, w2, index;
     int                  i, n_bins, *counts, count, sum;
-    Volume               volume, avg, new_volume;
-    Real                 min_voxel, max_voxel, voxel;
+    VIO_Volume               volume, avg, new_volume;
+    VIO_Real                 min_voxel, max_voxel, voxel;
     int                  int_min_voxel, int_max_voxel;
 
     initialize_argument_processing( argc, argv );
@@ -36,12 +36,12 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     if( input_volume( avg_filename, 3, get_volume_dimension_names(volume),
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &avg, (minc_input_options *) NULL ) != OK )
+                      TRUE, &avg, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     if( !volumes_are_same_grid( volume, avg ) )

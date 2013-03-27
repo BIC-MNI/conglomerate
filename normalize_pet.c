@@ -113,19 +113,19 @@ int main(int argc, char *argv[])
 
    /* Read in the normalization file */
    if (input_volume(normfile, 3, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                    TRUE, &volume, &options) != OK) {
+                    TRUE, &volume, &options) != VIO_OK) {
       (void) fprintf(stderr, "Error loading volume %s\n", normfile);
       return EXIT_FAILURE;
    }
    get_volume_real_range(volume, &minimum, &maximum);
-   minimum -= ABS(minimum) * RANGE_EPSILON;
-   maximum += ABS(maximum) * RANGE_EPSILON;
+   minimum -= VIO_ABS(minimum) * RANGE_EPSILON;
+   maximum += VIO_ABS(maximum) * RANGE_EPSILON;
    get_volume_sizes(volume, sizes);
 
    /* Read in the mask file and check that the dimensions match */
    if (maskfile != NULL) {
       if (input_volume(maskfile, 3, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                       TRUE, &mask, &options) != OK) {
+                       TRUE, &mask, &options) != VIO_OK) {
          (void) fprintf(stderr, "Error loading volume %s\n", maskfile);
          return EXIT_FAILURE;
       }
@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
          return EXIT_FAILURE;
       }
       get_volume_real_range(mask, &mask_min, &mask_max);
-      mask_min -= ABS(mask_min) * RANGE_EPSILON;
-      mask_max += ABS(mask_max) * RANGE_EPSILON;
+      mask_min -= VIO_ABS(mask_min) * RANGE_EPSILON;
+      mask_max += VIO_ABS(mask_max) * RANGE_EPSILON;
    }
 
    /* Calculate the threshold if needed */
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
    if (infile != NULL) {
       delete_volume(volume);
       if (input_volume(infile, 3, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                       TRUE, &volume, &options) != OK) {
+                       TRUE, &volume, &options) != VIO_OK) {
          (void) fprintf(stderr, "Error loading volume %s\n", infile);
          return EXIT_FAILURE;
       }
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 
    /* Save the normalized volume */
    if (output_modified_volume(outfile, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                              volume, infile, history, NULL) != OK) {
+                              volume, infile, history, NULL) != VIO_OK) {
       (void) fprintf(stderr, "Error writing output volume.\n");
       return EXIT_FAILURE;
    }
@@ -333,7 +333,7 @@ int match_reals(VIO_Real value1, VIO_Real value2)
    diff = value1 - value2;
    denom = (value1 + value2) / 2.0;
    if (denom != 0.0) diff /= denom;
-   diff = ABS(diff);
+   diff = VIO_ABS(diff);
    if (diff < TOLERANCE)
       return TRUE;
    else

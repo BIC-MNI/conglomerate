@@ -44,11 +44,11 @@ int  main(
     VIO_STR              input_filename, output_filename, transform_filename;
     VIO_STR              dummy;
     int                 i, n_objects;
-    BOOLEAN             invert;
+    VIO_BOOL             invert;
     VIO_General_transform   transform;
     VIO_File_formats        format;
     object_struct       **object_list;
-    BOOLEAN             is_left_handed;
+    VIO_BOOL             is_left_handed;
 
     initialize_argument_processing( argc, argv );
 
@@ -62,14 +62,14 @@ int  main(
     (void) get_string_argument( input_filename, &output_filename );
     invert = get_string_argument( "", &dummy );
 
-    if( input_transform_file( transform_filename, &transform ) != OK )
+    if( input_transform_file( transform_filename, &transform ) != VIO_OK )
         return( 1 );
 
     if( invert )
         invert_general_transform( &transform );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     if( get_transform_type( &transform ) == LINEAR )

@@ -23,7 +23,7 @@ private  void  subdivide_polygon(
     polygons_struct   *polygons,
     int               poly,
     int               *new_n_points,
-    Point             *new_points[],
+    VIO_Point             *new_points[],
     int               *new_n_polygons,
     int               *new_end_indices[],
     int               *new_n_indices,
@@ -64,8 +64,8 @@ public  void  subdivide_polygons(
     int                size, *n_point_neighbours, **point_neighbours;
     int                **midpoints;
     int                total_n_point_neighbours;
-    Point              *new_points;
-    Point              dummy;
+    VIO_Point              *new_points;
+    VIO_Point              dummy;
     Colour             save_colour;
     progress_struct    progress;
 
@@ -164,7 +164,7 @@ private  void  subdivide_polygon(
     polygons_struct   *polygons,
     int               poly,
     int               *new_n_points,
-    Point             *new_points[],
+    VIO_Point             *new_points[],
     int               *new_n_polygons,
     int               *new_end_indices[],
     int               *new_n_indices,
@@ -175,7 +175,7 @@ private  void  subdivide_polygon(
 {
     int     edge, size, i0, i1, point_indices[4], p;
     int     midpoint_indices[4], centre_point_index, p1, p2;
-    Point   midpoint;
+    VIO_Point   midpoint;
 
     size = GET_OBJECT_SIZE( *polygons, poly );
 

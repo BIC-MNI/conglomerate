@@ -4,33 +4,33 @@
 private  int   find_polygon_point_pairs_within_distance(
     polygons_struct     *polygons,
     int                 n_points2,
-    Point               points2[],
-    Real                min_distance,
-    Real                max_distance,
+    VIO_Point               points2[],
+    VIO_Real                min_distance,
+    VIO_Real                max_distance,
     int                 n_x_divisions,
     int                 n_y_divisions,
     int                 n_z_divisions,
     int                 *pairs_ptr[] );
 
-private  Real  sq_triangle_point_dist(
-    Point tri_points[],
-    Point *point );
+private  VIO_Real  sq_triangle_point_dist(
+    VIO_Point tri_points[],
+    VIO_Point *point );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING                input_filename1, input_filename2;
-    STRING                output_filename;
-    Real                  min_distance, max_distance;
-    Real                  min_distance_sq, max_distance_sq;
+    VIO_STR                input_filename1, input_filename2;
+    VIO_STR                output_filename;
+    VIO_Real                  min_distance, max_distance;
+    VIO_Real                  min_distance_sq, max_distance_sq;
     File_formats          format;
     int                   p2, size;
     int                   n_x_divisions, n_y_divisions, n_z_divisions;
     int                   n_objects1, n_objects2;
     int                   n_points2, n_pairs, poly;
-    Point                 *points2, poly_points[3];
-    Real                  dist;
+    VIO_Point                 *points2, poly_points[3];
+    VIO_Real                  dist;
     object_struct         **objects1, **objects2;
     polygons_struct       *polygons;
     int                   *pairs;
@@ -53,7 +53,7 @@ int  main(
     (void) get_int_argument( 100, &n_z_divisions );
 
     if( input_graphics_file( input_filename1,
-                             &format, &n_objects1, &objects1 ) != OK ||
+                             &format, &n_objects1, &objects1 ) != VIO_OK ||
         n_objects1 < 1 || get_object_type(objects1[0]) != POLYGONS )
     {
         print_error( "Error in polygons file: %s\n", input_filename1 );
@@ -63,7 +63,7 @@ int  main(
     polygons = get_polygons_ptr( objects1[0] );
 
     if( input_graphics_file( input_filename2,
-                             &format, &n_objects2, &objects2 ) != OK )
+                             &format, &n_objects2, &objects2 ) != VIO_OK )
         return( 1 );
 
     n_points2 = get_object_points( objects2[0], &points2 );
@@ -121,7 +121,7 @@ int  main(
 
 private  void   find_point_ranges(
     int                n_points,
-    Point              points[],
+    VIO_Point              points[],
     int                n_divisions[N_DIMENSIONS],
     float              min_pos[N_DIMENSIONS],
     float              max_pos[N_DIMENSIONS] )
@@ -156,9 +156,9 @@ private  void   find_point_ranges(
 private  int   find_polygon_point_pairs_within_distance(
     polygons_struct     *polygons,
     int                 n_points2,
-    Point               points2[],
-    Real                min_distance,
-    Real                max_distance,
+    VIO_Point               points2[],
+    VIO_Real                min_distance,
+    VIO_Real                max_distance,
     int                 n_x_divisions,
     int                 n_y_divisions,
     int                 n_z_divisions,
@@ -198,7 +198,7 @@ private  int   find_polygon_point_pairs_within_distance(
         step2[dim] = (max_pos2[dim] - min_pos2[dim]) / n_divisions2[dim];
     }
 
-    max_x_offset1 = CEILING( max_distance / step1[X] );
+    max_x_offset1 = VIO_CEILING( max_distance / step1[X] );
     ALLOC( x_slabs1, 2*max_x_offset1+1 );
     for_inclusive( x, -max_x_offset1, max_x_offset1 )
     {
@@ -210,7 +210,7 @@ private  int   find_polygon_point_pairs_within_distance(
         }
     }
 
-    max_x_offset2 = CEILING( max_distance / step2[X] );
+    max_x_offset2 = VIO_CEILING( max_distance / step2[X] );
     ALLOC( x_slabs2, 2*max_x_offset2+1 );
     for_inclusive( x, -max_x_offset2, max_x_offset2 )
     {
@@ -235,12 +235,12 @@ private  int   find_polygon_point_pairs_within_distance(
 */
 }
 
-private  Real  sq_triangle_point_dist(
-    Point tri_points[],
-    Point *point )
+private  VIO_Real  sq_triangle_point_dist(
+    VIO_Point tri_points[],
+    VIO_Point *point )
 {
     float    v_dot_n, n_dot_n, v_dot_v, v_dot_e, e_dot_e, dist;
-    BOOLEAN  inside_edge0, inside_edge1, inside_edge2;
+    VIO_BOOL  inside_edge0, inside_edge1, inside_edge2;
     float    x0, y0, z0, x1, y1, z1, x2, y2, z2, px, py, pz;
     float    v01x, v01y, v01z;
     float    v12x, v12y, v12z;
@@ -283,7 +283,7 @@ private  Real  sq_triangle_point_dist(
         dx = px - x0;
         dy = py - y0;
         dz = pz - z0;
-        return( (Real) (dx * dx + dy * dy + dz * dz) );
+        return( (VIO_Real) (dx * dx + dy * dy + dz * dz) );
     }
 
     pv0x = px - x0;
@@ -365,5 +365,5 @@ private  Real  sq_triangle_point_dist(
     if( dist < 0.0f )
         dist = 0.0f;
 
-    return( (Real) dist );
+    return( (VIO_Real) dist );
 }

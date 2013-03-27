@@ -7,11 +7,11 @@
 static int count_f = 0;
 static int count_fd = 0;
 
-private  Real  function(
-    Real   parameters[],
+private  VIO_Real  function(
+    VIO_Real   parameters[],
     void   *function_data )
 {
-    Real   x1, x2;
+    VIO_Real   x1, x2;
 
     ++count_f;
 
@@ -22,11 +22,11 @@ private  Real  function(
 }
 
 private  void  function_deriv(
-    Real   parameters[],
+    VIO_Real   parameters[],
     void   *function_data,
-    Real   deriv[] )
+    VIO_Real   deriv[] )
 {
-    Real   x1, x2;
+    VIO_Real   x1, x2;
 
     ++count_fd;
 
@@ -41,9 +41,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Real            initial[N_PARAMETERS], value;
-    Real            range_tolerance, domain_tolerance;
-    Real            line_min_range_tolerance, line_min_domain_tolerance;
+    VIO_Real            initial[N_PARAMETERS], value;
+    VIO_Real            range_tolerance, domain_tolerance;
+    VIO_Real            line_min_range_tolerance, line_min_domain_tolerance;
     int             n_iterations;
 
     initialize_argument_processing( argc, argv );

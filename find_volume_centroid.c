@@ -19,8 +19,8 @@ int  main(
     VIO_STR     input_filename;
     VIO_Volume     volume;
     int        v[VIO_MAX_DIMENSIONS], n_dims, dim;
-    Real       value, weight, threshold, xw, yw, zw;
-    Real       voxel_centroid[VIO_MAX_DIMENSIONS];
+    VIO_Real       value, weight, threshold, xw, yw, zw;
+    VIO_Real       voxel_centroid[VIO_MAX_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 
@@ -34,7 +34,7 @@ int  main(
 
     if( input_volume( input_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     n_dims = get_volume_n_dimensions( volume );
@@ -51,7 +51,7 @@ int  main(
         {
             weight += value;
             for_less( dim, 0, n_dims )
-                voxel_centroid[dim] += (Real) v[dim] * value;
+                voxel_centroid[dim] += (VIO_Real) v[dim] * value;
         }
 
     END_ALL_VOXELS

@@ -35,10 +35,6 @@ static char rcsid[]="$Header: /static-cvsroot/libraries/conglomerate/match_tags.
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#ifndef 
-#  define 
-#  define static static
-#endif
 
 #define WORLD_NDIMS 3
 
@@ -110,10 +106,10 @@ int main(int argc, char *argv[])
    /* Read in first tag file */
    if ((open_file_with_default_suffix(tagfile1,
                   get_default_tag_file_suffix(),
-                  READ_FILE, ASCII_FORMAT, &fp) != OK) ||
+                  READ_FILE, ASCII_FORMAT, &fp) != VIO_OK) ||
        (input_tag_points(fp, &n_volumes1, &n_tag_points1, 
                          &tags1, NULL, 
-                         NULL, NULL, NULL, &labels1) != OK)) {
+                         NULL, NULL, NULL, &labels1) != VIO_OK)) {
       (void) fprintf(stderr, "%s: Error reading tag file %s\n", 
                      pname, tagfile1);
       exit(EXIT_FAILURE);
@@ -124,10 +120,10 @@ int main(int argc, char *argv[])
    /* Read in second tag file */
    if ((open_file_with_default_suffix(tagfile2,
                   get_default_tag_file_suffix(),
-                  READ_FILE, ASCII_FORMAT, &fp) != OK) ||
+                  READ_FILE, ASCII_FORMAT, &fp) != VIO_OK) ||
        (input_tag_points(fp, &n_volumes2, &n_tag_points2, 
                          &tags2, NULL, 
-                         NULL, NULL, NULL, &labels2) != OK)) {
+                         NULL, NULL, NULL, &labels2) != VIO_OK)) {
       (void) fprintf(stderr, "%s: Error reading tag file %s\n", 
                      pname, tagfile2);
       exit(EXIT_FAILURE);
@@ -183,7 +179,7 @@ int main(int argc, char *argv[])
 
    if (output_tag_file(outtag, history, 2, n_tag_points1, 
                        tags1, new_tags, 
-                       NULL, NULL, NULL, new_labels) != OK) {
+                       NULL, NULL, NULL, new_labels) != VIO_OK) {
       (void) fprintf(stderr, "Error writing out labels\n");
       return EXIT_FAILURE;
    }

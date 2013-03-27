@@ -1,18 +1,18 @@
 #include  <volume_io.h>
 #include  <deform.h>
 
-  BOOLEAN  is_point_inside_surface(
+  VIO_BOOL  is_point_inside_surface(
     VIO_Volume                      volume,
     VIO_Volume                      label_volume,
     int                         continuity,
-    Real                        voxel[],
+    VIO_Real                        voxel[],
     VIO_Vector                      *direction,
     boundary_definition_struct  *boundary_def )
 {
-    BOOLEAN active;
-    Real    value, mag, dx, dy, dz, dot_product;
-    Real    derivs[VIO_MAX_DIMENSIONS], *deriv_ptr[1];
-    Real    min_dot, max_dot;
+    VIO_BOOL active;
+    VIO_Real    value, mag, dx, dy, dz, dot_product;
+    VIO_Real    derivs[VIO_MAX_DIMENSIONS], *deriv_ptr[1];
+    VIO_Real    min_dot, max_dot;
 
     active = get_volume_voxel_activity( label_volume, voxel, FALSE );
 
@@ -42,9 +42,9 @@
     if( mag == 0.0 )
         mag = 1.0;
 
-    dot_product = dx * (Real) Vector_x(*direction) +
-                  dy * (Real) Vector_y(*direction) +
-                  dz * (Real) Vector_z(*direction);
+    dot_product = dx * (VIO_Real) Vector_x(*direction) +
+                  dy * (VIO_Real) Vector_y(*direction) +
+                  dz * (VIO_Real) Vector_z(*direction);
 
     min_dot = boundary_def->min_dot_product;
     max_dot = boundary_def->max_dot_product;
@@ -74,25 +74,25 @@
     {
         if( sizes[c] > 1 )
             Point_coord(*centre,c) = (VIO_Point_coord_type) (
-                 ((Real) Point_coord(cube[0],c) +
-                  (Real) Point_coord(cube[1],c)) / 2.0);
+                 ((VIO_Real) Point_coord(cube[0],c) +
+                  (VIO_Real) Point_coord(cube[1],c)) / 2.0);
         else
             Point_coord(*centre,c) = Point_coord(cube[0],c);
     }
 }
 
-  BOOLEAN  contains_value(
-    Real  values[2][2][2],
+  VIO_BOOL  contains_value(
+    VIO_Real  values[2][2][2],
     int   sizes[3] )
 {
-    BOOLEAN  under_found, over_found;
+    VIO_BOOL  under_found, over_found;
     int      x, y, z;
 
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, sizes[VIO_X] )
     {
-        for_less( y, 0, sizes[Y] )
+        for_less( y, 0, sizes[VIO_Y] )
         {
-            for_less( z, 0, sizes[Z] )
+            for_less( z, 0, sizes[VIO_Z] )
             {
                 if( values[x][y][z] == 0.0 )
                 {
@@ -122,21 +122,21 @@
     return( FALSE );
 }
 
-  BOOLEAN  cube_is_small_enough(
+  VIO_BOOL  cube_is_small_enough(
     VIO_Point     cube[2],
     int       sizes[3],
-    Real      min_cube_size )
+    VIO_Real      min_cube_size )
 {
-    BOOLEAN  small_enough;
-    Real     size_in_dimension;
+    VIO_BOOL  small_enough;
+    VIO_Real     size_in_dimension;
     int      c;
 
     small_enough = TRUE;
 
     for_less( c, 0, 3 )
     {
-        size_in_dimension = (Real) Point_coord(cube[sizes[c]-1],c ) -
-                            (Real) Point_coord(cube[0],c );
+        size_in_dimension = (VIO_Real) Point_coord(cube[sizes[c]-1],c ) -
+                            (VIO_Real) Point_coord(cube[0],c );
         if( size_in_dimension > min_cube_size )
         {
             small_enough = FALSE;
@@ -161,7 +161,7 @@
 
   void  record_error_in_deform_stats(
     deform_stats   *stats,
-    Real           error )
+    VIO_Real           error )
 {
     int  i;
 
@@ -170,7 +170,7 @@
         stats->maximum = error;
 
     i = N_DEFORM_HISTOGRAM-1;
-    while( i >= 0 && error <= (Real) (i+1) )
+    while( i >= 0 && error <= (VIO_Real) (i+1) )
     {
         ++stats->n_below[i];
         --i;
@@ -184,7 +184,7 @@
     int    i, n_above;
 
     print( "avg %5.2f  max %6.2f  hist:",
-           stats->average / (Real) n_points, stats->maximum );
+           stats->average / (VIO_Real) n_points, stats->maximum );
 
     for_less( i, 0, N_DEFORM_HISTOGRAM )
     {
@@ -201,19 +201,19 @@
         else if( n_above < 100 )
             print( " %4d", n_above );
         else
-            print( " %3.0f%%", 100.0 * (Real) n_above / (Real) n_points );
+            print( " %3.0f%%", 100.0 * (VIO_Real) n_above / (VIO_Real) n_points );
     }
     print( "\n" );
 }
 
-  BOOLEAN   get_max_point_cube_distance(
+  VIO_BOOL   get_max_point_cube_distance(
     VIO_Point   cube[2],
     int     sizes[3],
     VIO_Point   *point,
-    Real    *distance )
+    VIO_Real    *distance )
 {
     int      c;
-    Real     dist_to_low, dist_to_high, dist, max_dist;
+    VIO_Real     dist_to_low, dist_to_high, dist, max_dist;
 
     max_dist = 0.0;
 
@@ -221,10 +221,10 @@
     {
         if( sizes[c] > 1 )
         {
-            dist_to_low = (Real) Point_coord(*point,c) -
-                          (Real) Point_coord(cube[0],c);
-            dist_to_high = (Real) Point_coord(cube[1],c) -
-                           (Real) Point_coord(*point,c);
+            dist_to_low = (VIO_Real) Point_coord(*point,c) -
+                          (VIO_Real) Point_coord(cube[0],c);
+            dist_to_high = (VIO_Real) Point_coord(cube[1],c) -
+                           (VIO_Real) Point_coord(*point,c);
 
             dist = MAX( dist_to_low, dist_to_high );
             max_dist += dist * dist;
@@ -277,14 +277,14 @@
 
   void  set_boundary_definition(
     boundary_definition_struct  *boundary_def,
-    Real                        min_value,
-    Real                        max_value,
-    Real                        grad_threshold,
-    Real                        angle,
+    VIO_Real                        min_value,
+    VIO_Real                        max_value,
+    VIO_Real                        grad_threshold,
+    VIO_Real                        angle,
     char                        direction,
-    Real                        tolerance )
+    VIO_Real                        tolerance )
 {
-    Real   cosine;
+    VIO_Real   cosine;
 
     boundary_def->min_isovalue = MIN( min_value, max_value );
     boundary_def->max_isovalue = MAX( min_value, max_value );
@@ -294,7 +294,7 @@
     if( angle == 90.0 )
         cosine = 0.0;
     else
-        cosine = cos( angle * DEG_TO_RAD );
+        cosine = cos( angle * VIO_DEG_TO_RAD );
 
     if( direction == '-' )
     {
@@ -329,7 +329,7 @@
     int                x,
     int                y,
     int                z,
-    Real               c[] )
+    VIO_Real               c[] )
 {
     int                    key, i, offset, n, sizes[VIO_N_DIMENSIONS];
     voxel_lin_coef_struct  *data;
@@ -338,9 +338,9 @@
     n = degrees_continuity + 2;
     get_volume_sizes( volume, sizes );
 
-    if( x + offset < 0 || x + offset + n >= sizes[X] ||
-        y + offset < 0 || y + offset + n >= sizes[Y] ||
-        z + offset < 0 || z + offset + n >= sizes[Z] )
+    if( x + offset < 0 || x + offset + n >= sizes[VIO_X] ||
+        y + offset < 0 || y + offset + n >= sizes[VIO_Y] ||
+        z + offset < 0 || z + offset + n >= sizes[VIO_Z] )
     {
         for_less( i, 0, n * n * n )
             c[i] = 0.0;
@@ -363,7 +363,7 @@
         lookup->tail = NULL;
     }
 
-    key = IJK( x, y, z, sizes[Y], sizes[Z] );
+    key = VIO_IJK( x, y, z, sizes[VIO_Y], sizes[VIO_Z] );
 
     data = NULL;
 

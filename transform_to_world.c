@@ -1,7 +1,7 @@
 #include  <def_mni.h>
 #include  <def_module.h>
 
-public  Status  process_object(
+public  VIO_Status  process_object(
     object_struct  *object );
 
 private  void  transform_object(
@@ -9,7 +9,7 @@ private  void  transform_object(
     object_struct  *object )
 {
     int    i, n_points;
-    Point  *points;
+    VIO_Point  *points;
 
     n_points = get_object_points( object, &points );
 
@@ -21,8 +21,8 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status               status;
-    Volume               volume;
+    VIO_Status               status;
+    VIO_Volume               volume;
     char                 *input_filename, *output_filename;
     char                 *volume_filename;
     int                  i, n_objects;
@@ -31,7 +31,7 @@ int  main(
     object_struct        **object_list;
     volume_input_struct  volume_input;
 
-    status = OK;
+    status = VIO_OK;
 
     initialize_argument_processing( argc, argv );
 
@@ -59,30 +59,30 @@ int  main(
     status = input_graphics_file( input_filename, &format, &n_objects,
                                   &object_list );
 
-    if( status == OK )
+    if( status == VIO_OK )
         print( "Objects input.\n" );
 
-    if( status == OK )
+    if( status == VIO_OK )
     {
         for_less( i, 0, n_objects )
         {
-            if( status == OK )
+            if( status == VIO_OK )
                 transform_object( &transform, object_list[i] );
         }
 
-        if( status == OK )
+        if( status == VIO_OK )
             print( "Objects processed.\n" );
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = output_graphics_file( output_filename, format,
                                        n_objects, object_list );
 
-    if( status == OK )
+    if( status == VIO_OK )
         delete_object_list( n_objects, object_list );
 
-    if( status == OK )
+    if( status == VIO_OK )
         print( "Objects output.\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

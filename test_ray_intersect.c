@@ -8,12 +8,12 @@ int  main(
     int              i, n_objects;
     File_formats     format;
     object_struct    **object_list;
-    Vector           dir;
-    Point            eye;
-    Real             eye_x, eye_y, eye_z, dir_x, dir_y, dir_z;
-    Real             distance;
+    VIO_Vector           dir;
+    VIO_Point            eye;
+    VIO_Real             eye_x, eye_y, eye_z, dir_x, dir_y, dir_z;
+    VIO_Real             distance;
     int              obj_index;
-    BOOLEAN          intersects;
+    VIO_BOOL          intersects;
 
     initialize_argument_processing( argc, argv );
 
@@ -34,7 +34,7 @@ int  main(
     NORMALIZE_VECTOR( dir, dir );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     intersects = intersect_ray_with_object( &eye, &dir, object_list[0],

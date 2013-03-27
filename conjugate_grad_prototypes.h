@@ -10,8 +10,8 @@ public  conjugate_grad   initialize_conjugate_gradient(
 public  void   delete_conjugate_gradient(
     conjugate_grad   con );
 
-public  BOOLEAN  get_conjugate_unit_direction(
+public  VIO_BOOL  get_conjugate_unit_direction(
     conjugate_grad   con,
-    Real        derivative[],
-    Real        unit_dir[] );
+    VIO_Real        derivative[],
+    VIO_Real        unit_dir[] );
 #endif

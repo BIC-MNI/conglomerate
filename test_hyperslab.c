@@ -12,9 +12,9 @@ static  int  get_random_int(
 }
 
 static  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.mnc [n_iterations_to_test [block_size]]\n\
 \n\
 \n\
@@ -27,14 +27,14 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               volume_filename;
+    VIO_STR               volume_filename;
     int                  n_dims, sizes[MAX_DIMENSIONS], origin[MAX_DIMENSIONS];
     int                  block_size, block_sizes[MAX_DIMENSIONS];
     int                  to_array[MAX_DIMENSIONS];
     int                  iter, n_iterations, array_size, dim, i;
     float                avg;
     float                *data;
-    Volume               volume;
+    VIO_Volume               volume;
     volume_input_struct  input_info;
 
 
@@ -55,7 +55,7 @@ int  main(
     if( start_volume_input( volume_filename, -1, File_order_dimension_names,
                             NC_FLOAT, FALSE,
                             0.0, 0.0,
-                            TRUE, &volume, NULL, &input_info ) != OK )
+                            TRUE, &volume, NULL, &input_info ) != VIO_OK )
         return( 1 );
 
     n_dims = get_volume_n_dimensions( volume );
@@ -88,7 +88,7 @@ int  main(
         if( input_minc_hyperslab( get_volume_input_minc_file(&input_info),
                                   FLOAT, n_dims, block_sizes,
                                   (void *) data, to_array,
-                                  origin, block_sizes ) != OK )
+                                  origin, block_sizes ) != VIO_OK )
         {
             print_error( "Error reading block[%d]:%d %d %d %d %d\n",
                          iter+1,

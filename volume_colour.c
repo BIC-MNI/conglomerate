@@ -10,10 +10,10 @@ int  main(
 {
     char                 *input_volume_filename, *object_filename;
     char                 *coding_type_string;
-    Real                 low, high;
-    BOOLEAN              low_present, high_present;
+    VIO_Real                 low, high;
+    VIO_BOOL              low_present, high_present;
     File_formats         format;
-    Volume               volume;
+    VIO_Volume               volume;
     int                  i, n_objects;
     object_struct        **objects;
     Colour_coding_types  coding_type;
@@ -48,11 +48,11 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( object_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( !low_present )
@@ -68,7 +68,7 @@ int  main(
         colour_code_object( volume, 0, &colour_coding, objects[i] );
 
     if( output_graphics_file( object_filename, format, n_objects, objects )
-                                != OK )
+                                != VIO_OK )
         return( 1 );
 
     delete_object_list( n_objects, objects );

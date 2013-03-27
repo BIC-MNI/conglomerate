@@ -8,19 +8,19 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status               status;
-    Real                 low_threshold, smoothing_distance;
-    Real                 *curvatures;
-    STRING               src_filename, dest_filename;
+    VIO_Status               status;
+    VIO_Real                 low_threshold, smoothing_distance;
+    VIO_Real                 *curvatures;
+    VIO_STR               src_filename, dest_filename;
     int                  i, p, n_src_objects, n_dest_objects;
     File_formats         format;
     object_struct        **src_object_list, **dest_object_list;
     polygons_struct      *polygons1, *polygons2;
     Colour_coding_types  coding_type;
     colour_coding_struct colour_coding;
-    STRING               coding_type_string;
-    Real                 low, high, min_curvature, max_curvature;
-    BOOLEAN              low_present, high_present;
+    VIO_STR               coding_type_string;
+    VIO_Real                 low, high, min_curvature, max_curvature;
+    VIO_BOOL              low_present, high_present;
 
     initialize_argument_processing( argc, argv );
 
@@ -54,11 +54,11 @@ int  main(
     (void) get_real_argument( 0.0, &low_threshold );
 
     if( input_graphics_file( src_filename, &format, &n_src_objects,
-                                  &src_object_list ) != OK )
+                                  &src_object_list ) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( dest_filename, &format, &n_dest_objects,
-                                      &dest_object_list ) != OK )
+                                      &dest_object_list ) != VIO_OK )
         return( 1 );
 
     print( "%d Objects input.\n", n_src_objects );
@@ -135,8 +135,8 @@ int  main(
 
     delete_object_list( n_dest_objects, dest_object_list );
 
-    if( status == OK )
+    if( status == VIO_OK )
         print( "Objects output.\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

@@ -6,24 +6,24 @@
 #define  Z_SIZE   50
 
 private  void  scan_segment_to_volume(
-    Volume   volume,
-    Real     x1,
-    Real     y1,
-    Real     x2,
-    Real     y2 );
+    VIO_Volume   volume,
+    VIO_Real     x1,
+    VIO_Real     y1,
+    VIO_Real     x2,
+    VIO_Real     y2 );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
-    STRING               output_filename;
+    VIO_Status               status;
+    VIO_STR               output_filename;
     int                  i;
     int                  x, y, z, x_size, y_size, z_size, sizes[N_DIMENSIONS];
-    Real                 voxel[N_DIMENSIONS], world[N_DIMENSIONS];
-    Real                 xw, yw, zw, dx, dy, dz, max_dist;
+    VIO_Real                 voxel[N_DIMENSIONS], world[N_DIMENSIONS];
+    VIO_Real                 xw, yw, zw, dx, dy, dz, max_dist;
     char                 history[10000];
-    Volume               volume;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -45,18 +45,18 @@ int  main(
     sizes[Z] = z_size;
     set_volume_sizes( volume, sizes );
 
-    dx = (Real) x_size / 2.0;
-    dy = (Real) y_size / 2.0;
-    dz = (Real) z_size / 2.0;
+    dx = (VIO_Real) x_size / 2.0;
+    dy = (VIO_Real) y_size / 2.0;
+    dz = (VIO_Real) z_size / 2.0;
 
     max_dist = dx * dx + dy * dy + dz * dz;
 
     set_volume_voxel_range( volume, 0.0, 255.0 );
     set_volume_real_range( volume, 0.0, max_dist );
 
-    voxel[X] = ((Real) sizes[X] - 1.0) / 2.0;
-    voxel[Y] = ((Real) sizes[Y] - 1.0) / 2.0;
-    voxel[Z] = ((Real) sizes[Z] - 1.0) / 2.0;
+    voxel[X] = ((VIO_Real) sizes[X] - 1.0) / 2.0;
+    voxel[Y] = ((VIO_Real) sizes[Y] - 1.0) / 2.0;
+    voxel[Z] = ((VIO_Real) sizes[Z] - 1.0) / 2.0;
 
     world[X] = 0.0;
     world[Y] = 0.0;
@@ -68,7 +68,7 @@ int  main(
 
     for_less( x, 0, sizes[X] )
     {
-        voxel[X] = (Real) x;
+        voxel[X] = (VIO_Real) x;
         voxel[Y] = 0.0;
         voxel[Z] = 0.0;
         convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
@@ -77,7 +77,7 @@ int  main(
         for_less( y, 0, sizes[Y] )
         {
             voxel[X] = 0.0;
-            voxel[Y] = (Real) y;
+            voxel[Y] = (VIO_Real) y;
             voxel[Z] = 0.0;
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
             dy = yw;
@@ -85,7 +85,7 @@ int  main(
             {
                 voxel[X] = 0.0;
                 voxel[Y] = 0.0;
-                voxel[Z] = (Real) z;
+                voxel[Z] = (VIO_Real) z;
                 convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
                 dz = zw;
                 set_volume_real_value( volume, x, y, z, 0, 0,
@@ -107,5 +107,5 @@ int  main(
     status = output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             volume, history, NULL );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

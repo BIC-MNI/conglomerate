@@ -21,8 +21,8 @@ int  main(
     VIO_STR               volume_filename;
     int                  i, n_objects, p, n_points, degree, n_values;
     int                  dim, sizes[VIO_MAX_DIMENSIONS];
-    Real                 *values, *evaluate_values;
-    Real                 xyz_voxel[VIO_N_DIMENSIONS], voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 *values, *evaluate_values;
+    VIO_Real                 xyz_voxel[VIO_N_DIMENSIONS], voxel[VIO_MAX_DIMENSIONS];
     VIO_Point                *points;
     VIO_File_formats         format, output_format;
     object_struct        **object_list;
@@ -41,12 +41,12 @@ int  main(
 
     if( input_volume( volume_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
-    xyz_voxel[X] = 1.0;
-    xyz_voxel[Y] = 2.0;
-    xyz_voxel[Z] = 3.0;
+    xyz_voxel[VIO_X] = 1.0;
+    xyz_voxel[VIO_Y] = 2.0;
+    xyz_voxel[VIO_Z] = 3.0;
 
     reorder_xyz_to_voxel( volume, xyz_voxel, voxel );
 
@@ -61,7 +61,7 @@ int  main(
     ALLOC( evaluate_values, n_values );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     if( filename_extension_matches( output_filename, MNC_ENDING ) )
@@ -79,9 +79,9 @@ int  main(
         for_less( p, 0, n_points )
         {
             evaluate_volume_in_world( volume,
-                                      (Real) Point_x(points[p]),
-                                      (Real) Point_y(points[p]),
-                                      (Real) Point_z(points[p]),
+                                      (VIO_Real) Point_x(points[p]),
+                                      (VIO_Real) Point_y(points[p]),
+                                      (VIO_Real) Point_z(points[p]),
                                       degree, FALSE, 0.0, evaluate_values,
                                       NULL, NULL, NULL,
                                       NULL, NULL, NULL, NULL, NULL, NULL );

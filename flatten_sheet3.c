@@ -26,7 +26,7 @@ typedef  VIO_Real   ftype;
 #endif
 
 static  void  flatten_polygons(
-    BOOLEAN          use_prediction_method,
+    VIO_BOOL          use_prediction_method,
     int              n_points,
     VIO_Point            points[],
     int              n_neighbours[],
@@ -52,7 +52,7 @@ int  main(
     int                  *n_neighbours, **neighbours;
     VIO_SCHAR         *interior_flags;
     FILE                 *file;
-    BOOLEAN              use_prediction_method;
+    VIO_BOOL              use_prediction_method;
 
     initialize_argument_processing( argc, argv );
 
@@ -81,7 +81,7 @@ int  main(
     if( get_string_argument( NULL, &initial_filename ) )
     {
         if( input_graphics_file( initial_filename, &format, &n_i_objects,
-                                 &i_object_list ) != OK || n_i_objects != 1 ||
+                                 &i_object_list ) != VIO_OK || n_i_objects != 1 ||
             get_object_type(i_object_list[0]) != POLYGONS )
             return( 1 );
 
@@ -99,10 +99,10 @@ int  main(
     fixed_indices = NULL;
     if( get_string_argument( NULL, &fixed_filename ) )
     {
-        if( open_file( fixed_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( fixed_filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
-        while( input_int( file, &ind ) == OK )
+        while( input_int( file, &ind ) == VIO_OK )
         {
             ADD_ELEMENT_TO_ARRAY( fixed_indices, n_fixed, ind,
                                   DEFAULT_CHUNK_SIZE );
@@ -112,7 +112,7 @@ int  main(
     }
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -142,7 +142,7 @@ int  main(
                       init_points, n_fixed, fixed_indices, n_iters );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -174,7 +174,7 @@ static  void  flatten_around_point(
 
     flatten_around_vertex( &points[point],
                            n_neighbours[point], flat,
-                           (BOOLEAN) interior_flags[point],
+                           (VIO_BOOL) interior_flags[point],
                            x_flat, y_flat );
 
     for_less( n, 0, n_neighbours[point] )
@@ -208,7 +208,7 @@ static  void  create_coefficients_prediction_method(
     VIO_Real             flat[2][MAX_POINTS_PER_POLYGON];
     VIO_Real             *weights[2][2], cons[2], con;
     VIO_Real             *node_weights;
-    BOOLEAN          found, ignoring;
+    VIO_BOOL          found, ignoring;
     VIO_progress_struct  progress;
 
     n_parameters = 2 * (n_points - n_fixed);
@@ -249,7 +249,7 @@ static  void  create_coefficients_prediction_method(
 
         flatten_around_vertex( &points[node],
                                n_neighbours[node], neigh_points,
-                               (BOOLEAN) interior_flags[node],
+                               (VIO_BOOL) interior_flags[node],
                                flat[0], flat[1] );
 
         ignoring = FALSE;
@@ -271,7 +271,7 @@ static  void  create_coefficients_prediction_method(
             n_nodes_in = 0;
             if( to_parameters[node] >= 0 )
             {
-                indices[n_nodes_in] = IJ(to_parameters[node],dim,2);
+                indices[n_nodes_in] = VIO_IJ(to_parameters[node],dim,2);
                 node_weights[n_nodes_in] = 1.0;
                 ++n_nodes_in;
             }
@@ -283,11 +283,11 @@ static  void  create_coefficients_prediction_method(
                 neigh = neighbours[node][p];
                 if( to_parameters[neigh] >= 0 )
                 {
-                    indices[n_nodes_in] = IJ(to_parameters[neigh],0,2);
+                    indices[n_nodes_in] = VIO_IJ(to_parameters[neigh],0,2);
                     node_weights[n_nodes_in] = -weights[dim][0][p];
                     ++n_nodes_in;
 
-                    indices[n_nodes_in] = IJ(to_parameters[neigh],1,2);
+                    indices[n_nodes_in] = VIO_IJ(to_parameters[neigh],1,2);
                     node_weights[n_nodes_in] = -weights[dim][1][p];
                     ++n_nodes_in;
                 }
@@ -346,7 +346,7 @@ static  void  create_coefficients(
     VIO_Real             weights[2][3][2], len;
     VIO_Point            *flat, flat_point[3], tmp_point;
     VIO_Vector           v12, v13, v12_rotated;
-    BOOLEAN          found;
+    VIO_BOOL          found;
     VIO_progress_struct  progress;
 
     n_parameters = 2 * (n_points - n_fixed);
@@ -475,7 +475,7 @@ static  void  create_coefficients(
                             if( to_parameters[nodes[n]] >= 0 )
                             {
                                 indices[n_nodes_in] =
-                                           IJ(to_parameters[nodes[n]],dim2,2);
+                                           VIO_IJ(to_parameters[nodes[n]],dim2,2);
                                 node_weights[n_nodes_in] = weights[dim][n][dim2];
                                 ++n_nodes_in;
                             }
@@ -567,7 +567,7 @@ static  int  choose_static_polygon(
 }
 
 static  void  flatten_polygons(
-    BOOLEAN          use_prediction_method,
+    VIO_BOOL          use_prediction_method,
     int              n_points,
     VIO_Point            points[],
     int              n_neighbours[],
@@ -588,7 +588,7 @@ static  void  flatten_polygons(
     VIO_Vector           x_dir, y_dir, offset;
     VIO_Point            *flat;
     polygons_struct  tmp_polygons;
-    BOOLEAN          alloced_fixed;
+    VIO_BOOL          alloced_fixed;
 
     if( n_fixed <= 0 || init_points == NULL )
     {

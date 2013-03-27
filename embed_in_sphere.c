@@ -4,27 +4,27 @@
 
 private  void  convert_to_lines(
     polygons_struct  *polygons,
-    Point            sphere_points[],
-    BOOLEAN          on_sphere_flag,
+    VIO_Point            sphere_points[],
+    VIO_BOOL          on_sphere_flag,
     lines_struct     *lines );
 
 private  void  embed_in_sphere(
     polygons_struct  *polygons,
-    Real             radius,
+    VIO_Real             radius,
     int              north_pole,
-    Point            sphere_points[] );
+    VIO_Point            sphere_points[] );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename;
+    VIO_STR               src_filename, dest_filename;
     int                  n_objects, p, p1, north_pole;
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
-    Point                *sphere_points;
-    Real                 radius;
+    VIO_Point                *sphere_points;
+    VIO_Real                 radius;
 
     initialize_argument_processing( argc, argv );
 
@@ -41,7 +41,7 @@ int  main(
     set_random_seed( 933482171 );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -103,12 +103,12 @@ int  main(
 
 private  void  convert_to_lines(
     polygons_struct  *polygons,
-    Point            sphere_points[],
-    BOOLEAN          on_sphere_flag,
+    VIO_Point            sphere_points[],
+    VIO_BOOL          on_sphere_flag,
     lines_struct     *lines )
 {
     int    poly, size, edge, p1, p2;
-    Point  *used_points;
+    VIO_Point  *used_points;
 
     if( on_sphere_flag )
         used_points = sphere_points;
@@ -165,7 +165,7 @@ typedef struct
 
 public  void  calc_distances_from_point(
     int               n_points,
-    Point             points[],
+    VIO_Point             points[],
     int               n_neighbours[],
     int               *neighbours[],
     Smallest_int      used_flags[],
@@ -177,7 +177,7 @@ public  void  calc_distances_from_point(
     int                                     p, n, point_index;
     int                                     neigh, neigh_index, n_index;
     int                                     n_index1, n_index2, n_to_do, offset;
-    Real                                    dist;
+    VIO_Real                                    dist;
     float                                   new_dist, neigh_dist, current_dist;
     entry_struct                            entry;
     PRIORITY_QUEUE_STRUCT( entry_struct )   queue;
@@ -277,7 +277,7 @@ public  void  calc_distances_from_point(
                         entry.point_index = neigh;
                         entry.n_index = (Smallest_int) neigh_index;
                         INSERT_IN_PRIORITY_QUEUE( queue, entry,
-                                                  (Real) -new_dist );
+                                                  (VIO_Real) -new_dist );
                     }
                 }
             }
@@ -289,7 +289,7 @@ public  void  calc_distances_from_point(
 
 private  int  create_path_between_points(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
     int              from_point,
@@ -413,12 +413,12 @@ private  int  get_farthest_point_from(
 private  int  get_vertex_on_path(
     int     path_size,
     int     path[],
-    Point   points[],
-    Real    fractional_distance,
+    VIO_Point   points[],
+    VIO_Real    fractional_distance,
     int     *vertex_index )
 {
     int   p;
-    Real  total_dist, desired_dist;
+    VIO_Real  total_dist, desired_dist;
 
     total_dist = 0.0;
     for_less( p, 0, path_size-1 )
@@ -453,14 +453,14 @@ private  void  assign_used_flags(
     int              path_size,
     int              path[],
     Smallest_int     used_flags[],
-    Vector           *normal,
-    Point            points[],
-    Point            sphere_points[],
+    VIO_Vector           *normal,
+    VIO_Point            points[],
+    VIO_Point            sphere_points[],
     int              *n_done,
     progress_struct  *progress )
 {
-    Real       total_length, current_length, angle, x, y, z, alpha;
-    Vector     v1, v2, perp, vert;
+    VIO_Real       total_length, current_length, angle, x, y, z, alpha;
+    VIO_Vector     v1, v2, perp, vert;
     Transform  transform;
     int        p;
 
@@ -534,7 +534,7 @@ private  void  assign_used_flags(
     current_length = 0.0;
     for_less( p, 1, path_size-1 )
     {
-        Real len;
+        VIO_Real len;
 
         current_length += distance_between_points( &points[path[p-1]],
                                                    &points[path[p]] );
@@ -568,8 +568,8 @@ private  void  add_to_loop(
     int      *loop[],
     int      path_size,
     int      path[],
-    BOOLEAN  reverse_flag,
-    BOOLEAN  closing )
+    VIO_BOOL  reverse_flag,
+    VIO_BOOL  closing )
 {
     int    start, end, step, p;
 
@@ -616,7 +616,7 @@ private  int  cut_off_corners_if_needed(
 {
     int      p, loop_length, prev_index, next_index, n1, n2, prev, next;
     int      n_iters;
-    BOOLEAN  changed;
+    VIO_BOOL  changed;
 
     loop_length = input_loop_length;
     n_iters = 0;
@@ -685,8 +685,8 @@ private  void  position_patch(
     int               *neighbours[],
     Smallest_int      used_flags[],
     float             **distances,
-    Point             points[],
-    Point             sphere_points[],
+    VIO_Point             points[],
+    VIO_Point             sphere_points[],
     int               *n_done,
     progress_struct   *progress )
 {
@@ -900,9 +900,9 @@ private  void  position_patch(
 
 private  void  embed_in_sphere(
     polygons_struct  *polygons,
-    Real             radius,
+    VIO_Real             radius,
     int              north_pole,
-    Point            sphere_points[] )
+    VIO_Point            sphere_points[] )
 {
     int               point, *n_neighbours, **neighbours, south_pole;
     int               p, n_points, loop_size, *loop, poly, n_done, n;
@@ -919,9 +919,9 @@ private  void  embed_in_sphere(
     int               right_north_size, right_south_size;
     int               *left_north_path, *left_south_path;
     int               *right_north_path, *right_south_path;
-    Real              d;
-    Point             *points, centroid, triangle_points[3];
-    Vector            normal, pos;
+    VIO_Real              d;
+    VIO_Point             *points, centroid, triangle_points[3];
+    VIO_Vector            normal, pos;
     Smallest_int      *used_flags, *corner_flags;
     progress_struct   progress;
 

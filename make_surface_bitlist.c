@@ -10,7 +10,7 @@ static  void  label_surface_voxels(
     VIO_Real                 threshold,
     VIO_Real                 tolerance );
 
-static  BOOLEAN  volume_range_contains_threshold(
+static  VIO_BOOL  volume_range_contains_threshold(
     VIO_Volume   volume,
     VIO_Real     min_voxel[],
     VIO_Real     max_voxel[],
@@ -54,14 +54,14 @@ int  main(
         return( 1 );
     }
 
-    (void) get_int_argument( -1, &bitlist_sizes[X] );
-    (void) get_int_argument( -1, &bitlist_sizes[Y] );
-    (void) get_int_argument( -1, &bitlist_sizes[Z] );
+    (void) get_int_argument( -1, &bitlist_sizes[VIO_X] );
+    (void) get_int_argument( -1, &bitlist_sizes[VIO_Y] );
+    (void) get_int_argument( -1, &bitlist_sizes[VIO_Z] );
     (void) get_real_argument( 0.0, &tolerance );
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -100,12 +100,12 @@ int  main(
 
     (void) output_transform_file( transform_filename, NULL, &new_transform );
 
-    if( open_file( bitlist_filename, WRITE_FILE, BINARY_FORMAT, &file ) != OK )
+    if( open_file( bitlist_filename, WRITE_FILE, BINARY_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
-    (void) io_int( file, WRITE_FILE, BINARY_FORMAT, &bitlist_sizes[X] );
-    (void) io_int( file, WRITE_FILE, BINARY_FORMAT, &bitlist_sizes[Y] );
-    (void) io_int( file, WRITE_FILE, BINARY_FORMAT, &bitlist_sizes[Z] );
+    (void) io_int( file, WRITE_FILE, BINARY_FORMAT, &bitlist_sizes[VIO_X] );
+    (void) io_int( file, WRITE_FILE, BINARY_FORMAT, &bitlist_sizes[VIO_Y] );
+    (void) io_int( file, WRITE_FILE, BINARY_FORMAT, &bitlist_sizes[VIO_Z] );
 
     (void) io_bitlist_3d( file, WRITE_FILE, &bitlist );
 
@@ -137,24 +137,24 @@ static  void  label_surface_voxels(
     get_volume_sizes( volume, sizes );
 
     initialize_progress_report( &progress, FALSE,
-               bitlist_sizes[X] * bitlist_sizes[Y], "Finding surface voxels" );
+               bitlist_sizes[VIO_X] * bitlist_sizes[VIO_Y], "Finding surface voxels" );
 
-    for_less( x, 0, bitlist_sizes[X] )
-    for_less( y, 0, bitlist_sizes[Y] )
+    for_less( x, 0, bitlist_sizes[VIO_X] )
+    for_less( y, 0, bitlist_sizes[VIO_Y] )
     {
-        for_less( z, 0, bitlist_sizes[Z] )
+        for_less( z, 0, bitlist_sizes[VIO_Z] )
         {
             for_less( dx, 0, 2 )
             for_less( dy, 0, 2 )
             for_less( dz, 0, 2 )
             {
-                voxel[X] = (VIO_Real) x - 0.5 + (VIO_Real) dx;
-                voxel[Y] = (VIO_Real) y - 0.5 + (VIO_Real) dy;
-                voxel[Z] = (VIO_Real) z - 0.5 + (VIO_Real) dz;
+                voxel[VIO_X] = (VIO_Real) x - 0.5 + (VIO_Real) dx;
+                voxel[VIO_Y] = (VIO_Real) y - 0.5 + (VIO_Real) dy;
+                voxel[VIO_Z] = (VIO_Real) z - 0.5 + (VIO_Real) dz;
 
                 general_transform_point( &v_to_v,
-                                         voxel[X], voxel[Y], voxel[Z],
-                                         &voxel[X], &voxel[Y], &voxel[Z] );
+                                         voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z],
+                                         &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z] );
 
                 for_less( dim, 0, VIO_N_DIMENSIONS )
                 {
@@ -184,13 +184,13 @@ static  void  label_surface_voxels(
             }
         }
 
-        update_progress_report( &progress, y + 1 + x * bitlist_sizes[Y] );
+        update_progress_report( &progress, y + 1 + x * bitlist_sizes[VIO_Y] );
     }
 
     terminate_progress_report( &progress );
 }
 
-static  BOOLEAN  volume_range_contains_threshold(
+static  VIO_BOOL  volume_range_contains_threshold(
     VIO_Volume   volume,
     VIO_Real     min_voxel[],
     VIO_Real     max_voxel[],
@@ -198,7 +198,7 @@ static  BOOLEAN  volume_range_contains_threshold(
 {
     int      dim, sizes[VIO_N_DIMENSIONS];
     VIO_Real     value, x, y, z, voxel[VIO_N_DIMENSIONS];
-    BOOLEAN  x_is_int, y_is_int, z_is_int, above, below;
+    VIO_BOOL  x_is_int, y_is_int, z_is_int, above, below;
 
     get_volume_sizes( volume, sizes );
 
@@ -213,16 +213,16 @@ static  BOOLEAN  volume_range_contains_threshold(
     above = FALSE;
     below = FALSE;
 
-    x = min_voxel[X];
-    x_is_int = IS_INT(x) && x >= 0.0 && (int) x < sizes[0];
+    x = min_voxel[VIO_X];
+    x_is_int = VIO_IS_INT(x) && x >= 0.0 && (int) x < sizes[0];
     while( TRUE )
     {
-        y = min_voxel[Y];
-        y_is_int = IS_INT(y) && y >= 0.0 && (int) y < sizes[1];
+        y = min_voxel[VIO_Y];
+        y_is_int = VIO_IS_INT(y) && y >= 0.0 && (int) y < sizes[1];
         while( TRUE )
         {
-            z = min_voxel[Z];
-            z_is_int = IS_INT(z) && z >= 0.0 && (int) z < sizes[2];
+            z = min_voxel[VIO_Z];
+            z_is_int = VIO_IS_INT(z) && z >= 0.0 && (int) z < sizes[2];
             while( TRUE )
             {
                 if( x_is_int && y_is_int && z_is_int )
@@ -233,9 +233,9 @@ static  BOOLEAN  volume_range_contains_threshold(
                 }
                 else
                 {
-                    voxel[X] = x;
-                    voxel[Y] = y;
-                    voxel[Z] = z;
+                    voxel[VIO_X] = x;
+                    voxel[VIO_Y] = y;
+                    voxel[VIO_Z] = z;
                     (void) evaluate_volume( volume, voxel, NULL, 0, FALSE,
                                             0.0, &value, NULL, NULL );
                 }
@@ -255,47 +255,47 @@ static  BOOLEAN  volume_range_contains_threshold(
                     above = TRUE;
                 }
 
-                if( z >= max_voxel[Z] )
+                if( z >= max_voxel[VIO_Z] )
                     break;
 
                 z += 1.0;
-                if( !IS_INT(z) )
+                if( !VIO_IS_INT(z) )
                     z = (VIO_Real) (int) z;
-                if( z > max_voxel[Z] )
+                if( z > max_voxel[VIO_Z] )
                 {
-                    z = max_voxel[Z];
-                    z_is_int = IS_INT(z) && z >= 0.0 && (int) z < sizes[2];
+                    z = max_voxel[VIO_Z];
+                    z_is_int = VIO_IS_INT(z) && z >= 0.0 && (int) z < sizes[2];
                 }
                 else
                     z_is_int = FALSE;
             }
 
-            if( y >= max_voxel[Y] )
+            if( y >= max_voxel[VIO_Y] )
                 break;
 
             y += 1.0;
-            if( !IS_INT(y) )
+            if( !VIO_IS_INT(y) )
                 y = (VIO_Real) (int) y;
-            if( y > max_voxel[Y] )
+            if( y > max_voxel[VIO_Y] )
             {
-                y = max_voxel[Y];
-                y_is_int = IS_INT(y);
-                y_is_int = IS_INT(y) && y >= 0.0 && (int) y < sizes[1];
+                y = max_voxel[VIO_Y];
+                y_is_int = VIO_IS_INT(y);
+                y_is_int = VIO_IS_INT(y) && y >= 0.0 && (int) y < sizes[1];
             }
             else
                 y_is_int = FALSE;
         }
 
-        if( x >= max_voxel[X] )
+        if( x >= max_voxel[VIO_X] )
             break;
 
         x += 1.0;
-        if( !IS_INT(x) )
+        if( !VIO_IS_INT(x) )
             x = (VIO_Real) (int) x;
-        if( x > max_voxel[X] )
+        if( x > max_voxel[VIO_X] )
         {
-            x = max_voxel[X];
-            x_is_int = IS_INT(x) && x >= 0.0 && (int) x < sizes[0];
+            x = max_voxel[VIO_X];
+            x_is_int = VIO_IS_INT(x) && x >= 0.0 && (int) x < sizes[0];
         }
         else
             x_is_int = FALSE;

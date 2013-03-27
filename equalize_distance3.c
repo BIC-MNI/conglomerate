@@ -7,23 +7,23 @@ private  void  reparameterize(
     polygons_struct   *original,
     object_struct     *initial,
     polygons_struct   *model,
-    Real              scale,
-    Real              ratio,
-    Real              delta_ratio,
-    Real              tolerance,
+    VIO_Real              scale,
+    VIO_Real              ratio,
+    VIO_Real              delta_ratio,
+    VIO_Real              tolerance,
     int               n_iters );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename;
-    STRING               model_filename, initial_filename;
+    VIO_STR               input_filename, output_filename;
+    VIO_STR               model_filename, initial_filename;
     File_formats         init_format, src_format, model_format;
     int                  n_init_objects, n_src_objects, n_model_objects;
     object_struct        **src_objects, **model_objects, **init_objects;
     polygons_struct      *original, *model, *initial;
-    Real                 tolerance, ratio, delta_ratio, scale;
+    VIO_Real                 tolerance, ratio, delta_ratio, scale;
     int                  n_iters, method, grid_size;
 
     initialize_argument_processing( argc, argv );
@@ -44,7 +44,7 @@ int  main(
     (void) get_real_argument( 0.01, &delta_ratio );
 
     if( input_graphics_file( input_filename, &src_format,
-                             &n_src_objects, &src_objects ) != OK ||
+                             &n_src_objects, &src_objects ) != VIO_OK ||
         n_src_objects != 1 || get_object_type(src_objects[0]) != POLYGONS )
     {
         print_error( "Error in %s\n", input_filename );
@@ -52,7 +52,7 @@ int  main(
     }
 
     if( input_graphics_file( initial_filename, &init_format,
-                             &n_init_objects, &init_objects ) != OK ||
+                             &n_init_objects, &init_objects ) != VIO_OK ||
         n_init_objects != 1 || get_object_type(init_objects[0]) != POLYGONS )
     {
         print_error( "Error in %s\n", initial_filename );
@@ -60,7 +60,7 @@ int  main(
     }
 
     if( input_graphics_file( model_filename, &model_format,
-                             &n_model_objects, &model_objects ) != OK ||
+                             &n_model_objects, &model_objects ) != VIO_OK ||
         n_model_objects != 1 || get_object_type(model_objects[0]) != POLYGONS )
     {
         print_error( "Error in %s\n", model_filename );
@@ -96,7 +96,7 @@ int  main(
                     tolerance, n_iters );
 
     if( output_graphics_file( output_filename, src_format, n_src_objects,
-                              src_objects ) != OK )
+                              src_objects ) != VIO_OK )
         return( 1 );
 
     delete_object_list( n_src_objects, src_objects );
@@ -107,17 +107,17 @@ int  main(
 }
 
 #ifdef OLD
-private  Real  dot_vectors(
-    Real  v1[],
-    Real  v2[] )
+private  VIO_Real  dot_vectors(
+    VIO_Real  v1[],
+    VIO_Real  v2[] )
 {
     return( v1[X] * v2[X] + v1[Y] * v2[Y] + v1[Z] * v2[Z] );
 }
 
 private  void  sub_vectors(
-    Real  v1[],
-    Real  v2[],
-    Real  sub[] )
+    VIO_Real  v1[],
+    VIO_Real  v2[],
+    VIO_Real  sub[] )
 {
     sub[X] = v1[X] - v2[X];
     sub[Y] = v1[Y] - v2[Y];
@@ -125,26 +125,26 @@ private  void  sub_vectors(
 }
 
 private  void  cross_vectors(
-    Real  v1[],
-    Real  v2[],
-    Real  c[] )
+    VIO_Real  v1[],
+    VIO_Real  v2[],
+    VIO_Real  c[] )
 {
     c[X] = v1[Y] * v2[Z] - v1[Z] * v2[Y];
     c[Y] = v1[Z] * v2[X] - v1[X] * v2[Z];
     c[Z] = v1[X] * v2[Y] - v1[Y] * v2[X];
 }
 
-private  Real  evaluate_fit(
-    Real    point[],
+private  VIO_Real  evaluate_fit(
+    VIO_Real    point[],
     int     n_neighbours,
-    Real    (*neighbours)[N_DIMENSIONS],
-    Real    lengths[],
-    Real    normal[] )
+    VIO_Real    (*neighbours)[N_DIMENSIONS],
+    VIO_Real    lengths[],
+    VIO_Real    normal[] )
 {
     int    n, next_n;
-    Real   v1[N_DIMENSIONS], v2[N_DIMENSIONS];
-    Real   test_normal[N_DIMENSIONS];
-    Real   fit, dist, diff, dx, dy, dz, len_t, len_n;
+    VIO_Real   v1[N_DIMENSIONS], v2[N_DIMENSIONS];
+    VIO_Real   test_normal[N_DIMENSIONS];
+    VIO_Real   fit, dist, diff, dx, dy, dz, len_t, len_n;
 
     fit = 0.0;
 
@@ -179,12 +179,12 @@ private  Real  evaluate_fit(
 }
 
 private  void  get_edge_deriv(
-    Real    point[],
-    Real    length,
-    Real    neighbour[],
-    Real    deriv[] )
+    VIO_Real    point[],
+    VIO_Real    length,
+    VIO_Real    neighbour[],
+    VIO_Real    deriv[] )
 {
-    Real   dist, diff, dx, dy, dz, factor;
+    VIO_Real   dist, diff, dx, dy, dz, factor;
 
     dx = point[X] - neighbour[X];
     dy = point[Y] - neighbour[Y];
@@ -204,12 +204,12 @@ private  void  get_edge_deriv(
 
 private  void  get_plane_normal(
     int     n_points,
-    Real    (*points)[N_DIMENSIONS],
+    VIO_Real    (*points)[N_DIMENSIONS],
     int     indices[],
-    Real    normal[] )
+    VIO_Real    normal[] )
 {
     int     i, next_i;
-    Real    vx, vy, vz, x, y, z, tx, ty, tz;
+    VIO_Real    vx, vy, vz, x, y, z, tx, ty, tz;
 
     vx = 0.0;
     vy = 0.0;
@@ -241,10 +241,10 @@ private  void  get_plane_normal(
 }
 
 private  void  remove_vector_component(
-    Real    direction[],
-    Real    plane_normal[] )
+    VIO_Real    direction[],
+    VIO_Real    plane_normal[] )
 {
-    Real   factor, bottom;
+    VIO_Real   factor, bottom;
 
     bottom = dot_vectors( plane_normal, plane_normal );
 
@@ -261,17 +261,17 @@ private  void  remove_vector_component(
     direction[Z] -= factor * plane_normal[Z];
 }
 
-private  Real  find_distance_to_edge(
-    Real    origin[],
-    Real    direction[],
-    Real    plane_normal[],
-    Real    p1[],
-    Real    p2[] )
+private  VIO_Real  find_distance_to_edge(
+    VIO_Real    origin[],
+    VIO_Real    direction[],
+    VIO_Real    plane_normal[],
+    VIO_Real    p1[],
+    VIO_Real    p2[] )
 {
-    Real   dist;
-    Real   edge[N_DIMENSIONS];
-    Real   ortho_dir[N_DIMENSIONS];
-    Real   test_normal[N_DIMENSIONS];
+    VIO_Real   dist;
+    VIO_Real   edge[N_DIMENSIONS];
+    VIO_Real   ortho_dir[N_DIMENSIONS];
+    VIO_Real   test_normal[N_DIMENSIONS];
 
     sub_vectors( p2, p1, edge );
 
@@ -289,15 +289,15 @@ private  Real  find_distance_to_edge(
     return( dist );
 }
 
-private  Real  find_distance_to_neighbour_edge(
-    Real    origin[],
-    Real    direction[],
-    Real    p1[],
-    Real    p2[] )
+private  VIO_Real  find_distance_to_neighbour_edge(
+    VIO_Real    origin[],
+    VIO_Real    direction[],
+    VIO_Real    p1[],
+    VIO_Real    p2[] )
 {
-    Real   dist;
-    Real   edge[N_DIMENSIONS];
-    Real   ortho_dir[N_DIMENSIONS];
+    VIO_Real   dist;
+    VIO_Real   edge[N_DIMENSIONS];
+    VIO_Real   ortho_dir[N_DIMENSIONS];
 
     sub_vectors( p2, p1, edge );
 
@@ -311,22 +311,22 @@ private  Real  find_distance_to_neighbour_edge(
     return( dist );
 }
 
-private  Real  optimize_vertex(
+private  VIO_Real  optimize_vertex(
     polygons_struct   *model,
-    Real              (*original_points)[N_DIMENSIONS],
-    Real              point[],
+    VIO_Real              (*original_points)[N_DIMENSIONS],
+    VIO_Real              point[],
     int               n_neighbours,
-    Real              (*neighbours)[N_DIMENSIONS],
-    Real              lengths[],
+    VIO_Real              (*neighbours)[N_DIMENSIONS],
+    VIO_Real              lengths[],
     int               *which_triangle,
-    Real              ratio )
+    VIO_Real              ratio )
 {
     int    n, dim, v, vertex[10000], size, exit_neighbour;
-    Real   deriv[N_DIMENSIONS], edge_deriv[N_DIMENSIONS], movement, mag;
-    Real   normal[N_DIMENSIONS], max_dist, dist_to_edge;
-    Real   new_point[N_DIMENSIONS];
-    Real   dx, dy, dz, step, len, max_dist_to_neighbour, max_step;
-    Real   best_fit, new_fit, position, new_position;
+    VIO_Real   deriv[N_DIMENSIONS], edge_deriv[N_DIMENSIONS], movement, mag;
+    VIO_Real   normal[N_DIMENSIONS], max_dist, dist_to_edge;
+    VIO_Real   new_point[N_DIMENSIONS];
+    VIO_Real   dx, dy, dz, step, len, max_dist_to_neighbour, max_step;
+    VIO_Real   best_fit, new_fit, position, new_position;
 
     deriv[X] = 0.0;
     deriv[Y] = 0.0;
@@ -456,18 +456,18 @@ private  Real  optimize_vertex(
     return( movement );
 }
 
-private  Real  perturb_vertices(
+private  VIO_Real  perturb_vertices(
     polygons_struct   *model,
-    Real              (*original_points)[N_DIMENSIONS],
-    Real              model_lengths[],
+    VIO_Real              (*original_points)[N_DIMENSIONS],
+    VIO_Real              model_lengths[],
     int               n_neighbours[],
     int               *neighbours[],
-    Real              (*new_points)[N_DIMENSIONS],
+    VIO_Real              (*new_points)[N_DIMENSIONS],
     int               which_triangle[],
-    Real              ratio )
+    VIO_Real              ratio )
 {
     int    d, point_index, max_neighbours, n, ind;
-    Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
+    VIO_Real   movement, max_movement, *lengths, (*points)[N_DIMENSIONS];
 
     max_neighbours = 0;
     for_less( point_index, 0, model->n_points )
@@ -507,13 +507,13 @@ private  void  get_errors(
     int   n_points,
     int   n_neighbours[],
     int   *neighbours[],
-    Real  (*points)[N_DIMENSIONS],
-    Real  model_lengths[],
-    Real  *max_error,
-    Real  *avg_error )
+    VIO_Real  (*points)[N_DIMENSIONS],
+    VIO_Real  model_lengths[],
+    VIO_Real  *max_error,
+    VIO_Real  *avg_error )
 {
     int    ind, point, n;
-    Real   dx, dy, dz, dist, diff;
+    VIO_Real   dx, dy, dz, dist, diff;
 
     *max_error = 0.0;
     *avg_error = 0.0;
@@ -538,24 +538,24 @@ private  void  get_errors(
         }
     }
 
-    *avg_error /= (Real) ind;
+    *avg_error /= (VIO_Real) ind;
 }
 
 private  void  reparameterize_by_minimization(
     polygons_struct   *model,
     int               n_neighbours[],
     int               *neighbours[],
-    Real              model_lengths[],
-    Real              (*original_points)[N_DIMENSIONS],
-    Real              (*new_points)[N_DIMENSIONS],
+    VIO_Real              model_lengths[],
+    VIO_Real              (*original_points)[N_DIMENSIONS],
+    VIO_Real              (*new_points)[N_DIMENSIONS],
     int               which_triangle[],
-    Real              ratio,
-    Real              movement_threshold,
+    VIO_Real              ratio,
+    VIO_Real              movement_threshold,
     int               n_iters )
 {
     int   iter;
-    Real  movement;
-    Real  max_error, avg_error;
+    VIO_Real  movement;
+    VIO_Real  max_error, avg_error;
 
     iter = 0;
     movement = -1.0;
@@ -576,10 +576,10 @@ private  void  reparameterize_by_minimization(
 #endif
 
 private  void  get_normalized_uv(
-    Real   u,
-    Real   v,
-    Real   *uu,
-    Real   *vv )
+    VIO_Real   u,
+    VIO_Real   v,
+    VIO_Real   *uu,
+    VIO_Real   *vv )
 {
     while( u < 0.0 )
         u += 1.0;
@@ -598,18 +598,18 @@ private  void  get_normalized_uv(
     *vv = v;
 }
 
-private  Real  evaluate_fit(
+private  VIO_Real  evaluate_fit(
     polygons_struct   *original,
     polygons_struct   *unit_sphere,
-    Real              parameters[],
+    VIO_Real              parameters[],
     int               n_neighbours[],
     int               *neighbours[],
-    Real              model_lengths[] )
+    VIO_Real              model_lengths[] )
 {
     int    point, n, neigh, ind, n_points;
-    Real   fit, x, y, z, x1, y1, z1, x2, y2, z2, model_len, actual_len;
-    Real   (*points)[N_DIMENSIONS], len, dx, dy, dz;
-    Point  surface_point, unit_sphere_point;
+    VIO_Real   fit, x, y, z, x1, y1, z1, x2, y2, z2, model_len, actual_len;
+    VIO_Real   (*points)[N_DIMENSIONS], len, dx, dy, dz;
+    VIO_Point  surface_point, unit_sphere_point;
 
     n_points = original->n_points;
 
@@ -617,8 +617,8 @@ private  Real  evaluate_fit(
 
     for_less( point, 0, n_points )
     {
-        map_uv_to_sphere( parameters[IJ(point,0,2)],
-                          parameters[IJ(point,1,2)],
+        map_uv_to_sphere( parameters[VIO_IJ(point,0,2)],
+                          parameters[VIO_IJ(point,1,2)],
                           &x, &y, &z );
 
         fill_Point( unit_sphere_point, x, y, z );
@@ -680,15 +680,15 @@ typedef  struct
     polygons_struct   *unit_sphere;
     int               *n_neighbours;
     int               **neighbours;
-    Real              *model_lengths;
+    VIO_Real              *model_lengths;
 } function_data;
 
-private  Real  eval_function(
+private  VIO_Real  eval_function(
     void    *void_data,
     float   parameters[] )
 {
     int             p;
-    Real            *real_parameters, fit, u, v;
+    VIO_Real            *real_parameters, fit, u, v;
     function_data   *data;
 
     data = (function_data *) void_data;
@@ -696,10 +696,10 @@ private  Real  eval_function(
     ALLOC( real_parameters, 2 * data->original->n_points );
     for_less( p, 0, data->original->n_points )
     {
-        get_normalized_uv( (Real) parameters[IJ(p,0,2)],
-                           (Real) parameters[IJ(p,1,2)], &u, &v );
-        real_parameters[IJ(p,0,2)] = u;
-        real_parameters[IJ(p,1,2)] = v;
+        get_normalized_uv( (VIO_Real) parameters[VIO_IJ(p,0,2)],
+                           (VIO_Real) parameters[VIO_IJ(p,1,2)], &u, &v );
+        real_parameters[VIO_IJ(p,0,2)] = u;
+        real_parameters[VIO_IJ(p,1,2)] = v;
     }
 
     fit = evaluate_fit( data->original, data->unit_sphere,
@@ -715,16 +715,16 @@ private  Real  eval_function(
 private  void  evaluate_fit_deriv(
     polygons_struct   *original,
     polygons_struct   *unit_sphere,
-    Real              parameters[],
+    VIO_Real              parameters[],
     int               n_neighbours[],
     int               *neighbours[],
-    Real              model_lengths[],
-    Real              deriv[] )
+    VIO_Real              model_lengths[],
+    VIO_Real              deriv[] )
 {
     int    point, n, neigh, ind, n_points;
-    Real   x, y, z, x1, y1, z1, x2, y2, z2, model_len, actual_len;
-    Real   (*points)[N_DIMENSIONS], len, dx, dy, dz;
-    Point  surface_point, unit_sphere_point;
+    VIO_Real   x, y, z, x1, y1, z1, x2, y2, z2, model_len, actual_len;
+    VIO_Real   (*points)[N_DIMENSIONS], len, dx, dy, dz;
+    VIO_Point  surface_point, unit_sphere_point;
 
     n_points = original->n_points;
 
@@ -735,8 +735,8 @@ private  void  evaluate_fit_deriv(
 
     for_less( point, 0, n_points )
     {
-        map_uv_to_sphere( parameters[IJ(point,0,2)],
-                          parameters[IJ(point,1,2)],
+        map_uv_to_sphere( parameters[VIO_IJ(point,0,2)],
+                          parameters[VIO_IJ(point,1,2)],
                           &x, &y, &z );
 
         fill_Point( unit_sphere_point, x, y, z );
@@ -805,22 +805,22 @@ private  void  reparameterize(
     polygons_struct   *original,
     object_struct     *initial,
     polygons_struct   *model,
-    Real              scale,
-    Real              ratio,
-    Real              delta_ratio,
-    Real              tolerance,
+    VIO_Real              scale,
+    VIO_Real              ratio,
+    VIO_Real              delta_ratio,
+    VIO_Real              tolerance,
     int               n_iters )
 {
     int               total_neighbours, ind, point, n, obj_index, p;
     int               *n_neighbours, **neighbours, dim, iter, step1, step2;
-    Real              *model_lengths, fit, *deltas, *new_deltas, u, v;
-    Real              *parameters, x, y, z, *test_parms;
-    Real              total_model, total_original, test_fit, rms, r;
-    Point             *new_points, unit_sphere_point, centre;
-    Point             original_point;
+    VIO_Real              *model_lengths, fit, *deltas, *new_deltas, u, v;
+    VIO_Real              *parameters, x, y, z, *test_parms;
+    VIO_Real              total_model, total_original, test_fit, rms, r;
+    VIO_Point             *new_points, unit_sphere_point, centre;
+    VIO_Point             original_point;
     object_struct     *object;
     int               update_interval;
-    Real              last_update;
+    VIO_Real              last_update;
     polygons_struct   unit_sphere;
     amoeba_struct     amoeba;
     function_data     data;
@@ -872,10 +872,10 @@ private  void  reparameterize(
                                &unit_sphere );
 
     create_polygons_bintree( &unit_sphere,
-                             ROUND( (Real) unit_sphere.n_items*BINTREE_FACTOR));
+                             ROUND( (VIO_Real) unit_sphere.n_items*BINTREE_FACTOR));
 
     create_polygons_bintree( original,
-                             ROUND( (Real) unit_sphere.n_items*BINTREE_FACTOR));
+                             ROUND( (VIO_Real) unit_sphere.n_items*BINTREE_FACTOR));
 
     for_less( point, 0, original->n_points )
     {
@@ -890,8 +890,8 @@ private  void  reparameterize(
         map_sphere_to_uv( RPoint_x(unit_sphere_point),
                           RPoint_y(unit_sphere_point),
                           RPoint_z(unit_sphere_point),
-                          &parameters[IJ(point,0,2)],
-                          &parameters[IJ(point,1,2)] );
+                          &parameters[VIO_IJ(point,0,2)],
+                          &parameters[VIO_IJ(point,1,2)] );
     }
 
     delete_bintree( original->bintree );
@@ -964,10 +964,10 @@ private  void  reparameterize(
 
         for_less( point, 0, original->n_points )
         {
-            get_normalized_uv( test_parms[IJ(point,0,2)],
-                               test_parms[IJ(point,1,2)],
-                               &test_parms[IJ(point,0,2)],
-                               &test_parms[IJ(point,1,2)] );
+            get_normalized_uv( test_parms[VIO_IJ(point,0,2)],
+                               test_parms[VIO_IJ(point,1,2)],
+                               &test_parms[VIO_IJ(point,0,2)],
+                               &test_parms[VIO_IJ(point,1,2)] );
         }
 
         test_fit = evaluate_fit( original, &unit_sphere,
@@ -981,7 +981,7 @@ private  void  reparameterize(
                 parameters[point] = test_parms[point];
             for_less( point, 0, 2 * original->n_points )
             {
-                deltas[point] = INTERPOLATE( ratio, deltas[point],
+                deltas[point] = VIO_INTERPOLATE( ratio, deltas[point],
                                              new_deltas[point] );
             }
         }
@@ -1035,14 +1035,14 @@ private  void  reparameterize(
                     continue;
 
                 test_parms[2*point] = parameters[2*point] +
-                                   (Real) (step1 * 2 - 1) * tolerance;
+                                   (VIO_Real) (step1 * 2 - 1) * tolerance;
                 test_parms[2*point+1] = parameters[2*point+1] +
-                                   (Real) (step2 * 2 - 1) * tolerance;
+                                   (VIO_Real) (step2 * 2 - 1) * tolerance;
 
-                get_normalized_uv( test_parms[IJ(point,0,2)],
-                                   test_parms[IJ(point,1,2)],
-                                   &test_parms[IJ(point,0,2)],
-                                   &test_parms[IJ(point,1,2)] );
+                get_normalized_uv( test_parms[VIO_IJ(point,0,2)],
+                                   test_parms[VIO_IJ(point,1,2)],
+                                   &test_parms[VIO_IJ(point,0,2)],
+                                   &test_parms[VIO_IJ(point,1,2)] );
 
                 test_fit = evaluate_fit( original, &unit_sphere,
                                  test_parms, n_neighbours, neighbours,
@@ -1086,8 +1086,8 @@ private  void  reparameterize(
 
     for_less( point, 0, original->n_points )
     {
-        get_normalized_uv( parameters[IJ(point,0,2)],
-                           parameters[IJ(point,1,2)], &u, &v );
+        get_normalized_uv( parameters[VIO_IJ(point,0,2)],
+                           parameters[VIO_IJ(point,1,2)], &u, &v );
         map_uv_to_sphere( u, v, &x, &y, &z );
         fill_Point( unit_sphere_point, x, y, z );
 
@@ -1103,7 +1103,7 @@ private  void  reparameterize(
         original->points[point] = new_points[point];
     }
 
-    rms /= (Real) original->n_points;
+    rms /= (VIO_Real) original->n_points;
     if( rms > 0.0 )
         rms = sqrt( rms );
 

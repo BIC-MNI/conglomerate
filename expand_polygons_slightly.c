@@ -3,14 +3,14 @@
 
 private  void  expand_polygons(
     polygons_struct  *polygons,
-    Real             distance );
+    VIO_Real             distance );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename;
-    Real                 dist;
+    VIO_STR               src_filename, dest_filename;
+    VIO_Real                 dist;
     int                  n_objects;
     File_formats         format;
     object_struct        **object_list;
@@ -27,7 +27,7 @@ int  main(
     }
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -41,17 +41,17 @@ int  main(
 
 private  void  expand_polygons(
     polygons_struct  *polygons,
-    Real             distance )
+    VIO_Real             distance )
 {
     int           *n_neighbours, **neighbours;
     int           p, poly, edge, n_points, i;
     int           p1, p2, t1, t2, total_neighbours, vertex, n_found;
     int           n, point, n_in_plane, new_n_in_plane;
-    Real          plane_constant;
-    Point         *neigh_points, *plane_points, *temp_plane_points, *new_points;
-    Point         centroid, *points, plane_origin, test_point;
-    Vector        normal, to_point, plane_normal, clip_normal;
-    Vector        hor, vert, *plane_normals, test_vector;
+    VIO_Real          plane_constant;
+    VIO_Point         *neigh_points, *plane_points, *temp_plane_points, *new_points;
+    VIO_Point         centroid, *points, plane_origin, test_point;
+    VIO_Vector        normal, to_point, plane_normal, clip_normal;
+    VIO_Vector        hor, vert, *plane_normals, test_vector;
 
     n_points = polygons->n_points;
     points = polygons->points;

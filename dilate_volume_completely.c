@@ -23,7 +23,7 @@ int  main(
     int                  sizes[VIO_N_DIMENSIONS];
     int                  x, y, z, n_changed;
     int                  tx, ty, tz, n_dirs, *dx, *dy, *dz, dir;
-    BOOLEAN              found;
+    VIO_BOOL              found;
     VIO_Real                 max_value, test_value, value;
     VIO_Real                 min_outside, max_outside;
     VIO_Real                 min_inside, max_inside;
@@ -56,7 +56,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
-                      (minc_input_options *) NULL ) != OK )
+                      (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     n_dirs = get_3D_neighbour_directions( connectivity, &dx, &dy, &dz );
@@ -65,8 +65,8 @@ int  main(
 
     get_volume_sizes( volume, sizes );
 
-    VIO_ALLOC2D( output_buffer[0], sizes[Y], sizes[Z] );
-    VIO_ALLOC2D( output_buffer[1], sizes[Y], sizes[Z] );
+    VIO_ALLOC2D( output_buffer[0], sizes[VIO_Y], sizes[VIO_Z] );
+    VIO_ALLOC2D( output_buffer[1], sizes[VIO_Y], sizes[VIO_Z] );
 
     n_changed = 1;
     while( (max_dilations < 0 || iter < max_dilations) && n_changed > 0 )
@@ -75,13 +75,13 @@ int  main(
 
         n_changed = 0;
 
-        initialize_progress_report( &progress, FALSE, sizes[X], "Dilating" );
+        initialize_progress_report( &progress, FALSE, sizes[VIO_X], "Dilating" );
 
-        for_less( x, 0, sizes[X] )
+        for_less( x, 0, sizes[VIO_X] )
         {
-            for_less( y, 0, sizes[Y] )
+            for_less( y, 0, sizes[VIO_Y] )
             {
-                for_less( z, 0, sizes[Z] )
+                for_less( z, 0, sizes[VIO_Z] )
                 {
                     value = get_volume_real_value( volume, x, y, z, 0, 0 );
                     found = FALSE;
@@ -129,18 +129,18 @@ int  main(
 
             if( x > 0 )
             {
-                for_less( y, 0, sizes[Y] )
-                for_less( z, 0, sizes[Z] )
+                for_less( y, 0, sizes[VIO_Y] )
+                for_less( z, 0, sizes[VIO_Z] )
                 {
                     set_volume_real_value( volume, x-1, y, z, 0, 0,
                                            output_buffer[0][y][z] );
                 }
             }
 
-            if( x == sizes[X]-1 )
+            if( x == sizes[VIO_X]-1 )
             {
-                for_less( y, 0, sizes[Y] )
-                for_less( z, 0, sizes[Z] )
+                for_less( y, 0, sizes[VIO_Y] )
+                for_less( z, 0, sizes[VIO_Z] )
                 {
                     set_volume_real_value( volume, x, y, z, 0, 0,
                                            output_buffer[1][y][z] );

@@ -1,14 +1,14 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-static  BOOLEAN  get_next_filename(
+static  VIO_BOOL  get_next_filename(
     VIO_STR      *filename )
 {
     static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
+    static    VIO_BOOL  in_list = FALSE;
     static    VIO_STR   filename_string;
     VIO_STR             argument;
-    BOOLEAN            found;
+    VIO_BOOL            found;
 
     found = FALSE;
 
@@ -16,7 +16,7 @@ static  BOOLEAN  get_next_filename(
     {
         if( in_list )
         {
-            if( input_string( file, &filename_string, ' ' ) == OK )
+            if( input_string( file, &filename_string, ' ' ) == VIO_OK )
             {
                 *filename = filename_string;
                 found = TRUE;
@@ -40,7 +40,7 @@ static  BOOLEAN  get_next_filename(
             }
             else
             {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK)
                     break;
                 in_list = TRUE;
             }

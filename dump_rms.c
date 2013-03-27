@@ -13,7 +13,7 @@ int  main(
     VIO_File_formats     format;
     object_struct    **object_list;
     VIO_Point            *points1, *points2;
-    BOOLEAN          output_flag;
+    VIO_BOOL          output_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -29,7 +29,7 @@ int  main(
     output_flag = get_string_argument( NULL, &output_filename );
 
     if( input_graphics_file( input1_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 )
+                             &object_list ) != VIO_OK || n_objects != 1 )
     {
         print( "Couldn't read %s.\n", input1_filename );
         return( 1 );
@@ -38,7 +38,7 @@ int  main(
     n_points1 = get_object_points( object_list[0], &points1 );
 
     if( input_graphics_file( input2_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 )
+                             &object_list ) != VIO_OK || n_objects != 1 )
     {
         print( "Couldn't read %s.\n", input2_filename );
         return( 1 );
@@ -53,7 +53,7 @@ int  main(
     }
 
     if( output_flag &&
-        open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK )
+        open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     sum_x = 0.0;

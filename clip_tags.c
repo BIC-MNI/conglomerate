@@ -99,7 +99,7 @@ int  main(
 
     if( input_tag_file( three_tags_filename, &n_volumes, &n_tag_points,
                         &tags1, &tags2, &weights, &structure_ids,
-                        &patient_ids, &labels ) != OK )
+                        &patient_ids, &labels ) != VIO_OK )
         return( 1 );
 
     if( n_tag_points != 3 )
@@ -110,7 +110,7 @@ int  main(
     }
 
     for_less( i, 0, 3 )
-        fill_Point( points[i], tags1[i][X], tags1[i][Y], tags1[i][Z] );
+        fill_Point( points[i], tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z] );
 
     free_tag_points( n_volumes, n_tag_points, tags1, tags2,
                      weights, structure_ids, patient_ids, labels );
@@ -126,7 +126,7 @@ int  main(
 
     if( input_tag_file( input_tags_filename, &n_volumes, &n_tag_points,
                         &tags1, &tags2, &weights, &structure_ids,
-                        &patient_ids, &labels ) != OK )
+                        &patient_ids, &labels ) != VIO_OK )
         return( 1 );
 
     n_new_tags = 0;
@@ -136,7 +136,7 @@ int  main(
         if( start_volume_input( volume_filename, 3, XYZ_dimension_names,
                                 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                                 TRUE, &vol, (minc_input_options *) NULL,
-                                &volume_input ) != OK )
+                                &volume_input ) != VIO_OK )
             return( 1 );
 
         get_volume_separations( vol, separations );
@@ -174,7 +174,7 @@ int  main(
 
     for_less( i, 0, n_tag_points )
     {
-        fill_Point( point, tags1[i][X], tags1[i][Y], tags1[i][Z] );
+        fill_Point( point, tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z] );
 
         dist = distance_from_plane( &point, &normal,
                                     -DOT_POINT_VECTOR(origin,normal) );
@@ -221,7 +221,7 @@ int  main(
         if( volume_desired )
         {
             plane_status = get_voxel_plane_status( vol,
-                                 tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                 tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z],
                                  2, normals, plane_constants );
 
             if( plane_status == 1 )
@@ -231,7 +231,7 @@ int  main(
             else if( plane_status == 0 )
             {
                 volume += get_voxel_plane_volume( vol,
-                                     tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                     tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z],
                                      2, normals, plane_constants );
             }
         }
@@ -250,10 +250,10 @@ int  main(
 
     /*--- output the new tags, the subset of the input tags */
 
-    if( output_tag_file( output_tags_filename, "Removed negative X's",
+    if( output_tag_file( output_tags_filename, "Removed negative 's",
                          n_volumes, n_new_tags, new_tags1, new_tags2,
                          new_weights, new_structure_ids,
-                         new_patient_ids, new_labels ) != OK )
+                         new_patient_ids, new_labels ) != VIO_OK )
         return( 1 );
 
     free_tag_points( n_volumes, n_new_tags, new_tags1, new_tags2,
@@ -271,13 +271,13 @@ int  main(
 
         for_less( i, 0, n_tag_points )
         {
-            sum_x += tags1[i][X];
-            sum_y += tags1[i][Y];
-            sum_z += tags1[i][Z];
+            sum_x += tags1[i][VIO_X];
+            sum_y += tags1[i][VIO_Y];
+            sum_z += tags1[i][VIO_Z];
 
-            sum_yy += tags1[i][Y] * tags1[i][Y];
-            sum_yz += tags1[i][Y] * tags1[i][Z];
-            sum_zz += tags1[i][Z] * tags1[i][Z];
+            sum_yy += tags1[i][VIO_Y] * tags1[i][VIO_Y];
+            sum_yz += tags1[i][VIO_Y] * tags1[i][VIO_Z];
+            sum_zz += tags1[i][VIO_Z] * tags1[i][VIO_Z];
         }
 
         fill_Point( centroid, sum_x / (VIO_Real) n_tag_points,
@@ -325,10 +325,10 @@ int  main(
 
             for_less( i, 0, n_tag_points )
             {
-                fill_Point( point, tags1[i][X], tags1[i][Y], tags1[i][Z] );
+                fill_Point( point, tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z] );
 
                 plane_status = get_voxel_plane_status( vol,
-                                 tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                 tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z],
                                  4, normals, plane_constants );
 
                 if( plane_status == 1 )
@@ -338,7 +338,7 @@ int  main(
                 else if( plane_status == 0 )
                 {
                     volume += get_voxel_plane_volume( vol,
-                                     tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                     tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z],
                                      4, normals, plane_constants );
                 }
             }
@@ -535,7 +535,7 @@ static  VIO_Real  get_voxel_plane_volume(
     voxel[1] = (VIO_Real) VIO_ROUND( voxel[1] );
     voxel[2] = (VIO_Real) VIO_ROUND( voxel[2] );
 
-    axis = X;
+    axis = VIO_X;
     a1 = (axis + 1) % VIO_N_DIMENSIONS;
     a2 = (axis + 2) % VIO_N_DIMENSIONS;
 
@@ -688,7 +688,7 @@ static  void   get_plane_normal(
     VIO_Real       x, y, z;
     VIO_Transform  transform;
 
-    make_rotation_transform( angle * DEG_TO_RAD, X, &transform );
+    make_rotation_transform( angle * VIO_DEG_TO_RAD, VIO_X, &transform );
     transform_vector( &transform,
                       (VIO_Real) Vector_x(*base_normal),
                       (VIO_Real) Vector_y(*base_normal),

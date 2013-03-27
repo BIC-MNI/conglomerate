@@ -5,7 +5,7 @@
 
 static  int   make_grid_lines(
     polygons_struct   *polygons,
-    BOOLEAN           origin_specified,
+    VIO_BOOL           origin_specified,
     VIO_Point             *origin,
     VIO_Real              origin_u,
     VIO_Real              origin_v,
@@ -26,7 +26,7 @@ int  main(
     polygons_struct      *polygons;
     VIO_Real                 origin_x, origin_y, origin_z;
     VIO_Real                 origin_u, origin_v, rot_angle;
-    BOOLEAN              origin_specified;
+    VIO_BOOL              origin_specified;
     VIO_Point                origin;
 
     initialize_argument_processing( argc, argv );
@@ -50,7 +50,7 @@ int  main(
     fill_Point( origin, origin_x, origin_y, origin_z );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 || get_object_type(object_list[0]) != POLYGONS ||
@@ -86,13 +86,13 @@ static  void  get_sphere_transform(
 
     CONVERT_POINT_TO_VECTOR( axis, *pos );
 
-    make_rotation_about_axis( &axis, -angle * DEG_TO_RAD, &about_point );
+    make_rotation_about_axis( &axis, -angle * VIO_DEG_TO_RAD, &about_point );
 
     create_two_orthogonal_vectors( &axis, &vert, &up );
     NORMALIZE_VECTOR( vert, vert );
     NORMALIZE_VECTOR( up, up );
 
-    vert_angle = INTERPOLATE( v, -PI/2.0, PI/2.0 );
+    vert_angle = VIO_INTERPOLATE( v, -M_PI/2.0, M_PI/2.0 );
 
     make_rotation_about_axis( &vert, vert_angle, &vert_rot );
 
@@ -104,7 +104,7 @@ static  void  get_sphere_transform(
     fill_Vector( up_transformed, x, y, z );
     NORMALIZE_VECTOR( up_transformed, up_transformed );
 
-    z_angle = -2.0 * PI * u;
+    z_angle = -2.0 * M_PI * u;
 
     make_rotation_about_axis( &up_transformed, z_angle, &z_rot );
 
@@ -127,7 +127,7 @@ static  void  get_sphere_transform(
 
 static  int   make_grid_lines(
     polygons_struct   *polygons,
-    BOOLEAN           origin_specified,
+    VIO_BOOL           origin_specified,
     VIO_Point             *origin,
     VIO_Real              origin_u,
     VIO_Real              origin_v,
@@ -181,7 +181,7 @@ static  int   make_grid_lines(
 
     for_less( l, 0, n_long )
     {
-        angle = 2.0 * PI * (VIO_Real) l / (VIO_Real) n_long;
+        angle = 2.0 * M_PI * (VIO_Real) l / (VIO_Real) n_long;
         c = cos( angle );
         s = sin( angle );
 
@@ -216,8 +216,8 @@ static  int   make_grid_lines(
 
     for_less( l, 0, n_lat-1 )
     {
-        angle = INTERPOLATE( (VIO_Real) (l+1) / (VIO_Real) n_lat,
-                             -PI/ 2.0, PI/ 2.0 );
+        angle = VIO_INTERPOLATE( (VIO_Real) (l+1) / (VIO_Real) n_lat,
+                             -M_PI/ 2.0, M_PI/ 2.0 );
         z = sin( angle );
 
         fill_Point( centre, 0.0, 0.0, z );

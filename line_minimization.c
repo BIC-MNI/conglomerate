@@ -38,7 +38,7 @@ static  VIO_Real  evaluate_along_line(
     VIO_Real             t0, t1, t2, f0, f1, f2, t_next, f_next, step, fsize;
     VIO_Real             swap, bottom, new_size, old_size;
     VIO_Real             search_ratio, prev_step, final_value, movement;
-    BOOLEAN          done, prev_failed;
+    VIO_BOOL          done, prev_failed;
 
     search_ratio = SEARCH_RATIO;
 

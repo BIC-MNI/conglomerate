@@ -24,10 +24,10 @@ int  main(
     VIO_Status               status;
     VIO_STR               volume_filename, tag_filename;
     VIO_STR               output_filename, label;
-    Real                 voxel[VIO_MAX_DIMENSIONS];
-    Real                 value_to_set;
-    Real                 volume_min, volume_max;
-    BOOLEAN              crop_flag;
+    VIO_Real                 voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 value_to_set;
+    VIO_Real                 volume_min, volume_max;
+    VIO_BOOL              crop_flag;
     VIO_STR               history, dummy;
     VIO_Volume               volume, new_volume, used_volume;
     volume_input_struct  volume_input;
@@ -35,7 +35,7 @@ int  main(
     int                  structure_id, n_tag_points, n_volumes, tag_id;
     int                  n_used_tag_points;
     int                  n_inside_tag_points;
-    Real                 tags1[VIO_N_DIMENSIONS];
+    VIO_Real                 tags1[VIO_N_DIMENSIONS];
     int                  i, x, y, z;
     int                  sizes[VIO_N_DIMENSIONS];
 
@@ -55,7 +55,7 @@ int  main(
     if( start_volume_input( volume_filename, 3, XYZ_dimension_names,
                             NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             TRUE, &volume, (minc_input_options *) NULL,
-                            &volume_input ) != OK )
+                            &volume_input ) != VIO_OK )
         return( 1 );
 
     /* --- create the output volume */
@@ -69,11 +69,11 @@ int  main(
     volume_max = 255.0;
     set_volume_real_range( new_volume, volume_min, volume_max );
 
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, sizes[VIO_X] )
     {
-        for_less( y, 0, sizes[Y] )
+        for_less( y, 0, sizes[VIO_Y] )
         {
-            for_less( z, 0, sizes[Z] )
+            for_less( z, 0, sizes[VIO_Z] )
             {
                 set_volume_real_value( new_volume, x, y, z, 0, 0, 0.0 );
             }
@@ -82,8 +82,8 @@ int  main(
 
     if( open_file_with_default_suffix( tag_filename,
                                        get_default_tag_file_suffix(),
-                                       READ_FILE, ASCII_FORMAT, &file ) != OK ||
-        initialize_tag_file_input( file, &n_volumes ) != OK )
+                                       READ_FILE, ASCII_FORMAT, &file ) != VIO_OK ||
+        initialize_tag_file_input( file, &n_volumes ) != VIO_OK )
     {
         return( 1 );
     }
@@ -100,15 +100,15 @@ int  main(
         if( structure_id < 0 || structure_id == tag_id )
         {
             convert_world_to_voxel( new_volume,
-                                    tags1[X], tags1[Y], tags1[Z], voxel );
+                                    tags1[VIO_X], tags1[VIO_Y], tags1[VIO_Z], voxel );
 
             if( voxel_is_within_volume( new_volume, voxel ) )
             {
-                x = VIO_ROUND( voxel[X] );
-                y = VIO_ROUND( voxel[Y] );
-                z = VIO_ROUND( voxel[Z] );
+                x = VIO_ROUND( voxel[VIO_X] );
+                y = VIO_ROUND( voxel[VIO_Y] );
+                z = VIO_ROUND( voxel[VIO_Z] );
 
-                value_to_set = (Real) tag_id;
+                value_to_set = (VIO_Real) tag_id;
                 if( value_to_set < volume_min || value_to_set > volume_max )
                 {
                     if( label == NULL ||
@@ -122,29 +122,29 @@ int  main(
 
                 if( n_inside_tag_points == 0 )
                 {
-                    limits[0][X] = x;
-                    limits[0][Y] = y;
-                    limits[0][Z] = z;
-                    limits[1][X] = x;
-                    limits[1][Y] = y;
-                    limits[1][Z] = z;
+                    limits[0][VIO_X] = x;
+                    limits[0][VIO_Y] = y;
+                    limits[0][VIO_Z] = z;
+                    limits[1][VIO_X] = x;
+                    limits[1][VIO_Y] = y;
+                    limits[1][VIO_Z] = z;
                 }
                 else
                 {
-                    if( x < limits[0][X] )
-                        limits[0][X] = x;
-                    else if( x > limits[1][X] )
-                        limits[1][X] = x;
+                    if( x < limits[0][VIO_X] )
+                        limits[0][VIO_X] = x;
+                    else if( x > limits[1][VIO_X] )
+                        limits[1][VIO_X] = x;
 
-                    if( y < limits[0][Y] )
-                        limits[0][Y] = y;
-                    else if( y > limits[1][Y] )
-                        limits[1][Y] = y;
+                    if( y < limits[0][VIO_Y] )
+                        limits[0][VIO_Y] = y;
+                    else if( y > limits[1][VIO_Y] )
+                        limits[1][VIO_Y] = y;
 
-                    if( z < limits[0][Z] )
-                        limits[0][Z] = z;
-                    else if( z > limits[1][Z] )
-                        limits[1][Z] = z;
+                    if( z < limits[0][VIO_Z] )
+                        limits[0][VIO_Z] = z;
+                    else if( z > limits[1][VIO_Z] )
+                        limits[1][VIO_Z] = z;
                 }
 
                 ++n_inside_tag_points;
@@ -188,5 +188,5 @@ int  main(
                             0.0, 0.0, used_volume, volume_filename, history,
                             (minc_output_options *) NULL );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

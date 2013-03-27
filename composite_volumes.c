@@ -19,13 +19,13 @@ int  main(
     VIO_STR             under_colour_name, over_colour_name;
     int                n_dims, sizes[VIO_MAX_DIMENSIONS], dim, n_volumes;
     int                v[VIO_MAX_DIMENSIONS];
-    Real               vr[VIO_MAX_DIMENSIONS];
-    Real               vv[VIO_MAX_DIMENSIONS], xw, yw, zw;
+    VIO_Real               vr[VIO_MAX_DIMENSIONS];
+    VIO_Real               vv[VIO_MAX_DIMENSIONS], xw, yw, zw;
     int                ivv[VIO_MAX_DIMENSIONS], x, y, z;
     VIO_STR             *dim_names, *dim_names_rgb;
     VIO_STR             coding_type_string;
-    Real               value, low, high, r, g, b, a;
-    Real               separations[VIO_MAX_DIMENSIONS], opacity;
+    VIO_Real               value, low, high, r, g, b, a;
+    VIO_Real               separations[VIO_MAX_DIMENSIONS], opacity;
     VIO_Colour             colour;
     VIO_Colour             over_colour, under_colour, new_col, old_col;
     VIO_General_transform  transform;
@@ -70,7 +70,7 @@ int  main(
 
         if( input_volume( input_filename, -1, File_order_dimension_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &volume, NULL ) != OK )
+                          TRUE, &volume, NULL ) != VIO_OK )
             return( 1 );
 
         if( n_volumes == 0 )
@@ -118,17 +118,17 @@ int  main(
             END_ALL_VOXELS
         }
 
-        for_less( x, 0, sizes[X] )
+        for_less( x, 0, sizes[VIO_X] )
         {
-        for_less( y, 0, sizes[Y] )
-        for_less( z, 0, sizes[Z] )
+        for_less( y, 0, sizes[VIO_Y] )
+        for_less( z, 0, sizes[VIO_Z] )
         {
             v[0] = x;
             v[1] = y;
             v[2] = z;
-            vr[0] = (Real) x;
-            vr[1] = (Real) y;
-            vr[2] = (Real) z;
+            vr[0] = (VIO_Real) x;
+            vr[1] = (VIO_Real) y;
+            vr[2] = (VIO_Real) z;
             convert_voxel_to_world( rgb_volume, vr, &xw, &yw, &zw );
             convert_world_to_voxel( volume, xw, yw, zw, vv );
 

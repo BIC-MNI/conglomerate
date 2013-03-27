@@ -24,12 +24,12 @@ int  main(
 {
     VIO_STR               volume_filename, mask_volume_filename;
     VIO_STR               output_filename;
-    Real                 mask_value, min_mask, max_mask;
-    Real                 value_to_set;
+    VIO_Real                 mask_value, min_mask, max_mask;
+    VIO_Real                 value_to_set;
     int                  x, y, z, sizes[VIO_MAX_DIMENSIONS], n_changed;
     VIO_progress_struct      progress;
     VIO_Volume               volume, mask_volume;
-    BOOLEAN              value_specified, same_grid;
+    VIO_BOOL              value_specified, same_grid;
     minc_input_options   options;
 
     initialize_argument_processing( argc, argv );
@@ -52,7 +52,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, &options ) != OK )
+                      TRUE, &volume, &options ) != VIO_OK )
         return( 1 );
 
     if( equal_strings( volume_filename, mask_volume_filename ) )
@@ -62,7 +62,7 @@ int  main(
     else
     {
         if( input_volume_header_only( mask_volume_filename, 3,
-                           XYZ_dimension_names, &mask_volume, &options) != OK )
+                           XYZ_dimension_names, &mask_volume, &options) != VIO_OK )
             return( 1 );
 
         same_grid = volumes_are_same_grid( volume, mask_volume );
@@ -73,7 +73,7 @@ int  main(
         {
             if( input_volume( mask_volume_filename, 3, XYZ_dimension_names,
                               NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                              TRUE, &mask_volume, &options ) != OK )
+                              TRUE, &mask_volume, &options ) != VIO_OK )
                 return( 1 );
         }
         else
@@ -82,7 +82,7 @@ int  main(
 
             set_all_volume_label_data( mask_volume, 0 );
 
-            if( load_label_volume( mask_volume_filename, mask_volume ) != OK )
+            if( load_label_volume( mask_volume_filename, mask_volume ) != VIO_OK )
                 return( 1 );
         }
     }
@@ -94,14 +94,14 @@ int  main(
 
     n_changed = 0;
 
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
-                                "Masking Volume" );
+    initialize_progress_report( &progress, FALSE, sizes[VIO_X] * sizes[VIO_Y],
+                                "Masking VIO_Volume" );
 
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, sizes[VIO_X] )
     {
-        for_less( y, 0, sizes[Y] )
+        for_less( y, 0, sizes[VIO_Y] )
         {
-            for_less( z, 0, sizes[Z] )
+            for_less( z, 0, sizes[VIO_Z] )
             {
                 mask_value = get_volume_real_value( mask_volume, x, y, z, 0, 0);
                 if( min_mask <= mask_value && mask_value <= max_mask )
@@ -111,7 +111,7 @@ int  main(
                 }
             }
 
-            update_progress_report( &progress, x * sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * sizes[VIO_Y] + y + 1 );
         }
     }
 

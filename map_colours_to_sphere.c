@@ -5,18 +5,18 @@ static  void  map_colours_to_sphere_topology(
     VIO_Volume            volume,
     int               continuity,
     polygons_struct   *polygons,
-    BOOLEAN           origin_specified,
+    VIO_BOOL           origin_specified,
     VIO_Point             *origin,
-    Real              origin_u,
-    Real              origin_v,
-    Real              rot_angle );
+    VIO_Real              origin_u,
+    VIO_Real              origin_v,
+    VIO_Real              rot_angle );
 static  void  evaluate_volume_by_voting(
     VIO_Volume    volume,
-    Real      x,
-    Real      y,
-    Real      z,
-    Real      fill_value,
-    Real      values[] );
+    VIO_Real      x,
+    VIO_Real      y,
+    VIO_Real      z,
+    VIO_Real      fill_value,
+    VIO_Real      values[] );
 
 int  main(
     int    argc,
@@ -28,9 +28,9 @@ int  main(
     VIO_File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
-    Real                 origin_x, origin_y, origin_z;
-    Real                 origin_u, origin_v, rot_angle;
-    BOOLEAN              origin_specified;
+    VIO_Real                 origin_x, origin_y, origin_z;
+    VIO_Real                 origin_u, origin_v, rot_angle;
+    VIO_BOOL              origin_specified;
     VIO_Point                origin;
     VIO_STR               dim_names[4] = { MIxspace,
                                           MIyspace,
@@ -60,7 +60,7 @@ int  main(
     fill_Point( origin, origin_x, origin_y, origin_z );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 || get_object_type(object_list[0]) != POLYGONS ||
@@ -75,14 +75,14 @@ int  main(
 
     if( input_volume( volume_filename, 4, dim_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, &options ) != OK )
+                      TRUE, &volume, &options ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
 
     if( sizes[3] != 3 && sizes[3] != 4 )
     {
-        print_error( "Volume must be RGB volume.\n" );
+        print_error( "VIO_Volume must be RGB volume.\n" );
         return( 1 );
     }
 
@@ -102,12 +102,12 @@ int  main(
 
 static  void  get_sphere_transform(
     VIO_Point      *pos,
-    Real       u,
-    Real       v,
-    Real       angle,
+    VIO_Real       u,
+    VIO_Real       v,
+    VIO_Real       angle,
     VIO_Transform  *transform )
 {
-    Real       z_angle, vert_angle, x, y, z;
+    VIO_Real       z_angle, vert_angle, x, y, z;
     VIO_Vector     axis, vert, up, vert_transformed, up_transformed;
     VIO_Vector     axis_transformed;
     VIO_Point      origin;
@@ -115,32 +115,32 @@ static  void  get_sphere_transform(
 
     CONVERT_POINT_TO_VECTOR( axis, *pos );
 
-    make_rotation_about_axis( &axis, -angle * DEG_TO_RAD, &about_point );
+    make_rotation_about_axis( &axis, -angle * VIO_DEG_TO_RAD, &about_point );
 
     create_two_orthogonal_vectors( &axis, &vert, &up );
     NORMALIZE_VECTOR( vert, vert );
     NORMALIZE_VECTOR( up, up );
 
-    vert_angle = INTERPOLATE( v, -PI/2.0, PI/2.0 );
+    vert_angle = VIO_INTERPOLATE( v, -M_PI/2.0, M_PI/2.0 );
 
     make_rotation_about_axis( &vert, vert_angle, &vert_rot );
 
     transform_point( &vert_rot,
-                     (Real) Vector_x(up),
-                     (Real) Vector_y(up),
-                     (Real) Vector_z(up), &x, &y, &z );
+                     (VIO_Real) Vector_x(up),
+                     (VIO_Real) Vector_y(up),
+                     (VIO_Real) Vector_z(up), &x, &y, &z );
 
     fill_Vector( up_transformed, x, y, z );
     NORMALIZE_VECTOR( up_transformed, up_transformed );
 
-    z_angle = -2.0 * PI * u;
+    z_angle = -2.0 * M_PI * u;
 
     make_rotation_about_axis( &up_transformed, z_angle, &z_rot );
 
     transform_point( &z_rot,
-                     (Real) Vector_x(vert),
-                     (Real) Vector_y(vert),
-                     (Real) Vector_z(vert), &x, &y, &z );
+                     (VIO_Real) Vector_x(vert),
+                     (VIO_Real) Vector_y(vert),
+                     (VIO_Real) Vector_z(vert), &x, &y, &z );
     fill_Vector( vert_transformed, x, y, z );
     NORMALIZE_VECTOR( vert_transformed, vert_transformed );
     CROSS_VECTORS( axis_transformed, vert_transformed, up_transformed );
@@ -157,35 +157,35 @@ static  void  get_sphere_transform(
 static  void  convert_sphere_point_to_2d(
     VIO_Transform  *transform,
     VIO_Point      *point,
-    Real       *u,
-    Real       *v )
+    VIO_Real       *u,
+    VIO_Real       *v )
 {
-    Real    x, y, z;
-    Real    angle_up, angle_around;
+    VIO_Real    x, y, z;
+    VIO_Real    angle_up, angle_around;
 
     transform_point( transform,
-                     (Real) Point_x(*point),
-                     (Real) Point_y(*point),
-                     (Real) Point_z(*point), &x, &y, &z );
+                     (VIO_Real) Point_x(*point),
+                     (VIO_Real) Point_y(*point),
+                     (VIO_Real) Point_z(*point), &x, &y, &z );
 
     angle_up = acos( z );
 
-    *v = 1.0 - angle_up / PI;
+    *v = 1.0 - angle_up / M_PI;
 
     angle_around = compute_clockwise_rotation( x, -y );
 
-    *u = angle_around / (2.0*PI);
+    *u = angle_around / (2.0*M_PI);
 }
 
 static  void  convert_uv_to_volume_position(
     int      sizes[],
-    Real     u,
-    Real     v,
-    Real     voxel[] )
+    VIO_Real     u,
+    VIO_Real     v,
+    VIO_Real     voxel[] )
 {
-    voxel[X] = u * (Real) (sizes[X]-1);
-    voxel[Y] = v * (Real) (sizes[Y]-1);
-    voxel[Z] = 0.0;
+    voxel[VIO_X] = u * (VIO_Real) (sizes[VIO_X]-1);
+    voxel[VIO_Y] = v * (VIO_Real) (sizes[VIO_Y]-1);
+    voxel[VIO_Z] = 0.0;
     voxel[3] = 0.0;
 }
 
@@ -193,19 +193,19 @@ static  void  map_colours_to_sphere_topology(
     VIO_Volume            volume,
     int               continuity,
     polygons_struct   *polygons,
-    BOOLEAN           origin_specified,
+    VIO_BOOL           origin_specified,
     VIO_Point             *origin,
-    Real              origin_u,
-    Real              origin_v,
-    Real              rot_angle )
+    VIO_Real              origin_u,
+    VIO_Real              origin_v,
+    VIO_Real              rot_angle )
 {
     int              point_index, sizes[VIO_MAX_DIMENSIONS];
-    Real             u, v, voxel[VIO_MAX_DIMENSIONS], value[4];
-    Real             min_value, max_value, r, g, b;
+    VIO_Real             u, v, voxel[VIO_MAX_DIMENSIONS], value[4];
+    VIO_Real             min_value, max_value, r, g, b;
     VIO_Point            centre, unit_origin;
     polygons_struct  unit_sphere;
     VIO_Transform        transform;
-    BOOLEAN          interpolating[4] = { TRUE, TRUE, TRUE, FALSE };
+    VIO_BOOL          interpolating[4] = { TRUE, TRUE, TRUE, FALSE };
 
     fill_Point( centre, 0.0, 0.0, 0.0 );
 
@@ -250,7 +250,7 @@ static  void  map_colours_to_sphere_topology(
         if( continuity == -2 )
         {
             evaluate_volume_by_voting( volume,
-                                       voxel[X], voxel[Y], voxel[Z],
+                                       voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z],
                                        0.0, value );
         }
         else
@@ -269,17 +269,17 @@ static  void  map_colours_to_sphere_topology(
 
 static  void  evaluate_volume_by_voting(
     VIO_Volume    volume,
-    Real      x,
-    Real      y,
-    Real      z,
-    Real      fill_value,
-    Real      values[] )
+    VIO_Real      x,
+    VIO_Real      y,
+    VIO_Real      z,
+    VIO_Real      fill_value,
+    VIO_Real      values[] )
 {
     int      id[2][2][2], sizes[VIO_N_DIMENSIONS];
-    Real     corners[2][2][2][4], x_frac, y_frac, z_frac;
+    VIO_Real     corners[2][2][2][4], x_frac, y_frac, z_frac;
     int      i, j, k, tx, ty, tz, dx, dy, dz;
     int      clas, n_classes, coef_ind;
-    Real     coefs[8], best_value, interp[4], value;
+    VIO_Real     coefs[8], best_value, interp[4], value;
 
     get_volume_sizes( volume, sizes );
 
@@ -298,9 +298,9 @@ static  void  evaluate_volume_by_voting(
                 tz = k + dz;
 
                 id[dx][dy][dz] = -1;
-                if( tx < 0 || tx >= sizes[X] ||
-                    ty < 0 || ty >= sizes[Y] ||
-                    tz < 0 || tz >= sizes[Z] )
+                if( tx < 0 || tx >= sizes[VIO_X] ||
+                    ty < 0 || ty >= sizes[VIO_Y] ||
+                    tz < 0 || tz >= sizes[VIO_Z] )
                 {
                     corners[dx][dy][dz][0] = fill_value;
                     corners[dx][dy][dz][1] = fill_value;
@@ -339,9 +339,9 @@ static  void  evaluate_volume_by_voting(
         ++n_classes;
     }
 
-    x_frac = x - (Real) i;
-    y_frac = y - (Real) j;
-    z_frac = z - (Real) k;
+    x_frac = x - (VIO_Real) i;
+    y_frac = y - (VIO_Real) j;
+    z_frac = z - (VIO_Real) k;
 
     best_value = 0.0;
 

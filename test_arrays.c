@@ -25,7 +25,7 @@ int  main(
     int     x, y, z, i, size;
     int     **T(*)p, *single_p;
     int     static_p[SIZE][SIZE]T([SIZE]);
-    Real    start, end;
+    VIO_Real    start, end;
 
     start = current_cpu_seconds();
 
@@ -94,10 +94,10 @@ int  main(
 #ifdef  THREE_D
             for_less( z, 0, size )
             {
-                single_p[IJK(x,y,z,size,size)] = single_p[IJK(x-1,y,z,size,size)];
+                single_p[VIO_IJK(x,y,z,size,size)] = single_p[VIO_IJK(x-1,y,z,size,size)];
             }
 #else
-            single_p[IJ(x,y,size)] = single_p[IJ(x-1,y,size)];
+            single_p[VIO_IJ(x,y,size)] = single_p[VIO_IJ(x-1,y,size)];
 #endif
         }
     }

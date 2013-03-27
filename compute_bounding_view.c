@@ -32,7 +32,7 @@ int  main(
     VIO_General_transform   transform;
     VIO_File_formats        format;
     object_struct       **object_list;
-    BOOLEAN             first, have_transform;
+    VIO_BOOL             first, have_transform;
 
     initialize_argument_processing( argc, argv );
 
@@ -50,13 +50,13 @@ int  main(
 
     have_transform = get_string_argument( NULL, &transform_filename );
     if( have_transform &&
-        input_transform_file( transform_filename, &transform ) != OK )
+        input_transform_file( transform_filename, &transform ) != VIO_OK )
     {
         return( 1 );
     }
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     fill_Vector( z_axis, xview, yview, zview );

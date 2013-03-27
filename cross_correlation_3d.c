@@ -1,18 +1,18 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
-private  Real  compute_cross_correlation(
-    Volume     volume1,
-    Volume     volume2,
+private  VIO_Real  compute_cross_correlation(
+    VIO_Volume     volume1,
+    VIO_Volume     volume2,
     Transform  *transform,
     int        nx,
     int        ny,
     int        nz );
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input1.mnc input2.mnc  output.obj xs ys zs  ns  xr yr zr  xt yt zt\n\
 \n\
      Evaluates the cross correlation of the two volumes, with the set of\n\
@@ -25,11 +25,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING         input_filename1, input_filename2, output_filename;
-    Volume         volume1, volume2;
-    Real           x_sampling, y_sampling, z_sampling, x_rot, y_rot, z_rot;
-    Real           x_trans, y_trans, z_trans, xr, yr, zr, xt, yt, zt, alpha;
-    Real           value, separations[3], min_value, max_value;
+    VIO_STR         input_filename1, input_filename2, output_filename;
+    VIO_Volume         volume1, volume2;
+    VIO_Real           x_sampling, y_sampling, z_sampling, x_rot, y_rot, z_rot;
+    VIO_Real           x_trans, y_trans, z_trans, xr, yr, zr, xt, yt, zt, alpha;
+    VIO_Real           value, separations[3], min_value, max_value;
     Transform      transform, x_rot_trans, y_rot_trans, z_rot_trans;
     Transform      translation;
     int            n_samples, sample, sizes[3], nx, ny, nz;
@@ -59,15 +59,15 @@ int  main(
 
     if( input_volume( input_filename1, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume1, NULL ) != OK )
+                      TRUE, &volume1, NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume1, sizes );
     get_volume_separations( volume1, separations );
 
-    nx = ROUND( (Real) sizes[X] * FABS(separations[X]) / x_sampling );
-    ny = ROUND( (Real) sizes[Y] * FABS(separations[Y]) / y_sampling );
-    nz = ROUND( (Real) sizes[Z] * FABS(separations[Z]) / z_sampling );
+    nx = ROUND( (VIO_Real) sizes[X] * FABS(separations[X]) / x_sampling );
+    ny = ROUND( (VIO_Real) sizes[Y] * FABS(separations[Y]) / y_sampling );
+    nz = ROUND( (VIO_Real) sizes[Z] * FABS(separations[Z]) / z_sampling );
 
     if( equal_strings( input_filename1, input_filename2 ) )
     {
@@ -77,7 +77,7 @@ int  main(
     {
         if( input_volume( input_filename2, 3, File_order_dimension_names,
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &volume2, NULL ) != OK )
+                          TRUE, &volume2, NULL ) != VIO_OK )
             return( 1 );
     }
 
@@ -94,7 +94,7 @@ int  main(
 
     for_less( sample, 0, n_samples )
     {
-        alpha = 2.0 * (Real) sample / (Real) (n_samples-1) - 1.0;
+        alpha = 2.0 * (VIO_Real) sample / (VIO_Real) (n_samples-1) - 1.0;
 
         xr = alpha * x_rot;
         yr = alpha * y_rot;
@@ -155,20 +155,20 @@ int  main(
     return( 0 );
 }
 
-private  Real  compute_cross_correlation(
-    Volume     volume1,
-    Volume     volume2,
+private  VIO_Real  compute_cross_correlation(
+    VIO_Volume     volume1,
+    VIO_Volume     volume2,
     Transform  *transform,
     int        nx,
     int        ny,
     int        nz )
 {
-    Real  voxel[MAX_DIMENSIONS];
-    Real  voxel2[MAX_DIMENSIONS];
-    Real  delta[MAX_DIMENSIONS];
+    VIO_Real  voxel[MAX_DIMENSIONS];
+    VIO_Real  voxel2[MAX_DIMENSIONS];
+    VIO_Real  delta[MAX_DIMENSIONS];
     int   sizes[MAX_DIMENSIONS], grid[MAX_DIMENSIONS];
     int   i, j, k, dim;
-    Real  value1, value2, corr, xw, yw, zw, diff;
+    VIO_Real  value1, value2, corr, xw, yw, zw, diff;
 
     corr = 0.0;
 
@@ -176,14 +176,14 @@ private  Real  compute_cross_correlation(
 
     voxel[0] = 0.0;
     voxel[1] = 0.0;
-    voxel[2] = INTERPOLATE( ((Real) 0 + 0.5) / (Real) nz,
-                                        -0.5, (Real) sizes[Z] - 0.5 );
+    voxel[2] = VIO_INTERPOLATE( ((VIO_Real) 0 + 0.5) / (VIO_Real) nz,
+                                        -0.5, (VIO_Real) sizes[Z] - 0.5 );
     convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
     transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
     convert_world_to_voxel( volume2, xw, yw, zw, voxel2 );
 
-    voxel[2] = INTERPOLATE( ((Real) 1 + 0.5) / (Real) nz,
-                                        -0.5, (Real) sizes[Z] - 0.5 );
+    voxel[2] = VIO_INTERPOLATE( ((VIO_Real) 1 + 0.5) / (VIO_Real) nz,
+                                        -0.5, (VIO_Real) sizes[Z] - 0.5 );
     convert_voxel_to_world( volume1, voxel, &xw, &yw, &zw );
     transform_point( transform, xw, yw, zw, &xw, &yw, &zw );
     convert_world_to_voxel( volume2, xw, yw, zw, delta );
@@ -194,18 +194,18 @@ private  Real  compute_cross_correlation(
 
     for_less( i, 0, nx )
     {
-        voxel[X] = INTERPOLATE( ((Real) i + 0.5) / (Real) nx,
-                                -0.5, (Real) sizes[X] - 0.5 );
+        voxel[X] = VIO_INTERPOLATE( ((VIO_Real) i + 0.5) / (VIO_Real) nx,
+                                -0.5, (VIO_Real) sizes[X] - 0.5 );
 
         for_less( j, 0, ny )
         {
-            voxel[Y] = INTERPOLATE( ((Real) j + 0.5) / (Real) ny,
-                                    -0.5, (Real) sizes[Y] - 0.5 );
+            voxel[Y] = VIO_INTERPOLATE( ((VIO_Real) j + 0.5) / (VIO_Real) ny,
+                                    -0.5, (VIO_Real) sizes[Y] - 0.5 );
 
             for_less( k, 0, nz )
             {
-                voxel[Z] = INTERPOLATE( ((Real) k + 0.5) / (Real) nz,
-                                        -0.5, (Real) sizes[Z] - 0.5 );
+                voxel[Z] = VIO_INTERPOLATE( ((VIO_Real) k + 0.5) / (VIO_Real) nz,
+                                        -0.5, (VIO_Real) sizes[Z] - 0.5 );
 
                 if( k == 0 )
                 {
@@ -231,7 +231,7 @@ private  Real  compute_cross_correlation(
         }
     }
 
-    corr /= (Real) (nx * ny * nz);
+    corr /= (VIO_Real) (nx * ny * nz);
 
     return( corr );
 }

@@ -39,7 +39,7 @@ static  int  get_volume_int_value(
     int     y,
     int     z );
 
-static  BOOLEAN  fill_inside(
+static  VIO_BOOL  fill_inside(
     VIO_Volume   volume,
     int      x,
     int      y,
@@ -93,14 +93,14 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
 
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    for_less( z, 0, sizes[Z] )
+    for_less( x, 0, sizes[VIO_X] )
+    for_less( y, 0, sizes[VIO_Y] )
+    for_less( z, 0, sizes[VIO_Z] )
     {
         value = get_volume_int_value( volume, x, y, z );
         if( (value & LABEL_MASK) != value )
@@ -112,7 +112,7 @@ int  main(
     }
 
     if( input_graphics_file( input_surface_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 || get_object_type( objects[0] ) != POLYGONS )
@@ -125,7 +125,7 @@ int  main(
     n_voxels = label_inside_convex_hull( volume, objects[0],
                                          INSIDE_CONVEX_BIT );
     print( "   labeled %d voxels out of %d.\n", n_voxels,
-           sizes[X] * sizes[Y] * sizes[Z] );
+           sizes[VIO_X] * sizes[VIO_Y] * sizes[VIO_Z] );
 
     print( "Labeling voxels just inside convex hull\n" );
 
@@ -139,16 +139,16 @@ int  main(
         print( "Stripping a layer around convex hull [%d/%d].\n", i+1,
                n_to_strip );
 
-        for_less( x, 0, sizes[X] )
-        for_less( y, 0, sizes[Y] )
-        for_less( z, 0, sizes[Z] )
+        for_less( x, 0, sizes[VIO_X] )
+        for_less( y, 0, sizes[VIO_Y] )
+        for_less( z, 0, sizes[VIO_Z] )
         {
             value = get_volume_int_value( volume, x, y, z );
             if( (value & JUST_INSIDE_CONVEX_HULL_BIT) != 0 )
             {
                 value -= JUST_INSIDE_CONVEX_HULL_BIT;
                 value -= INSIDE_CONVEX_BIT;
-                set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+                set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) value );
             }
         }
 
@@ -194,9 +194,9 @@ int  main(
             if( convex_boundaries[i].n_voxels >= close_threshold )
             {
                 if( remove_just_inside_label( volume,
-                        convex_boundaries[i].voxel[X],
-                        convex_boundaries[i].voxel[Y],
-                        convex_boundaries[i].voxel[Z] ) !=
+                        convex_boundaries[i].voxel[VIO_X],
+                        convex_boundaries[i].voxel[VIO_Y],
+                        convex_boundaries[i].voxel[VIO_Z] ) !=
                         convex_boundaries[i].n_voxels )
                     handle_internal_error( "n voxels" );
             }
@@ -209,16 +209,16 @@ int  main(
             if( convex_boundaries[i].n_voxels >= close_threshold )
             {
                 if( fill_inside( volume,
-                        convex_boundaries[i].voxel[X],
-                        convex_boundaries[i].voxel[Y],
-                        convex_boundaries[i].voxel[Z], label_to_set,
+                        convex_boundaries[i].voxel[VIO_X],
+                        convex_boundaries[i].voxel[VIO_Y],
+                        convex_boundaries[i].voxel[VIO_Z], label_to_set,
                         &x_error, &y_error, &z_error ) )
                 {
                     print( "----------------- possible topological hole\n" );
                     print( "%3d: %d %d %d -- leaks through to %d %d %d\n", i+1,
-                           convex_boundaries[i].voxel[X],
-                           convex_boundaries[i].voxel[Y],
-                           convex_boundaries[i].voxel[Z],
+                           convex_boundaries[i].voxel[VIO_X],
+                           convex_boundaries[i].voxel[VIO_Y],
+                           convex_boundaries[i].voxel[VIO_Z],
                            x_error, y_error, z_error );
                 }
             }
@@ -230,17 +230,17 @@ int  main(
     for_less( i, 0, n_convex_boundaries )
     {
         label_connected_to_outside( volume,
-                                    convex_boundaries[i].voxel[X],
-                                    convex_boundaries[i].voxel[Y],
-                                    convex_boundaries[i].voxel[Z] );
+                                    convex_boundaries[i].voxel[VIO_X],
+                                    convex_boundaries[i].voxel[VIO_Y],
+                                    convex_boundaries[i].voxel[VIO_Z] );
     }
 
     print( "Filling in air pockets.\n" );
 
     n_voxels = 0;
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    for_less( z, 0, sizes[Z] )
+    for_less( x, 0, sizes[VIO_X] )
+    for_less( y, 0, sizes[VIO_Y] )
+    for_less( z, 0, sizes[VIO_Z] )
     {
         value = get_volume_int_value( volume, x, y, z );
         if( (value & CONNECTED_TO_OUTSIDE_BIT) == 0 &&
@@ -248,7 +248,7 @@ int  main(
             (value & LABEL_MASK) == 0 )
         {
             value |= label_to_set;
-            set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+            set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) value );
             ++n_voxels;
         }
     }
@@ -256,13 +256,13 @@ int  main(
     if( n_voxels > 0 )
         print( "   filled in %d air pocket voxels.\n", n_voxels );
 
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    for_less( z, 0, sizes[Z] )
+    for_less( x, 0, sizes[VIO_X] )
+    for_less( y, 0, sizes[VIO_Y] )
+    for_less( z, 0, sizes[VIO_Z] )
     {
         value = get_volume_int_value( volume, x, y, z );
         value = value & LABEL_MASK;
-        set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+        set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) value );
     }
 
     history = create_string( "Inside surface labeled." );
@@ -280,7 +280,7 @@ static  int  get_volume_int_value(
     int     y,
     int     z )
 {
-    Real  value;
+    VIO_Real  value;
 
     value = get_volume_real_value( volume, x, y, z, 0, 0 );
 
@@ -292,18 +292,18 @@ static  int   label_inside_convex_hull(
     object_struct    *object,
     int              value_to_set )
 {
-    BOOLEAN              inside;
+    VIO_BOOL              inside;
     int                  c, x, y, z, obj_index, n_set;
     int                  sizes[VIO_MAX_DIMENSIONS], n_intersects;
     int                  n_points, int_index, next_z;
-    Real                 xw, yw, zw, distances[2], limits[2][3];
-    Real                 voxel[VIO_MAX_DIMENSIONS], max_value, value;
-    Real                 boundary_voxel[VIO_MAX_DIMENSIONS];
+    VIO_Real                 xw, yw, zw, distances[2], limits[2][3];
+    VIO_Real                 voxel[VIO_MAX_DIMENSIONS], max_value, value;
+    VIO_Real                 boundary_voxel[VIO_MAX_DIMENSIONS];
     VIO_Point                ray_origin, start_ray, end_ray, *points;
     VIO_Point                point_range[2];
     VIO_Point                ray_point;
     VIO_Vector               ray_direction, offset;
-    Real                 **enter_dist, **exit_dist;
+    VIO_Real                 **enter_dist, **exit_dist;
     polygons_struct      *polygons;
     VIO_progress_struct      progress;
 
@@ -314,7 +314,7 @@ static  int   label_inside_convex_hull(
     if( BINTREE_FACTOR > 0.0 )
     {
         create_polygons_bintree( polygons,
-                                 VIO_ROUND( (Real) polygons->n_items *
+                                 VIO_ROUND( (VIO_Real) polygons->n_items *
                                         BINTREE_FACTOR) + 1);
     }
 
@@ -328,9 +328,9 @@ static  int   label_inside_convex_hull(
     for_less( z, 0, 2 )
     {
         convert_world_to_voxel( volume,
-                                (Real) Point_x(point_range[x]),
-                                (Real) Point_y(point_range[y]),
-                                (Real) Point_z(point_range[z]), voxel );
+                                (VIO_Real) Point_x(point_range[x]),
+                                (VIO_Real) Point_y(point_range[y]),
+                                (VIO_Real) Point_z(point_range[z]), voxel );
         for_less( c, 0, VIO_N_DIMENSIONS )
         {
             if( x == 0 && y == 0 && z == 0 || voxel[c] < limits[0][c] )
@@ -355,24 +355,24 @@ static  int   label_inside_convex_hull(
 
     n_set = 0;
 
-    VIO_ALLOC2D( enter_dist, sizes[X], sizes[Y] );
-    VIO_ALLOC2D( exit_dist, sizes[X], sizes[Y] );
+    VIO_ALLOC2D( enter_dist, sizes[VIO_X], sizes[VIO_Y] );
+    VIO_ALLOC2D( exit_dist, sizes[VIO_X], sizes[VIO_Y] );
 
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+    initialize_progress_report( &progress, FALSE, sizes[VIO_X] * sizes[VIO_Y],
                                 "Testing inside" );
 
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, sizes[VIO_X] )
     {
-        voxel[X] = (Real) x;
-        for_less( y, 0, sizes[Y] )
+        voxel[VIO_X] = (VIO_Real) x;
+        for_less( y, 0, sizes[VIO_Y] )
         {
-            voxel[Y] = (Real) y;
+            voxel[VIO_Y] = (VIO_Real) y;
 
-            voxel[Z] = limits[0][Z];
+            voxel[VIO_Z] = limits[0][VIO_Z];
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
             fill_Point( start_ray, xw, yw, zw );
 
-            voxel[Z] = limits[1][Z];
+            voxel[VIO_Z] = limits[1][VIO_Z];
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
             fill_Point( end_ray, xw, yw, zw );
 
@@ -411,7 +411,7 @@ static  int   label_inside_convex_hull(
             int_index = -1;
             next_z = -1;
 
-            for_less( z, 0, sizes[Z] )
+            for_less( z, 0, sizes[VIO_Z] )
             {
                 while( next_z <= z )
                 {
@@ -421,16 +421,16 @@ static  int   label_inside_convex_hull(
                         GET_POINT_ON_RAY( ray_point, ray_origin, ray_direction,
                                           distances[int_index] );
                         convert_world_to_voxel( volume, 
-                                                (Real) Point_x(ray_point),
-                                                (Real) Point_y(ray_point),
-                                                (Real) Point_z(ray_point),
+                                                (VIO_Real) Point_x(ray_point),
+                                                (VIO_Real) Point_y(ray_point),
+                                                (VIO_Real) Point_z(ray_point),
                                                 boundary_voxel );
-                        next_z = CEILING( boundary_voxel[Z] );
+                        next_z = VIO_CEILING( boundary_voxel[VIO_Z] );
                         inside = ((int_index % 2) == 1);
                     }
                     else
                     {
-                        next_z = sizes[Z];
+                        next_z = sizes[VIO_Z];
                         inside = FALSE;
                     }
                 }
@@ -438,7 +438,7 @@ static  int   label_inside_convex_hull(
                 if( inside )
                 {
                     value = get_volume_real_value( volume, x, y, z, 0, 0);
-                    value = (Real) ((int) value | value_to_set);
+                    value = (VIO_Real) ((int) value | value_to_set);
                     if( value > max_value )
                         value = max_value;
                     set_volume_real_value( volume, x, y, z, 0, 0, value);
@@ -446,18 +446,18 @@ static  int   label_inside_convex_hull(
                 }
             }
 
-            update_progress_report( &progress, x * sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * sizes[VIO_Y] + y + 1 );
         }
     }
 
     terminate_progress_report( &progress );
 
-    for_less( x, 1, sizes[X]-1 )
+    for_less( x, 1, sizes[VIO_X]-1 )
     {
         int      dx, dy, dir;
-        BOOLEAN  error;
+        VIO_BOOL  error;
 
-        for_less( y, 1, sizes[Y]-1 )
+        for_less( y, 1, sizes[VIO_Y]-1 )
         {
             error = FALSE;
 
@@ -496,7 +496,7 @@ static  int   label_inside_convex_hull(
     return( n_set );
 }
 
-static  BOOLEAN  is_on_convex_boundary(
+static  VIO_BOOL  is_on_convex_boundary(
     VIO_Volume   volume,
     int      sizes[],
     int      x,
@@ -519,9 +519,9 @@ static  BOOLEAN  is_on_convex_boundary(
         ty = y + dy[i];
         tz = z + dz[i];
 
-        if( tx < 0 || tx >= sizes[X] ||
-            ty < 0 || ty >= sizes[Y] ||
-            tz < 0 || tz >= sizes[Z] ||
+        if( tx < 0 || tx >= sizes[VIO_X] ||
+            ty < 0 || ty >= sizes[VIO_Y] ||
+            tz < 0 || tz >= sizes[VIO_Z] ||
             (get_volume_int_value( volume, tx, ty, tz ) & INSIDE_CONVEX_BIT)
                                                             == 0 )
         {
@@ -553,7 +553,7 @@ static  int  expand_convex_boundary(
 
     value = get_volume_int_value( volume, x, y, z );
     value |= JUST_INSIDE_CONVEX_HULL_BIT;
-    set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+    set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) value );
     xyz.x = (short) x;
     xyz.y = (short) y;
     xyz.z = (short) z;
@@ -578,14 +578,14 @@ static  int  expand_convex_boundary(
             ty = y + dy[i];
             tz = z + dz[i];
 
-            if( tx >= 0 && tx < sizes[X] &&
-                ty >= 0 && ty < sizes[Y] &&
-                tz >= 0 && tz < sizes[Z] &&
+            if( tx >= 0 && tx < sizes[VIO_X] &&
+                ty >= 0 && ty < sizes[VIO_Y] &&
+                tz >= 0 && tz < sizes[VIO_Z] &&
                 is_on_convex_boundary( volume, sizes, tx, ty, tz ) )
             {
                 value = get_volume_int_value( volume, tx, ty, tz );
                 value |= JUST_INSIDE_CONVEX_HULL_BIT;
-                set_volume_real_value( volume, tx, ty, tz, 0, 0, (Real) value );
+                set_volume_real_value( volume, tx, ty, tz, 0, 0, (VIO_Real) value );
                 xyz.x = (short) tx;
                 xyz.y = (short) ty;
                 xyz.z = (short) tz;
@@ -611,15 +611,15 @@ static  int  label_just_inside_convex_hull(
     get_volume_sizes( volume, sizes );
     n_boundaries = 0;
 
-    for_less( x, 0, sizes[X] )
-    for_less( y, 0, sizes[Y] )
-    for_less( z, 0, sizes[Z] )
+    for_less( x, 0, sizes[VIO_X] )
+    for_less( y, 0, sizes[VIO_Y] )
+    for_less( z, 0, sizes[VIO_Z] )
     {
         if( is_on_convex_boundary( volume, sizes, x, y, z ) )
         {
-            bound.voxel[X] = x;
-            bound.voxel[Y] = y;
-            bound.voxel[Z] = z;
+            bound.voxel[VIO_X] = x;
+            bound.voxel[VIO_Y] = y;
+            bound.voxel[VIO_Z] = z;
             bound.n_voxels = expand_convex_boundary( volume, sizes, x, y, z );
             ADD_ELEMENT_TO_ARRAY( *boundaries, n_boundaries, bound,
                                   DEFAULT_CHUNK_SIZE );
@@ -646,7 +646,7 @@ static  int  remove_just_inside_label(
 
     value = get_volume_int_value( volume, x, y, z );
     value -= JUST_INSIDE_CONVEX_HULL_BIT;
-    set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+    set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) value );
     xyz.x = (short) x;
     xyz.y = (short) y;
     xyz.z = (short) z;
@@ -671,15 +671,15 @@ static  int  remove_just_inside_label(
             ty = y + dy[i];
             tz = z + dz[i];
 
-            if( tx >= 0 && tx < sizes[X] &&
-                ty >= 0 && ty < sizes[Y] &&
-                tz >= 0 && tz < sizes[Z] &&
+            if( tx >= 0 && tx < sizes[VIO_X] &&
+                ty >= 0 && ty < sizes[VIO_Y] &&
+                tz >= 0 && tz < sizes[VIO_Z] &&
                 (get_volume_int_value( volume, tx, ty, tz ) &
                     JUST_INSIDE_CONVEX_HULL_BIT) != 0 )
             {
                 value = get_volume_int_value( volume, tx, ty, tz );
                 value -= JUST_INSIDE_CONVEX_HULL_BIT;
-                set_volume_real_value( volume, tx, ty, tz, 0, 0, (Real) value );
+                set_volume_real_value( volume, tx, ty, tz, 0, 0, (VIO_Real) value );
                 xyz.x = (short) tx;
                 xyz.y = (short) ty;
                 xyz.z = (short) tz;
@@ -695,7 +695,7 @@ static  int  remove_just_inside_label(
     return( n_voxels );
 }
 
-static  BOOLEAN  fill_inside(
+static  VIO_BOOL  fill_inside(
     VIO_Volume   volume,
     int      x,
     int      y,
@@ -705,7 +705,7 @@ static  BOOLEAN  fill_inside(
     int      *y_error,
     int      *z_error )
 {
-    BOOLEAN                      error;
+    VIO_BOOL                      error;
     int                          i, n_dirs, *dx, *dy, *dz, tx, ty, tz, value;
     int                          sizes[VIO_N_DIMENSIONS];
     xyz_struct                   xyz;
@@ -719,7 +719,7 @@ static  BOOLEAN  fill_inside(
 
     value = get_volume_int_value( volume, x, y, z );
     value |= label_to_set;
-    set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+    set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) value );
     xyz.x = (short) x;
     xyz.y = (short) y;
     xyz.z = (short) z;
@@ -742,9 +742,9 @@ static  BOOLEAN  fill_inside(
             ty = y + dy[i];
             tz = z + dz[i];
 
-            if( tx >= 0 && tx < sizes[X] &&
-                ty >= 0 && ty < sizes[Y] &&
-                tz >= 0 && tz < sizes[Z] )
+            if( tx >= 0 && tx < sizes[VIO_X] &&
+                ty >= 0 && ty < sizes[VIO_Y] &&
+                tz >= 0 && tz < sizes[VIO_Z] )
             {
                 value = get_volume_int_value( volume, tx, ty, tz );
 
@@ -762,7 +762,7 @@ static  BOOLEAN  fill_inside(
 
                     value |= label_to_set;
                     set_volume_real_value( volume, tx, ty, tz, 0, 0,
-                                           (Real) value );
+                                           (VIO_Real) value );
                     xyz.x = (short) tx;
                     xyz.y = (short) ty;
                     xyz.z = (short) tz;
@@ -799,7 +799,7 @@ static  void  label_connected_to_outside(
         return;
 
     value |= CONNECTED_TO_OUTSIDE_BIT;
-    set_volume_real_value( volume, x, y, z, 0, 0, (Real) value );
+    set_volume_real_value( volume, x, y, z, 0, 0, (VIO_Real) value );
 
     xyz.x = (short) x;
     xyz.y = (short) y;
@@ -823,9 +823,9 @@ static  void  label_connected_to_outside(
             ty = y + dy[i];
             tz = z + dz[i];
 
-            if( tx >= 0 && tx < sizes[X] &&
-                ty >= 0 && ty < sizes[Y] &&
-                tz >= 0 && tz < sizes[Z] )
+            if( tx >= 0 && tx < sizes[VIO_X] &&
+                ty >= 0 && ty < sizes[VIO_Y] &&
+                tz >= 0 && tz < sizes[VIO_Z] )
             {
                 value = get_volume_int_value( volume, tx, ty, tz );
 
@@ -835,7 +835,7 @@ static  void  label_connected_to_outside(
                 {
                     value |= CONNECTED_TO_OUTSIDE_BIT;
                     set_volume_real_value( volume, tx, ty, tz, 0, 0,
-                                           (Real) value );
+                                           (VIO_Real) value );
                     xyz.x = (short) tx;
                     xyz.y = (short) ty;
                     xyz.z = (short) tz;
@@ -855,7 +855,7 @@ static  void  print_convex_boundaries(
     int                     n_bound,
     convex_boundary_struct  bounds[] )
 {
-    BOOLEAN  first;
+    VIO_BOOL  first;
     int      i, order, prev_max, prev_pos, max_pos, n_voxels;
 
     prev_max = -1;
@@ -890,9 +890,9 @@ static  void  print_convex_boundaries(
         prev_max = bounds[max_pos].n_voxels;
 
         print( "%3d: %d %d %d -- %d voxels\n", order+1,
-               bounds[max_pos].voxel[X],
-               bounds[max_pos].voxel[Y],
-               bounds[max_pos].voxel[Z],
+               bounds[max_pos].voxel[VIO_X],
+               bounds[max_pos].voxel[VIO_Y],
+               bounds[max_pos].voxel[VIO_Z],
                bounds[max_pos].n_voxels );
     }
 }

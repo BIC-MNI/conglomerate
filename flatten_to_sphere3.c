@@ -3,21 +3,21 @@
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
-    Real             sphere_weight,
+    VIO_Point            init_points[],
+    VIO_Real             sphere_weight,
     int              n_iters );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, initial_filename;
+    VIO_STR               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons, *init_polygons;
-    Point                *init_points;
-    Real                 sphere_weight;
+    VIO_Point                *init_points;
+    VIO_Real                 sphere_weight;
 
     initialize_argument_processing( argc, argv );
 
@@ -33,7 +33,7 @@ int  main(
     (void) get_int_argument( 100, &n_iters );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -42,7 +42,7 @@ int  main(
     if( get_string_argument( NULL, &initial_filename ) )
     {
         if( input_graphics_file( initial_filename, &format, &n_i_objects,
-                                 &i_object_list ) != OK || n_i_objects != 1 ||
+                                 &i_object_list ) != VIO_OK || n_i_objects != 1 ||
             get_object_type(i_object_list[0]) != POLYGONS )
             return( 1 );
 
@@ -58,22 +58,22 @@ int  main(
 
     flatten_polygons( polygons, init_points, sphere_weight, n_iters );
 
-    if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
+    if( output_graphics_file( dest_filename, format, 1, object_list ) != VIO_OK )
         print_error( "Error outputting: %s\n", dest_filename );
 
     return( 0 );
 }
 
-private  Real  evaluate_fit(
+private  VIO_Real  evaluate_fit(
     int     n_parameters,
-    Real    parameters[],
-    Real    distances[],
+    VIO_Real    parameters[],
+    VIO_Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    sphere_weight )
+    VIO_Real    sphere_weight )
 {
     int    p, n_points, ind, n, neigh;
-    Real   fit, xc, yc, zc, x, y, z, dx, dy, dz, dist, diff, act_dist;
+    VIO_Real   fit, xc, yc, zc, x, y, z, dx, dy, dz, dist, diff, act_dist;
 
     fit = 0.0;
     n_points = n_parameters / 3;
@@ -90,9 +90,9 @@ private  Real  evaluate_fit(
             dist = distances[ind];
             ++ind;
 
-            dx = parameters[IJ(p,0,3)] - parameters[IJ(neigh,0,3)];
-            dy = parameters[IJ(p,1,3)] - parameters[IJ(neigh,1,3)];
-            dz = parameters[IJ(p,2,3)] - parameters[IJ(neigh,2,3)];
+            dx = parameters[VIO_IJ(p,0,3)] - parameters[VIO_IJ(neigh,0,3)];
+            dy = parameters[VIO_IJ(p,1,3)] - parameters[VIO_IJ(neigh,1,3)];
+            dz = parameters[VIO_IJ(p,2,3)] - parameters[VIO_IJ(neigh,2,3)];
             act_dist = dx * dx + dy * dy + dz * dz;
             diff = dist - act_dist;
             fit += diff * diff;
@@ -107,18 +107,18 @@ private  Real  evaluate_fit(
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
-            xc += parameters[IJ(neigh,0,3)];
-            yc += parameters[IJ(neigh,1,3)];
-            zc += parameters[IJ(neigh,2,3)];
+            xc += parameters[VIO_IJ(neigh,0,3)];
+            yc += parameters[VIO_IJ(neigh,1,3)];
+            zc += parameters[VIO_IJ(neigh,2,3)];
         }
 
-        xc /= (Real) n_neighbours[p];
-        yc /= (Real) n_neighbours[p];
-        zc /= (Real) n_neighbours[p];
+        xc /= (VIO_Real) n_neighbours[p];
+        yc /= (VIO_Real) n_neighbours[p];
+        zc /= (VIO_Real) n_neighbours[p];
 
-        x = parameters[IJ(p,0,3)];
-        y = parameters[IJ(p,1,3)];
-        z = parameters[IJ(p,2,3)];
+        x = parameters[VIO_IJ(p,0,3)];
+        y = parameters[VIO_IJ(p,1,3)];
+        z = parameters[VIO_IJ(p,2,3)];
 
         dx = x - xc;
         dy = y - yc;
@@ -134,17 +134,17 @@ private  Real  evaluate_fit(
 
 private  void  evaluate_fit_derivative(
     int     n_parameters,
-    Real    parameters[],
-    Real    distances[],
+    VIO_Real    parameters[],
+    VIO_Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    sphere_weight,
-    Real    deriv[] )
+    VIO_Real    sphere_weight,
+    VIO_Real    deriv[] )
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
-    Real   dx, dy, dz, dist, act_dist, factor, weight;
-    Real   x_diff, y_diff, z_diff;
-    Real   x1, y1, z1, x2, y2, z2, xc, yc, zc, x_factor, y_factor, z_factor;
+    VIO_Real   dx, dy, dz, dist, act_dist, factor, weight;
+    VIO_Real   x_diff, y_diff, z_diff;
+    VIO_Real   x1, y1, z1, x2, y2, z2, xc, yc, zc, x_factor, y_factor, z_factor;
 
     for_less( p, 0, n_parameters )
         deriv[p] = 0.0;
@@ -154,7 +154,7 @@ private  void  evaluate_fit_derivative(
     ind = 0;
     for_less( p, 0, n_points )
     {
-        p_index = IJ(p,0,3);
+        p_index = VIO_IJ(p,0,3);
         x1 = parameters[p_index+0];
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
@@ -168,7 +168,7 @@ private  void  evaluate_fit_derivative(
             dist = distances[ind];
             ++ind;
 
-            n_index = IJ(neigh,0,3);
+            n_index = VIO_IJ(neigh,0,3);
             x2 = parameters[n_index+0];
             y2 = parameters[n_index+1];
             z2 = parameters[n_index+2];
@@ -188,7 +188,7 @@ private  void  evaluate_fit_derivative(
 
     for_less( p, 0, n_points )
     {
-        p_index = IJ(p,0,3);
+        p_index = VIO_IJ(p,0,3);
         x1 = parameters[p_index+0];
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
@@ -198,13 +198,13 @@ private  void  evaluate_fit_derivative(
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
-            n_index = IJ(neigh,0,3);
+            n_index = VIO_IJ(neigh,0,3);
             xc += parameters[n_index+0];
             yc += parameters[n_index+1];
             zc += parameters[n_index+2];
         }
 
-        weight = 1.0 / (Real) n_neighbours[p];
+        weight = 1.0 / (VIO_Real) n_neighbours[p];
         xc *= weight;
         yc *= weight;
         zc *= weight;
@@ -229,7 +229,7 @@ private  void  evaluate_fit_derivative(
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
-            n_index = IJ(neigh,0,3);
+            n_index = VIO_IJ(neigh,0,3);
             deriv[n_index+0] += x_factor;
             deriv[n_index+1] += y_factor;
             deriv[n_index+2] += z_factor;
@@ -239,19 +239,19 @@ private  void  evaluate_fit_derivative(
 
 private  void  evaluate_fit_along_line(
     int     n_parameters,
-    Real    parameters[],
-    Real    delta[],
-    Real    distances[],
+    VIO_Real    parameters[],
+    VIO_Real    delta[],
+    VIO_Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    sphere_weight,
-    Real    coefs[] )
+    VIO_Real    sphere_weight,
+    VIO_Real    coefs[] )
 {
     int    p, n_points, ind, n, neigh, p_index, n_index;
-    Real   dx, dy, dz, dist, x1, y1, z1, dx1, dy1, dz1;
-    Real   x, y, z, weight;
-    Real   line_coefs[3], ax, bx, ay, by, az, bz, a, b, c;
-    Real   s_coefs[5];
+    VIO_Real   dx, dy, dz, dist, x1, y1, z1, dx1, dy1, dz1;
+    VIO_Real   x, y, z, weight;
+    VIO_Real   line_coefs[3], ax, bx, ay, by, az, bz, a, b, c;
+    VIO_Real   s_coefs[5];
 
     for_less( p, 0, 5 )
         coefs[p] = 0.0;
@@ -261,7 +261,7 @@ private  void  evaluate_fit_along_line(
     ind = 0;
     for_less( p, 0, n_points )
     {
-        p_index = IJ(p,0,3);
+        p_index = VIO_IJ(p,0,3);
         x1 = parameters[p_index+0];
         y1 = parameters[p_index+1];
         z1 = parameters[p_index+2];
@@ -278,7 +278,7 @@ private  void  evaluate_fit_along_line(
             dist = distances[ind];
             ++ind;
 
-            n_index = IJ(neigh,0,3);
+            n_index = VIO_IJ(neigh,0,3);
             x = x1 - parameters[n_index+0];
             y = y1 - parameters[n_index+1];
             z = z1 - parameters[n_index+2];
@@ -304,7 +304,7 @@ private  void  evaluate_fit_along_line(
 
     for_less( p, 0, n_points )
     {
-        p_index = IJ( p, 0, 3 );
+        p_index = VIO_IJ( p, 0, 3 );
 
         ax = 0.0;
         ay = 0.0;
@@ -316,7 +316,7 @@ private  void  evaluate_fit_along_line(
         for_less( n, 0, n_neighbours[p] )
         {
             neigh = neighbours[p][n];
-            n_index = IJ(neigh,0,3);
+            n_index = VIO_IJ(neigh,0,3);
             ax += delta[n_index+0];
             ay += delta[n_index+1];
             az += delta[n_index+2];
@@ -325,7 +325,7 @@ private  void  evaluate_fit_along_line(
             bz += parameters[n_index+2];
         }
 
-        weight = 1.0 / (Real) n_neighbours[p];
+        weight = 1.0 / (VIO_Real) n_neighbours[p];
 
         ax *= weight;
         ay *= weight;
@@ -378,18 +378,18 @@ private  void  evaluate_fit_along_line(
 
 private  void  minimize_along_line(
     int     n_parameters,
-    Real    parameters[],
-    Real    delta[],
-    Real    distances[],
+    VIO_Real    parameters[],
+    VIO_Real    delta[],
+    VIO_Real    distances[],
     int     n_neighbours[],
     int     *neighbours[],
-    Real    sphere_weight )
+    VIO_Real    sphere_weight )
 {
     int    p, s, n_solutions, best_index;
-    Real   coefs[5], deriv[4], t, fit, best_fit, solutions[3];
+    VIO_Real   coefs[5], deriv[4], t, fit, best_fit, solutions[3];
 #ifdef   DEBUG
 #define  DEBUG
-    Real   test_fit, *test;
+    VIO_Real   test_fit, *test;
 
     ALLOC( test, n_parameters );
 #endif
@@ -399,7 +399,7 @@ private  void  minimize_along_line(
                              coefs );
 
     for_less( p, 0, 4 )
-        deriv[p] = (Real) (p+1) * coefs[p+1];
+        deriv[p] = (VIO_Real) (p+1) * coefs[p+1];
 
     n_solutions = solve_cubic( deriv[3], deriv[2], deriv[1], deriv[0],
                                solutions );
@@ -455,15 +455,15 @@ private  void  minimize_along_line(
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
-    Real             sphere_weight,
+    VIO_Point            init_points[],
+    VIO_Real             sphere_weight,
     int              n_iters )
 {
     int              p, n, point, *n_neighbours, **neighbours;
     int              n_parameters, total_neighbours;
-    Real             gg, dgg, gam, current_time, last_update_time;
-    Real             *parameters, *g, *h, *xi, fit, *unit_dir;
-    Real             *distances, len;
+    VIO_Real             gg, dgg, gam, current_time, last_update_time;
+    VIO_Real             *parameters, *g, *h, *xi, fit, *unit_dir;
+    VIO_Real             *distances, len;
     int              iter, ind, update_rate;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
@@ -499,12 +499,12 @@ private  void  flatten_polygons(
 
     for_less( point, 0, polygons->n_points )
     {
-        parameters[IJ(point,0,3)] = RPoint_x(init_points[point] );
-        parameters[IJ(point,1,3)] = RPoint_y(init_points[point] );
-        parameters[IJ(point,2,3)] = RPoint_z(init_points[point] );
+        parameters[VIO_IJ(point,0,3)] = RPoint_x(init_points[point] );
+        parameters[VIO_IJ(point,1,3)] = RPoint_y(init_points[point] );
+        parameters[VIO_IJ(point,2,3)] = RPoint_z(init_points[point] );
     }
 
-    sphere_weight *= (Real) total_neighbours / (Real) polygons->n_points;
+    sphere_weight *= (VIO_Real) total_neighbours / (VIO_Real) polygons->n_points;
 
     fit = evaluate_fit( n_parameters, parameters, distances,
                         n_neighbours, neighbours, sphere_weight );
@@ -584,9 +584,9 @@ private  void  flatten_polygons(
     for_less( point, 0, polygons->n_points )
     {
         fill_Point( polygons->points[point],
-                    parameters[IJ(point,0,3)],
-                    parameters[IJ(point,1,3)],
-                    parameters[IJ(point,2,3)] );
+                    parameters[VIO_IJ(point,0,3)],
+                    parameters[VIO_IJ(point,1,3)],
+                    parameters[VIO_IJ(point,2,3)] );
     }
 
     FREE( distances );

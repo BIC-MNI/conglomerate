@@ -6,44 +6,44 @@
 
 private  void  transform_to_screen(
     Transform   *t,
-    Point       *world_point,
-    Real        *u,
-    Real        *v );
+    VIO_Point       *world_point,
+    VIO_Real        *u,
+    VIO_Real        *v );
 
-private  BOOLEAN  compute_perspective_transform(
+private  VIO_BOOL  compute_perspective_transform(
     int        n_points,
-    Point      screen_points[],
-    Point      world[],
+    VIO_Point      screen_points[],
+    VIO_Point      world[],
     int        n_iters,
     Transform  *transform );
 
-private  BOOLEAN  solve_minimization_without_dimension(
-    Real   seconds_derivs[N_PARAMS][N_PARAMS],
+private  VIO_BOOL  solve_minimization_without_dimension(
+    VIO_Real   seconds_derivs[N_PARAMS][N_PARAMS],
     int    dim_to_leave_out,
-    Real   solution[] );
+    VIO_Real   solution[] );
 
 private  void  generate_points(
     int    n_points,
-    Point  world_points[] );
+    VIO_Point  world_points[] );
 
 private  void  generate_transform(
     Transform   *transform );
 
 private  void  generate_screen_points(
     int         n_points,
-    Point       world_points[],
+    VIO_Point       world_points[],
     Transform   *transform,
-    Real        error_size,
-    Point       screen_points[] );
+    VIO_Real        error_size,
+    VIO_Point       screen_points[] );
 
 private  void  print_transform(
     char       title[],
     Transform  *transform );
 
-private  BOOLEAN  transforms_close(
+private  VIO_BOOL  transforms_close(
     Transform  *t1,
     Transform  *t2,
-    Real       tolerance );
+    VIO_Real       tolerance );
 
 private  void  normalize_transform(
     Transform  *t );
@@ -53,12 +53,12 @@ int  main(
     char  *argv[] )
 {
     FILE        *file;
-    BOOLEAN     file_present;
+    VIO_BOOL     file_present;
     char        *points_filename;
     int         n_iters, n_points, i, n_tries, n_correct, u, v;
-    Real        tolerance, error, x, y, z, test_u, test_v;
+    VIO_Real        tolerance, error, x, y, z, test_u, test_v;
     Transform   true_transform, test_transform;
-    Point       *screen_points, *world_points;
+    VIO_Point       *screen_points, *world_points;
 
     initialize_argument_processing( argc, argv );
 
@@ -73,7 +73,7 @@ int  main(
     if( get_string_argument( "", &points_filename ) )
     {
         file_present = TRUE;
-        if( open_file( points_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( points_filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
         (void) input_int( file, &n_points );
@@ -86,7 +86,7 @@ int  main(
             (void) input_int( file, &u );
             (void) input_int( file, &v );
 
-            fill_Point( screen_points[i], (Real) u, (Real) v, 0.0 );
+            fill_Point( screen_points[i], (VIO_Real) u, (VIO_Real) v, 0.0 );
         }
 
         for_less( i, 0, n_points )
@@ -196,19 +196,19 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN  compute_weighted_perspective_transform(
+private  VIO_BOOL  compute_weighted_perspective_transform(
     int        n_points,
-    Point      screen_points[],
-    Point      world[],
-    Real       weights[],
+    VIO_Point      screen_points[],
+    VIO_Point      world[],
+    VIO_Real       weights[],
     Transform  *transform )
 {
     int       i, j, p, d;
-    Real      second_deriv_coefs[N_PARAMS][N_PARAMS];
-    Real      set_of_coefs[N_PARAMS];
-    Real      parameters[N_PARAMS], best_parameters[N_PARAMS];
-    Real      max, best_max;
-    BOOLEAN   found;
+    VIO_Real      second_deriv_coefs[N_PARAMS][N_PARAMS];
+    VIO_Real      set_of_coefs[N_PARAMS];
+    VIO_Real      parameters[N_PARAMS], best_parameters[N_PARAMS];
+    VIO_Real      max, best_max;
+    VIO_BOOL   found;
 
     for_less( i, 0, N_PARAMS )
         for_less( j, 0, N_PARAMS )
@@ -256,8 +256,8 @@ private  BOOLEAN  compute_weighted_perspective_transform(
             max = 0.0;
             for_less( j, 0, N_PARAMS )
             {
-                if( j == 0 || ABS(parameters[j]) > max )
-                    max = ABS(parameters[j]);
+                if( j == 0 || VIO_ABS(parameters[j]) > max )
+                    max = VIO_ABS(parameters[j]);
             }
 
             if( !found || max < best_max )
@@ -277,7 +277,7 @@ private  BOOLEAN  compute_weighted_perspective_transform(
     {
         for_less( i, 0, 3 )
             for_less( j, 0, 4 )
-                Transform_elem(*transform,i,j) = best_parameters[IJ(i,j,4)];
+                Transform_elem(*transform,i,j) = best_parameters[VIO_IJ(i,j,4)];
 
         Transform_elem(*transform,3,0) = 0.0;
         Transform_elem(*transform,3,1) = 0.0;
@@ -289,16 +289,16 @@ private  BOOLEAN  compute_weighted_perspective_transform(
 }
 
 
-private  BOOLEAN  compute_perspective_transform(
+private  VIO_BOOL  compute_perspective_transform(
     int        n_points,
-    Point      screen_points[],
-    Point      world[],
+    VIO_Point      screen_points[],
+    VIO_Point      world[],
     int        n_iters,
     Transform  *transform )
 {
     int       p, iter;
-    Real      *weights, x, y, z;
-    BOOLEAN   found;
+    VIO_Real      *weights, x, y, z;
+    VIO_BOOL   found;
 
     ALLOC( weights, n_points );
     for_less( p, 0, n_points )
@@ -329,15 +329,15 @@ private  BOOLEAN  compute_perspective_transform(
     return( found );
 }
 
-private  BOOLEAN  solve_minimization_without_dimension(
-    Real   seconds_derivs[N_PARAMS][N_PARAMS],
+private  VIO_BOOL  solve_minimization_without_dimension(
+    VIO_Real   seconds_derivs[N_PARAMS][N_PARAMS],
     int    dim_to_leave_out,
-    Real   solution[] )
+    VIO_Real   solution[] )
 {
-    BOOLEAN  found;
+    VIO_BOOL  found;
     int      i, j, i_ind, j_ind;
-    Real     **mat, constants[N_PARAMS-1], value_to_set;
-    Real     answer[N_PARAMS-1];
+    VIO_Real     **mat, constants[N_PARAMS-1], value_to_set;
+    VIO_Real     answer[N_PARAMS-1];
 
     value_to_set = 1.0;
 
@@ -382,9 +382,9 @@ private  BOOLEAN  solve_minimization_without_dimension(
 #define  MAX_BOX   10.0
 
 private  void  generate_point(
-    Real   min_box,
-    Real   max_box,
-    Point  *point )
+    VIO_Real   min_box,
+    VIO_Real   max_box,
+    VIO_Point  *point )
 {
     int   c;
 
@@ -397,7 +397,7 @@ private  void  generate_point(
 
 private  void  generate_points(
     int    n_points,
-    Point  world_points[] )
+    VIO_Point  world_points[] )
 {
     int   i;
 
@@ -408,11 +408,11 @@ private  void  generate_points(
 private  void  generate_transform(
     Transform   *transform )
 {
-    BOOLEAN     in_box;
+    VIO_BOOL     in_box;
     int         c;
-    Real        tx, ty, tz;
-    Point       eye, look_at, origin;
-    Vector      x_axis, z_axis;
+    VIO_Real        tx, ty, tz;
+    VIO_Point       eye, look_at, origin;
+    VIO_Vector      x_axis, z_axis;
     Transform   scale_transform;
 
     generate_point( MIN_BOX, MAX_BOX, &look_at );
@@ -461,13 +461,13 @@ private  void  generate_transform(
 
 private  void  generate_screen_points(
     int         n_points,
-    Point       world_points[],
+    VIO_Point       world_points[],
     Transform   *transform,
-    Real        error_size,
-    Point       screen_points[] )
+    VIO_Real        error_size,
+    VIO_Point       screen_points[] )
 {
     int   i;
-    Real  u, v, w, x_error, y_error, z_error;
+    VIO_Real  u, v, w, x_error, y_error, z_error;
 
     for_less( i, 0, n_points )
     {
@@ -505,10 +505,10 @@ private  void  print_transform(
     }
 }
 
-private  BOOLEAN  transforms_close(
+private  VIO_BOOL  transforms_close(
     Transform  *t1,
     Transform  *t2,
-    Real       tolerance )
+    VIO_Real       tolerance )
 {
     int   i, j;
 
@@ -529,7 +529,7 @@ private  BOOLEAN  transforms_close(
 private  void  normalize_transform(
     Transform  *t )
 {
-    Real  max_value;
+    VIO_Real  max_value;
     int   i, j;
 
     max_value = 0.0;
@@ -537,7 +537,7 @@ private  void  normalize_transform(
     {
         for_less( j, 0, 4 )
             if( i == 0 && j == 0 ||
-                ABS(Transform_elem(*t,i,j)) > ABS(max_value) )
+                VIO_ABS(Transform_elem(*t,i,j)) > VIO_ABS(max_value) )
                 max_value = Transform_elem(*t,i,j);
     }
 
@@ -558,11 +558,11 @@ private  void  normalize_transform(
 
 private  void  transform_to_screen(
     Transform   *t,
-    Point       *world_point,
-    Real        *u,
-    Real        *v )
+    VIO_Point       *world_point,
+    VIO_Real        *u,
+    VIO_Real        *v )
 {
-    Real  x, y, z;
+    VIO_Real  x, y, z;
 
     transform_point( t, Point_x(*world_point),
                      Point_y(*world_point),

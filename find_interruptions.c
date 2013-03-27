@@ -8,16 +8,16 @@ private  int  get_n_groups(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            threshold );
+    VIO_Real            threshold );
 
-private  BOOLEAN  get_next_filename(
+private  VIO_BOOL  get_next_filename(
     char      *filename[] )
 {
     static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
+    static    VIO_BOOL  in_list = FALSE;
+    static    VIO_STR   filename_string;
     char               *argument;
-    BOOLEAN            found;
+    VIO_BOOL            found;
 
     found = FALSE;
 
@@ -26,7 +26,7 @@ private  BOOLEAN  get_next_filename(
         if( in_list )
         {
             if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
-                 == OK )
+                 == VIO_OK )
             {
                 *filename = filename_string;
                 found = TRUE;
@@ -50,7 +50,7 @@ private  BOOLEAN  get_next_filename(
             }
             else
             {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK)
                     break;
                 in_list = TRUE;
             }
@@ -63,7 +63,7 @@ private  BOOLEAN  get_next_filename(
     return( found );
 }
 
-private  BOOLEAN  is_left_id(
+private  VIO_BOOL  is_left_id(
     int   id )
 {
     if( id >= 1000 )
@@ -72,7 +72,7 @@ private  BOOLEAN  is_left_id(
     return( id >= 10 && id <= 19 || id == 30 );
 }
 
-private  BOOLEAN  is_right_id(
+private  VIO_BOOL  is_right_id(
     int   id )
 {
     if( id >= 1000 )
@@ -85,19 +85,19 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *landmark_filename, *error_filename;
-    BOOLEAN              left;
+    VIO_BOOL              left;
     char                 *format;
-    STRING               *filenames;
-    Volume               volume;
+    VIO_STR               *filenames;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
      int                  n_files, n_objects, n_in_file, total;
     int                 n_interruptions;
     object_struct        **object_list;
     int                  e, p, n_samples, n_errors;
     int                  structure_id, n_groups;
-    Real                 threshold;
+    VIO_Real                 threshold;
 
     initialize_argument_processing( argc, argv );
 
@@ -109,7 +109,7 @@ int  main(
     }
 
     n_files = 0;
-    volume = (Volume) NULL;
+    volume = (VIO_Volume) NULL;
 
     while( get_next_filename( &landmark_filename ) )
     {
@@ -117,7 +117,7 @@ int  main(
             filename_extension_matches( landmark_filename, "mni" ) ||
             filename_extension_matches( landmark_filename, "fre" ) )
         {
-            if( volume != (Volume) NULL )
+            if( volume != (VIO_Volume) NULL )
                 cancel_volume_input( volume, &volume_input );
  
             status = start_volume_input(
@@ -149,7 +149,7 @@ int  main(
         else if( strstr( filenames[p], "cing_r" ) != (char *) NULL )
             left = FALSE;
 
-        if( status != OK )
+        if( status != VIO_OK )
             return( 1 );
 
         n_in_file = count_occurrences( n_objects, object_list, structure_id );
@@ -169,12 +169,12 @@ int  main(
         delete_object_list( n_objects, object_list );
     }
 
-    if( volume != (Volume) NULL )
+    if( volume != (VIO_Volume) NULL )
         cancel_volume_input( volume, &volume_input );
 
     print( "\nTotal number of interruptions = %d out of %d\n",
            n_interruptions, total );
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  int  count_occurrences(
@@ -206,10 +206,10 @@ private  int  count_occurrences(
 private  void   expand_class(
     int    n,
     int    classes[],
-    Point  pos[],
+    VIO_Point  pos[],
     int    ind,
     int    class,
-    Real   threshold )
+    VIO_Real   threshold )
 {
     int    i;
 
@@ -227,12 +227,12 @@ private  int  get_n_groups(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            threshold )
+    VIO_Real            threshold )
 {
     int             i, id, n, n_groups;
     marker_struct   *marker;
     int             *class;
-    Point           *pos;
+    VIO_Point           *pos;
 
     n = 0;
 

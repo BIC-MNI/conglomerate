@@ -5,9 +5,9 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING         input_filename, output_filename;
-    Real           r_shade, g_shade, b_shade;
-    Real           r, g, b;
+    VIO_STR         input_filename, output_filename;
+    VIO_Real           r_shade, g_shade, b_shade;
+    VIO_Real           r, g, b;
     int            x, y, intensity;
     pixels_struct  pixels;
     Colour         dest, col;
@@ -26,7 +26,7 @@ int  main(
         return( 1 );
     }
 
-    if( input_rgb_file( input_filename, &pixels ) != OK )
+    if( input_rgb_file( input_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     if( pixels.pixel_type != RGB_PIXEL )
@@ -49,7 +49,7 @@ int  main(
         }
     }
 
-    if( output_rgb_file( output_filename, &pixels ) != OK )
+    if( output_rgb_file( output_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     return( 0 );

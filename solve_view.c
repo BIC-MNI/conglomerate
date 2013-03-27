@@ -7,35 +7,35 @@ extern       int swapRM(int x);
 #define  N_PARMS   6
 
 private  void  get_random_points(
-    Real     size,
+    VIO_Real     size,
     int      n_points,
-    Real     (*points)[N_DIMENSIONS] );
+    VIO_Real     (*points)[N_DIMENSIONS] );
 
 private  void   get_view_transform(
     int         n_points,
-    Real        (*points)[N_DIMENSIONS],
-    Real        angle,
+    VIO_Real        (*points)[N_DIMENSIONS],
+    VIO_Real        angle,
     Transform   *view );
 
 private  void  get_random_orientation(
-    Real    size,
-    Real    parameters[] );
+    VIO_Real    size,
+    VIO_Real    parameters[] );
 
 private  void  create_transform(
-    Real       parameters[],
+    VIO_Real       parameters[],
     Transform  *transform );
 
 private  void  solve_view_by_least_squares(
     int         n_points,
-    Real        (*points)[N_DIMENSIONS],
-    Real        (*screen_points)[2],
+    VIO_Real        (*points)[N_DIMENSIONS],
+    VIO_Real        (*screen_points)[2],
     Transform   *solution );
 
 private  void  solve_view_by_intervals(
     int         n_points,
-    Real        (*points)[N_DIMENSIONS],
-    Real        (*screen_points)[2],
-    Real        tolerance,
+    VIO_Real        (*points)[N_DIMENSIONS],
+    VIO_Real        (*screen_points)[2],
+    VIO_Real        tolerance,
     Transform   *solution );
 
 static  Transform r_t;
@@ -45,14 +45,14 @@ int   main(
     char   *argv[] )
 {
     int          p, iter, n_iters, seed, n_points, i, j, n_success;
-    Real         parameters[N_PARMS], x, y, z;
-    Real         angle, size, x_scale, x_pos, y_pos;
-    Real         (*points)[N_DIMENSIONS];
-    Real         (*screen_points)[2], tol, int_tolerance;
-    Real         x_pixel_size, y_pixel_size;
+    VIO_Real         parameters[N_PARMS], x, y, z;
+    VIO_Real         angle, size, x_scale, x_pos, y_pos;
+    VIO_Real         (*points)[N_DIMENSIONS];
+    VIO_Real         (*screen_points)[2], tol, int_tolerance;
+    VIO_Real         x_pixel_size, y_pixel_size;
     Transform    view, transform, solution, scale, random_transform;
     Transform    solution2;
-    BOOLEAN      outside_view;
+    VIO_BOOL      outside_view;
 
     initialize_argument_processing( argc, argv );
 
@@ -111,9 +111,9 @@ r_t = random_transform;
             screen_points[p][Y] = y / z;
 
             x_pos = (int) (x_pixel_size * (screen_points[p][X] + 1.0) / 2.0);
-            screen_points[p][X] = -1.0 + 2.0 * ((Real) x_pos + 0.5) / x_pixel_size;
+            screen_points[p][X] = -1.0 + 2.0 * ((VIO_Real) x_pos + 0.5) / x_pixel_size;
             y_pos = (int) (y_pixel_size * (screen_points[p][Y] + 1.0) / 2.0);
-            screen_points[p][Y] = -1.0 + 2.0 * ((Real) y_pos + 0.5) / y_pixel_size;
+            screen_points[p][Y] = -1.0 + 2.0 * ((VIO_Real) y_pos + 0.5) / y_pixel_size;
 
 /*
             print( "%d: %g %g\n", p, screen_points[p][X], screen_points[p][Y] );
@@ -206,9 +206,9 @@ r_t = random_transform;
 }
 
 private  void  get_random_points(
-    Real     size,
+    VIO_Real     size,
     int      n_points,
-    Real     (*points)[N_DIMENSIONS] )
+    VIO_Real     (*points)[N_DIMENSIONS] )
 {
     int   p, dim;
 
@@ -219,14 +219,14 @@ private  void  get_random_points(
 
 private  void   get_view_transform(
     int         n_points,
-    Real        (*points)[N_DIMENSIONS],
-    Real        angle,
+    VIO_Real        (*points)[N_DIMENSIONS],
+    VIO_Real        angle,
     Transform   *view )
 {
     int        p, dim;
-    Real       origin[N_DIMENSIONS];
-    Real       min_pos[N_DIMENSIONS], max_pos[N_DIMENSIONS];
-    Real       dist, z_scale, half_width;
+    VIO_Real       origin[N_DIMENSIONS];
+    VIO_Real       min_pos[N_DIMENSIONS], max_pos[N_DIMENSIONS];
+    VIO_Real       dist, z_scale, half_width;
     Transform  translation, scale;
 
     for_less( dim, 0, N_DIMENSIONS )
@@ -259,8 +259,8 @@ private  void   get_view_transform(
 }
 
 private  void  get_random_orientation(
-    Real    size,
-    Real    parameters[] )
+    VIO_Real    size,
+    VIO_Real    parameters[] )
 {
     parameters[0] = get_random_0_to_1() * 2.0 * PI;
     parameters[1] = get_random_0_to_1() * 2.0 * PI;
@@ -272,7 +272,7 @@ private  void  get_random_orientation(
 }
 
 private  void  create_transform(
-    Real       parameters[],
+    VIO_Real       parameters[],
     Transform  *transform )
 {
     Transform  translation, x_rot, y_rot, z_rot;
@@ -290,12 +290,12 @@ private  void  create_transform(
 
 private  void  solve_view_by_least_squares(
     int         n_points,
-    Real        (*points)[N_DIMENSIONS],
-    Real        (*screen_points)[2],
+    VIO_Real        (*points)[N_DIMENSIONS],
+    VIO_Real        (*screen_points)[2],
     Transform   *solution )
 {
     int                   p, dim;
-    Real                  x, y, z, xs, ys, parameters[11], weights[11];
+    VIO_Real                  x, y, z, xs, ys, parameters[11], weights[11];
     linear_least_squares  lsq;
 
     initialize_linear_least_squares( &lsq, 11 );
@@ -369,7 +369,7 @@ private  Solution_types  check_parameters(
 {
     int        dim, p;
     Interval   trans[N_DIMENSIONS], t1, t2, t3, x, xs, ys, cx, cy, xz, yz;
-    Real       sl, sh, tl, th;
+    VIO_Real       sl, sh, tl, th;
     Solution_types   sol_type;
 
     sol_type = SOLUTION;
@@ -405,16 +405,16 @@ private  Solution_types  check_parameters(
     return( sol_type );
 }
 
-private  BOOLEAN  interval_solve_view(
+private  VIO_BOOL  interval_solve_view(
     int         n_points,
     Interval    (*points)[N_DIMENSIONS],
     Interval    (*screen_points)[2],
     Interval    parameters[],
-    Real        tolerance,
+    VIO_Real        tolerance,
     Interval    solution[] )
 {
     int             p, largest_index;
-    Real            size, largest_size, mid;
+    VIO_Real            size, largest_size, mid;
     Interval        save_int;
     Solution_types  situation;
 
@@ -483,11 +483,11 @@ private  void  prune_outer_intervals(
     Interval    (*points)[N_DIMENSIONS],
     Interval    (*screen_points)[2],
     Interval    parameters[],
-    Real        tolerance )
+    VIO_Real        tolerance )
 {
     int       p, iters;
-    BOOLEAN   changed;
-    Real      size, edge;
+    VIO_BOOL   changed;
+    VIO_Real      size, edge;
     Interval  save_param;
     Solution_types  situation;
 
@@ -572,15 +572,15 @@ private  void  prune_outer_intervals(
 
 private  void  solve_view_by_intervals(
     int         n_points,
-    Real        (*points)[N_DIMENSIONS],
-    Real        (*screen_points)[2],
-    Real        tolerance,
+    VIO_Real        (*points)[N_DIMENSIONS],
+    VIO_Real        (*screen_points)[2],
+    VIO_Real        tolerance,
     Transform   *solution )
 {
     int        p, i, j;
     Interval   (*int_points)[N_DIMENSIONS], (*int_screen_points)[2];
     Interval   initial_guess[12], answer[12];
-    Real       x_scale;
+    VIO_Real       x_scale;
     Transform  scale;
 
     ALLOC( int_points, n_points );
@@ -601,7 +601,7 @@ private  void  solve_view_by_intervals(
     {
         SET_INTERVAL( initial_guess[p], -1.0e30, 1.0e30 );
 {
-    Real  value;
+    VIO_Real  value;
 
     value = Transform_elem( r_t, p / 4, p % 4 );
     if( value < 0.0 )
@@ -630,8 +630,8 @@ private  void  solve_view_by_intervals(
     {
         for_less( j, 0, 4 )
         {
-            print( "   %g +/- %g", INTERVAL_MIDPOINT(answer[IJ(i,j,4)]),
-                                   INTERVAL_SIZE(answer[IJ(i,j,4)]) / 2.0 );
+            print( "   %g +/- %g", INTERVAL_MIDPOINT(answer[VIO_IJ(i,j,4)]),
+                                   INTERVAL_SIZE(answer[VIO_IJ(i,j,4)]) / 2.0 );
         }
         print( "\n" );
     }
@@ -644,7 +644,7 @@ private  void  solve_view_by_intervals(
     for_less( i, 0, 3 )
     for_less( j, 0, 4 )
     {
-        Transform_elem( *solution, i,j) = INTERVAL_MIDPOINT(answer[IJ(i,j,4)]);
+        Transform_elem( *solution, i,j) = INTERVAL_MIDPOINT(answer[VIO_IJ(i,j,4)]);
     }
 
     x_scale = Transform_elem( *solution, 0, 0 );

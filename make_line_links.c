@@ -47,7 +47,7 @@ int  main(
     }
 
     if( input_graphics_file( src1_filename,
-                             &format, &n_objects1, &objects1 ) != OK ||
+                             &format, &n_objects1, &objects1 ) != VIO_OK ||
         n_objects1 != 1 || get_object_type(objects1[0]) != LINES )
     {
         print( "Expected one lines object in file: %s\n", src1_filename );
@@ -62,7 +62,7 @@ int  main(
 
     coalesce_lines( lines1 );
 
-    if( output_graphics_file( dest_filename, format, 1, objects1 ) != OK )
+    if( output_graphics_file( dest_filename, format, 1, objects1 ) != VIO_OK )
         return( 1 );
 
     if( lines1->n_items != 1 )
@@ -75,7 +75,7 @@ int  main(
 return( 0 );
 
     if( input_graphics_file( src2_filename,
-                             &format, &n_objects2, &objects2 ) != OK ||
+                             &format, &n_objects2, &objects2 ) != VIO_OK ||
         n_objects2 != 1 || get_object_type(objects2[0]) != LINES )
     {
         print( "Expected one lines object in file: %s\n", src2_filename );
@@ -100,7 +100,7 @@ return( 0 );
         add_point_to_line( lines, &point2 );
     }
 
-    if( output_graphics_file( dest_filename, format, 1, &object ) != OK )
+    if( output_graphics_file( dest_filename, format, 1, &object ) != VIO_OK )
         return( 1 );
 
     delete_object_list( n_objects1, objects1 );
@@ -269,9 +269,9 @@ static  void  get_box_index(
     VIO_Real  diff, p, min_p, max_p;
     int   dim, *coords[VIO_N_DIMENSIONS];
 
-    coords[X] = i;
-    coords[Y] = j;
-    coords[Z] = k;
+    coords[VIO_X] = i;
+    coords[VIO_Y] = j;
+    coords[VIO_Z] = k;
 
     for_less( dim, 0, VIO_N_DIMENSIONS )
     {
@@ -306,7 +306,7 @@ static  void  tmp_coalesce_object_points(
     int         i1, i2, j1, j2, k1, k2;
     box_struct  ***boxes;
     VIO_Point       min_point, max_point, *new_points, pt;
-    BOOLEAN     found;
+    VIO_BOOL     found;
 
     new_points = NULL;
 
@@ -321,11 +321,11 @@ static  void  tmp_coalesce_object_points(
             n_boxes[dim] = 1;
     }
 
-    VIO_ALLOC3D( boxes, n_boxes[X], n_boxes[Y], n_boxes[Z] );
+    VIO_ALLOC3D( boxes, n_boxes[VIO_X], n_boxes[VIO_Y], n_boxes[VIO_Z] );
 
-    for_less( i, 0, n_boxes[X] )
-    for_less( j, 0, n_boxes[Y] )
-    for_less( k, 0, n_boxes[Z] )
+    for_less( i, 0, n_boxes[VIO_X] )
+    for_less( j, 0, n_boxes[VIO_Y] )
+    for_less( k, 0, n_boxes[VIO_Z] )
     {
         boxes[i][j][k].n_points = 0;
     }
@@ -340,9 +340,9 @@ static  void  tmp_coalesce_object_points(
     ALLOC( points_list, *n_points );
 
     cum_index = 0;
-    for_less( i, 0, n_boxes[X] )
-    for_less( j, 0, n_boxes[Y] )
-    for_less( k, 0, n_boxes[Z] )
+    for_less( i, 0, n_boxes[VIO_X] )
+    for_less( j, 0, n_boxes[VIO_Y] )
+    for_less( k, 0, n_boxes[VIO_Z] )
     {
         boxes[i][j][k].point_indices = &points_list[cum_index];
         cum_index += boxes[i][j][k].n_points;

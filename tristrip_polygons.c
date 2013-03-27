@@ -9,7 +9,7 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename;
+    VIO_STR           input_filename, output_filename;
     int              n_objects, start_poly;
     File_formats     format;
     object_struct    **object_list;
@@ -29,7 +29,7 @@ int  main(
     (void) get_int_argument( 0, &start_poly );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
     {
         print_error( "Error reading %s.\n", input_filename );

@@ -3,12 +3,12 @@
 
 private  void  subdivide_big_polygons(
     polygons_struct    *polygons,
-    Real               max_length );
+    VIO_Real               max_length );
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.obj  output.obj  max_edge_length\n\
 \n\
      Subdivides any polygons in the file, placing output in the original file\n\
@@ -21,12 +21,12 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename;
+    VIO_STR           input_filename, output_filename;
     int              i, n_objects;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons;
-    Real             max_length;
+    VIO_Real             max_length;
 
     initialize_argument_processing( argc, argv );
 
@@ -42,7 +42,7 @@ int  main(
         output_filename = input_filename;
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     for_less( i, 0, n_objects )
@@ -65,10 +65,10 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN  polygon_should_be_subdivided(
+private  VIO_BOOL  polygon_should_be_subdivided(
     polygons_struct    *polygons,
     int                poly,
-    Real               max_length )
+    VIO_Real               max_length )
 {
     int   vertex, p1, p2;
 
@@ -93,14 +93,14 @@ private  BOOLEAN  polygon_should_be_subdivided(
 
 private  void  subdivide_big_polygons(
     polygons_struct    *polygons,
-    Real               max_length )
+    VIO_Real               max_length )
 {
     int                i, new_n_points, new_n_indices, new_n_polygons;
     int                *new_indices, *new_end_indices;
     int                size, *n_point_neighbours, **point_neighbours;
     int                **midpoints;
     int                total_n_point_neighbours;
-    Point              *new_points;
+    VIO_Point              *new_points;
     Colour             save_colour;
     progress_struct    progress;
 

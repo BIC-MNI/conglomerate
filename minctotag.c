@@ -52,7 +52,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     /* --- create the output tags */
@@ -62,22 +62,22 @@ int  main(
     if( open_file_with_default_suffix( tag_filename,
                                        get_default_tag_file_suffix(),
                                        WRITE_FILE, ASCII_FORMAT,
-                                       &file ) != OK ||
+                                       &file ) != VIO_OK ||
         initialize_tag_file_output( file,
-                "Created by converting volume to tags (minctotag).", 1 ) != OK )
+                "Created by converting volume to tags (minctotag).", 1 ) != VIO_OK )
     {
         return( 1 );
     }
 
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+    initialize_progress_report( &progress, FALSE, sizes[VIO_X] * sizes[VIO_Y],
                                 "Creating tags" );
 
     n_tags = 0;
-    for_less( x, 0, sizes[X] )
+    for_less( x, 0, sizes[VIO_X] )
     {
-        for_less( y, 0, sizes[Y] )
+        for_less( y, 0, sizes[VIO_Y] )
         {
-            for_less( z, 0, sizes[Z] )
+            for_less( z, 0, sizes[VIO_Z] )
             {
                 value = get_volume_real_value( volume, x, y, z, 0, 0 );
                 if( min_id > max_id && value != 0.0 ||
@@ -85,12 +85,12 @@ int  main(
                 {
                     convert_3D_voxel_to_world( volume,
                                                (VIO_Real) x, (VIO_Real) y, (VIO_Real) z,
-                                               &tag[X], &tag[Y], &tag[Z] );
+                                               &tag[VIO_X], &tag[VIO_Y], &tag[VIO_Z] );
 
                     structure_id = VIO_ROUND( value );
 
                     if( output_one_tag( file, 1, tag, NULL, NULL,
-                                        &structure_id, NULL, NULL ) != OK )
+                                        &structure_id, NULL, NULL ) != VIO_OK )
                     {
                         return( 1 );
                     }
@@ -99,7 +99,7 @@ int  main(
                 }
             }
 
-            update_progress_report( &progress, x * sizes[Y] + y + 1 );
+            update_progress_report( &progress, x * sizes[VIO_Y] + y + 1 );
         }
     }
 

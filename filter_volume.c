@@ -2,9 +2,9 @@
 #include  <bicpl.h>
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING   usage_str = "\n\
+    VIO_STR   usage_str = "\n\
 Usage: %s input.mnc output.mnc x_width y_width z_width\n\
            [world|voxel] [byte]\n\
 \n\
@@ -23,10 +23,10 @@ int  main(
     int              filter_start[N_DIMENSIONS];
     int              filter_end[N_DIMENSIONS];
     int              filter_size[N_DIMENSIONS];
-    Real             *weights;
-    Volume           volume, new_volume;
-    STRING           input_filename, output_filename;
-    STRING           exec, source_file;
+    VIO_Real             *weights;
+    VIO_Volume           volume, new_volume;
+    VIO_STR           input_filename, output_filename;
+    VIO_STR           exec, source_file;
     char             command[EXTREMELY_LARGE_STRING_SIZE];
     progress_struct  progress;
 
@@ -41,7 +41,7 @@ int  main(
 
     if( input_volume( input_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     new_volume = copy_volume_definition( volume, NC_FLOAT, FALSE, 0.0, 0.0 );
@@ -111,6 +111,6 @@ private  void  generate_filter(
     int           y,
     int           filter_start[],
     int           filter_sizes[],
-    Real          weights[] )
+    VIO_Real          weights[] )
 {
 }

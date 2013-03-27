@@ -5,13 +5,13 @@ private  void   manifold_polygons(
     polygons_struct    *polygons,
     int                start_poly,
     int                max_polygons,
-    BOOLEAN            manifold_required,
+    VIO_BOOL            manifold_required,
     polygons_struct    *out );
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input.obj  output.obj [x y z] [max_poly]\n\
 \n\
      Creates a 2d manifold from an arbitrary polyhedron.\n\n";
@@ -23,12 +23,12 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING           input_filename, output_filename, dummy;
+    VIO_STR           input_filename, output_filename, dummy;
     int              n_objects, max_polygons;
     int              start_poly, poly;
-    Real             x, y, z, dist, closest_dist;
-    Point            start, point;
-    BOOLEAN          start_specified, manifold_required;
+    VIO_Real             x, y, z, dist, closest_dist;
+    VIO_Point            start, point;
+    VIO_BOOL          start_specified, manifold_required;
     File_formats     format;
     object_struct    **object_list;
     polygons_struct  *polygons, out;
@@ -56,7 +56,7 @@ int  main(
     manifold_required = !get_string_argument( NULL, &dummy );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects < 1 ||
+                             &object_list ) != VIO_OK || n_objects < 1 ||
         get_object_type( object_list[0] ) != POLYGONS )
     {
         print_error( "File must have a polygons structure.\n" );
@@ -108,7 +108,7 @@ private  void   assign_distances(
     int                start_poly )
 {
     int                         poly, size, neigh, edge, current, current_dist;
-    Real                        dist;
+    VIO_Real                        dist;
     PRIORITY_QUEUE_STRUCT(int)  queue;
 
     for_less( poly, 0, polygons->n_items )
@@ -136,7 +136,7 @@ private  void   assign_distances(
             {
                 poly_dist[neigh] = current_dist + 1;
                 INSERT_IN_PRIORITY_QUEUE( queue, neigh,
-                                          (Real) -poly_dist[neigh] );
+                                          (VIO_Real) -poly_dist[neigh] );
             }
         }
     }
@@ -148,7 +148,7 @@ private  void   manifold_polygons(
     polygons_struct    *polygons,
     int                start_poly,
     int                max_polygons,
-    BOOLEAN            manifold_required,
+    VIO_BOOL            manifold_required,
     polygons_struct    *out )
 {
     int                point, poly, size, neigh, neigh_size, v, edge, p, i, j;
@@ -157,7 +157,7 @@ private  void   manifold_polygons(
     int                ind, *new_point_ids, n;
     int                n_done, *sorted, tmp;
     int                *poly_dist;
-    BOOLEAN            add, changed;
+    VIO_BOOL            add, changed;
     Smallest_int       *point_included, *poly_included;
 
     for_less( poly, 0, polygons->n_items )

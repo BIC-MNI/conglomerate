@@ -21,7 +21,7 @@ int  main(
     VIO_STR               volume1_filename, volume2_filename, output_filename;
     VIO_Real                 min1, max1, min2, max2, value1, value2;
     VIO_Real                 neither, first_only, second_only, both, value;
-    BOOLEAN              in_one, in_two;
+    VIO_BOOL              in_one, in_two;
     int                  v0, v1, v2, v3, v4;
     VIO_Volume               volume1, volume2, output_volume;
 
@@ -46,12 +46,12 @@ int  main(
 
     if( input_volume( volume1_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume1, NULL ) != OK )
+                      TRUE, &volume1, NULL ) != VIO_OK )
         return( 1 );
 
     if( input_volume( volume2_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume2, NULL ) != OK )
+                      TRUE, &volume2, NULL ) != VIO_OK )
         return( 1 );
 
     output_volume = copy_volume_definition( volume1, NC_BYTE, FALSE, 0.0, 0.0 );

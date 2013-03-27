@@ -27,7 +27,7 @@ int  main(
     }
 
     if( input_graphics_file( avg_filename, &format, &n_avg_objects,
-                             &avg_object_list ) != OK )
+                             &avg_object_list ) != VIO_OK )
     {
         print( "Couldn't read %s.\n", avg_filename );
         return( 1 );
@@ -42,7 +42,7 @@ int  main(
     n_avg_points = get_object_points( avg_object_list[0], &avg_points );
 
     if( input_graphics_file( sample_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
     {
         print( "Couldn't read %s.\n", sample_filename );
         return( 1 );
@@ -63,11 +63,11 @@ int  main(
     }
 
     if( open_file( variance_filename, READ_FILE, ASCII_FORMAT, &variance_file )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &output_file )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     for_less( p, 0, n_points )
@@ -76,7 +76,7 @@ int  main(
 
         for_less( i, 0, 3 )
         for_less( j, 0, 3 )
-            if( input_real( variance_file, &transform[i][j] ) != OK )
+            if( input_real( variance_file, &transform[i][j] ) != VIO_OK )
                 return( 1 );
 
         tx = (VIO_Real) Vector_x(offset) * transform[0][0] +
@@ -93,8 +93,8 @@ int  main(
                       ty * (VIO_Real) Vector_y(offset) +
                       tz * (VIO_Real) Vector_z(offset);
 
-        if( output_real( output_file, mahalanobis ) != OK ||
-            output_newline( output_file ) != OK )
+        if( output_real( output_file, mahalanobis ) != VIO_OK ||
+            output_newline( output_file ) != VIO_OK )
             return( 1 );
     }
 

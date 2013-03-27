@@ -34,7 +34,7 @@ int  main(
     }
 
     if( input_graphics_file( surface_filename, &format, &n_objects,
-                             &object_list ) != OK ||
+                             &object_list ) != VIO_OK ||
         n_objects < 1 || get_object_type(object_list[0]) != POLYGONS )
     {
         print_error( "Error in file: %s\n", surface_filename );
@@ -47,7 +47,7 @@ int  main(
 
     while( get_string_argument( NULL, &filename ) )
     {
-        if( input_texture_values( filename, &n_values, &values ) != OK ||
+        if( input_texture_values( filename, &n_values, &values ) != VIO_OK ||
             n_values != polygons->n_points )
         {
             print_error( "Error in values file: %s\n", filename );
@@ -102,7 +102,7 @@ int  main(
     FREE( which_class );
 
     if( output_texture_values( output_filename, BINARY_FORMAT,
-                               polygons->n_points, values ) != OK )
+                               polygons->n_points, values ) != VIO_OK )
         return( 1 );
 
     object = create_object( LINES );

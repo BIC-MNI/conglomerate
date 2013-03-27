@@ -16,23 +16,23 @@ int  main(
     int                  x, y, z, sizes[N_DIMENSIONS];
     int                  start[N_DIMENSIONS], end[N_DIMENSIONS];
     int                  slice, axis, xyz_axis;
-    Real                 value, min_voxel, max_voxel, filter_width;
-    Real                 min_value, max_value, filter_ratio;
-    Real                 min_nonzero, max_nonzero, y_scale;
-    Real                 min_range, max_range;
-    STRING               input_volume_filename, output_filename;
-    STRING               axis_name;
+    VIO_Real                 value, min_voxel, max_voxel, filter_width;
+    VIO_Real                 min_value, max_value, filter_ratio;
+    VIO_Real                 min_nonzero, max_nonzero, y_scale;
+    VIO_Real                 min_range, max_range;
+    VIO_STR               input_volume_filename, output_filename;
+    VIO_STR               axis_name;
     lines_struct         *lines;
     histogram_struct     histogram;
-    Real                 xyz[N_DIMENSIONS], voxel[N_DIMENSIONS];
-    Real                 *counts, delta;
-    Real                 scale, trans, interval_width;
-    Real                 x1, y1, x2, y2;
+    VIO_Real                 xyz[N_DIMENSIONS], voxel[N_DIMENSIONS];
+    VIO_Real                 *counts, delta;
+    VIO_Real                 scale, trans, interval_width;
+    VIO_Real                 x1, y1, x2, y2;
     int                  n, i;
     int                  n_objects, n_voxels;
     int                  n_boxes, deriv;
     object_struct        **objects;
-    Volume               volume;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -69,7 +69,7 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -83,13 +83,13 @@ int  main(
     }
 
     if( n_boxes >= 1 )
-        scale = (max_value - min_value) / (Real) (n_boxes-1);
+        scale = (max_value - min_value) / (VIO_Real) (n_boxes-1);
     else
         scale = (max_value - min_value) / (max_voxel - min_voxel);
 
     delta = scale;
-    if( n_boxes < 1 && (max_value - min_value) / delta > (Real) MAX_BOXES )
-        delta = (max_value - min_value) / (Real) MAX_BOXES;
+    if( n_boxes < 1 && (max_value - min_value) / delta > (VIO_Real) MAX_BOXES )
+        delta = (max_value - min_value) / (VIO_Real) MAX_BOXES;
 
     initialize_histogram( &histogram, delta, min_value - scale/2.0 );
 
@@ -147,7 +147,7 @@ int  main(
                               &scale, &trans );
 
     min_nonzero = scale * (-0.5) + trans;
-    max_nonzero = scale * ((Real) n + 0.5) + trans;
+    max_nonzero = scale * ((VIO_Real) n + 0.5) + trans;
 
     FREE( counts );
 
@@ -156,7 +156,7 @@ int  main(
     n = get_histogram_counts( &histogram, &counts, filter_width,
                               &scale, &trans );
 
-    interval_width = 1.0 / (Real) n;
+    interval_width = 1.0 / (VIO_Real) n;
 
     n_objects = 1;
     ALLOC( objects, n_objects );
@@ -170,19 +170,19 @@ int  main(
 
     for_less( i, 0, n )
     {
-        fill_Point( lines->points[i], (Real) i * scale + trans,
-                    (Real) counts[i] / interval_width /
-                    (Real) n_voxels, 0.0 );
+        fill_Point( lines->points[i], (VIO_Real) i * scale + trans,
+                    (VIO_Real) counts[i] / interval_width /
+                    (VIO_Real) n_voxels, 0.0 );
     }
 
     if( deriv == 1 )
     {
         for_less( i, 0, n-1 )
         {
-            x1 = (Real) Point_x(lines->points[i]);
-            y1 = (Real) Point_y(lines->points[i]);
-            x2 = (Real) Point_x(lines->points[i+1]);
-            y2 = (Real) Point_y(lines->points[i+1]);
+            x1 = (VIO_Real) Point_x(lines->points[i]);
+            y1 = (VIO_Real) Point_y(lines->points[i]);
+            x2 = (VIO_Real) Point_x(lines->points[i+1]);
+            y2 = (VIO_Real) Point_y(lines->points[i+1]);
 
             print( "%g %g\n", x1, y1 );
 

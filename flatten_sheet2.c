@@ -15,7 +15,7 @@ typedef  float  ftype;
 
 #else
 
-typedef  Real   ftype;
+typedef  VIO_Real   ftype;
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  MINIMIZE_LSQ    minimize_lsq
 #define  INITIALIZE_LSQ  initialize_lsq_terms
@@ -29,19 +29,19 @@ typedef ftype LSQ_TYPE;
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
+    VIO_Point            init_points[],
     int              n_iters );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, initial_filename;
+    VIO_STR               src_filename, dest_filename, initial_filename;
     int                  n_objects, n_i_objects, n_iters;
     File_formats         format;
     object_struct        **object_list, **i_object_list;
     polygons_struct      *polygons;
-    Point                *init_points;
+    VIO_Point                *init_points;
 
     initialize_argument_processing( argc, argv );
 
@@ -58,7 +58,7 @@ int  main(
     if( get_string_argument( NULL, &initial_filename ) )
     {
         if( input_graphics_file( initial_filename, &format, &n_i_objects,
-                                 &i_object_list ) != OK || n_i_objects != 1 ||
+                                 &i_object_list ) != VIO_OK || n_i_objects != 1 ||
             get_object_type(i_object_list[0]) != POLYGONS )
             return( 1 );
 
@@ -73,7 +73,7 @@ int  main(
     }
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -93,10 +93,10 @@ private  void  create_coefficients(
     Smallest_int     interior_flags[],
     int              n_fixed,
     int              fixed_indices[],
-    Real             *fixed_pos[2],
+    VIO_Real             *fixed_pos[2],
     int              to_parameters[],
     int              to_fixed_index[],
-    Real             *constant,
+    VIO_Real             *constant,
     ftype            *linear_terms[],
     ftype            *square_terms[],
     int              *n_cross_terms[],
@@ -105,11 +105,11 @@ private  void  create_coefficients(
 {
     int              node, p, dim, n_nodes_in, n_parameters;
     int              neigh, *indices, parm;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON];
-    Real             flat[2][MAX_POINTS_PER_POLYGON];
-    Real             *weights[2][2], cons[2], con;
-    Real             *node_weights;
-    BOOLEAN          found, ignoring;
+    VIO_Point            neigh_points[MAX_POINTS_PER_POLYGON];
+    VIO_Real             flat[2][MAX_POINTS_PER_POLYGON];
+    VIO_Real             *weights[2][2], cons[2], con;
+    VIO_Real             *node_weights;
+    VIO_BOOL          found, ignoring;
     progress_struct  progress;
 
     n_parameters = 2 * (polygons->n_points - n_fixed);
@@ -150,7 +150,7 @@ private  void  create_coefficients(
 
         flatten_around_vertex( &polygons->points[node],
                                n_neighbours[node], neigh_points,
-                               (BOOLEAN) interior_flags[node],
+                               (VIO_BOOL) interior_flags[node],
                                flat[0], flat[1] );
 
         ignoring = FALSE;
@@ -172,7 +172,7 @@ private  void  create_coefficients(
             n_nodes_in = 0;
             if( to_parameters[node] >= 0 )
             {
-                indices[n_nodes_in] = IJ(to_parameters[node],dim,2);
+                indices[n_nodes_in] = VIO_IJ(to_parameters[node],dim,2);
                 node_weights[n_nodes_in] = 1.0;
                 ++n_nodes_in;
             }
@@ -184,11 +184,11 @@ private  void  create_coefficients(
                 neigh = neighbours[node][p];
                 if( to_parameters[neigh] >= 0 )
                 {
-                    indices[n_nodes_in] = IJ(to_parameters[neigh],0,2);
+                    indices[n_nodes_in] = VIO_IJ(to_parameters[neigh],0,2);
                     node_weights[n_nodes_in] = -weights[dim][0][p];
                     ++n_nodes_in;
 
-                    indices[n_nodes_in] = IJ(to_parameters[neigh],1,2);
+                    indices[n_nodes_in] = VIO_IJ(to_parameters[neigh],1,2);
                     node_weights[n_nodes_in] = -weights[dim][1][p];
                     ++n_nodes_in;
                 }
@@ -227,30 +227,30 @@ private  void  create_coefficients(
 #define   N_BETWEEN_SAVES    3
 #define   DEFAULT_RATIO      1.0
 
-private  Real  evaluate_fit(
+private  VIO_Real  evaluate_fit(
     int              n_parameters,
-    Real             constant_term,
+    VIO_Real             constant_term,
     LSQ_TYPE         *linear_terms,
     LSQ_TYPE         *square_terms,
     int              n_cross_terms[],
     int              *cross_parms[],
     LSQ_TYPE         *cross_terms[],
-    Real             parm_values[] )
+    VIO_Real             parm_values[] )
 {
     int   parm, n;
-    Real  fit, parm_val;
+    VIO_Real  fit, parm_val;
 
     fit = constant_term;
 
     for_less( parm, 0, n_parameters )
     {
         parm_val = parm_values[parm];
-        fit += parm_val * ((Real) linear_terms[parm] +
-                            parm_val * (Real) square_terms[parm]);
+        fit += parm_val * ((VIO_Real) linear_terms[parm] +
+                            parm_val * (VIO_Real) square_terms[parm]);
 
         for_less( n, 0, n_cross_terms[parm] )
             fit += parm_val * parm_values[cross_parms[parm][n]] *
-                   (Real) cross_terms[parm][n];
+                   (VIO_Real) cross_terms[parm][n];
     }
 
     return( fit );
@@ -258,17 +258,17 @@ private  Real  evaluate_fit(
 
 private  void  evaluate_fit_derivative(
     int              n_parameters,
-    Real             constant_term,
+    VIO_Real             constant_term,
     LSQ_TYPE         *linear_terms,
     LSQ_TYPE         *square_terms,
     int              n_cross_terms[],
     int              *cross_parms[],
     LSQ_TYPE         *cross_terms[],
-    Real             parm_values[],
-    Real             derivatives[] )
+    VIO_Real             parm_values[],
+    VIO_Real             derivatives[] )
 {
     int   parm, n, neigh_parm;
-    Real  term, parm_val;
+    VIO_Real  term, parm_val;
 
     for_less( parm, 0, n_parameters )
         derivatives[parm] = 0.0;
@@ -277,34 +277,34 @@ private  void  evaluate_fit_derivative(
     {
         parm_val = parm_values[parm];
 
-        derivatives[parm] += (Real) linear_terms[parm] +
-                             2.0 * parm_val * (Real) square_terms[parm];
+        derivatives[parm] += (VIO_Real) linear_terms[parm] +
+                             2.0 * parm_val * (VIO_Real) square_terms[parm];
 
         for_less( n, 0, n_cross_terms[parm] )
         {
             neigh_parm = cross_parms[parm][n];
-            term = (Real) cross_terms[parm][n];
+            term = (VIO_Real) cross_terms[parm][n];
             derivatives[parm] += parm_values[neigh_parm] * term;
-            derivatives[neigh_parm] += (Real) parm_val * term;
+            derivatives[neigh_parm] += (VIO_Real) parm_val * term;
         }
     }
 }
 
 private  void  evaluate_fit_along_line(
     int              n_parameters,
-    Real             constant_term,
+    VIO_Real             constant_term,
     LSQ_TYPE         *linear_terms,
     LSQ_TYPE         *square_terms,
     int              n_cross_terms[],
     int              *cross_parms[],
     LSQ_TYPE         *cross_terms[],
-    Real             parm_values[],
-    Real             line_coefs[],
-    Real             *a_ptr,
-    Real             *b_ptr )
+    VIO_Real             parm_values[],
+    VIO_Real             line_coefs[],
+    VIO_Real             *a_ptr,
+    VIO_Real             *b_ptr )
 {
     int   parm, n, neigh_parm;
-    Real  weight, n_line_coef, square, a, b, parm_val, line_coef;
+    VIO_Real  weight, n_line_coef, square, a, b, parm_val, line_coef;
 
     a = 0.0;
     b = 0.0;
@@ -312,17 +312,17 @@ private  void  evaluate_fit_along_line(
     for_less( parm, 0, n_parameters )
     {
         parm_val = parm_values[parm];
-        square = (Real) square_terms[parm];
+        square = (VIO_Real) square_terms[parm];
         line_coef = line_coefs[parm];
 
-        b += line_coef * ((Real) linear_terms[parm] +
+        b += line_coef * ((VIO_Real) linear_terms[parm] +
                                square * 2.0 * parm_val);
         a += square * line_coef * line_coef;
 
         for_less( n, 0, n_cross_terms[parm] )
         {
             neigh_parm = cross_parms[parm][n];
-            weight = (Real) cross_terms[parm][n];
+            weight = (VIO_Real) cross_terms[parm][n];
             n_line_coef = line_coefs[neigh_parm];
             b += weight * (line_coef * parm_values[neigh_parm] +
                            n_line_coef * parm_val);
@@ -336,20 +336,20 @@ private  void  evaluate_fit_along_line(
 
 private  void  minimize_along_line(
     int              n_parameters,
-    Real             constant_term,
+    VIO_Real             constant_term,
     LSQ_TYPE         *linear_terms,
     LSQ_TYPE         *square_terms,
     int              n_cross_terms[],
     int              *cross_parms[],
     LSQ_TYPE         *cross_terms[],
-    Real             max_step_size,
-    Real             parm_values[],
-    Real             line_coefs[] )
+    VIO_Real             max_step_size,
+    VIO_Real             parm_values[],
+    VIO_Real             line_coefs[] )
 {
     int     parm;
-    Real    a, b, t, step_size;
-    static  Real     ratio;
-    static  BOOLEAN  first = TRUE;
+    VIO_Real    a, b, t, step_size;
+    static  VIO_Real     ratio;
+    static  VIO_BOOL  first = TRUE;
 
     if( first )
     {
@@ -383,24 +383,24 @@ private  void  minimize_along_line(
         parm_values[parm] += t * line_coefs[parm];
 }
 
-private  Real   test_minimize(
+private  VIO_Real   test_minimize(
     int              n_parameters,
-    Real             constant_term,
+    VIO_Real             constant_term,
     LSQ_TYPE         *linear_terms,
     LSQ_TYPE         *square_terms,
     int              n_cross_terms[],
     int              *cross_parms[],
     LSQ_TYPE         *cross_terms[],
-    Real             max_step_size,
+    VIO_Real             max_step_size,
     int              n_iters,
-    Real             parm_values[] )
+    VIO_Real             parm_values[] )
 {
-    Real              fit, len, gg, dgg, gam;
+    VIO_Real              fit, len, gg, dgg, gam;
     int               iter, p, n_between_saves, n_saves;
     int               update_rate, s;
-    Real              *unit_dir, *g, *h, *xi;
-    Real              *saves[MAX_SAVES], *swap;
-    Real              last_update_time, current_time;
+    VIO_Real              *unit_dir, *g, *h, *xi;
+    VIO_Real              *saves[MAX_SAVES], *swap;
+    VIO_Real              last_update_time, current_time;
 
     ALLOC( g, n_parameters );
     ALLOC( h, n_parameters );
@@ -479,20 +479,20 @@ private  Real   test_minimize(
 
 private  void  flatten_polygons(
     polygons_struct  *polygons,
-    Point            init_points[],
+    VIO_Point            init_points[],
     int              n_iters )
 {
     int              i, p, point, *n_neighbours, **neighbours, n, neigh, which;
     int              n_fixed, *fixed_indices;
-    Real             *fixed_pos[2], scale, dist1, dist2;
-    Real             sum_xx, sum_xy;
-    Real             constant;
+    VIO_Real             *fixed_pos[2], scale, dist1, dist2;
+    VIO_Real             sum_xx, sum_xy;
+    VIO_Real             constant;
     int              *n_cross_terms, **cross_parms;
     ftype            *linear_terms, *square_terms, **cross_terms;
-    Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
-    Real             *parameters;
+    VIO_Point            neigh_points[MAX_POINTS_PER_POLYGON], *new_points;
+    VIO_Real             *parameters;
     int              *to_parameters, *to_fixed_index, ind;
-    Vector           x_dir, y_dir, offset;
+    VIO_Vector           x_dir, y_dir, offset;
     Smallest_int     *interior_flags;
 
     create_polygon_point_neighbours( polygons, FALSE, &n_neighbours,
@@ -520,7 +520,7 @@ private  void  flatten_polygons(
     fixed_pos[1][0] = 0.0;
 
     flatten_around_vertex( &polygons->points[which], n_neighbours[which],
-                           neigh_points, (BOOLEAN) interior_flags[which],
+                           neigh_points, (VIO_BOOL) interior_flags[which],
                            &fixed_pos[0][1], &fixed_pos[1][1] );
 
     n_fixed = 3;
@@ -578,7 +578,7 @@ private  void  flatten_polygons(
 #ifdef DEBUG
     {
         int  parm1, parm2, x_size, y_size;
-        Real  x_min, y_min, x_max, y_max, scale, p1, p2;
+        VIO_Real  x_min, y_min, x_max, y_max, scale, p1, p2;
 
         if( getenv( "DEBUG_FLAT" ) != NULL &&
             sscanf( getenv( "DEBUG_FLAT" ), "%d %d %d %d %lf %lf %lf %lf %lf",

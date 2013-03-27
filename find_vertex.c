@@ -13,7 +13,7 @@ int  main(
     VIO_File_formats   format;
     object_struct  **object_list;
 
-    status = OK;
+    status = VIO_OK;
 
     initialize_argument_processing( argc, argv );
 
@@ -66,5 +66,5 @@ int  main(
         print( "Closest polygon: %d\n", best_poly );
     }
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

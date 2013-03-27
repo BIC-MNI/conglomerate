@@ -7,7 +7,7 @@ int  main(
     FILE    *file;
     int     i, j, n_files;
     float   **values;
-    Real    value;
+    VIO_Real    value;
 
     n_files = argc - 1;
 
@@ -15,12 +15,12 @@ int  main(
 
     for_less( i, 0, n_files )
     {
-        if( open_file( argv[i+1], READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( argv[i+1], READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
         for_less( j, 0, 65538 )
         {
-            if( input_real( file, &value ) != OK )
+            if( input_real( file, &value ) != VIO_OK )
                 return( 1 );
             values[i][j] = (float) value;
         }

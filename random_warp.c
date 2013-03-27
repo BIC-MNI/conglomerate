@@ -19,7 +19,7 @@ int  main(
     marker_struct        *marker;
     VIO_Real                 domain_factor, warp_distance;
     VIO_Real                 **tags1, **tags2;
-    BOOLEAN              dump_tags;
+    VIO_BOOL              dump_tags;
     VIO_General_transform    transform;
 
     initialize_argument_processing( argc, argv );
@@ -41,7 +41,7 @@ int  main(
     dump_tags = get_string_argument( NULL, &tag_filename );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     if( n_objects != 1 )
@@ -66,9 +66,9 @@ int  main(
     }
 
     ind = 0;
-    for_inclusive( delta[X], -1, 1 )
-    for_inclusive( delta[Y], -1, 1 )
-    for_inclusive( delta[Z], -1, 1 )
+    for_inclusive( delta[VIO_X], -1, 1 )
+    for_inclusive( delta[VIO_Y], -1, 1 )
+    for_inclusive( delta[VIO_Z], -1, 1 )
     {
         for_less( dim, 0, VIO_N_DIMENSIONS )
         {
@@ -84,9 +84,9 @@ int  main(
 
     point = points[get_random_int(n_points)];
 
-    tags1[27][X] = (VIO_Real) Point_x(point);
-    tags1[27][Y] = (VIO_Real) Point_y(point);
-    tags1[27][Z] = (VIO_Real) Point_z(point);
+    tags1[27][VIO_X] = (VIO_Real) Point_x(point);
+    tags1[27][VIO_Y] = (VIO_Real) Point_y(point);
+    tags1[27][VIO_Z] = (VIO_Real) Point_z(point);
 
     get_random_unit_vector( &offset );
 
@@ -98,8 +98,8 @@ int  main(
                                       &transform );
 
     (void) sprintf( comment, " Random warp: %g %g %g --> %g %g %g\n",
-                    tags1[27][X], tags1[27][Y], tags1[27][Z],
-                    tags2[27][X], tags2[27][Y], tags2[27][Z] );
+                    tags1[27][VIO_X], tags1[27][VIO_Y], tags1[27][VIO_Z],
+                    tags2[27][VIO_X], tags2[27][VIO_Y], tags2[27][VIO_Z] );
 
     (void) output_transform_file( output_filename, comment, &transform );
 
@@ -118,7 +118,7 @@ int  main(
             marker->structure_id = 0;
             marker->patient_id = 0;
             fill_Point( marker->position,
-                        tags1[i][X], tags1[i][Y], tags1[i][Z] );
+                        tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z] );
 
             marker = get_marker_ptr(tag_objects[i+28]);
             initialize_marker( marker, SPHERE_MARKER, WHITE );
@@ -127,7 +127,7 @@ int  main(
             marker->structure_id = 0;
             marker->patient_id = 0;
             fill_Point( marker->position,
-                        tags2[i][X], tags2[i][Y], tags2[i][Z] );
+                        tags2[i][VIO_X], tags2[i][VIO_Y], tags2[i][VIO_Z] );
         }
 
         (void) output_graphics_file( tag_filename, ASCII_FORMAT,
@@ -143,15 +143,15 @@ int  main(
     for_less( i, 0, 28 )
     {
         general_transform_point( &transform,
-                                 tags1[i][X], tags1[i][Y], tags1[i][Z],
+                                 tags1[i][VIO_X], tags1[i][VIO_Y], tags1[i][VIO_Z],
                                  &tx, &ty, &tz );
 
-        if( !numerically_close( tags2[i][X], tx, TOLERANCE ) ||
-            !numerically_close( tags2[i][Y], ty, TOLERANCE ) ||
-            !numerically_close( tags2[i][Z], tz, TOLERANCE ) )
+        if( !numerically_close( tags2[i][VIO_X], tx, TOLERANCE ) ||
+            !numerically_close( tags2[i][VIO_Y], ty, TOLERANCE ) ||
+            !numerically_close( tags2[i][VIO_Z], tz, TOLERANCE ) )
         {
             print( "%g %g %g   !=   %g %g %g\n",
-                   tags2[i][X], tags2[i][Y], tags2[i][Z],
+                   tags2[i][VIO_X], tags2[i][VIO_Y], tags2[i][VIO_Z],
                    tx, ty, tz );
         }
     }

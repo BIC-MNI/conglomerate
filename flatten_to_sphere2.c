@@ -44,7 +44,7 @@ int  main(
     (void) get_int_argument( 100, &n_iters );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -53,7 +53,7 @@ int  main(
     if( get_string_argument( NULL, &initial_filename ) )
     {
         if( input_graphics_file( initial_filename, &format, &n_i_objects,
-                                 &i_object_list ) != OK || n_i_objects != 1 ||
+                                 &i_object_list ) != VIO_OK || n_i_objects != 1 ||
             get_object_type(i_object_list[0]) != POLYGONS )
             return( 1 );
 
@@ -84,7 +84,7 @@ int  main(
                                      NULL, NULL );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                         &object_list ) != OK || n_objects != 1 ||
+                         &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -92,7 +92,7 @@ int  main(
     FREE( polygons->points );
     polygons->points = points;
 
-    if( output_graphics_file( dest_filename, format, 1, object_list ) != OK )
+    if( output_graphics_file( dest_filename, format, 1, object_list ) != VIO_OK )
         print_error( "Error outputting: %s\n", dest_filename );
 
     return( 0 );
@@ -127,9 +127,9 @@ static  VIO_Real  evaluate_fit(
             dist = (VIO_Real) distances[ind];
             ++ind;
 
-            dx = (VIO_Real)parameters[IJ(p,0,3)] - (VIO_Real)parameters[IJ(neigh,0,3)];
-            dy = (VIO_Real)parameters[IJ(p,1,3)] - (VIO_Real)parameters[IJ(neigh,1,3)];
-            dz = (VIO_Real)parameters[IJ(p,2,3)] - (VIO_Real)parameters[IJ(neigh,2,3)];
+            dx = (VIO_Real)parameters[VIO_IJ(p,0,3)] - (VIO_Real)parameters[VIO_IJ(neigh,0,3)];
+            dy = (VIO_Real)parameters[VIO_IJ(p,1,3)] - (VIO_Real)parameters[VIO_IJ(neigh,1,3)];
+            dz = (VIO_Real)parameters[VIO_IJ(p,2,3)] - (VIO_Real)parameters[VIO_IJ(neigh,2,3)];
             act_dist = dx * dx + dy * dy + dz * dz;
             diff = dist - act_dist;
             fit += diff * diff;
@@ -148,14 +148,14 @@ static  VIO_Real  evaluate_fit(
             {
                 neigh = neighbours[p][n];
                 weight = (VIO_Real) centroid_weights[ind+n];
-                xc += (VIO_Real) parameters[IJ(neigh,0,3)] * weight;
-                yc += (VIO_Real) parameters[IJ(neigh,1,3)] * weight;
-                zc += (VIO_Real) parameters[IJ(neigh,2,3)] * weight;
+                xc += (VIO_Real) parameters[VIO_IJ(neigh,0,3)] * weight;
+                yc += (VIO_Real) parameters[VIO_IJ(neigh,1,3)] * weight;
+                zc += (VIO_Real) parameters[VIO_IJ(neigh,2,3)] * weight;
             }
 
-            x = (VIO_Real) parameters[IJ(p,0,3)];
-            y = (VIO_Real) parameters[IJ(p,1,3)];
-            z = (VIO_Real) parameters[IJ(p,2,3)];
+            x = (VIO_Real) parameters[VIO_IJ(p,0,3)];
+            y = (VIO_Real) parameters[VIO_IJ(p,1,3)];
+            z = (VIO_Real) parameters[VIO_IJ(p,2,3)];
 
             dx = x - xc;
             dy = y - yc;
@@ -174,9 +174,9 @@ static  VIO_Real  evaluate_fit(
 
         for_less( p, 0, n_points )
         {
-            dx = (VIO_Real) parameters[IJ(p,0,3)];
-            dy = (VIO_Real) parameters[IJ(p,1,3)];
-            dz = (VIO_Real) parameters[IJ(p,2,3)];
+            dx = (VIO_Real) parameters[VIO_IJ(p,0,3)];
+            dy = (VIO_Real) parameters[VIO_IJ(p,1,3)];
+            dz = (VIO_Real) parameters[VIO_IJ(p,2,3)];
             act_dist = dx * dx + dy * dy + dz * dz;
             diff = radius * radius - act_dist;
             fit += sphere_weight * diff * diff;
@@ -216,7 +216,7 @@ static  void  evaluate_fit_derivative(
     ind = 0;
     for_less( p, 0, n_points )
     {
-        p_index = IJ(p,0,3);
+        p_index = VIO_IJ(p,0,3);
         x1 = (VIO_Real) parameters[p_index+0];
         y1 = (VIO_Real) parameters[p_index+1];
         z1 = (VIO_Real) parameters[p_index+2];
@@ -245,14 +245,14 @@ static  void  evaluate_fit_derivative(
             dist = (VIO_Real) distances[ind];
             ++ind;
 
-            n_index = IJ(neigh,0,3);
+            n_index = VIO_IJ(neigh,0,3);
             x2 = (VIO_Real) parameters[n_index+0];
             y2 = (VIO_Real) parameters[n_index+1];
             z2 = (VIO_Real) parameters[n_index+2];
 
-            x2 = (VIO_Real) parameters[IJ(neigh,0,3)];
-            y2 = (VIO_Real) parameters[IJ(neigh,1,3)];
-            z2 = (VIO_Real) parameters[IJ(neigh,2,3)];
+            x2 = (VIO_Real) parameters[VIO_IJ(neigh,0,3)];
+            y2 = (VIO_Real) parameters[VIO_IJ(neigh,1,3)];
+            z2 = (VIO_Real) parameters[VIO_IJ(neigh,2,3)];
             dx = x1 - x2;
             dy = y1 - y2;
             dz = z1 - z2;
@@ -280,7 +280,7 @@ static  void  evaluate_fit_derivative(
         ind = 0;
         for_less( p, 0, n_points )
         {
-            p_index = IJ(p,0,3);
+            p_index = VIO_IJ(p,0,3);
             x1 = (VIO_Real) parameters[p_index+0];
             y1 = (VIO_Real) parameters[p_index+1];
             z1 = (VIO_Real) parameters[p_index+2];
@@ -290,7 +290,7 @@ static  void  evaluate_fit_derivative(
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
-                n_index = IJ(neigh,0,3);
+                n_index = VIO_IJ(neigh,0,3);
 #ifdef USE_CENTROID
                 xc += (VIO_Real) parameters[n_index+0];
                 yc += (VIO_Real) parameters[n_index+1];
@@ -333,7 +333,7 @@ static  void  evaluate_fit_derivative(
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
-                n_index = IJ(neigh,0,3);
+                n_index = VIO_IJ(neigh,0,3);
 #ifdef USE_CENTROID
                 deriv[n_index+0] += fx_factor;
                 deriv[n_index+1] += fy_factor;
@@ -399,7 +399,7 @@ static  void  evaluate_fit_along_line(
     ind = 0;
     for_less( p, 0, n_points )
     {
-        p_index = IJ(p,0,3);
+        p_index = VIO_IJ(p,0,3);
         x1 = (VIO_Real) parameters[p_index+0];
         y1 = (VIO_Real) parameters[p_index+1];
         z1 = (VIO_Real) parameters[p_index+2];
@@ -427,7 +427,7 @@ static  void  evaluate_fit_along_line(
             dist = (VIO_Real) distances[ind];
             ++ind;
 
-            n_index = IJ(neigh,0,3);
+            n_index = VIO_IJ(neigh,0,3);
             x = x1 - (VIO_Real) parameters[n_index+0];
             y = y1 - (VIO_Real) parameters[n_index+1];
             z = z1 - (VIO_Real) parameters[n_index+2];
@@ -477,7 +477,7 @@ static  void  evaluate_fit_along_line(
             for_less( n, 0, n_neighbours[p] )
             {
                 neigh = neighbours[p][n];
-                n_index = IJ(neigh,0,3);
+                n_index = VIO_IJ(neigh,0,3);
 #ifdef USE_CENTROID
                 ax += (VIO_Real)      delta[n_index+0];
                 bx += (VIO_Real) parameters[n_index+0];
@@ -506,7 +506,7 @@ static  void  evaluate_fit_along_line(
             bz *= weight;
 #endif
 
-            p_index = IJ( p, 0, 3 );
+            p_index = VIO_IJ( p, 0, 3 );
             ax += (VIO_Real)      -delta[p_index+0];
             bx += (VIO_Real) -parameters[p_index+0];
             ay += (VIO_Real)      -delta[p_index+1];
@@ -650,7 +650,7 @@ static  void  flatten_polygons(
     dtype            *g, *h, *xi, *parameters, *unit_dir, *distances;
     dtype            *centroid_weights;
     int              f[3];
-    BOOLEAN          init_supplied, fixed_points;
+    VIO_BOOL          init_supplied, fixed_points;
 
     fixed_points = getenv( "FIX_POINTS" ) != NULL;
     if( fixed_points )
@@ -776,9 +776,9 @@ static  void  flatten_polygons(
 
     for_less( point, 0, n_points )
     {
-        parameters[IJ(point,0,3)] = (dtype) Point_x(init_points[point] );
-        parameters[IJ(point,1,3)] = (dtype) Point_y(init_points[point] );
-        parameters[IJ(point,2,3)] = (dtype) Point_z(init_points[point] );
+        parameters[VIO_IJ(point,0,3)] = (dtype) Point_x(init_points[point] );
+        parameters[VIO_IJ(point,1,3)] = (dtype) Point_y(init_points[point] );
+        parameters[VIO_IJ(point,2,3)] = (dtype) Point_z(init_points[point] );
     }
 
     if( init_supplied )
@@ -895,9 +895,9 @@ static  void  flatten_polygons(
     for_less( point, 0, n_points )
     {
         fill_Point( points[point],
-                    parameters[IJ(point,0,3)],
-                    parameters[IJ(point,1,3)],
-                    parameters[IJ(point,2,3)] );
+                    parameters[VIO_IJ(point,0,3)],
+                    parameters[VIO_IJ(point,1,3)],
+                    parameters[VIO_IJ(point,2,3)] );
     }
 
     if( centroid_weight > 0.0 )

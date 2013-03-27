@@ -1,7 +1,7 @@
 #include  <volume_io.h>
 #include  <deform.h>
 
-static  BOOLEAN  voxel_might_contain_boundary(
+static  VIO_BOOL  voxel_might_contain_boundary(
     VIO_Volume                      volume,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
@@ -9,52 +9,52 @@ static  BOOLEAN  voxel_might_contain_boundary(
     int                         voxel_indices[],
     boundary_definition_struct  *boundary_def );
 
-static  BOOLEAN  check_voxel_for_isovalue(
+static  VIO_BOOL  check_voxel_for_isovalue(
     voxel_coef_struct   *lookup,
     VIO_Volume              volume,
     VIO_Volume              label_volume,
     int                 degrees_continuity,
     int                 voxel_indices[],
-    Real                line_origin[],
-    Real                line_direction[],
-    BOOLEAN             searching_inwards,
-    Real                min_line_t,
-    Real                max_line_t,
-    Real                isovalue,
+    VIO_Real                line_origin[],
+    VIO_Real                line_direction[],
+    VIO_BOOL             searching_inwards,
+    VIO_Real                min_line_t,
+    VIO_Real                max_line_t,
+    VIO_Real                isovalue,
     Normal_directions   normal_direction,
-    BOOLEAN             already_found,
-    Real                *dist_found );
+    VIO_BOOL             already_found,
+    VIO_Real                *dist_found );
 
-static  BOOLEAN  check_voxel_for_boundary(
+static  VIO_BOOL  check_voxel_for_boundary(
     voxel_coef_struct           *lookup,
     VIO_Volume                      volume,
     VIO_Volume                      label_volume,
     int                         degrees_continuity,
     int                         voxel_indices[],
-    Real                        line_origin[],
-    Real                        line_direction[],
-    BOOLEAN                     *inside_surface,
-    BOOLEAN                     searching_inwards,
-    Real                        min_line_t,
-    Real                        max_line_t,
+    VIO_Real                        line_origin[],
+    VIO_Real                        line_direction[],
+    VIO_BOOL                     *inside_surface,
+    VIO_BOOL                     searching_inwards,
+    VIO_Real                        min_line_t,
+    VIO_Real                        max_line_t,
     boundary_definition_struct  *boundary_def,
-    BOOLEAN                     already_found,
-    Real                        *dist_found );
+    VIO_BOOL                     already_found,
+    VIO_Real                        *dist_found );
 
 #define  GET_RAY_POINT( result, origin, direction, dist ) \
     { \
-        (result)[X] = (origin)[X] + (dist) * (direction)[X]; \
-        (result)[Y] = (origin)[Y] + (dist) * (direction)[Y]; \
-        (result)[Z] = (origin)[Z] + (dist) * (direction)[Z]; \
+        (result)[VIO_X] = (origin)[VIO_X] + (dist) * (direction)[VIO_X]; \
+        (result)[VIO_Y] = (origin)[VIO_Y] + (dist) * (direction)[VIO_Y]; \
+        (result)[VIO_Z] = (origin)[VIO_Z] + (dist) * (direction)[VIO_Z]; \
     }
 
 static  void  clip_line_to_volume(
     VIO_Volume     volume,
     int        degrees_continuity,
-    Real       line_origin[],
-    Real       line_direction[],
-    Real       *t_min,
-    Real       *t_max )
+    VIO_Real       line_origin[],
+    VIO_Real       line_direction[],
+    VIO_Real       *t_min,
+    VIO_Real       *t_max )
 {
     int    sizes[VIO_N_DIMENSIONS];
     VIO_Point  origin;
@@ -62,44 +62,44 @@ static  void  clip_line_to_volume(
 
     get_volume_sizes( volume, sizes );
 
-    fill_Point( origin, line_origin[X], line_origin[Y], line_origin[Z] );
+    fill_Point( origin, line_origin[VIO_X], line_origin[VIO_Y], line_origin[VIO_Z] );
     fill_Point( direction,
-                line_direction[X], line_direction[Y], line_direction[Z] );
+                line_direction[VIO_X], line_direction[VIO_Y], line_direction[VIO_Z] );
 
     (void) clip_line_to_box( &origin, &direction,
-                             0.0 + (Real) degrees_continuity * 0.5,
-                             (Real) sizes[X]-1.0 - (Real)degrees_continuity*0.5,
-                             0.0 + (Real) degrees_continuity * 0.5,
-                             (Real) sizes[Y]-1.0 - (Real)degrees_continuity*0.5,
-                             0.0 + (Real) degrees_continuity * 0.5,
-                             (Real) sizes[Z]-1.0 - (Real)degrees_continuity*0.5,
+                             0.0 + (VIO_Real) degrees_continuity * 0.5,
+                             (VIO_Real) sizes[VIO_X]-1.0 - (VIO_Real)degrees_continuity*0.5,
+                             0.0 + (VIO_Real) degrees_continuity * 0.5,
+                             (VIO_Real) sizes[VIO_Y]-1.0 - (VIO_Real)degrees_continuity*0.5,
+                             0.0 + (VIO_Real) degrees_continuity * 0.5,
+                             (VIO_Real) sizes[VIO_Z]-1.0 - (VIO_Real)degrees_continuity*0.5,
                              t_min, t_max );
 }
 
 static  void  set_up_to_search_ray(
     VIO_Volume                      volume,
     int                         degrees_continuity,
-    Real                        ray_origin[],
-    Real                        unit_pos_dir[],
-    Real                        unit_neg_dir[],
-    Real                        model_dist,
-    Real                        start_dist,
-    Real                        end_dist,
-    Real                        origin[],
-    Real                        direction[],
-    Real                        *current_distance,
-    Real                        *stop_distance,
-    Real                        next_distance[VIO_N_DIMENSIONS],
-    Real                        delta_distance[VIO_N_DIMENSIONS],
+    VIO_Real                        ray_origin[],
+    VIO_Real                        unit_pos_dir[],
+    VIO_Real                        unit_neg_dir[],
+    VIO_Real                        model_dist,
+    VIO_Real                        start_dist,
+    VIO_Real                        end_dist,
+    VIO_Real                        origin[],
+    VIO_Real                        direction[],
+    VIO_Real                        *current_distance,
+    VIO_Real                        *stop_distance,
+    VIO_Real                        next_distance[VIO_N_DIMENSIONS],
+    VIO_Real                        delta_distance[VIO_N_DIMENSIONS],
     int                         voxel_index[VIO_N_DIMENSIONS],
     int                         delta_voxel[VIO_N_DIMENSIONS],
-    Real                        *next_closest_distance )
+    VIO_Real                        *next_closest_distance )
 {
-    BOOLEAN       found_exit;
-    Real          voxel_exit, t_min, t_max, voxel_offset;
-    Real          direct;
-    Real          start_voxel[VIO_N_DIMENSIONS], model_point[VIO_N_DIMENSIONS];
-    Real          *dir;
+    VIO_BOOL       found_exit;
+    VIO_Real          voxel_exit, t_min, t_max, voxel_offset;
+    VIO_Real          direct;
+    VIO_Real          start_voxel[VIO_N_DIMENSIONS], model_point[VIO_N_DIMENSIONS];
+    VIO_Real          *dir;
 
     if( model_dist + start_dist < 0.0 || model_dist + end_dist < 0.0 )
         dir = &unit_neg_dir[0];
@@ -109,7 +109,7 @@ static  void  set_up_to_search_ray(
     GET_RAY_POINT( model_point, ray_origin, dir, model_dist );
 
     convert_world_to_voxel( volume,
-                            model_point[X], model_point[Y], model_point[Z],
+                            model_point[VIO_X], model_point[VIO_Y], model_point[VIO_Z],
                             origin );
 
     if( end_dist >= start_dist )
@@ -122,12 +122,12 @@ static  void  set_up_to_search_ray(
     }
 
     convert_world_to_voxel( volume,
-                            direction[X], 
-                            direction[Y],
-                            direction[Z], direction );
-    direction[X] -= origin[X];
-    direction[Y] -= origin[Y];
-    direction[Z] -= origin[Z];
+                            direction[VIO_X], 
+                            direction[VIO_Y],
+                            direction[VIO_Z], direction );
+    direction[VIO_X] -= origin[VIO_X];
+    direction[VIO_Y] -= origin[VIO_Y];
+    direction[VIO_Z] -= origin[VIO_Z];
 
     clip_line_to_volume( volume, degrees_continuity,
                          origin, direction, &t_min, &t_max );
@@ -150,106 +150,106 @@ static  void  set_up_to_search_ray(
 
     /*--- do x loop */
 
-    direct = direction[X];
+    direct = direction[VIO_X];
 
-    voxel_index[X] = (int) (start_voxel[X]+voxel_offset);
-    voxel_exit = (Real) voxel_index[X] - voxel_offset;
+    voxel_index[VIO_X] = (int) (start_voxel[VIO_X]+voxel_offset);
+    voxel_exit = (VIO_Real) voxel_index[VIO_X] - voxel_offset;
 
     if( direct == 0.0 )
     {
-        delta_voxel[X] = 1;
-        delta_distance[X] = 0.0;
-        next_distance[X] = *stop_distance;
+        delta_voxel[VIO_X] = 1;
+        delta_distance[VIO_X] = 0.0;
+        next_distance[VIO_X] = *stop_distance;
     }
     else
     {
         direct = 1.0 / direct;
         if( direct < 0.0 )
         {
-            delta_voxel[X] = -1;
-            delta_distance[X] = -direct;
+            delta_voxel[VIO_X] = -1;
+            delta_distance[VIO_X] = -direct;
         }
         else
         {
             voxel_exit += 1.0;
-            delta_voxel[X] = 1;
-            delta_distance[X] = direct;
+            delta_voxel[VIO_X] = 1;
+            delta_distance[VIO_X] = direct;
         }
 
-        next_distance[X] = (voxel_exit - origin[X]) * direct;
+        next_distance[VIO_X] = (voxel_exit - origin[VIO_X]) * direct;
 
-        *next_closest_distance = next_distance[X];
+        *next_closest_distance = next_distance[VIO_X];
         found_exit = TRUE;
     }
     /*--- do y loop */
 
-    direct = direction[Y];
+    direct = direction[VIO_Y];
 
-    voxel_index[Y] = (int) (start_voxel[Y]+voxel_offset);
-    voxel_exit = (Real) voxel_index[Y] - voxel_offset;
+    voxel_index[VIO_Y] = (int) (start_voxel[VIO_Y]+voxel_offset);
+    voxel_exit = (VIO_Real) voxel_index[VIO_Y] - voxel_offset;
 
     if( direct == 0.0 )
     {
-        delta_voxel[Y] = 1;
-        delta_distance[Y] = 0.0;
-        next_distance[Y] = *stop_distance;
+        delta_voxel[VIO_Y] = 1;
+        delta_distance[VIO_Y] = 0.0;
+        next_distance[VIO_Y] = *stop_distance;
     }
     else
     {
         direct = 1.0 / direct;
         if( direct < 0.0 )
         {
-            delta_voxel[Y] = -1;
-            delta_distance[Y] = -direct;
+            delta_voxel[VIO_Y] = -1;
+            delta_distance[VIO_Y] = -direct;
         }
         else
         {
             voxel_exit += 1.0;
-            delta_voxel[Y] = 1;
-            delta_distance[Y] = direct;
+            delta_voxel[VIO_Y] = 1;
+            delta_distance[VIO_Y] = direct;
         }
 
-        next_distance[Y] = (voxel_exit - origin[Y]) * direct;
+        next_distance[VIO_Y] = (voxel_exit - origin[VIO_Y]) * direct;
 
-        if( !found_exit || next_distance[Y] < *next_closest_distance )
+        if( !found_exit || next_distance[VIO_Y] < *next_closest_distance )
         {
-            *next_closest_distance = next_distance[Y];
+            *next_closest_distance = next_distance[VIO_Y];
             found_exit = TRUE;
         }
     }
     /*--- do z loop */
 
-    direct = direction[Z];
+    direct = direction[VIO_Z];
 
-    voxel_index[Z] = (int) (start_voxel[Z]+voxel_offset);
-    voxel_exit = (Real) voxel_index[Z] - voxel_offset;
+    voxel_index[VIO_Z] = (int) (start_voxel[VIO_Z]+voxel_offset);
+    voxel_exit = (VIO_Real) voxel_index[VIO_Z] - voxel_offset;
 
     if( direct == 0.0 )
     {
-        delta_voxel[Z] = 1;
-        delta_distance[Z] = 0.0;
-        next_distance[Z] = *stop_distance;
+        delta_voxel[VIO_Z] = 1;
+        delta_distance[VIO_Z] = 0.0;
+        next_distance[VIO_Z] = *stop_distance;
     }
     else
     {
         direct = 1.0 / direct;
         if( direct < 0.0 )
         {
-            delta_voxel[Z] = -1;
-            delta_distance[Z] = -direct;
+            delta_voxel[VIO_Z] = -1;
+            delta_distance[VIO_Z] = -direct;
         }
         else
         {
             voxel_exit += 1.0;
-            delta_voxel[Z] = 1;
-            delta_distance[Z] = direct;
+            delta_voxel[VIO_Z] = 1;
+            delta_distance[VIO_Z] = direct;
         }
 
-        next_distance[Z] = (voxel_exit - origin[Z]) * direct;
+        next_distance[VIO_Z] = (voxel_exit - origin[VIO_Z]) * direct;
 
-        if( !found_exit || next_distance[Z] < *next_closest_distance )
+        if( !found_exit || next_distance[VIO_Z] < *next_closest_distance )
         {
-            *next_closest_distance = next_distance[Z];
+            *next_closest_distance = next_distance[VIO_Z];
             found_exit = TRUE;
         }
     }
@@ -259,37 +259,37 @@ static  void  set_up_to_search_ray(
 static  int  count = 0;
 #endif
 
-  BOOLEAN  find_boundary_in_direction(
+  VIO_BOOL  find_boundary_in_direction(
     VIO_Volume                      volume,
     VIO_Volume                      label_volume,
     voxel_coef_struct           *lookup,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
-    Real                        model_dist,
+    VIO_Real                        model_dist,
     VIO_Point                       *ray_origin,
     VIO_Vector                      *unit_pos_dir,
     VIO_Vector                      *unit_neg_dir,
-    Real                        max_outwards_search_distance,
-    Real                        max_inwards_search_distance,
+    VIO_Real                        max_outwards_search_distance,
+    VIO_Real                        max_inwards_search_distance,
     int                         degrees_continuity,
     boundary_definition_struct  *boundary_def,
-    Real                        *boundary_distance )
+    VIO_Real                        *boundary_distance )
 {
-    static const Real  TOLERANCE = 0.0001;
-    BOOLEAN       found, done0, done1, second_leg0, second_leg1, isovalue;
-    Real          next_closest0, next_closest1;
+    static const VIO_Real  TOLERANCE = 0.0001;
+    VIO_BOOL       found, done0, done1, second_leg0, second_leg1, isovalue;
+    VIO_Real          next_closest0, next_closest1;
     int           voxel_index0[VIO_N_DIMENSIONS], voxel_index1[VIO_N_DIMENSIONS];
     int           delta_voxel0[VIO_N_DIMENSIONS], delta_voxel1[VIO_N_DIMENSIONS];
-    Real          current_distance0, current_distance1;
-    Real          next_distance0[VIO_N_DIMENSIONS], next_distance1[VIO_N_DIMENSIONS];
-    Real          stop_distance0, stop_distance1;
-    Real          delta_distance0[VIO_N_DIMENSIONS], delta_distance1[VIO_N_DIMENSIONS];
-    Real          max_dist, found_dist;
-    Real          ray_origin_real[VIO_N_DIMENSIONS];
-    Real          unit_pos[VIO_N_DIMENSIONS], unit_neg[VIO_N_DIMENSIONS];
-    BOOLEAN       inside_surface0, inside_surface1, do_first;
-    Real          origin0[VIO_N_DIMENSIONS], origin1[VIO_N_DIMENSIONS];
-    Real          direction0[VIO_N_DIMENSIONS], direction1[VIO_N_DIMENSIONS];
+    VIO_Real          current_distance0, current_distance1;
+    VIO_Real          next_distance0[VIO_N_DIMENSIONS], next_distance1[VIO_N_DIMENSIONS];
+    VIO_Real          stop_distance0, stop_distance1;
+    VIO_Real          delta_distance0[VIO_N_DIMENSIONS], delta_distance1[VIO_N_DIMENSIONS];
+    VIO_Real          max_dist, found_dist;
+    VIO_Real          ray_origin_real[VIO_N_DIMENSIONS];
+    VIO_Real          unit_pos[VIO_N_DIMENSIONS], unit_neg[VIO_N_DIMENSIONS];
+    VIO_BOOL       inside_surface0, inside_surface1, do_first;
+    VIO_Real          origin0[VIO_N_DIMENSIONS], origin1[VIO_N_DIMENSIONS];
+    VIO_Real          direction0[VIO_N_DIMENSIONS], direction1[VIO_N_DIMENSIONS];
 
 #ifdef DEBUGGING
     {
@@ -312,17 +312,17 @@ static  int  count = 0;
     }
 #endif
 
-    ray_origin_real[X] = (Real) Point_x(*ray_origin);
-    unit_pos[X] = (Real) Vector_x(*unit_pos_dir);
-    unit_neg[X] = (Real) Vector_x(*unit_neg_dir);
+    ray_origin_real[VIO_X] = (VIO_Real) Point_x(*ray_origin);
+    unit_pos[VIO_X] = (VIO_Real) Vector_x(*unit_pos_dir);
+    unit_neg[VIO_X] = (VIO_Real) Vector_x(*unit_neg_dir);
 
-    ray_origin_real[Y] = (Real) Point_y(*ray_origin);
-    unit_pos[Y] = (Real) Vector_y(*unit_pos_dir);
-    unit_neg[Y] = (Real) Vector_y(*unit_neg_dir);
+    ray_origin_real[VIO_Y] = (VIO_Real) Point_y(*ray_origin);
+    unit_pos[VIO_Y] = (VIO_Real) Vector_y(*unit_pos_dir);
+    unit_neg[VIO_Y] = (VIO_Real) Vector_y(*unit_neg_dir);
 
-    ray_origin_real[Z] = (Real) Point_z(*ray_origin);
-    unit_pos[Z] = (Real) Vector_z(*unit_pos_dir);
-    unit_neg[Z] = (Real) Vector_z(*unit_neg_dir);
+    ray_origin_real[VIO_Z] = (VIO_Real) Point_z(*ray_origin);
+    unit_pos[VIO_Z] = (VIO_Real) Vector_z(*unit_pos_dir);
+    unit_neg[VIO_Z] = (VIO_Real) Vector_z(*unit_neg_dir);
 
     second_leg0 = FALSE;
     second_leg1 = FALSE;
@@ -380,8 +380,8 @@ static  int  count = 0;
     if( boundary_def->min_isovalue != boundary_def->max_isovalue )
     {
         VIO_Vector   world_direction;
-        Real     point[VIO_N_DIMENSIONS];
-        Real     vx, vy, vz;
+        VIO_Real     point[VIO_N_DIMENSIONS];
+        VIO_Real     vx, vy, vz;
 
         isovalue = FALSE;
 
@@ -478,27 +478,27 @@ static  int  count = 0;
                 current_distance0 = next_closest0;
                 do_first = (done1 || current_distance0 <= current_distance1);
 
-                if( next_distance0[X] <= current_distance0 )
+                if( next_distance0[VIO_X] <= current_distance0 )
                 {
-                    voxel_index0[X] += delta_voxel0[X];
-                    next_distance0[X] += delta_distance0[X];
+                    voxel_index0[VIO_X] += delta_voxel0[VIO_X];
+                    next_distance0[VIO_X] += delta_distance0[VIO_X];
                 }
-                if( next_distance0[Y] <= current_distance0 )
+                if( next_distance0[VIO_Y] <= current_distance0 )
                 {
-                    voxel_index0[Y] += delta_voxel0[Y];
-                    next_distance0[Y] += delta_distance0[Y];
+                    voxel_index0[VIO_Y] += delta_voxel0[VIO_Y];
+                    next_distance0[VIO_Y] += delta_distance0[VIO_Y];
                 }
-                if( next_distance0[Z] <= current_distance0 )
+                if( next_distance0[VIO_Z] <= current_distance0 )
                 {
-                    voxel_index0[Z] += delta_voxel0[Z];
-                    next_distance0[Z] += delta_distance0[Z];
+                    voxel_index0[VIO_Z] += delta_voxel0[VIO_Z];
+                    next_distance0[VIO_Z] += delta_distance0[VIO_Z];
                 }
 
-                next_closest0 = next_distance0[X];
-                if( next_distance0[Y] < next_closest0 )
-                    next_closest0 = next_distance0[Y];
-                if( next_distance0[Z] < next_closest0 )
-                    next_closest0 = next_distance0[Z];
+                next_closest0 = next_distance0[VIO_X];
+                if( next_distance0[VIO_Y] < next_closest0 )
+                    next_closest0 = next_distance0[VIO_Y];
+                if( next_distance0[VIO_Z] < next_closest0 )
+                    next_closest0 = next_distance0[VIO_Z];
             }
         }
         else
@@ -560,27 +560,27 @@ static  int  count = 0;
                 current_distance1 = next_closest1;
                 do_first = !(done0 || current_distance1 <= current_distance0);
 
-                if( next_distance1[X] <= current_distance1 )
+                if( next_distance1[VIO_X] <= current_distance1 )
                 {
-                    voxel_index1[X] += delta_voxel1[X];
-                    next_distance1[X] += delta_distance1[X];
+                    voxel_index1[VIO_X] += delta_voxel1[VIO_X];
+                    next_distance1[VIO_X] += delta_distance1[VIO_X];
                 }
-                if( next_distance1[Y] <= current_distance1 )
+                if( next_distance1[VIO_Y] <= current_distance1 )
                 {
-                    voxel_index1[Y] += delta_voxel1[Y];
-                    next_distance1[Y] += delta_distance1[Y];
+                    voxel_index1[VIO_Y] += delta_voxel1[VIO_Y];
+                    next_distance1[VIO_Y] += delta_distance1[VIO_Y];
                 }
-                if( next_distance1[Z] <= current_distance1 )
+                if( next_distance1[VIO_Z] <= current_distance1 )
                 {
-                    voxel_index1[Z] += delta_voxel1[Z];
-                    next_distance1[Z] += delta_distance1[Z];
+                    voxel_index1[VIO_Z] += delta_voxel1[VIO_Z];
+                    next_distance1[VIO_Z] += delta_distance1[VIO_Z];
                 }
 
-                next_closest1 = next_distance1[X];
-                if( next_distance1[Y] < next_closest1 )
-                    next_closest1 = next_distance1[Y];
-                if( next_distance1[Z] < next_closest1 )
-                    next_closest1 = next_distance1[Z];
+                next_closest1 = next_distance1[VIO_X];
+                if( next_distance1[VIO_Y] < next_closest1 )
+                    next_closest1 = next_distance1[VIO_Y];
+                if( next_distance1[VIO_Z] < next_closest1 )
+                    next_closest1 = next_distance1[VIO_Z];
             }
         }
 
@@ -596,14 +596,14 @@ static  int  count = 0;
 }
 
 static  void   get_trilinear_gradient(
-    Real   coefs[],
-    Real   u,
-    Real   v,
-    Real   w,
-    Real   derivs[] )
+    VIO_Real   coefs[],
+    VIO_Real   u,
+    VIO_Real   v,
+    VIO_Real   w,
+    VIO_Real   derivs[] )
 {
-    Real  du00, du01, du10, du11, c00, c01, c10, c11;
-    Real  dv0, dv1, c0, c1, dw, du0, du1;
+    VIO_Real  du00, du01, du10, du11, c00, c01, c10, c11;
+    VIO_Real  dv0, dv1, c0, c1, dw, du0, du1;
 
     /*--- get the 4 differences in the u direction */
 
@@ -634,55 +634,55 @@ static  void   get_trilinear_gradient(
 
     /*--- reduce the 2D u derivs to 1D */
 
-    du0 = INTERPOLATE( v, du00, du10 );
-    du1 = INTERPOLATE( v, du01, du11 );
+    du0 = VIO_INTERPOLATE( v, du00, du10 );
+    du1 = VIO_INTERPOLATE( v, du01, du11 );
 
-    /*--- interpolate the 1D problems in w, or for Z deriv, just use dw */
+    /*--- interpolate the 1D problems in w, or for VIO_Z deriv, just use dw */
 
-    derivs[X] = INTERPOLATE( w, du0, du1 );
-    derivs[Y] = INTERPOLATE( w, dv0, dv1 );
-    derivs[Z] = dw;
+    derivs[VIO_X] = VIO_INTERPOLATE( w, du0, du1 );
+    derivs[VIO_Y] = VIO_INTERPOLATE( w, dv0, dv1 );
+    derivs[VIO_Z] = dw;
 }
 
 #define  MAX_DERIVS   2
 
-static  BOOLEAN  check_voxel_for_isovalue(
+static  VIO_BOOL  check_voxel_for_isovalue(
     voxel_coef_struct   *lookup,
     VIO_Volume              volume,
     VIO_Volume              label_volume,
     int                 degrees_continuity,
     int                 voxel_indices[],
-    Real                line_origin[],
-    Real                line_direction[],
-    BOOLEAN             searching_inwards,
-    Real                min_line_t,
-    Real                max_line_t,
-    Real                isovalue,
+    VIO_Real                line_origin[],
+    VIO_Real                line_direction[],
+    VIO_BOOL             searching_inwards,
+    VIO_Real                min_line_t,
+    VIO_Real                max_line_t,
+    VIO_Real                isovalue,
     Normal_directions   normal_direction,
-    BOOLEAN             already_found,
-    Real                *dist_found )
+    VIO_BOOL             already_found,
+    VIO_Real                *dist_found )
 {
-    BOOLEAN         found;
+    VIO_BOOL         found;
     int             i;
-    Real            value, dot_prod, voxel[VIO_N_DIMENSIONS];
-    Real            first_deriv[VIO_N_DIMENSIONS], *first_deriv_ptr[1];
-    BOOLEAN         active, deriv_dir_correct;
+    VIO_Real            value, dot_prod, voxel[VIO_N_DIMENSIONS];
+    VIO_Real            first_deriv[VIO_N_DIMENSIONS], *first_deriv_ptr[1];
+    VIO_BOOL         active, deriv_dir_correct;
     int             n_boundaries;
-    Real            boundary_positions[3];
-    Real            coefs[(2+MAX_DERIVS)*(2+MAX_DERIVS)*(2+MAX_DERIVS)];
+    VIO_Real            boundary_positions[3];
+    VIO_Real            coefs[(2+MAX_DERIVS)*(2+MAX_DERIVS)*(2+MAX_DERIVS)];
 
     found = FALSE;
 
     lookup_volume_coeficients( lookup, volume, degrees_continuity,
-                               voxel_indices[X],
-                               voxel_indices[Y],
-                               voxel_indices[Z], coefs );
+                               voxel_indices[VIO_X],
+                               voxel_indices[VIO_Y],
+                               voxel_indices[VIO_Z], coefs );
 
     n_boundaries = find_voxel_line_value_intersection( coefs,
                                             degrees_continuity,
-                                            voxel_indices[X],
-                                            voxel_indices[Y],
-                                            voxel_indices[Z],
+                                            voxel_indices[VIO_X],
+                                            voxel_indices[VIO_Y],
+                                            voxel_indices[VIO_Z],
                                             line_origin,
                                             line_direction,
                                             min_line_t,
@@ -702,9 +702,9 @@ static  BOOLEAN  check_voxel_for_isovalue(
                 if( degrees_continuity == 0 )
                 {
                     get_trilinear_gradient( coefs,
-                                            voxel[X] - (Real) voxel_indices[X],
-                                            voxel[Y] - (Real) voxel_indices[Y],
-                                            voxel[Z] - (Real) voxel_indices[Z],
+                                            voxel[VIO_X] - (VIO_Real) voxel_indices[VIO_X],
+                                            voxel[VIO_Y] - (VIO_Real) voxel_indices[VIO_Y],
+                                            voxel[VIO_Z] - (VIO_Real) voxel_indices[VIO_Z],
                                             first_deriv );
                 }
                 else
@@ -719,9 +719,9 @@ static  BOOLEAN  check_voxel_for_isovalue(
                 deriv_dir_correct = TRUE;
                 if( normal_direction != ANY_DIRECTION )
                 {
-                    dot_prod = first_deriv[X] * line_direction[X] +
-                               first_deriv[Y] * line_direction[Y] +
-                               first_deriv[Z] * line_direction[Z];
+                    dot_prod = first_deriv[VIO_X] * line_direction[VIO_X] +
+                               first_deriv[VIO_Y] * line_direction[VIO_Y] +
+                               first_deriv[VIO_Z] * line_direction[VIO_Z];
                     if( searching_inwards )
                         dot_prod = -dot_prod;
                     if( normal_direction == TOWARDS_LOWER && dot_prod > 0.0 ||
@@ -746,16 +746,16 @@ static  BOOLEAN  check_voxel_for_isovalue(
     return( found );
 }
 
-static  BOOLEAN  does_voxel_contain_value_range(
+static  VIO_BOOL  does_voxel_contain_value_range(
     VIO_Volume          volume,
     int             degrees_continuity,
     int             voxel[],
-    Real            min_value,
-    Real            max_value )
+    VIO_Real            min_value,
+    VIO_Real            max_value )
 {
     int      dim, i, n_values, start, end, sizes[VIO_MAX_DIMENSIONS];
-    BOOLEAN  greater, less;
-    Real     values[4*4*4];
+    VIO_BOOL  greater, less;
+    VIO_Real     values[4*4*4];
 
     get_volume_sizes( volume, sizes );
 
@@ -768,7 +768,7 @@ static  BOOLEAN  does_voxel_contain_value_range(
             voxel[2] < 0 || voxel[2] >= sizes[2]-1 )
             return( FALSE );
 
-        get_volume_value_hyperslab_3d( volume, voxel[X], voxel[Y], voxel[Z],
+        get_volume_value_hyperslab_3d( volume, voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z],
                                        2, 2, 2, values );
 
         if( min_value <= values[0] && values[0] <= max_value )
@@ -805,7 +805,7 @@ static  BOOLEAN  does_voxel_contain_value_range(
             return( FALSE );
     }
 
-    get_volume_value_hyperslab_3d( volume, voxel[X], voxel[Y], voxel[Z],
+    get_volume_value_hyperslab_3d( volume, voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z],
                                    degrees_continuity + 2,
                                    degrees_continuity + 2,
                                    degrees_continuity + 2, values );
@@ -838,7 +838,7 @@ static  BOOLEAN  does_voxel_contain_value_range(
     return( FALSE );
 }
 
-static  BOOLEAN  voxel_might_contain_boundary(
+static  VIO_BOOL  voxel_might_contain_boundary(
     VIO_Volume                      volume,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
@@ -846,14 +846,14 @@ static  BOOLEAN  voxel_might_contain_boundary(
     int                         voxel_indices[],
     boundary_definition_struct  *boundary_def )
 {
-    BOOLEAN         contains;
+    VIO_BOOL         contains;
 
     if( done_bits != NULL )
     {
         if( !get_bitlist_bit_3d( done_bits,
-                                 voxel_indices[X],
-                                 voxel_indices[Y],
-                                 voxel_indices[Z] ) )
+                                 voxel_indices[VIO_X],
+                                 voxel_indices[VIO_Y],
+                                 voxel_indices[VIO_Z] ) )
         {
             contains = does_voxel_contain_value_range(
                            volume, degrees_continuity,
@@ -862,20 +862,20 @@ static  BOOLEAN  voxel_might_contain_boundary(
                            boundary_def->max_isovalue );
  
             set_bitlist_bit_3d( surface_bits,
-                                voxel_indices[X],
-                                voxel_indices[Y],
-                                voxel_indices[Z], contains );
+                                voxel_indices[VIO_X],
+                                voxel_indices[VIO_Y],
+                                voxel_indices[VIO_Z], contains );
             set_bitlist_bit_3d( done_bits,
-                                voxel_indices[X],
-                                voxel_indices[Y],
-                                voxel_indices[Z], TRUE );
+                                voxel_indices[VIO_X],
+                                voxel_indices[VIO_Y],
+                                voxel_indices[VIO_Z], TRUE );
         }
         else
         {
             contains = get_bitlist_bit_3d( surface_bits,
-                                           voxel_indices[X],
-                                           voxel_indices[Y],
-                                           voxel_indices[Z] );
+                                           voxel_indices[VIO_X],
+                                           voxel_indices[VIO_Y],
+                                           voxel_indices[VIO_Z] );
         }
 
         if( !contains )
@@ -885,41 +885,41 @@ static  BOOLEAN  voxel_might_contain_boundary(
     return( TRUE );
 }
 
-static  BOOLEAN  check_voxel_for_boundary(
+static  VIO_BOOL  check_voxel_for_boundary(
     voxel_coef_struct           *lookup,
     VIO_Volume                      volume,
     VIO_Volume                      label_volume,
     int                         degrees_continuity,
     int                         voxel_indices[],
-    Real                        line_origin[],
-    Real                        line_direction[],
-    BOOLEAN                     *inside_surface,
-    BOOLEAN                     searching_inwards,
-    Real                        min_line_t,
-    Real                        max_line_t,
+    VIO_Real                        line_origin[],
+    VIO_Real                        line_direction[],
+    VIO_BOOL                     *inside_surface,
+    VIO_BOOL                     searching_inwards,
+    VIO_Real                        min_line_t,
+    VIO_Real                        max_line_t,
     boundary_definition_struct  *boundary_def,
-    BOOLEAN                     already_found,
-    Real                        *dist_found )
+    VIO_BOOL                     already_found,
+    VIO_Real                        *dist_found )
 {
-    BOOLEAN         found, inside, prev_inside;
+    VIO_BOOL         found, inside, prev_inside;
     int             degrees;
-    Real            line_poly[10], value, vx, vy, vz;
-    Real            t, increment, t_min, t_max;
+    VIO_Real            line_poly[10], value, vx, vy, vz;
+    VIO_Real            t, increment, t_min, t_max;
     VIO_Vector          direction;
-    Real            surface[VIO_N_DIMENSIONS];
-    Real            coefs[(2+MAX_DERIVS)*(2+MAX_DERIVS)*(2+MAX_DERIVS)];
+    VIO_Real            surface[VIO_N_DIMENSIONS];
+    VIO_Real            coefs[(2+MAX_DERIVS)*(2+MAX_DERIVS)*(2+MAX_DERIVS)];
 
     found = FALSE;
 
     lookup_volume_coeficients( lookup, volume, degrees_continuity,
-                               voxel_indices[X],
-                               voxel_indices[Y],
-                               voxel_indices[Z], coefs );
+                               voxel_indices[VIO_X],
+                               voxel_indices[VIO_Y],
+                               voxel_indices[VIO_Z], coefs );
 
     degrees = find_voxel_line_polynomial( coefs, degrees_continuity,
-                                          voxel_indices[X],
-                                          voxel_indices[Y],
-                                          voxel_indices[Z],
+                                          voxel_indices[VIO_X],
+                                          voxel_indices[VIO_Y],
+                                          voxel_indices[VIO_Z],
                                           line_origin,
                                           line_direction,
                                           line_poly );

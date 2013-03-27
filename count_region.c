@@ -11,15 +11,15 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *tag_filename, *axis_name, *volume_filename;
     int                  n_tags, n_objects, structure_id;
     object_struct        **object_list;
-    Real                 min_limit[N_DIMENSIONS], max_limit[N_DIMENSIONS];
-    Real                 min_range, max_range;
+    VIO_Real                 min_limit[N_DIMENSIONS], max_limit[N_DIMENSIONS];
+    VIO_Real                 min_range, max_range;
     int                  i, axis;
     marker_struct        *marker;
-    Volume               volume;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
 
     initialize_argument_processing( argc, argv );
@@ -30,7 +30,7 @@ int  main(
         return( 1 );
     }
 
-    status = OK;
+    status = VIO_OK;
 
     if( filename_extension_matches( tag_filename, 
                                     get_default_landmark_file_suffix() ) )
@@ -51,7 +51,7 @@ int  main(
         }
     }
     else
-        volume = (Volume) NULL;
+        volume = (VIO_Volume) NULL;
 
     if( !get_int_argument( 0, &structure_id ) )
     {
@@ -131,8 +131,8 @@ int  main(
     }
     print( "Number      : %d\n", n_tags );
     
-    if( volume != (Volume) NULL )
+    if( volume != (VIO_Volume) NULL )
         cancel_volume_input( volume, &volume_input );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

@@ -17,7 +17,7 @@ int  main(
     FILE                 *in_file, *out_file;
     polygons_struct      *surface, *dest_sphere, *sphere;
     VIO_progress_struct      progress;
-    BOOLEAN              values_specified;
+    VIO_BOOL              values_specified;
     VIO_Point                poly1_points[MAX_POINTS_PER_POLYGON];
     VIO_Point                poly2_points[MAX_POINTS_PER_POLYGON];
     VIO_Point                scaled_point;
@@ -40,7 +40,7 @@ int  main(
                        get_string_argument( NULL, &output_values_filename );
 
     if( input_graphics_file( surface_filename, &format, &n_objects,
-                             &object_list ) != OK ||
+                             &object_list ) != VIO_OK ||
         n_objects != 1 || get_object_type(object_list[0]) != POLYGONS ||
         !is_this_tetrahedral_topology(get_polygons_ptr(object_list[0])) )
     {
@@ -51,7 +51,7 @@ int  main(
     surface = get_polygons_ptr(object_list[0]);
 
     if( input_graphics_file( unit_sphere_filename, &format, &n_s_objects,
-                             &s_object_list ) != OK ||
+                             &s_object_list ) != VIO_OK ||
         n_s_objects != 1 || get_object_type(s_object_list[0]) != POLYGONS ||
         !is_this_tetrahedral_topology(get_polygons_ptr(s_object_list[0])) )
     {
@@ -83,12 +83,12 @@ int  main(
     {
         ALLOC( in_values, surface->n_points );
         if( open_file( input_values_filename, READ_FILE, ASCII_FORMAT,
-                       &in_file ) != OK )
+                       &in_file ) != VIO_OK )
             return( 1 );
 
         for_less( p, 0, surface->n_points )
         {
-            if( input_real( in_file, &in_values[p] ) != OK )
+            if( input_real( in_file, &in_values[p] ) != VIO_OK )
             {
                 print_error( "Error reading values.\n" );
                 return( 1 );
@@ -98,7 +98,7 @@ int  main(
         (void) close_file( in_file );
 
         if( open_file( output_values_filename, WRITE_FILE, ASCII_FORMAT,
-                       &out_file ) != OK )
+                       &out_file ) != VIO_OK )
             return( 1 );
     }
 
@@ -137,8 +137,8 @@ int  main(
 
         if( values_specified )
         {
-            if( output_real( out_file, value ) != OK ||
-                output_newline( out_file ) != OK )
+            if( output_real( out_file, value ) != VIO_OK ||
+                output_newline( out_file ) != VIO_OK )
             {
                 print_error( "Error writing values.\n" );
                 return( 1 );
@@ -158,7 +158,7 @@ int  main(
 
     compute_polygon_normals( dest_sphere );
 
-    if( output_graphics_file( output_filename, format, 1, &out_object ) != OK )
+    if( output_graphics_file( output_filename, format, 1, &out_object ) != VIO_OK )
         return( 1 );
 
     return( 0 );

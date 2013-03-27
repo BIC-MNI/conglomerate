@@ -5,10 +5,10 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING         input_filename, swap_bytes_string;
+    VIO_STR         input_filename, swap_bytes_string;
     char           one_byte, last_byte;
     int            i, offset, n_bytes;
-    BOOLEAN        swap_bytes_flag;
+    VIO_BOOL        swap_bytes_flag;
     FILE           *file;
 
     initialize_argument_processing( argc, argv );
@@ -26,14 +26,14 @@ int  main(
 
     while( get_string_argument( "", &input_filename ) )
     {
-        if( open_file( input_filename, READ_FILE, BINARY_FORMAT, &file ) != OK )
+        if( open_file( input_filename, READ_FILE, BINARY_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
         set_file_position( file, offset );
 
         i = 0;
         while( (n_bytes < 0 || i < n_bytes) &&
-               input_character( file, &one_byte ) == OK )
+               input_character( file, &one_byte ) == VIO_OK )
         {
             if( swap_bytes_flag )
             {
@@ -41,19 +41,19 @@ int  main(
                     last_byte = one_byte;
                 else
                 {
-                    if( output_character( stdout, one_byte ) != OK )
+                    if( output_character( stdout, one_byte ) != VIO_OK )
                     {
                         print_error( "Error writing byte.\n" );
                         return( 1 );
                     }
-                    if( output_character( stdout, last_byte ) != OK )
+                    if( output_character( stdout, last_byte ) != VIO_OK )
                     {
                         print_error( "Error writing byte.\n" );
                         return( 1 );
                     }
                 }
             }
-            else if( output_character( stdout, one_byte ) != OK )
+            else if( output_character( stdout, one_byte ) != VIO_OK )
             {
                 print_error( "Error writing byte.\n" );
                 return( 1 );

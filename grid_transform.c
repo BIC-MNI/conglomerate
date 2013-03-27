@@ -5,8 +5,8 @@ typedef struct
 {
     int   i;
     int   j;
-    Real  x_pos;
-    Real  y_pos;
+    VIO_Real  x_pos;
+    VIO_Real  y_pos;
 } fixed_struct;
 
 private  void  get_fixed_pos(
@@ -14,8 +14,8 @@ private  void  get_fixed_pos(
     fixed_struct   fixed_points[],
     int            i,
     int            j,
-    Real           *x,
-    Real           *y );
+    VIO_Real           *x,
+    VIO_Real           *y );
 
 private  void  find_minimum(
     int            x_grid_size,
@@ -23,21 +23,21 @@ private  void  find_minimum(
     int            n_fixed,
     fixed_struct   fixed_points[],
     int            **param_index,
-    Real           parameters[] );
+    VIO_Real           parameters[] );
 
 int  main(
     int  argc,
     char *argv[] )
 {
-    STRING           filename;
+    VIO_STR           filename;
     int              n_fixed, x_grid_size, y_grid_size, i_grid, j_grid;
     int              **param_index, ind, i, j, n_moving_grid;
-    Real             x_pos, y_pos, x, y;
+    VIO_Real             x_pos, y_pos, x, y;
     fixed_struct     f, *fixed_points;
     Smallest_int     **grid_fixed_flags;
-    Point            point;
-    Vector           normal;
-    Real             *parameters;
+    VIO_Point            point;
+    VIO_Vector           normal;
+    VIO_Real             *parameters;
     object_struct    *object;
     quadmesh_struct  *quadmesh;
 
@@ -129,8 +129,8 @@ private  void  get_fixed_pos(
     fixed_struct   fixed_points[],
     int            i,
     int            j,
-    Real           *x,
-    Real           *y )
+    VIO_Real           *x,
+    VIO_Real           *y )
 {
     int  ind;
 
@@ -155,11 +155,11 @@ private  void  find_minimum(
     int            n_fixed,
     fixed_struct   fixed_points[],
     int            **param_index,
-    Real           parameters[] )
+    VIO_Real           parameters[] )
 {
     int                    n_parameters, x, y, i, ind[3], coord, which;
     int                    dx, dy, hor;
-    Real                   c, weights[3], pos[2];
+    VIO_Real                   c, weights[3], pos[2];
     linear_least_squares   lsq;
 
     n_parameters = 2 * (x_grid_size * y_grid_size - n_fixed);

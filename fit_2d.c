@@ -4,14 +4,14 @@
 
 private  void  deform_line(
     int                n_points,
-    Point              points[],
-    Point              model_points[],
-    Real               model_weight,
-    Volume             volume,
-    Real               threshold,
+    VIO_Point              points[],
+    VIO_Point              model_points[],
+    VIO_Real               model_weight,
+    VIO_Volume             volume,
+    VIO_Real               threshold,
     char               normal_direction,
-    Real               max_outward,
-    Real               max_inward,
+    VIO_Real               max_outward,
+    VIO_Real               max_inward,
     int                n_iters,
     int                n_iters_recompute );
 
@@ -19,16 +19,16 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               input_filename, output_filename, model_filename;
-    STRING               surface_direction, volume_filename;
+    VIO_STR               input_filename, output_filename, model_filename;
+    VIO_STR               surface_direction, volume_filename;
     int                  n_objects, n_m_objects;
     int                  n_iters, n_iters_recompute;
     File_formats         format;
     object_struct        **object_list, **m_object_list;
     lines_struct         *lines, *model_lines;
-    Volume               volume;
-    Real                 threshold, model_weight;
-    Real                 max_outward, max_inward;
+    VIO_Volume               volume;
+    VIO_Real                 threshold, model_weight;
+    VIO_Real                 max_outward, max_inward;
 
     initialize_argument_processing( argc, argv );
 
@@ -51,14 +51,14 @@ int  main(
     (void) get_int_argument( 1, &n_iters_recompute );
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != LINES )
         return( 1 );
 
     lines = get_lines_ptr( object_list[0] );
 
     if( input_graphics_file( model_filename, &format, &n_m_objects,
-                             &m_object_list ) != OK || n_m_objects != 1 ||
+                             &m_object_list ) != VIO_OK || n_m_objects != 1 ||
         get_object_type(m_object_list[0]) != LINES )
         return( 1 );
 
@@ -66,7 +66,7 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     deform_line( lines->n_points, lines->points, model_lines->points,
@@ -81,17 +81,17 @@ int  main(
 
 private  void  create_model_coefficients(
     int              n_nodes,
-    Point            model_points[],
+    VIO_Point            model_points[],
     int              n_parms_involved[],
     int              *parm_list[],
-    Real             constants[],
-    Real             *node_weights[] )
+    VIO_Real             constants[],
+    VIO_Real             *node_weights[] )
 {
     int              node, eq, dim;
     int              prev, next;
-    Real             xs[2], ys[2];
-    Real             *weights[2][2], cons[2];
-    BOOLEAN          ignoring;
+    VIO_Real             xs[2], ys[2];
+    VIO_Real             *weights[2][2], cons[2];
+    VIO_BOOL          ignoring;
 
     ALLOC( weights[0][0], 2 );
     ALLOC( weights[0][1], 2 );
@@ -186,21 +186,21 @@ private  void  create_model_coefficients(
 }
 
 private  void  create_image_coefficients(
-    Volume                      volume,
+    VIO_Volume                      volume,
     boundary_definition_struct  *boundary,
-    Real                        max_outward,
-    Real                        max_inward,
-    Real                        z,
+    VIO_Real                        max_outward,
+    VIO_Real                        max_inward,
+    VIO_Real                        z,
     int                         n_nodes,
-    Real                        parameters[],
+    VIO_Real                        parameters[],
     int                         *parm_list[],
-    Real                        constants[],
-    Real                        *node_weights[] )
+    VIO_Real                        constants[],
+    VIO_Real                        *node_weights[] )
 {
     int     eq, node, prev, next;
-    Real    dist;
-    Point   prev_point, next_point, origin, p;
-    Vector  offset, normal;
+    VIO_Real    dist;
+    VIO_Point   prev_point, next_point, origin, p;
+    VIO_Vector  offset, normal;
 
     eq = 0;
 
@@ -246,22 +246,22 @@ private  void  create_image_coefficients(
 
 private  void  deform_line(
     int                n_points,
-    Point              points[],
-    Point              model_points[],
-    Real               model_weight,
-    Volume             volume,
-    Real               threshold,
+    VIO_Point              points[],
+    VIO_Point              model_points[],
+    VIO_Real               model_weight,
+    VIO_Volume             volume,
+    VIO_Real               threshold,
     char               normal_direction,
-    Real               max_outward,
-    Real               max_inward,
+    VIO_Real               max_outward,
+    VIO_Real               max_inward,
     int                n_iters,
     int                n_iters_recompute )
 {
     int              eq, point, n, iter;
     int              n_model_equations, n_image_equations;
     int              n_equations, *n_parms_involved, **parm_list;
-    Real             *constants, **node_weights;
-    Real             *parameters;
+    VIO_Real             *constants, **node_weights;
+    VIO_Real             *parameters;
     boundary_definition_struct  boundary;
 
     set_boundary_definition( &boundary, threshold, threshold, -1.0, 90.0,

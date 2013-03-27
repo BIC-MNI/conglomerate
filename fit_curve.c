@@ -50,7 +50,7 @@ int  main(
     lines_struct         *lines;
     VIO_Point                *points, line_origin, *cvs, *class_points;
     VIO_Vector               line_direction;
-    BOOLEAN              break_up_flag;
+    VIO_BOOL              break_up_flag;
     int                  *classes, cl, n_changed;
 
     initialize_argument_processing( argc, argv );
@@ -68,12 +68,12 @@ int  main(
     break_up_flag = get_real_argument( 0.0, &disjoint_distance );
 
     if( input_tag_file( input_filename, &n_volumes, &n_tag_points,
-                        &tags, NULL, NULL, NULL, NULL, NULL ) != OK )
+                        &tags, NULL, NULL, NULL, NULL, NULL ) != VIO_OK )
         return( 1 );
 
     if( n_tag_points == 0 )
     {
-        if( output_graphics_file( output_filename, ASCII_FORMAT, 0, NULL ) !=OK)
+        if( output_graphics_file( output_filename, ASCII_FORMAT, 0, NULL ) !=VIO_OK)
             return( 1 );
         return( 0 );
     }
@@ -83,10 +83,10 @@ int  main(
         object_list[0] = create_object( LINES );
         lines = get_lines_ptr( object_list[0] );
         initialize_lines_with_size( lines, WHITE, 2, FALSE );
-        fill_Point( lines->points[0], tags[0][X], tags[0][Y], tags[0][Z] );
-        fill_Point( lines->points[1], tags[0][X], tags[0][Y], tags[0][Z] );
+        fill_Point( lines->points[0], tags[0][VIO_X], tags[0][VIO_Y], tags[0][VIO_Z] );
+        fill_Point( lines->points[1], tags[0][VIO_X], tags[0][VIO_Y], tags[0][VIO_Z] );
         if( output_graphics_file( output_filename, ASCII_FORMAT, 1, object_list)
-                                  !=OK )
+                                  !=VIO_OK )
             return( 1 );
 
         delete_object_list( 1, object_list );
@@ -98,7 +98,7 @@ int  main(
 
     for_less( p, 0, n_tag_points )
     {
-        fill_Point( points[p], tags[p][X], tags[p][Y], tags[p][Z] );
+        fill_Point( points[p], tags[p][VIO_X], tags[p][VIO_Y], tags[p][VIO_Z] );
         classes[p] = -1;
     }
 
@@ -217,7 +217,7 @@ int  main(
     }
 
     if( output_graphics_file( output_filename, ASCII_FORMAT, n_classes,
-                              object_list ) != OK)
+                              object_list ) != VIO_OK)
         return( 1 );
 
     FREE( class_points );
@@ -227,7 +227,7 @@ int  main(
     return( 0 );
 }
 
-static  BOOLEAN  get_best_line_using_axis_2d(
+static  VIO_BOOL  get_best_line_using_axis_2d(
     int     n_points,
     VIO_Point   points[],
     int     axis,
@@ -242,7 +242,7 @@ static  BOOLEAN  get_best_line_using_axis_2d(
     VIO_Real                   second_deriv, constant;
     VIO_Point                  centroid;
     VIO_Vector                 offset;
-    BOOLEAN                okay;
+    VIO_BOOL                okay;
 
     get_points_centroid( n_points, points, &centroid );
 
@@ -297,7 +297,7 @@ static  void  get_best_line(
     int     *best_axis )
 {
     int      axis, value;
-    BOOLEAN  found;
+    VIO_BOOL  found;
     VIO_Real     best_error, error;
     VIO_Point    origin;
     VIO_Vector   direction;
@@ -480,7 +480,7 @@ static  void  fit_curve(
 
     for_less( p, 0, n_cvs )
     {
-        x = INTERPOLATE( (VIO_Real) (p-1) / (VIO_Real) (n_cvs-3), t_min, t_max );
+        x = VIO_INTERPOLATE( (VIO_Real) (p-1) / (VIO_Real) (n_cvs-3), t_min, t_max );
         fill_Point( cvs[p], x, 0.0, 0.0 );
     }
 

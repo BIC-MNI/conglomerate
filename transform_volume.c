@@ -36,10 +36,10 @@ int  main(
  
     if( input_volume( input_filename, -1, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
-    if( input_transform_file( transform_filename, &transform ) != OK )
+    if( input_transform_file( transform_filename, &transform ) != VIO_OK )
         return( 0 );
 
     concat_general_transforms( get_voxel_to_world_transform(volume),

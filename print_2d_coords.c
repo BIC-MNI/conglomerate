@@ -26,7 +26,7 @@ int  main(
     }
 
     if( input_graphics_file( src_polygons_filename,
-                             &format, &n_src_objects, &src_objects ) != OK )
+                             &format, &n_src_objects, &src_objects ) != VIO_OK )
         return( 1 );
 
     if( n_src_objects != 1 || get_object_type( src_objects[0] ) != POLYGONS ||

@@ -21,7 +21,7 @@ int  main(
  
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -32,8 +32,8 @@ int  main(
            get_int_argument( 0, &y ) &&
            get_int_argument( 0, &z ) )
     {
-        if( x >= 0 && x < sizes[X] && y >= 0 && y < sizes[Y] &&
-            z >= 0 && z < sizes[Z] )
+        if( x >= 0 && x < sizes[VIO_X] && y >= 0 && y < sizes[VIO_Y] &&
+            z >= 0 && z < sizes[VIO_Z] )
         {
             value = get_volume_real_value( volume, x, y, z, 0, 0 );
             print( "%g\n", value );
@@ -48,16 +48,16 @@ int  main(
         get_volume_voxel_range( volume, &min_voxel, &max_voxel );
 
         min_v = VIO_FLOOR( min_voxel );
-        max_v = CEILING( max_voxel );
+        max_v = VIO_CEILING( max_voxel );
 
         ALLOC( counts, max_v - min_v + 1 );
 
         for_inclusive( i, min_v, max_v )
             counts[i-min_v] = 0;
 
-        for_less( x, 0, sizes[X] )
-        for_less( y, 0, sizes[Y] )
-        for_less( z, 0, sizes[Z] )
+        for_less( x, 0, sizes[VIO_X] )
+        for_less( y, 0, sizes[VIO_Y] )
+        for_less( z, 0, sizes[VIO_Z] )
         {
             voxel = get_volume_voxel_value( volume, x, y, z, 0, 0 );
             ++counts[VIO_ROUND(voxel) - min_v];

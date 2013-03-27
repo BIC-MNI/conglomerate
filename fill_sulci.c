@@ -7,8 +7,8 @@ int  main(
 {
     VIO_STR               input_volume_filename, input_surface_filename;
     VIO_STR               output_volume_filename;
-    Real                 separations[VIO_MAX_DIMENSIONS];
-    Real                 voxel_size, threshold;
+    VIO_Real                 separations[VIO_MAX_DIMENSIONS];
+    VIO_Real                 voxel_size, threshold;
     VIO_STR               history;
     VIO_File_formats         format;
     VIO_Volume               volume, label_volume;
@@ -31,13 +31,13 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     label_volume = create_label_volume( volume, NC_BYTE );
 
     if( input_graphics_file( input_surface_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects < 1 )

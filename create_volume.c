@@ -6,27 +6,27 @@
 #define  Z_SIZE   50
 
 private  void  scan_segment_to_volume(
-    Volume   volume,
-    Real     x1,
-    Real     y1,
-    Real     x2,
-    Real     y2 );
+    VIO_Volume   volume,
+    VIO_Real     x1,
+    VIO_Real     y1,
+    VIO_Real     x2,
+    VIO_Real     y2 );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
-    STRING               output_filename;
+    VIO_Status               status;
+    VIO_STR               output_filename;
     int                  i, x, y, z, sizes[N_DIMENSIONS];
-    Real                 voxel[N_DIMENSIONS], world[N_DIMENSIONS];
-    Real                 x_centre, y_centre, x2, y2, xw, yw, zw;
-    Real                 angle, length;
-    Real                 x_dir[N_DIMENSIONS];
-    Real                 y_dir[N_DIMENSIONS];
-    Real                 z_dir[N_DIMENSIONS];
+    VIO_Real                 voxel[N_DIMENSIONS], world[N_DIMENSIONS];
+    VIO_Real                 x_centre, y_centre, x2, y2, xw, yw, zw;
+    VIO_Real                 angle, length;
+    VIO_Real                 x_dir[N_DIMENSIONS];
+    VIO_Real                 y_dir[N_DIMENSIONS];
+    VIO_Real                 z_dir[N_DIMENSIONS];
     char                 history[10000];
-    Volume               volume;
+    VIO_Volume               volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -47,7 +47,7 @@ int  main(
     set_volume_sizes( volume, sizes );
 
     set_volume_voxel_range( volume, 0.0, 255.0 );
-    set_volume_real_range( volume, 0.0, (Real) X_SIZE );
+    set_volume_real_range( volume, 0.0, (VIO_Real) X_SIZE );
 
 /*
     x_dir[0] = 1.2;
@@ -72,9 +72,9 @@ int  main(
     world[Z] = 2.0 * 0.88;
 */
 
-    voxel[X] = ((Real) sizes[X] - 1.0) / 2.0;
-    voxel[Y] = ((Real) sizes[Y] - 1.0) / 2.0;
-    voxel[Z] = ((Real) sizes[Z] - 1.0) / 2.0;
+    voxel[X] = ((VIO_Real) sizes[X] - 1.0) / 2.0;
+    voxel[Y] = ((VIO_Real) sizes[Y] - 1.0) / 2.0;
+    voxel[Z] = ((VIO_Real) sizes[Z] - 1.0) / 2.0;
 
     world[X] = 0.0;
     world[Y] = 0.0;
@@ -114,20 +114,20 @@ int  main(
     status = output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                             volume, history, (minc_output_options *) NULL );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
-private  Real  get_distance_from_segment(
-    Real     x,
-    Real     y,
-    Real     x1,
-    Real     y1,
-    Real     x2,
-    Real     y2 )
+private  VIO_Real  get_distance_from_segment(
+    VIO_Real     x,
+    VIO_Real     y,
+    VIO_Real     x1,
+    VIO_Real     y1,
+    VIO_Real     x2,
+    VIO_Real     y2 )
 {
-    Real    dx, dy, dist, dist1, dist2;
-    Real    dx12, dy12;
-    Real    len_squared;
+    VIO_Real    dx, dy, dist, dist1, dist2;
+    VIO_Real    dx12, dy12;
+    VIO_Real    len_squared;
 
     dx12 = x2 - x1;
     dy12 = y2 - y1;
@@ -158,26 +158,26 @@ private  Real  get_distance_from_segment(
 }
 
 private  void  scan_segment_to_volume(
-    Volume   volume,
-    Real     x1,
-    Real     y1,
-    Real     x2,
-    Real     y2 )
+    VIO_Volume   volume,
+    VIO_Real     x1,
+    VIO_Real     y1,
+    VIO_Real     x2,
+    VIO_Real     y2 )
 {
     int   x, y, z, sizes[N_DIMENSIONS];
-    Real  x_w, y_w, z_w, dist, voxel, value, voxel_pos[N_DIMENSIONS];
+    VIO_Real  x_w, y_w, z_w, dist, voxel, value, voxel_pos[N_DIMENSIONS];
 
     get_volume_sizes( volume, sizes );
 
     for_less( x, 0, sizes[X] )
     {
-        voxel_pos[X] = (Real) x;
+        voxel_pos[X] = (VIO_Real) x;
         for_less( y, 0, sizes[Y] )
         {
-            voxel_pos[Y] = (Real) y;
+            voxel_pos[Y] = (VIO_Real) y;
             for_less( z, 0, sizes[Z] )
             {
-                voxel_pos[Z] = (Real) z;
+                voxel_pos[Z] = (VIO_Real) z;
                 convert_voxel_to_world( volume, voxel_pos, &x_w, &y_w, &z_w );
 
                 dist = get_distance_from_segment( x_w, y_w, x1, y1, x2, y2 );

@@ -26,31 +26,31 @@ int  main(
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     while( get_string_argument( "", &input_tags ) )
     {
         if( input_tag_file( input_tags, &n_volumes, &n_tag_points,
                             &tags_volume1, &tags_volume2,
-                            NULL, NULL, NULL, NULL ) != OK )
+                            NULL, NULL, NULL, NULL ) != VIO_OK )
             return( 1 );
 
         n_inside = 0;
 
         for_less( i, 0, n_tag_points )
         {
-            convert_world_to_voxel( volume, tags_volume1[i][X],
-                                    tags_volume1[i][Y],
-                                    tags_volume1[i][Z],
+            convert_world_to_voxel( volume, tags_volume1[i][VIO_X],
+                                    tags_volume1[i][VIO_Y],
+                                    tags_volume1[i][VIO_Z],
                                     voxel );
 
             convert_real_to_int_voxel( VIO_N_DIMENSIONS, voxel, int_voxel );
 
             if( int_voxel_is_within_volume( volume, int_voxel ) )
             {
-                value = get_volume_real_value( volume, int_voxel[X],
-                                         int_voxel[Y], int_voxel[Z], 0, 0 );
+                value = get_volume_real_value( volume, int_voxel[VIO_X],
+                                         int_voxel[VIO_Y], int_voxel[VIO_Z], 0, 0 );
 
                 if( value >= avg_threshold )
                     ++n_inside;

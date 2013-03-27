@@ -5,40 +5,40 @@
 
 #define  OFFSET   1000.0
 
-private  BOOLEAN  get_extrapolated_value(
-    Volume         volume,
+private  VIO_BOOL  get_extrapolated_value(
+    VIO_Volume         volume,
     int            x,
     int            y,
     int            z,
     object_struct  *surface,
-    Real           threshold,
-    Real           *value_to_set );
+    VIO_Real           threshold,
+    VIO_Real           *value_to_set );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_volume_filename, input_surface_filename;
-    STRING               output_volume_filename;
-    Real                 set_value, separations[MAX_DIMENSIONS];
-    Real                 min_value, max_value, value;
-    Real                 xw, yw, zw, threshold, value_to_set;
-    Real                 sign_before, sign_after;
-    Point                origin, dest;
-    Real                 min_real_value, max_real_value;
-    Real                 *directions;
-    Vector               direction;
-    STRING               history;
+    VIO_STR               input_volume_filename, input_surface_filename;
+    VIO_STR               output_volume_filename;
+    VIO_Real                 set_value, separations[MAX_DIMENSIONS];
+    VIO_Real                 min_value, max_value, value;
+    VIO_Real                 xw, yw, zw, threshold, value_to_set;
+    VIO_Real                 sign_before, sign_after;
+    VIO_Point                origin, dest;
+    VIO_Real                 min_real_value, max_real_value;
+    VIO_Real                 *directions;
+    VIO_Vector               direction;
+    VIO_STR               history;
     File_formats         format;
-    Volume               volume;
+    VIO_Volume               volume;
     int                  x, y, z, n_objects, k;
     int                  sizes[MAX_DIMENSIONS];
     int                  obj_index;
     int                  i, j, best, n_intersections, ind;
-    Real                 dist, *distances, tmp, voxel[MAX_DIMENSIONS];
+    VIO_Real                 dist, *distances, tmp, voxel[MAX_DIMENSIONS];
     object_struct        **objects;
-    BOOLEAN              set_value_specified, inside, erase_flag;
-    BOOLEAN              threshold_specified;
+    VIO_BOOL              set_value_specified, inside, erase_flag;
+    VIO_BOOL              threshold_specified;
     progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
@@ -61,11 +61,11 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( input_surface_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     if( n_objects < 1 )
@@ -90,7 +90,7 @@ int  main(
     if( BINTREE_FACTOR > 0.0 )
     {
         create_polygons_bintree( get_polygons_ptr(objects[0]),
-                     ROUND( (Real) get_polygons_ptr(objects[0])->n_items *
+                     ROUND( (VIO_Real) get_polygons_ptr(objects[0])->n_items *
                                                    BINTREE_FACTOR ) );
     }
 
@@ -101,14 +101,14 @@ int  main(
     {
         for_less( y, 0, sizes[Y] )
         {
-            voxel[X] = (Real) x;
-            voxel[Y] = (Real) y;
+            voxel[X] = (VIO_Real) x;
+            voxel[Y] = (VIO_Real) y;
             voxel[Z] = -OFFSET;
 
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
             fill_Point( origin, xw, yw, zw );
 
-            voxel[Z] = (Real) sizes[Z] + OFFSET;
+            voxel[Z] = (VIO_Real) sizes[Z] + OFFSET;
             convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
             fill_Point( dest, xw, yw, zw );
             SUB_POINTS( direction, dest, origin );
@@ -209,7 +209,7 @@ int  main(
                 for_less( z, 0, sizes[Z] )
                 {
                     while( ind <= n_intersections-1 &&
-                           (Real) z >= distances[ind] )
+                           (VIO_Real) z >= distances[ind] )
                     {
                         inside = !inside;
                         ++ind;
@@ -276,8 +276,8 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN  get_one_extrapolated_value(
-    Volume         volume,
+private  VIO_BOOL  get_one_extrapolated_value(
+    VIO_Volume         volume,
     int            x1,
     int            y1,
     int            z1,
@@ -285,15 +285,15 @@ private  BOOLEAN  get_one_extrapolated_value(
     int            y2,
     int            z2,
     object_struct  *surface,
-    Real           threshold,
-    Real           *value_to_set )
+    VIO_Real           threshold,
+    VIO_Real           *value_to_set )
 {
     int      sizes[N_DIMENSIONS];
     int      obj_index, n_int, n_intersections, i;
-    Real     value2, dist, *distances, xw, yw, zw;
-    Real     voxel[N_DIMENSIONS];
-    Point    p1, p2;
-    Vector   direction;
+    VIO_Real     value2, dist, *distances, xw, yw, zw;
+    VIO_Real     voxel[N_DIMENSIONS];
+    VIO_Point    p1, p2;
+    VIO_Vector   direction;
 
     get_volume_sizes( volume, sizes );
 
@@ -302,15 +302,15 @@ private  BOOLEAN  get_one_extrapolated_value(
         z2 < 0 || z1 >= sizes[Z] )
         return( FALSE );
 
-    voxel[X] = (Real) x1;
-    voxel[Y] = (Real) y1;
-    voxel[Z] = (Real) z1;
+    voxel[X] = (VIO_Real) x1;
+    voxel[Y] = (VIO_Real) y1;
+    voxel[Z] = (VIO_Real) z1;
     convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
     fill_Point( p1, xw, yw, zw );
 
-    voxel[X] = (Real) x2;
-    voxel[Y] = (Real) y2;
-    voxel[Z] = (Real) z2;
+    voxel[X] = (VIO_Real) x2;
+    voxel[Y] = (VIO_Real) y2;
+    voxel[Z] = (VIO_Real) z2;
     convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
     fill_Point( p2, xw, yw, zw );
     SUB_POINTS( direction, p2, p1 );
@@ -345,16 +345,16 @@ private  BOOLEAN  get_one_extrapolated_value(
     return( TRUE );
 }
 
-private  BOOLEAN  get_extrapolated_value(
-    Volume         volume,
+private  VIO_BOOL  get_extrapolated_value(
+    VIO_Volume         volume,
     int            x,
     int            y,
     int            z,
     object_struct  *surface,
-    Real           threshold,
-    Real           *value_to_set )
+    VIO_Real           threshold,
+    VIO_Real           *value_to_set )
 {
-    Real     value;
+    VIO_Real     value;
     int      c, dir, n_bounds, voxel[N_DIMENSIONS];
 
     *value_to_set = 0.0;
@@ -378,7 +378,7 @@ private  BOOLEAN  get_extrapolated_value(
     }
 
     if( n_bounds > 0 )
-        *value_to_set /= (Real) n_bounds;
+        *value_to_set /= (VIO_Real) n_bounds;
 
     return( n_bounds > 0 );
 }

@@ -7,8 +7,8 @@ FILE  *in_file;
 static   int  n_on = 0;
 static   int  total_bytes_read = 0;
 
-private  BOOLEAN  get_bit(
-    BOOLEAN  *bit )
+private  VIO_BOOL  get_bit(
+    VIO_BOOL  *bit )
 {
     static  int   n_bits_left = 0;
     static  int   data;
@@ -36,7 +36,7 @@ static  int   n_bits_out = 0;
 static  int   data = 0;
 
 private  void  output_bit(
-    BOOLEAN  bit )
+    VIO_BOOL  bit )
 {
     data = (data >> 1) | (bit ? 128 : 0);
 
@@ -55,7 +55,7 @@ private  void  output_bit(
 private  void  flush_bits( void )
 {
     print( "Total bits: %d %d   %5.1f\n", total_bytes_read, total_n_bits / 8,
-           100.0 * (Real) n_on / 8.0 / (Real) total_bytes_read );
+           100.0 * (VIO_Real) n_on / 8.0 / (VIO_Real) total_bytes_read );
 
     while( n_bits_out != 0 )
         output_bit( FALSE );
@@ -65,9 +65,9 @@ int  main(
     int  argc,
     char *argv[] )
 {
-    STRING     bit_pattern, out_filename, in_filename;
-    Real       total_bits, l;
-    BOOLEAN    bit, expected;
+    VIO_STR     bit_pattern, out_filename, in_filename;
+    VIO_Real       total_bits, l;
+    VIO_BOOL    bit, expected;
     int        n_pattern_bits, *count, n_patterns, b, p, value;
     int        smallest, second_smallest, total_chunks;
 
@@ -82,9 +82,9 @@ int  main(
     }
 
     n_patterns = 1 << n_pattern_bits;
-    l = log( (Real) (n_patterns-1) ) / log( 2.0 );
+    l = log( (VIO_Real) (n_patterns-1) ) / log( 2.0 );
 
-    if( open_file( in_filename, READ_FILE, BINARY_FORMAT, &in_file ) != OK )
+    if( open_file( in_filename, READ_FILE, BINARY_FORMAT, &in_file ) != VIO_OK )
         return( 1 );
 
     ALLOC( count, n_patterns );
@@ -139,19 +139,19 @@ int  main(
 
     total_bits = 0.0;
     for_less( p, 0, n_patterns )
-        total_bits += (Real) count[p] * l;
+        total_bits += (VIO_Real) count[p] * l;
 
-    total_bits += (Real) count[smallest] +
-                  (Real) count[second_smallest];
+    total_bits += (VIO_Real) count[smallest] +
+                  (VIO_Real) count[second_smallest];
 
-    print( "Percentage: %g %g", 2.0 / (Real) n_patterns,
-            ((Real) count[smallest] + (Real) count[second_smallest]) /
-            (Real) total_chunks );
+    print( "Percentage: %g %g", 2.0 / (VIO_Real) n_patterns,
+            ((VIO_Real) count[smallest] + (VIO_Real) count[second_smallest]) /
+            (VIO_Real) total_chunks );
 
-    print( "Ratio: %g\n", total_bits / (Real) total_bytes_read / 8.0 );
+    print( "Ratio: %g\n", total_bits / (VIO_Real) total_bytes_read / 8.0 );
 
 /*
-    if( open_file( out_filename, WRITE_FILE, BINARY_FORMAT, &file ) != OK )
+    if( open_file( out_filename, WRITE_FILE, BINARY_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     close_file( file );

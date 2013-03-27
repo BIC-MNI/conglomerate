@@ -13,7 +13,7 @@ int  main(
     pixels_struct     in_pixels, *images, pixels;
     VIO_Colour            background;
     int               desired_x_size, desired_y_size;
-    BOOLEAN           desired_size_flag;
+    VIO_BOOL           desired_size_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -48,7 +48,7 @@ int  main(
         }
         else
         {
-            if( input_rgb_file( input_filename, &in_pixels ) != OK )
+            if( input_rgb_file( input_filename, &in_pixels ) != VIO_OK )
             {
                 print( "Error in %s.\n", input_filename );
                 return( 1 );
@@ -116,7 +116,7 @@ int  main(
                             PIXEL_RGB_COLOUR( images[i], x, y );
     }
 
-    if( output_rgb_file( output_filename, &pixels ) != OK )
+    if( output_rgb_file( output_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     return( 0 );

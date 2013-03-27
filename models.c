@@ -24,7 +24,7 @@
 
   void  compute_equilibrium_point(
     int                       point_index,
-    BOOLEAN                   boundary_exists,
+    VIO_BOOL                   boundary_exists,
     VIO_Real                      boundary_dist,
     VIO_Real                      base_length,
     VIO_Real                      model_dist,
@@ -44,7 +44,7 @@
     if( !boundary_exists )
         boundary_dist = model_dist;
 
-    equil_dist = INTERPOLATE( model->model_weight, boundary_dist, model_dist );
+    equil_dist = VIO_INTERPOLATE( model->model_weight, boundary_dist, model_dist );
 
     if( model->min_curvature_offset <= model->max_curvature_offset )
     {
@@ -373,7 +373,7 @@ static  void  compute_model_point(
     neighbours[1] = lines->indices[next_index];
 }
 
-  BOOLEAN  deformation_model_includes_average(
+  VIO_BOOL  deformation_model_includes_average(
     deformation_model_struct   *model )
 {
     int   i;
@@ -416,7 +416,7 @@ static  void  compute_model_point(
     VIO_Point                      *equilibrium_point,
     VIO_Real                       fractional_step,
     VIO_Real                       max_step,
-    BOOLEAN                    position_constrained,
+    VIO_BOOL                    position_constrained,
     VIO_Real                       max_position_offset,
     VIO_Point                      original_positions[],
     VIO_Point                      *new_point )
@@ -491,7 +491,7 @@ static  void  compute_model_point(
     int                       vertex_index,
     int                       neighbours[],
     int                       max_neighbours,
-    BOOLEAN                   *interior_flag )
+    VIO_BOOL                   *interior_flag )
 {
     int                  point_index, model_vertex_index, model_poly;
     polygons_struct      *model_polygons;

@@ -42,7 +42,7 @@ int  main(
         }
 
         if( input_graphics_file( filename, &format, &n_objects,
-                                 &object_list ) != OK ||
+                                 &object_list ) != VIO_OK ||
             n_objects != 1 ||
             get_object_type(object_list[0]) != POLYGONS )
         {
@@ -241,9 +241,9 @@ static  void  compute_UV(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = (VIO_Real) Point_x(samples[0][s][point_index]) - mean1[X];
-        dy = (VIO_Real) Point_y(samples[0][s][point_index]) - mean1[Y];
-        dz = (VIO_Real) Point_z(samples[0][s][point_index]) - mean1[Z];
+        dx = (VIO_Real) Point_x(samples[0][s][point_index]) - mean1[VIO_X];
+        dy = (VIO_Real) Point_y(samples[0][s][point_index]) - mean1[VIO_Y];
+        dz = (VIO_Real) Point_z(samples[0][s][point_index]) - mean1[VIO_Z];
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -255,9 +255,9 @@ static  void  compute_UV(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = (VIO_Real) Point_x(samples[1][s][point_index]) - mean2[X];
-        dy = (VIO_Real) Point_y(samples[1][s][point_index]) - mean2[Y];
-        dz = (VIO_Real) Point_z(samples[1][s][point_index]) - mean2[Z];
+        dx = (VIO_Real) Point_x(samples[1][s][point_index]) - mean2[VIO_X];
+        dy = (VIO_Real) Point_y(samples[1][s][point_index]) - mean2[VIO_Y];
+        dz = (VIO_Real) Point_z(samples[1][s][point_index]) - mean2[VIO_Z];
 
         variance[0][0] += dx * dx;
         variance[0][1] += dx * dy;
@@ -291,9 +291,9 @@ static  void  compute_UV(
 
     for_less( s, 0, n_surfaces[0] )
     {
-        dx = (VIO_Real) Point_x(samples[0][s][point_index]) - mean1[X];
-        dy = (VIO_Real) Point_y(samples[0][s][point_index]) - mean1[Y];
-        dz = (VIO_Real) Point_z(samples[0][s][point_index]) - mean1[Z];
+        dx = (VIO_Real) Point_x(samples[0][s][point_index]) - mean1[VIO_X];
+        dy = (VIO_Real) Point_y(samples[0][s][point_index]) - mean1[VIO_Y];
+        dz = (VIO_Real) Point_z(samples[0][s][point_index]) - mean1[VIO_Z];
 
         for_less( dim, 0, VIO_N_DIMENSIONS )
         {
@@ -305,9 +305,9 @@ static  void  compute_UV(
 
     for_less( s, 0, n_surfaces[1] )
     {
-        dx = (VIO_Real) Point_x(samples[1][s][point_index]) - mean2[X];
-        dy = (VIO_Real) Point_y(samples[1][s][point_index]) - mean2[Y];
-        dz = (VIO_Real) Point_z(samples[1][s][point_index]) - mean2[Z];
+        dx = (VIO_Real) Point_x(samples[1][s][point_index]) - mean2[VIO_X];
+        dy = (VIO_Real) Point_y(samples[1][s][point_index]) - mean2[VIO_Y];
+        dz = (VIO_Real) Point_z(samples[1][s][point_index]) - mean2[VIO_Z];
 
         for_less( dim, 0, VIO_N_DIMENSIONS )
         {

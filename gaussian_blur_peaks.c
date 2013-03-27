@@ -61,7 +61,7 @@ int  main(
     max_value = 1.0;
 
     if( input_volume_header_only( like_filename, 3,
-                            File_order_dimension_names, &volume, NULL) != OK )
+                            File_order_dimension_names, &volume, NULL) != VIO_OK )
         return( 1 );
 
     n_peaks = 0;
@@ -90,7 +90,7 @@ int  main(
 
             if( input_tag_file( tag_filename, &n_volumes, &n_tag_points,
                                 &tags_volume1, NULL, NULL,
-                                NULL, NULL, NULL ) != OK )
+                                NULL, NULL, NULL ) != VIO_OK )
                 return( 1 );
 
             for_less( tag, 0, n_tag_points )
@@ -135,13 +135,13 @@ int  main(
 
     get_volume_sizes( volume, sizes );
 
-    initialize_progress_report( &progress, FALSE, sizes[X] * sizes[Y],
+    initialize_progress_report( &progress, FALSE, sizes[VIO_X] * sizes[VIO_Y],
                                 "Scanning" );
 
-    for_less( xv, 0, sizes[X] )
-    for_less( yv, 0, sizes[Y] )
+    for_less( xv, 0, sizes[VIO_X] )
+    for_less( yv, 0, sizes[VIO_Y] )
     {
-        for_less( zv, 0, sizes[Z] )
+        for_less( zv, 0, sizes[VIO_Z] )
         {
             v[0] = (VIO_Real) xv;
             v[1] = (VIO_Real) yv;
@@ -165,7 +165,7 @@ int  main(
             set_volume_real_value( volume, xv, yv, zv, 0, 0, value );
         }
 
-        update_progress_report( &progress, xv * sizes[Y] + yv + 1 );
+        update_progress_report( &progress, xv * sizes[VIO_Y] + yv + 1 );
     }
 
     terminate_progress_report( &progress );

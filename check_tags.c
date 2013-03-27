@@ -6,14 +6,14 @@ private  int  tags_exist(
     int             id1,
     int             id2 );
 
-private  BOOLEAN  get_next_filename(
+private  VIO_BOOL  get_next_filename(
     char      *filename[] )
 {
     static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
+    static    VIO_BOOL  in_list = FALSE;
+    static    VIO_STR   filename_string;
     char               *argument;
-    BOOLEAN            found;
+    VIO_BOOL            found;
 
     found = FALSE;
 
@@ -22,7 +22,7 @@ private  BOOLEAN  get_next_filename(
         if( in_list )
         {
             if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
-                 == OK )
+                 == VIO_OK )
             {
                 *filename = filename_string;
                 found = TRUE;
@@ -46,7 +46,7 @@ private  BOOLEAN  get_next_filename(
             }
             else
             {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK)
                     break;
                 in_list = TRUE;
             }
@@ -63,12 +63,12 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *landmark_filename, *error_filename;
-    BOOLEAN              left;
+    VIO_BOOL              left;
     char                 *format;
-    STRING               *filenames;
-    Volume               volume;
+    VIO_STR               *filenames;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
     int                  n_files, n_objects;
     object_struct        **object_list;
@@ -78,7 +78,7 @@ int  main(
     initialize_argument_processing( argc, argv );
 
     n_files = 0;
-    volume = (Volume) NULL;
+    volume = (VIO_Volume) NULL;
 
     while( get_next_filename( &landmark_filename ) )
     {
@@ -86,7 +86,7 @@ int  main(
             filename_extension_matches( landmark_filename, "mni" ) ||
             filename_extension_matches( landmark_filename, "fre" ) )
         {
-            if( volume != (Volume) NULL )
+            if( volume != (VIO_Volume) NULL )
                 cancel_volume_input( volume, &volume_input );
  
             status = start_volume_input(
@@ -142,13 +142,13 @@ int  main(
         delete_object_list( n_objects, object_list );
     }
 
-    if( volume != (Volume) NULL )
+    if( volume != (VIO_Volume) NULL )
         cancel_volume_input( volume, &volume_input );
 
     print( "Branch frequency left : %d out of %d files.\n", n_12, n_left );
     print( "Branch frequency right: %d out of %d files.\n", n_22, n_right );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  int  tags_exist(
@@ -157,7 +157,7 @@ private  int  tags_exist(
     int             id1,
     int             id2 )
 {
-    BOOLEAN         id1_exists, id2_exists;
+    VIO_BOOL         id1_exists, id2_exists;
     int             i, id;
     marker_struct   *marker;
 

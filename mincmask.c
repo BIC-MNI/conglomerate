@@ -141,7 +141,7 @@ main ( argc, argv )
   if (!clobber_flag && file_exists(outfilename)) {
     print ("File %s exists.\n",outfilename);
     print ("Use -clobber to overwrite.\n");
-    return ERROR;
+    return VIO_ERROR;
   }
   
   if (debug) {
@@ -173,7 +173,7 @@ main ( argc, argv )
   status = input_volume(infilename, 3, default_dim_names, 
 			NC_UNSPECIFIED, FALSE, 0.0, 0.0, 
 			TRUE, &data, (minc_input_options *)NULL);
-  if ( status != OK ) 
+  if ( status != VIO_OK ) 
     printf("Problems reading %s.", infilename);
   
   if (verbose)
@@ -181,7 +181,7 @@ main ( argc, argv )
   status = input_volume(maskfilename, 3, default_dim_names, 
 			NC_UNSPECIFIED, FALSE, 0.0, 0.0, 
 			TRUE, &mask, (minc_input_options *)NULL);
-  if ( status != OK ) 
+  if ( status != VIO_OK ) 
     printf ("Problems reading %s.\n", infilename);
 
   get_volume_sizes(data, data_size);
@@ -261,7 +261,7 @@ main ( argc, argv )
       
       if (verbose) terminate_progress_report( &progress );
 
-      if (debug) print ("Volume min and max: %f %f\n",min, max);
+      if (debug) print ("VIO_Volume min and max: %f %f\n",min, max);
       
       tmp = copy_volume_definition_no_alloc(data, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
       set_volume_real_range(tmp, min, max);
@@ -300,7 +300,7 @@ main ( argc, argv )
   status = output_modified_volume(outfilename, NC_UNSPECIFIED, FALSE, 0.0,0.0,
 				  data, infilename, history, (minc_output_options *)NULL);
 
-  if (status != OK)
+  if (status != VIO_OK)
     //print_error_and_line_num("Problems writing masked data",__FILE__, __LINE__);
    
    
@@ -308,6 +308,6 @@ main ( argc, argv )
   delete_volume(data);
   
 
-  return(OK);
+  return(VIO_OK);
 }
 

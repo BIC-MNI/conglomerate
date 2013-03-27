@@ -39,7 +39,7 @@ int  main(
     }
 
     if( input_graphics_file( surface1_filename, &format, &n_objects1,
-                             &object_list1 ) != OK || n_objects1 != 1 )
+                             &object_list1 ) != VIO_OK || n_objects1 != 1 )
     {
         print( "Error reading %s.\n", surface1_filename );
         return( 1 );
@@ -50,21 +50,21 @@ int  main(
     VIO_ALLOC3D( variance1, n_points, 3, 3 );
 
     if( open_file( variance1_filename, READ_FILE, ASCII_FORMAT, &variance_file )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     for_less( p, 0, n_points )
     {
         for_less( i, 0, 3 )
         for_less( j, 0, 3 )
-            if( input_real( variance_file, &variance1[p][i][j] ) != OK )
+            if( input_real( variance_file, &variance1[p][i][j] ) != VIO_OK )
                 return( 1 );
     }
 
     (void) close_file( variance_file );
 
     if( input_graphics_file( surface2_filename, &format, &n_objects2,
-                             &object_list2 ) != OK || n_objects2 != 1 )
+                             &object_list2 ) != VIO_OK || n_objects2 != 1 )
     {
         print( "Error reading %s.\n", surface2_filename );
         return( 1 );
@@ -79,29 +79,29 @@ int  main(
     VIO_ALLOC3D( variance2, n_points, 3, 3 );
 
     if( open_file( variance2_filename, READ_FILE, ASCII_FORMAT, &variance_file )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     for_less( p, 0, n_points )
     {
         for_less( i, 0, 3 )
         for_less( j, 0, 3 )
-            if( input_real( variance_file, &variance2[p][i][j] ) != OK )
+            if( input_real( variance_file, &variance2[p][i][j] ) != VIO_OK )
                 return( 1 );
     }
 
     (void) close_file( variance_file );
 
     if( open_file( output_filename, WRITE_FILE, ASCII_FORMAT, &output_file )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     for_less( p, 0, n_points )
     {
         z = get_z_score( &points1[p], variance1[p], &points2[p], variance2[p] );
 
-        if( output_real( variance_file, z ) != OK ||
-            output_newline( variance_file ) != OK )
+        if( output_real( variance_file, z ) != VIO_OK ||
+            output_newline( variance_file ) != VIO_OK )
             return( 1 );
     }
 

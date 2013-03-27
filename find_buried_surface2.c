@@ -6,19 +6,19 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               src_polygons_filename, dest_polygons_filename;
-    STRING               input_filename, output_filename;
+    VIO_STR               src_polygons_filename, dest_polygons_filename;
+    VIO_STR               input_filename, output_filename;
     File_formats         format;
     int                  n_src_objects, poly, obj_index, size;
-    Real                 radius_of_curvature, dist;
+    VIO_Real                 radius_of_curvature, dist;
     object_struct        **src_objects;
     polygons_struct      *polygons;
-    BOOLEAN              on_boundary;
-    Point                centroid, sphere_centre, *points;
-    Point                found_point;
-    Vector               normal;
+    VIO_BOOL              on_boundary;
+    VIO_Point                centroid, sphere_centre, *points;
+    VIO_Point                found_point;
+    VIO_Vector               normal;
     progress_struct      progress;
-    Real                 surface_area, buried_surface_area, total_surface_area;
+    VIO_Real                 surface_area, buried_surface_area, total_surface_area;
 
     initialize_argument_processing( argc, argv );
 
@@ -33,7 +33,7 @@ int  main(
     }
 
     if( input_graphics_file( src_polygons_filename,
-                             &format, &n_src_objects, &src_objects ) != OK )
+                             &format, &n_src_objects, &src_objects ) != VIO_OK )
         return( 1 );
 
     if( n_src_objects < 1 || get_object_type( src_objects[0] ) != POLYGONS )
@@ -47,7 +47,7 @@ int  main(
     set_polygon_per_item_colours( polygons );
 
     create_polygons_bintree( polygons,
-                         ROUND( (Real) polygons->n_items * BINTREE_FACTOR ) );
+                         ROUND( (VIO_Real) polygons->n_items * BINTREE_FACTOR ) );
 
     ALLOC( points, polygons->n_points );
 

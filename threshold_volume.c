@@ -22,10 +22,10 @@ int  main(
 {
     VIO_STR               volume_filename, arg;
     VIO_STR               labels_filename, output_filename;
-    BOOLEAN              modifying_flag;
-    Real                 min_value, max_value;
-    Real                 *min_values, *max_values, value;
-    BOOLEAN              crop_flag, in_range;
+    VIO_BOOL              modifying_flag;
+    VIO_Real                 min_value, max_value;
+    VIO_Real                 *min_values, *max_values, value;
+    VIO_BOOL              crop_flag, in_range;
     int                  v[VIO_MAX_DIMENSIONS], label_value_to_set;
     int                  i, n_ranges;
     VIO_Volume               volume, label_volume, out_volume;
@@ -91,14 +91,14 @@ int  main(
 
     if( input_volume( volume_filename, 3, File_order_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     if( modifying_flag )
     {
         if( create_label_volume_from_file( labels_filename, volume,
-                                           &label_volume ) != OK )
-            return( ERROR );
+                                           &label_volume ) != VIO_OK )
+            return( VIO_ERROR );
     }
     else
     {

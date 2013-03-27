@@ -6,8 +6,8 @@ private  int  convert_manifold_to_sheet(
     polygons_struct  *polygons,
     int              north_pole,
     int              south_pole,
-    Point            *new_points[],
-    Point            *new_flat_points[],
+    VIO_Point            *new_points[],
+    VIO_Point            *new_flat_points[],
     int              *new_indices[],
     int              *n_fixed,
     int              *fixed_list[] );
@@ -16,14 +16,14 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    STRING               src_filename, dest_filename, dest_init_filename;
-    STRING               dest_fixed_filename;
+    VIO_STR               src_filename, dest_filename, dest_init_filename;
+    VIO_STR               dest_fixed_filename;
     int                  p, n_objects, north_pole, south_pole, new_n_points;
     FILE                 *file;
     File_formats         format;
     object_struct        **object_list;
     polygons_struct      *polygons;
-    Point                *init_points, *new_points;
+    VIO_Point                *init_points, *new_points;
     int                  *new_indices, n_fixed, *fixed_list;
 
     initialize_argument_processing( argc, argv );
@@ -43,7 +43,7 @@ int  main(
     (void) get_int_argument( -1, &south_pole );
 
     if( input_graphics_file( src_filename, &format, &n_objects,
-                             &object_list ) != OK || n_objects != 1 ||
+                             &object_list ) != VIO_OK || n_objects != 1 ||
         get_object_type(object_list[0]) != POLYGONS )
         return( 1 );
 
@@ -77,13 +77,13 @@ int  main(
 
     delete_object_list( n_objects, object_list );
 
-    if( open_file( dest_fixed_filename, WRITE_FILE, ASCII_FORMAT, &file ) != OK)
+    if( open_file( dest_fixed_filename, WRITE_FILE, ASCII_FORMAT, &file ) != VIO_OK)
         return( 1 );
 
     for_less( p, 0, n_fixed )
     {
-        if( output_int( file, fixed_list[p] ) != OK ||
-            output_newline( file ) != OK )
+        if( output_int( file, fixed_list[p] ) != VIO_OK ||
+            output_newline( file ) != VIO_OK )
         {
             print_error( "Error writing file\n" );
         }
@@ -125,7 +125,7 @@ typedef struct
 
 public  void  calc_distances_from_point(
     int               n_points,
-    Point             points[],
+    VIO_Point             points[],
     int               n_neighbours[],
     int               *neighbours[],
     int               start_point,
@@ -134,7 +134,7 @@ public  void  calc_distances_from_point(
     int                                     p, n, point_index;
     int                                     neigh, neigh_index, n_index;
     int                                     offset, n_to_do;
-    Real                                    dist;
+    VIO_Real                                    dist;
     float                                   new_dist, neigh_dist, current_dist;
     entry_struct                            entry;
     PRIORITY_QUEUE_STRUCT( entry_struct )   queue;
@@ -207,7 +207,7 @@ public  void  calc_distances_from_point(
 
                     entry.point_index = neigh;
                     entry.n_index = (Smallest_int) neigh_index;
-                    INSERT_IN_PRIORITY_QUEUE( queue, entry, (Real) -new_dist );
+                    INSERT_IN_PRIORITY_QUEUE( queue, entry, (VIO_Real) -new_dist );
                 }
             }
         }
@@ -218,7 +218,7 @@ public  void  calc_distances_from_point(
 
 private  int  create_path_between_points(
     int              n_points,
-    Point            points[],
+    VIO_Point            points[],
     int              n_neighbours[],
     int              *neighbours[],
     int              from_point,
@@ -320,7 +320,7 @@ private  int  get_farthest_point_from(
     return( furthest );
 }
 
-private  BOOLEAN   is_to_left_of_meridian(
+private  VIO_BOOL   is_to_left_of_meridian(
     polygons_struct  *polygons,
     int              n_neighbours[],
     int              *neighbours[],
@@ -382,8 +382,8 @@ private  int  convert_manifold_to_sheet(
     polygons_struct  *polygons,
     int              north_pole,
     int              south_pole,
-    Point            *new_points[],
-    Point            *new_flat_points[],
+    VIO_Point            *new_points[],
+    VIO_Point            *new_flat_points[],
     int              *new_indices[],
     int              *n_fixed,
     int              *fixed_list[] )
@@ -391,13 +391,13 @@ private  int  convert_manifold_to_sheet(
     int               *n_neighbours, **neighbours, ind;
     int               p, n_points, poly, new_n_points, *new_ids, neigh_index;
     float             **distances;
-    Real              x, y, total_length, current_length, north_length;
-    Real              south_length, width, scale, z;
+    VIO_Real              x, y, total_length, current_length, north_length;
+    VIO_Real              south_length, width, scale, z;
     int               total_neighbours;
     int               *path, path_size;
     int               size, vertex, p1;
-    Point             *points;
-    BOOLEAN           use_new_ids;
+    VIO_Point             *points;
+    VIO_BOOL           use_new_ids;
     progress_struct   progress;
 
     n_points = polygons->n_points;

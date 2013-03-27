@@ -11,16 +11,16 @@ int  main(
     int  argc,
     char *argv[] )
 {
-    Status         status;
+    VIO_Status         status;
     char           *filename;
     FILE           *input_file;
     File_formats   format;
     object_struct  *object;
-    BOOLEAN        eof;
+    VIO_BOOL        eof;
 
     initialize_argument_processing( argc, argv );
 
-    status = OK;
+    status = VIO_OK;
 
     if( get_string_argument( "", &filename ) )
     {
@@ -29,10 +29,10 @@ int  main(
     else
         input_file = stdin;
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = input_object( "", input_file, &format, &object, &eof );
 
-    if( status == OK && object->object_type == POLYGONS )
+    if( status == VIO_OK && object->object_type == POLYGONS )
     {
         if( argc > 2 )
             output_colours( stdout, get_polygons_ptr(object) );
@@ -43,14 +43,14 @@ int  main(
     if( input_file != stdin )
         status = close_file( input_file );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  output_points(
     FILE             *file,
     polygons_struct  *polygons )
 {
-    Point   *points;
+    VIO_Point   *points;
     int     tess, n_up, n_around, around, up;
 
     if( !get_tessellation_of_polygons_sphere(polygons,&tess) )

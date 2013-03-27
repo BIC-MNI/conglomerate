@@ -1,15 +1,15 @@
 #ifndef  DEF_LINE_MINIMIZATION_PROTOTYPES
 #define  DEF_LINE_MINIMIZATION_PROTOTYPES
 
-public  Real  minimize_along_line(
+VIO_Real  minimize_along_line(
     int      n_parameters,
-    Real     parameters[],
-    Real     line_direction[],
-    Real     test_parameters[],
-    Real     (*function) ( Real [], void * ),
+    VIO_Real     parameters[],
+    VIO_Real     line_direction[],
+    VIO_Real     test_parameters[],
+    VIO_Real     (*function) ( VIO_Real [], void * ),
     void     *function_data,
-    Real     range_tolerance,
-    Real     domain_tolerance,
-    Real     current_value,
-    Real     *max_movement );
+    VIO_Real     range_tolerance,
+    VIO_Real     domain_tolerance,
+    VIO_Real     current_value,
+    VIO_Real     *max_movement );
 #endif

@@ -298,7 +298,7 @@ typedef struct
                                                                           \
         a_over_pi = (i).low / PI;                                         \
         b_over_pi = (i).high / PI;                                        \
-        int_a_over_pi = CEILING( a_over_pi );                             \
+        int_a_over_pi = VIO_CEILING( a_over_pi );                             \
                                                                           \
         if( int_a_over_pi + 1.0 <= b_over_pi )                                \
         {                                                                 \
@@ -346,7 +346,7 @@ typedef struct
         _save = ROUND_DOWN;                                               \
         a_over_pi = (i).low / PI - 0.5;                                   \
         b_over_pi = (i).high / PI - 0.5;                                  \
-        int_a_over_pi = CEILING( a_over_pi );                             \
+        int_a_over_pi = VIO_CEILING( a_over_pi );                             \
                                                                           \
         if( int_a_over_pi + 1.0 <= b_over_pi )                            \
         {                                                                 \

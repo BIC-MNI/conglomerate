@@ -4,9 +4,9 @@
 #define  BINTREE_FACTOR  0.5
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s surface.obj  input.obj|input.txt [invert] output\n\
 \n\
                        x1 y1 z1 u1 v1 \n\
@@ -19,24 +19,24 @@ Usage: %s surface.obj  input.obj|input.txt [invert] output\n\
     print_error( usage_str, executable );
 }
 
-private  BOOLEAN    get_sphere_transform(
-    Real        x1,
-    Real        y1,
-    Real        z1,
-    Real        u1,
-    Real        v1,
-    Real        x2,
-    Real        y2,
-    Real        z2,
-    Real        u2,
-    Real        v2,
+private  VIO_BOOL    get_sphere_transform(
+    VIO_Real        x1,
+    VIO_Real        y1,
+    VIO_Real        z1,
+    VIO_Real        u1,
+    VIO_Real        v1,
+    VIO_Real        x2,
+    VIO_Real        y2,
+    VIO_Real        z2,
+    VIO_Real        u2,
+    VIO_Real        v2,
     Transform   *transform );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               surface_filename, input_filename, output_filename;
+    VIO_STR               surface_filename, input_filename, output_filename;
     File_formats         format;
     polygons_struct      *surface, unit_sphere;
 #ifdef DEBUG
@@ -47,25 +47,25 @@ int  main(
     int                  n_bounding_points, point, vertex, size, poly;
     FILE                 *file;
     Transform            transform, inverse;
-    Point                *bounding_points, *points;
-    Point                poly_point, polygon_vertices[MAX_POINTS_PER_POLYGON];
-    Real                 weights[MAX_POINTS_PER_POLYGON];
-    Real                 x, y, z, min_value, max_value, value;
-    Real                 u, v, u1, v1, u2, v2, u_min, u_max, v_min, v_max;
-    Real                 x1, y1, z1, x2, y2, z2, *values;
-    Real                 bottom_left[N_DIMENSIONS], zero[N_DIMENSIONS];
-    Real                 voxel[N_DIMENSIONS];
-    Real                 separations[N_DIMENSIONS];
+    VIO_Point                *bounding_points, *points;
+    VIO_Point                poly_point, polygon_vertices[MAX_POINTS_PER_POLYGON];
+    VIO_Real                 weights[MAX_POINTS_PER_POLYGON];
+    VIO_Real                 x, y, z, min_value, max_value, value;
+    VIO_Real                 u, v, u1, v1, u2, v2, u_min, u_max, v_min, v_max;
+    VIO_Real                 x1, y1, z1, x2, y2, z2, *values;
+    VIO_Real                 bottom_left[N_DIMENSIONS], zero[N_DIMENSIONS];
+    VIO_Real                 voxel[N_DIMENSIONS];
+    VIO_Real                 separations[N_DIMENSIONS];
     int                  x_voxel, y_voxel, n_bound_objects;
     object_struct        **objects, **surf_objects;
-    Point                unit_point, centre, unit_point1, unit_point2, pt;
+    VIO_Point                unit_point, centre, unit_point1, unit_point2, pt;
     progress_struct      progress;
-    BOOLEAN              invert_flag, transforming_values;
+    VIO_BOOL              invert_flag, transforming_values;
     int                  sizes[N_DIMENSIONS];
-    STRING               dim_names[] = { MIzspace, MIxspace, MIyspace };
-    STRING               bound_filename;
+    VIO_STR               dim_names[] = { MIzspace, MIxspace, MIyspace };
+    VIO_STR               bound_filename;
     object_struct        **bound_objects;
-    Volume               image;
+    VIO_Volume               image;
 
     /*--- get the arguments from the command line */
 
@@ -142,7 +142,7 @@ int  main(
             if( !get_string_argument( NULL, &bound_filename ) ||
                 input_graphics_file( bound_filename, &format,
                                      &n_bound_objects,
-                                     &bound_objects ) != OK )
+                                     &bound_objects ) != VIO_OK )
             {
                 usage( argv[0] );
                 return( 1 );
@@ -169,7 +169,7 @@ int  main(
     /*--- input the surface */
 
     if( input_graphics_file( surface_filename, &format, &n_surf_objects,
-                             &surf_objects ) != OK ||
+                             &surf_objects ) != VIO_OK ||
         n_surf_objects != 1 || get_object_type(surf_objects[0]) != POLYGONS )
     {
         print( "Surface file must contain 1 polygons object.\n" );
@@ -181,12 +181,12 @@ int  main(
     if( !transforming_values )
     {
         if( input_graphics_file( input_filename, &format, &n_objects, &objects)
-             != OK )
+             != VIO_OK )
             return( 1 );
     }
     else
     {
-        if( open_file( input_filename, READ_FILE, ASCII_FORMAT, &file ) != OK )
+        if( open_file( input_filename, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK )
             return( 1 );
 
         min_value = 0.0;
@@ -194,7 +194,7 @@ int  main(
         ALLOC( values, surface->n_points );
         for_less( point, 0, surface->n_points )
         {
-            if( input_real( file, &values[point] ) != OK )
+            if( input_real( file, &values[point] ) != VIO_OK )
             {
                 print_error( "Error reading values file: %s\n", input_filename);
                 return( 1 );
@@ -211,7 +211,7 @@ int  main(
 
     check_polygons_neighbours_computed( surface );
     create_polygons_bintree( surface,
-                             ROUND( (Real) surface->n_items * BINTREE_FACTOR ));
+                             ROUND( (VIO_Real) surface->n_items * BINTREE_FACTOR ));
 
     /*--- create a unit sphere with same number of triangles as surface */
 
@@ -225,13 +225,13 @@ int  main(
     fill_Point( pt, x2, y2, z2 );
     map_point_to_unit_sphere( surface, &pt, &unit_sphere, &unit_point2 );
 
-    if( !get_sphere_transform( (Real) Point_x(unit_point1),
-                               (Real) Point_y(unit_point1),
-                               (Real) Point_z(unit_point1),
+    if( !get_sphere_transform( (VIO_Real) Point_x(unit_point1),
+                               (VIO_Real) Point_y(unit_point1),
+                               (VIO_Real) Point_z(unit_point1),
                                u1, v1,
-                               (Real) Point_x(unit_point2),
-                               (Real) Point_y(unit_point2),
-                               (Real) Point_z(unit_point2),
+                               (VIO_Real) Point_x(unit_point2),
+                               (VIO_Real) Point_y(unit_point2),
+                               (VIO_Real) Point_z(unit_point2),
                                u2, v2, &transform ) )
     {
         print( "Using identity for sphere transform.\n" );
@@ -244,7 +244,7 @@ int  main(
     {
         check_polygons_neighbours_computed( &unit_sphere );
         create_polygons_bintree( &unit_sphere,
-                                 ROUND( (Real) unit_sphere.n_items
+                                 ROUND( (VIO_Real) unit_sphere.n_items
                                          * BINTREE_FACTOR ));
     }
 
@@ -260,9 +260,9 @@ int  main(
             map_point_to_unit_sphere( surface, &bounding_points[point],
                                       &unit_sphere, &unit_point );
             transform_point( &transform,
-                             (Real) Point_x(unit_point),
-                             (Real) Point_y(unit_point),
-                             (Real) Point_z(unit_point), &x, &y, &z );
+                             (VIO_Real) Point_x(unit_point),
+                             (VIO_Real) Point_y(unit_point),
+                             (VIO_Real) Point_z(unit_point), &x, &y, &z );
 
             map_sphere_to_uv( x, y, z, &u, &v );
 
@@ -306,8 +306,8 @@ int  main(
 
         set_volume_real_range( image, min_value, max_value );
 
-        separations[1] = (u_max - u_min) / (Real) x_size;
-        separations[2] = (v_max - v_min) / (Real) y_size;
+        separations[1] = (u_max - u_min) / (VIO_Real) x_size;
+        separations[2] = (v_max - v_min) / (VIO_Real) y_size;
         separations[0] = (separations[1] + separations[2]) / 2.0;
         set_volume_separations( image, separations );
 
@@ -328,8 +328,8 @@ int  main(
             for_less( y_voxel, 0, y_size )
             {
                 voxel[0] = 0.0;
-                voxel[1] = (Real) x_voxel;
-                voxel[2] = (Real) y_voxel;
+                voxel[1] = (VIO_Real) x_voxel;
+                voxel[2] = (VIO_Real) y_voxel;
 
                 convert_voxel_to_world( image, voxel, &u, &v, &z );
 
@@ -367,7 +367,7 @@ int  main(
 
         if( output_volume( output_filename, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                            image, "Flattened surface image map.\n", NULL )
-                                                                   != OK )
+                                                                   != VIO_OK )
             return( 1 );
     }
     else
@@ -382,8 +382,8 @@ int  main(
             {
                 if( invert_flag )
                 {
-                    map_uv_to_sphere( (Real) Point_x(points[point]),
-                                      (Real) Point_y(points[point]),
+                    map_uv_to_sphere( (VIO_Real) Point_x(points[point]),
+                                      (VIO_Real) Point_y(points[point]),
                                       &x, &y, &z );
 
                     transform_point( &inverse, x, y, z, &x, &y, &z );
@@ -399,9 +399,9 @@ int  main(
                                               &unit_sphere, &unit_point );
 
                     transform_point( &transform,
-                                     (Real) Point_x(unit_point),
-                                     (Real) Point_y(unit_point),
-                                     (Real) Point_z(unit_point), &x, &y, &z );
+                                     (VIO_Real) Point_x(unit_point),
+                                     (VIO_Real) Point_y(unit_point),
+                                     (VIO_Real) Point_z(unit_point), &x, &y, &z );
 
                     map_sphere_to_uv( x, y, z, &u, &v );
 
@@ -421,24 +421,24 @@ int  main(
     return( 0 );
 }
 
-private  BOOLEAN    get_sphere_transform(
-    Real        x1,
-    Real        y1,
-    Real        z1,
-    Real        u1,
-    Real        v1,
-    Real        x2,
-    Real        y2,
-    Real        z2,
-    Real        u2,
-    Real        v2,
+private  VIO_BOOL    get_sphere_transform(
+    VIO_Real        x1,
+    VIO_Real        y1,
+    VIO_Real        z1,
+    VIO_Real        u1,
+    VIO_Real        v1,
+    VIO_Real        x2,
+    VIO_Real        y2,
+    VIO_Real        z2,
+    VIO_Real        u2,
+    VIO_Real        v2,
     Transform   *transform )
 {
     Transform   from, to;
-    Vector      p1, p2, p1_can, p2_can;
-    Vector      x_vec, y_vec, z_vec, x_vec_can, y_vec_can, z_vec_can;
-    Point       centre;
-    Real        x, y, z;
+    VIO_Vector      p1, p2, p1_can, p2_can;
+    VIO_Vector      x_vec, y_vec, z_vec, x_vec_can, y_vec_can, z_vec_can;
+    VIO_Point       centre;
+    VIO_Real        x, y, z;
 
     fill_Vector( p1, x1, y1, z1 );
     fill_Vector( p2, x2, y2, z2 );

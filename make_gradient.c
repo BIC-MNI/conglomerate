@@ -18,29 +18,29 @@ private  void  usage(
 #define  Z_MAX     60.0
 
 private  void  create_gradient_volume(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
-    Real            scaling,
+    VIO_Real            scaling,
     int             continuity,
     Transform       *voxel_to_world_transform,
-    Volume          *gradient_volume );
+    VIO_Volume          *gradient_volume );
 
 int  main(
     int    argc,
     char   *argv[] )
 {
-    BOOLEAN              value_range_present;
-    Status               status;
+    VIO_BOOL              value_range_present;
+    VIO_Status               status;
     int                  min_value, max_value, continuity, sizes[3];
-    Real                 scaling;
+    VIO_Real                 scaling;
     char                 *input_filename;
     char                 *output_filename;
-    Volume               volume, gradient_volume;
+    VIO_Volume               volume, gradient_volume;
     Minc_file            minc_file;
     Transform            voxel_to_world_transform, convert;
-    static STRING        dim_names[] = { MIxspace, MIyspace, MIzspace };
+    static VIO_STR        dim_names[] = { MIxspace, MIyspace, MIzspace };
 
     initialize_argument_processing( argc, argv );
 
@@ -61,22 +61,22 @@ int  main(
 
     /* read the input volume */
 
-    if( input_volume( input_filename, dim_names, &volume ) != OK )
+    if( input_volume( input_filename, dim_names, &volume ) != VIO_OK )
         return( 1 );
 
 #ifndef dfsa
     make_translation_transform( X_MIN, Y_MIN, Z_MIN, &voxel_to_world_transform);
     Transform_elem(voxel_to_world_transform,X,X) =
-                                         (X_MAX - X_MIN)/(Real)(X_SIZE-1);
+                                         (X_MAX - X_MIN)/(VIO_Real)(X_SIZE-1);
     Transform_elem(voxel_to_world_transform,Y,Y) =
-                                         (Y_MAX - Y_MIN)/(Real)(Y_SIZE-1);
+                                         (Y_MAX - Y_MIN)/(VIO_Real)(Y_SIZE-1);
     Transform_elem(voxel_to_world_transform,Z,Z) =
-                                         (Z_MAX - Z_MIN)/(Real)(Z_SIZE-1);
+                                         (Z_MAX - Z_MIN)/(VIO_Real)(Z_SIZE-1);
 #else
     get_volume_sizes( volume, sizes );
-    make_scale_transform( (Real) (sizes[X]-1) / (Real) (X_SIZE-1),
-                          (Real) (sizes[Y]-1) / (Real) (Y_SIZE-1),
-                          (Real) (sizes[Z]-1) / (Real) (Z_SIZE-1), &convert );
+    make_scale_transform( (VIO_Real) (sizes[X]-1) / (VIO_Real) (X_SIZE-1),
+                          (VIO_Real) (sizes[Y]-1) / (VIO_Real) (Y_SIZE-1),
+                          (VIO_Real) (sizes[Z]-1) / (VIO_Real) (Z_SIZE-1), &convert );
 
     concat_transforms( &voxel_to_world_transform, &convert,
                        &volume->voxel_to_world_transform );
@@ -100,31 +100,31 @@ int  main(
 
     status = output_minc_volume( minc_file, gradient_volume );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = close_minc_output( minc_file );
 
-    if( status != OK )
+    if( status != VIO_OK )
         print( "Unsuccessful.\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  create_gradient_volume(
-    Volume          volume,
-    BOOLEAN         value_range_present,
+    VIO_Volume          volume,
+    VIO_BOOL         value_range_present,
     int             min_value,
     int             max_value,
-    Real            scaling,
+    VIO_Real            scaling,
     int             continuity,
     Transform       *voxel_to_world_transform,
-    Volume          *gradient_volume )
+    VIO_Volume          *gradient_volume )
 {
-    BOOLEAN          within_range;
+    VIO_BOOL          within_range;
     int              gradient_sizes[N_DIMENSIONS];
     int              volume_sizes[N_DIMENSIONS];
     int              x, y, z;
-    Real             dx, dy, dz, value;
-    Real             x_world, y_world, z_world, grad;
+    VIO_Real             dx, dy, dz, value;
+    VIO_Real             x_world, y_world, z_world, grad;
     progress_struct  progress;
 
     *gradient_volume = create_volume( 3, volume->dimension_names,
@@ -154,13 +154,13 @@ private  void  create_gradient_volume(
             for_less( z, 0, gradient_sizes[Z] )
             {
                 convert_voxel_to_world( *gradient_volume,
-                                        (Real) x, (Real) y, (Real) z,
+                                        (VIO_Real) x, (VIO_Real) y, (VIO_Real) z,
                                         &x_world, &y_world, &z_world );
                 (void) evaluate_volume_in_world( volume,
                           x_world, y_world, z_world, continuity, FALSE,
                           &value, &dx, &dy, &dz,
-                          (Real *) NULL, (Real *) NULL, (Real *) NULL,
-                          (Real *) NULL, (Real *) NULL, (Real *) NULL );
+                          (VIO_Real *) NULL, (VIO_Real *) NULL, (VIO_Real *) NULL,
+                          (VIO_Real *) NULL, (VIO_Real *) NULL, (VIO_Real *) NULL );
 
                 if( value_range_present )
                 {

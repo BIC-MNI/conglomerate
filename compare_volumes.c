@@ -5,10 +5,10 @@ int  main(
     char  *argv[] )
 {
     int                  x, y, z;
-    Real                 value1, value2;
+    VIO_Real                 value1, value2;
     int                  sizes1[MAX_DIMENSIONS], sizes2[MAX_DIMENSIONS];
     char                 *input_volume1, *input_volume2;
-    Volume               volume1, volume2;
+    VIO_Volume               volume1, volume2;
 
     initialize_argument_processing( argc, argv );
 
@@ -21,12 +21,12 @@ int  main(
 
     if( input_volume( input_volume1, 3, XYZ_dimension_names,
                       NC_BYTE, FALSE, 0.0, 0.0,
-                      TRUE, &volume1, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume1, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     if( input_volume( input_volume2, 3, XYZ_dimension_names,
                       NC_BYTE, FALSE, 0.0, 0.0,
-                      TRUE, &volume2, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume2, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume1, sizes1 );

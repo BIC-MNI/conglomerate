@@ -5,7 +5,7 @@ int  main(
     char  *argv[] )
 {
     char                 *input_filename, *output_filename;
-    Real                 radius, smoothing_distance;
+    VIO_Real                 radius, smoothing_distance;
     File_formats         format;
     int                  i, q, n_objects, n_around;
     int                  n_new_objects, n_quadmeshes;
@@ -28,7 +28,7 @@ int  main(
     (void) get_real_argument( 4.0, &smoothing_distance );
 
     if( input_graphics_file( input_filename,
-                             &format, &n_objects, &objects ) != OK )
+                             &format, &n_objects, &objects ) != VIO_OK )
         return( 1 );
 
     n_new_objects = 0;
@@ -55,7 +55,7 @@ int  main(
     }
 
     if( output_graphics_file( output_filename, format, n_new_objects,
-                              new_objects ) != OK )
+                              new_objects ) != VIO_OK )
         return( 1 );
 
     delete_object_list( n_objects, objects );

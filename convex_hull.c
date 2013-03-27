@@ -102,7 +102,7 @@ static  int  get_points_of_region(
     int   ** ngh = NULL;
 
     if( read_surface_obj( input_filename, &n_points, &coords, &normals,
-                          &n_ngh, &ngh ) == OK ) {
+                          &n_ngh, &ngh ) == VIO_OK ) {
       // Find the convex points for a surface .obj file.
 
       int      i, j;
@@ -137,7 +137,7 @@ static  int  get_points_of_region(
 
       if( input_volume( input_filename, 3, XYZ_dimension_names,
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                        TRUE, &volume, (minc_input_options *) NULL ) == OK ) {
+                        TRUE, &volume, (minc_input_options *) NULL ) == VIO_OK ) {
 
         // Find the convex points for a volume .mnc file.
 
@@ -150,9 +150,9 @@ static  int  get_points_of_region(
 
         n_points = 0;
 
-        for_less( x, 0, sizes[X] + 1 ) {
-          for_less( y, 0, sizes[Y] + 1 ) {
-            for_less( z, 0, sizes[Z] + 1 ) {
+        for_less( x, 0, sizes[VIO_X] + 1 ) {
+          for_less( y, 0, sizes[VIO_Y] + 1 ) {
+            for_less( z, 0, sizes[VIO_Z] + 1 ) {
               n_inside = 0;
               for_less( dx, 0, 2 ) {
                 for_less( dy, 0, 2 ) {
@@ -161,9 +161,9 @@ static  int  get_points_of_region(
                     ty = y - dy;
                     tz = z - dz;
 
-                    if( tx >= 0 && tx < sizes[X] &&
-                        ty >= 0 && ty < sizes[Y] &&
-                        tz >= 0 && tz < sizes[Z] ) {
+                    if( tx >= 0 && tx < sizes[VIO_X] &&
+                        ty >= 0 && ty < sizes[VIO_Y] &&
+                        tz >= 0 && tz < sizes[VIO_Z] ) {
                       value = get_volume_real_value( volume, tx, ty, tz, 0, 0 );
 
                       if( min_value <= value && value <= max_value ) ++n_inside;
@@ -173,9 +173,9 @@ static  int  get_points_of_region(
               }
 
               if( n_inside == 1 ) {
-                voxel[X] = (VIO_Real) x - 0.5;
-                voxel[Y] = (VIO_Real) y - 0.5;
-                voxel[Z] = (VIO_Real) z - 0.5;
+                voxel[VIO_X] = (VIO_Real) x - 0.5;
+                voxel[VIO_Y] = (VIO_Real) y - 0.5;
+                voxel[VIO_Z] = (VIO_Real) z - 0.5;
                 convert_voxel_to_world( volume, voxel, &xw, &yw, &zw );
                 fill_Point( point, xw, yw, zw );
                 ADD_ELEMENT_TO_ARRAY( *points, n_points, point, DEFAULT_CHUNK_SIZE);
@@ -215,7 +215,7 @@ static  VIO_Real  compute_clockwise_degrees( VIO_Real x, VIO_Real y )
     }
     else
     {
-        degrees = - RAD_TO_DEG * (VIO_Real) atan2( (double) y, (double) x );
+        degrees = - VIO_RAD_TO_DEG * (VIO_Real) atan2( (double) y, (double) x );
 
         if( degrees < 0.0 )
             degrees += 360.0;
@@ -235,7 +235,7 @@ static  int  find_limit_plane(
     int      i, best_ind;
     VIO_Vector   horizontal, vertical, offset;
     VIO_Real     angle, best_angle, x, y;
-    BOOLEAN  first;
+    VIO_BOOL  first;
 
     best_angle = 0.0;
     best_ind = -1;
@@ -369,7 +369,7 @@ static  int get_edge_key(
     p1 = polygons->indices[POINT_INDEX(polygons->end_indices,poly,
                            (edge+1)%size)];
 
-    return( IJ(MIN( p0, p1 ),MAX( p0, p1 ),KeyFactor) );
+    return( VIO_IJ(MIN( p0, p1 ),MAX( p0, p1 ),KeyFactor) );
 }
 
 
@@ -786,15 +786,15 @@ static int read_surface_obj( VIO_STR filename,
   int err = input_graphics_file( expanded, &format, &n_objects,
                                  &object_list );
 
-  if( err != OK ) {
+  if( err != VIO_OK ) {
     print_error( "Error reading file %s\n", expanded );
-    return( ERROR );
+    return( VIO_ERROR );
   }
 
   if( n_objects != 1 ||
       ( n_objects == 1 && get_object_type(object_list[0]) != POLYGONS ) ) {
     print_error( "Error in contents of file %s\n", expanded );
-    return( ERROR );
+    return( VIO_ERROR );
   }
 
   delete_string( expanded );
@@ -820,7 +820,7 @@ static int read_surface_obj( VIO_STR filename,
 
   delete_object_list( n_objects, object_list );
 
-  return( OK );
+  return( VIO_OK );
 }
 
 // -------------------------------------------------------------------
@@ -841,7 +841,7 @@ static int get_surface_neighbours( polygons_struct * surface,
 
   if( 3 * surface->n_items != surface->end_indices[surface->n_items-1] ) {
     printf( "Surface must contain only triangular polygons.\n" );
-    return ERROR;
+    return VIO_ERROR;
   }
 
   // Check if the node numbering starts at 0 or 1.
@@ -949,7 +949,7 @@ static int get_surface_neighbours( polygons_struct * surface,
 
   FREE( tmp );
 
-  return OK;
+  return VIO_OK;
 
 }
 

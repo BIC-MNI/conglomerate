@@ -46,8 +46,8 @@ static char rcsid[] = "$Header: /private-cvsroot/libraries/conglomerate/thin_pla
 
 typedef  struct
 {
-    Real   **points;
-    Real   **weights;
+    VIO_Real   **points;
+    VIO_Real   **weights;
     int    n_points;
     int    n_dims;
 } spline_data_struct;
@@ -56,13 +56,13 @@ typedef  struct
 
 private  void   newton_function(
     void     *function_data,
-    Real     parameters[],
-    Real     values[],
-    Real     **first_derivs );
+    VIO_Real     parameters[],
+    VIO_Real     values[],
+    VIO_Real     **first_derivs );
 
-private  Real  thin_plate_spline_U_deriv(
-   Real   pos[],
-   Real   landmark[],
+private  VIO_Real  thin_plate_spline_U_deriv(
+   VIO_Real   pos[],
+   VIO_Real   landmark[],
    int    n_dims,
    int    deriv_dim );
 
@@ -96,15 +96,15 @@ public  void  evaluate_thin_plate_spline(
     int     n_dims,
     int     n_values,
     int     n_points,
-    Real    **points,
-    Real    **weights,
-    Real    pos[],
-    Real    values[],
-    Real    **derivs )
+    VIO_Real    **points,
+    VIO_Real    **weights,
+    VIO_Real    pos[],
+    VIO_Real    values[],
+    VIO_Real    **derivs )
 {
     int       v, d, p;
-    Real      dist, dist_deriv, this_pos;
-    Real      *weight_ptr;
+    VIO_Real      dist, dist_deriv, this_pos;
+    VIO_Real      *weight_ptr;
 
     /* f(x,y[,z]) =a_{n} + a_{n+1}x + a_{n+1}y + sum_{0}^{n-1}
      *          w_{i}U(|P_{i} - (x,y)|) 
@@ -148,7 +148,7 @@ public  void  evaluate_thin_plate_spline(
                 {
                     dist_deriv = thin_plate_spline_U_deriv( pos, points[p],
                                                             n_dims, d );
-                    derivs[v][d] += (Real) weights[p][v] * dist_deriv;
+                    derivs[v][d] += (VIO_Real) weights[p][v] * dist_deriv;
                 }
             }
         }
@@ -157,7 +157,7 @@ public  void  evaluate_thin_plate_spline(
     /* --- add the constant component to the values */
 
     for_less( v, 0, n_values )
-        values[v] += (Real) weights[n_points][v];
+        values[v] += (VIO_Real) weights[n_points][v];
 
     /* --- add the linear components to the values and derivatives */
 
@@ -205,16 +205,16 @@ public  void  evaluate_thin_plate_spline(
 public  void  thin_plate_spline_transform(
     int     n_dims,
     int     n_points,
-    Real    **points,
-    Real    **weights,
-    Real    x,
-    Real    y,
-    Real    z,
-    Real    *x_transformed,
-    Real    *y_transformed,
-    Real    *z_transformed )
+    VIO_Real    **points,
+    VIO_Real    **weights,
+    VIO_Real    x,
+    VIO_Real    y,
+    VIO_Real    z,
+    VIO_Real    *x_transformed,
+    VIO_Real    *y_transformed,
+    VIO_Real    *z_transformed )
 {
-    Real      input_point[N_DIMENSIONS], output_point[N_DIMENSIONS];
+    VIO_Real      input_point[N_DIMENSIONS], output_point[N_DIMENSIONS];
 
     input_point[0] = x;
     input_point[1] = y;
@@ -263,16 +263,16 @@ public  void  thin_plate_spline_transform(
 public  void  thin_plate_spline_inverse_transform(
     int     n_dims,
     int     n_points,
-    Real    **points,
-    Real    **weights,
-    Real    x,
-    Real    y,
-    Real    z,
-    Real    *x_transformed,
-    Real    *y_transformed,
-    Real    *z_transformed )
+    VIO_Real    **points,
+    VIO_Real    **weights,
+    VIO_Real    x,
+    VIO_Real    y,
+    VIO_Real    z,
+    VIO_Real    *x_transformed,
+    VIO_Real    *y_transformed,
+    VIO_Real    *z_transformed )
 {
-    Real                x_in[N_DIMENSIONS], solution[N_DIMENSIONS];
+    VIO_Real                x_in[N_DIMENSIONS], solution[N_DIMENSIONS];
     spline_data_struct  data;
   
     x_in[X] = x;
@@ -331,9 +331,9 @@ public  void  thin_plate_spline_inverse_transform(
 
 private  void   newton_function(
     void     *function_data,
-    Real     parameters[],
-    Real     values[],
-    Real     **first_derivs )
+    VIO_Real     parameters[],
+    VIO_Real     values[],
+    VIO_Real     **first_derivs )
 {
     spline_data_struct *spline_data;
 
@@ -363,12 +363,12 @@ private  void   newton_function(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  Real  thin_plate_spline_U(
-    Real   pos[],
-    Real   landmark[],
+public  VIO_Real  thin_plate_spline_U(
+    VIO_Real   pos[],
+    VIO_Real   landmark[],
     int    n_dims )
 {
-    Real r, fu, dx, dy, dz;
+    VIO_Real r, fu, dx, dy, dz;
 
     switch( n_dims )
     {
@@ -424,13 +424,13 @@ public  Real  thin_plate_spline_U(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private  Real  thin_plate_spline_U_deriv(
-   Real   pos[],
-   Real   landmark[],
+private  VIO_Real  thin_plate_spline_U_deriv(
+   VIO_Real   pos[],
+   VIO_Real   landmark[],
    int    n_dims,
    int    deriv_dim )
 {
-    Real r, r2, deriv, delta[N_DIMENSIONS];
+    VIO_Real r, r2, deriv, delta[N_DIMENSIONS];
 
     switch( n_dims )
     {

@@ -4,19 +4,19 @@
 #define ON_GRID_POINT
 
 private int  count_voxels(
-    Volume       volume1,
-    Volume       volume2,
+    VIO_Volume       volume1,
+    VIO_Volume       volume2,
     Transform    *v1_to_v2,
     Transform    *v2_to_v1,
-    Real         voxel_limits[][N_DIMENSIONS] );
+    VIO_Real         voxel_limits[][N_DIMENSIONS] );
 
-private  Real parallel_piped_volume(
-    Real v[N_DIMENSIONS][N_DIMENSIONS] );
+private  VIO_Real parallel_piped_volume(
+    VIO_Real v[N_DIMENSIONS][N_DIMENSIONS] );
 
 private  void  usage(
-    STRING   executable )
+    VIO_STR   executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s  input1.mnc  input2.mnc  input.xfm\n\
 \n\
 \n";
@@ -32,17 +32,17 @@ int  main(
     Transform            v1_to_v2, *voxel_to_world1, *voxel_to_world2;
     Transform            transform, v2_to_v1, world1_to_world2;
     Transform            world_to_voxel2;
-    STRING               volume1_filename, volume2_filename;
-    STRING               transform_filename;
+    VIO_STR               volume1_filename, volume2_filename;
+    VIO_STR               transform_filename;
     int                  sizes1[MAX_DIMENSIONS];
     int                  i, dim, n_points, n_voxels, voxel_radius;
-    Volume               volume1, volume2;
-    Real                 avg, voxel_size1, voxel_size2;
-    Real                 voxel_limits[2][N_DIMENSIONS];
-    Real                 separations1[MAX_DIMENSIONS];
-    Real                 separations2[MAX_DIMENSIONS];
-    Real                 trans_scale[MAX_DIMENSIONS];
-    Real                 vectors[N_DIMENSIONS][N_DIMENSIONS];
+    VIO_Volume               volume1, volume2;
+    VIO_Real                 avg, voxel_size1, voxel_size2;
+    VIO_Real                 voxel_limits[2][N_DIMENSIONS];
+    VIO_Real                 separations1[MAX_DIMENSIONS];
+    VIO_Real                 separations2[MAX_DIMENSIONS];
+    VIO_Real                 trans_scale[MAX_DIMENSIONS];
+    VIO_Real                 vectors[N_DIMENSIONS][N_DIMENSIONS];
 
     initialize_argument_processing( argc, argv );
 
@@ -55,14 +55,14 @@ int  main(
     }
 
     if( input_volume_header_only( volume1_filename, 3, NULL, &volume1, NULL
-                                              ) != OK )
+                                              ) != VIO_OK )
         return( 1 );
 
     if( input_volume_header_only( volume2_filename, 3, NULL, &volume2, NULL
-                                              ) != OK )
+                                              ) != VIO_OK )
         return( 1 );
 
-    if( read_transform_file( transform_filename, &transform ) != OK )
+    if( read_transform_file( transform_filename, &transform ) != VIO_OK )
         return( 1 );
 
     (void) get_int_argument( 1, &voxel_radius );
@@ -101,7 +101,7 @@ int  main(
 #ifdef ON_GRID_POINT
             voxel_limits[0][dim] = (int) voxel_limits[0][dim] + 0.5;
 #endif
-            voxel_limits[1][dim] = voxel_limits[0][dim] + (Real) voxel_radius;
+            voxel_limits[1][dim] = voxel_limits[0][dim] + (VIO_Real) voxel_radius;
         }
 
         n_voxels += count_voxels( volume1, volume2, &v1_to_v2, &v2_to_v1,
@@ -118,13 +118,13 @@ int  main(
         vectors[2][dim] = Transform_elem(world1_to_world2,dim,2);
     }
 
-    voxel_size1 = (Real) voxel_radius * (Real) voxel_radius *
-                  (Real) voxel_radius *
+    voxel_size1 = (VIO_Real) voxel_radius * (VIO_Real) voxel_radius *
+                  (VIO_Real) voxel_radius *
                   separations1[X] * separations1[Y] * separations1[Z] *
                   parallel_piped_volume( vectors );
     voxel_size2 = separations2[X] * separations2[Y] * separations2[Z];
 
-    avg = (Real) n_voxels * voxel_size2 / ((Real) n_points * voxel_size1);
+    avg = (VIO_Real) n_voxels * voxel_size2 / ((VIO_Real) n_points * voxel_size1);
 
     print( "Ratio: %g\n", avg );
 
@@ -132,18 +132,18 @@ int  main(
 }
 
 private int  count_voxels(
-    Volume       volume1,
-    Volume       volume2,
+    VIO_Volume       volume1,
+    VIO_Volume       volume2,
     Transform    *v1_to_v2,
     Transform    *v2_to_v1,
-    Real         voxel_limits[][N_DIMENSIONS] )
+    VIO_Real         voxel_limits[][N_DIMENSIONS] )
 {
     int   dx, dy, dz, dim, n_voxels, x, y, z;
     int   x_start, x_end, y_start, y_end, z_start, z_end;
-    Real  x1, y1, z1;
-    Real  v2[N_DIMENSIONS];
-    Real  min_voxel[N_DIMENSIONS];
-    Real  max_voxel[N_DIMENSIONS];
+    VIO_Real  x1, y1, z1;
+    VIO_Real  v2[N_DIMENSIONS];
+    VIO_Real  min_voxel[N_DIMENSIONS];
+    VIO_Real  max_voxel[N_DIMENSIONS];
 
     for_less( dx, 0, 2 )
     for_less( dy, 0, 2 )
@@ -174,12 +174,12 @@ private int  count_voxels(
         }
     }
 
-    x_start = CEILING( min_voxel[X] );
-    y_start = CEILING( min_voxel[Y] );
-    z_start = CEILING( min_voxel[Z] );
-    x_end = FLOOR( max_voxel[X] );
-    y_end = FLOOR( max_voxel[Y] );
-    z_end = FLOOR( max_voxel[Z] );
+    x_start = VIO_CEILING( min_voxel[X] );
+    y_start = VIO_CEILING( min_voxel[Y] );
+    z_start = VIO_CEILING( min_voxel[Z] );
+    x_end = VIO_FLOOR( max_voxel[X] );
+    y_end = VIO_FLOOR( max_voxel[Y] );
+    z_end = VIO_FLOOR( max_voxel[Z] );
 
     n_voxels = 0;
 
@@ -187,7 +187,7 @@ private int  count_voxels(
     for_inclusive( y, y_start, y_end )
     for_inclusive( z, z_start, z_end )
     {
-        transform_point( v2_to_v1, (Real) x, (Real) y, (Real) z,
+        transform_point( v2_to_v1, (VIO_Real) x, (VIO_Real) y, (VIO_Real) z,
                          &x1, &y1, &z1 );
 
         if( x1 >= voxel_limits[0][X] && x1 <= voxel_limits[1][X] &&
@@ -201,13 +201,13 @@ private int  count_voxels(
     return( n_voxels );
 }
 
-private  Real parallel_piped_volume(
-    Real v[N_DIMENSIONS][N_DIMENSIONS] )
+private  VIO_Real parallel_piped_volume(
+    VIO_Real v[N_DIMENSIONS][N_DIMENSIONS] )
 {
-    Real   volume;
+    VIO_Real   volume;
 
     volume = v[0][0] * (v[1][1] * v[2][2] - v[1][2] * v[2][1]) +
              v[0][1] * (v[1][2] * v[2][0] - v[1][0] * v[2][2]) +
              v[0][2] * (v[1][0] * v[2][1] - v[1][1] * v[2][0]);
-    return(  ABS(volume) );
+    return(  VIO_ABS(volume) );
 }

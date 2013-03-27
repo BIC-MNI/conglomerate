@@ -5,11 +5,11 @@
 #define  DEFAULT_FRAME_RATE   10.0
 
 private  void  display_loop(
-    STRING           filenames[],
+    VIO_STR           filenames[],
     window_struct    *window,
     int              n_frames,
     pixels_struct    pixels[],
-    Real             frame_rate );
+    VIO_Real             frame_rate );
 private  void  display_frame_info(
     window_struct   *window,
     int             frame_number,
@@ -23,9 +23,9 @@ int  main( argc, argv )
     Colour           background = GREY;
     int              i, x_size, y_size;
     window_struct    *window;
-    Real             frame_rate;
+    VIO_Real             frame_rate;
     int              n_frames;
-    STRING           *filenames;
+    VIO_STR           *filenames;
     pixels_struct    *pixels;
     progress_struct  progress;
 
@@ -49,7 +49,7 @@ int  main( argc, argv )
     {
         strip_off_directories( argv[i+1], filenames[i] );
 
-        if( input_rgb_file( argv[i+1], &pixels[i] ) != OK )
+        if( input_rgb_file( argv[i+1], &pixels[i] ) != VIO_OK )
             return( 1 );
 
         if( pixels[i].x_size > x_size )
@@ -80,24 +80,24 @@ int  main( argc, argv )
 }
 
 private  void  display_loop(
-    STRING           filenames[],
+    VIO_STR           filenames[],
     window_struct    *window,
     int              n_frames,
     pixels_struct    pixels[],
-    Real             frame_rate )
+    VIO_Real             frame_rate )
 {
-    BOOLEAN        running;
-    Real           seconds_per_frame;
-    BOOLEAN        done;
+    VIO_BOOL        running;
+    VIO_Real           seconds_per_frame;
+    VIO_BOOL        done;
     int            frame;
-    Real           next_update;
+    VIO_Real           next_update;
     Event_types    event_type;
     int            key_pressed;
     window_struct  *event_window;
 
     G_set_view_type( window, PIXEL_VIEW );
 
-    seconds_per_frame = 1.0 / (Real) frame_rate;
+    seconds_per_frame = 1.0 / (VIO_Real) frame_rate;
 
     frame = 0;
 
@@ -128,7 +128,7 @@ private  void  display_loop(
 
             case RIGHT_MOUSE_DOWN_EVENT:
                 ++frame_rate;
-                seconds_per_frame = 1.0 / (Real) frame_rate;
+                seconds_per_frame = 1.0 / (VIO_Real) frame_rate;
                 next_update = current_realtime_seconds();
                 break;
 
@@ -136,7 +136,7 @@ private  void  display_loop(
                 if( frame_rate > 1 )
                 {
                     --frame_rate;
-                    seconds_per_frame = 1.0 / (Real) frame_rate;
+                    seconds_per_frame = 1.0 / (VIO_Real) frame_rate;
                     next_update = current_realtime_seconds();
                 }
                 break;
@@ -167,9 +167,9 @@ private  void  display_frame_info(
     int             frame_rate,
     char            filename[] )
 {
-    static   BOOLEAN       first = TRUE;
+    static   VIO_BOOL       first = TRUE;
     static   text_struct   text;
-    static   Point         origin = { 10.0, 10.0, 0.0 };
+    static   VIO_Point         origin = { 10.0, 10.0, 0.0 };
 
     if( first )
     {

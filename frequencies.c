@@ -4,18 +4,18 @@ private  void  print_stats(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min,
-    Real            y_max,
-    BOOLEAN         divide );
+    VIO_Real            y_min,
+    VIO_Real            y_max,
+    VIO_BOOL         divide );
 
-private  BOOLEAN  get_next_filename(
+private  VIO_BOOL  get_next_filename(
     char      *filename[] )
 {
     static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
+    static    VIO_BOOL  in_list = FALSE;
+    static    VIO_STR   filename_string;
     char               *argument;
-    BOOLEAN            found;
+    VIO_BOOL            found;
 
     found = FALSE;
 
@@ -24,7 +24,7 @@ private  BOOLEAN  get_next_filename(
         if( in_list )
         {
             if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
-                 == OK )
+                 == VIO_OK )
             {
                 *filename = filename_string;
                 found = TRUE;
@@ -48,7 +48,7 @@ private  BOOLEAN  get_next_filename(
             }
             else
             {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK)
                     break;
                 in_list = TRUE;
             }
@@ -65,21 +65,21 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *landmark_filename;
-    STRING               *filenames, *left_filenames, *right_filenames;
-    STRING               dir, prev_dir;
-    Volume               volume;
+    VIO_STR               *filenames, *left_filenames, *right_filenames;
+    VIO_STR               dir, prev_dir;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
     int                  n_files, n_left_objects, n_right_objects;
     object_struct        **left_object_list, **right_object_list;
-    BOOLEAN              divide, left;
+    VIO_BOOL              divide, left;
     int                  s, p, n_pairs, i, longest, n_printed;
 
     initialize_argument_processing( argc, argv );
 
     n_files = 0;
-    volume = (Volume) NULL;
+    volume = (VIO_Volume) NULL;
 
     while( get_next_filename( &landmark_filename ) )
     {
@@ -87,7 +87,7 @@ int  main(
             filename_extension_matches( landmark_filename, "mni" ) ||
             filename_extension_matches( landmark_filename, "fre" ) )
         {
-            if( volume != (Volume) NULL )
+            if( volume != (VIO_Volume) NULL )
                 cancel_volume_input( volume, &volume_input );
  
             status = start_volume_input(
@@ -160,7 +160,7 @@ int  main(
         if( strlen( left_filenames[p] ) == 0 ||
             input_objects_any_format( volume, left_filenames[p],
                             GREEN, 1.0, BOX_MARKER,
-                            &n_left_objects, &left_object_list ) == ERROR )
+                            &n_left_objects, &left_object_list ) == VIO_ERROR )
         {
             n_left_objects = -1;
         }
@@ -168,7 +168,7 @@ int  main(
         if( strlen( right_filenames[p] ) == 0 ||
             input_objects_any_format( volume, right_filenames[p],
                             GREEN, 1.0, BOX_MARKER,
-                            &n_right_objects, &right_object_list ) == ERROR )
+                            &n_right_objects, &right_object_list ) == VIO_ERROR )
         {
             n_right_objects = -1;
         }
@@ -237,19 +237,19 @@ int  main(
         delete_object_list( n_right_objects, right_object_list );
     }
 
-    if( volume != (Volume) NULL )
+    if( volume != (VIO_Volume) NULL )
         cancel_volume_input( volume, &volume_input );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  print_stats(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min,
-    Real            y_max,
-    BOOLEAN         divide )
+    VIO_Real            y_min,
+    VIO_Real            y_max,
+    VIO_BOOL         divide )
 {
     int             i, n_match, n_in_file;
     marker_struct   *marker;
@@ -279,7 +279,7 @@ private  void  print_stats(
     if( n_objects < 0 )
         print( "    M" );
     else if( divide )
-        print( "%5.1f", 100.0 * (Real) n_match / (Real) n_in_file );
+        print( "%5.1f", 100.0 * (VIO_Real) n_match / (VIO_Real) n_in_file );
     else
         print( "%5d", n_match );
 }

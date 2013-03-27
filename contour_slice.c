@@ -5,14 +5,14 @@ static  void  contour_volume_slice(
     VIO_Volume        volume,
     int           axis_index,
     VIO_Real          slice_pos,
-    BOOLEAN       world_flag,
+    VIO_BOOL       world_flag,
     VIO_Real          contour_value,
     lines_struct  *lines );
 
 static  int  get_axis_index(
     VIO_STR   name,
     int      *axis_index,
-    BOOLEAN  *world_flag )
+    VIO_BOOL  *world_flag )
 {
     *axis_index = -1;
     *world_flag = FALSE;
@@ -20,11 +20,11 @@ static  int  get_axis_index(
     switch( name[0] )
     {
     case 'x':
-    case 'X': *axis_index = X; break;
+    case 'X': *axis_index = VIO_X; break;
     case 'y':
-    case 'Y': *axis_index = Y; break;
+    case 'Y': *axis_index = VIO_Y; break;
     case 'z':
-    case 'Z': *axis_index = Z; break;
+    case 'Z': *axis_index = VIO_Z; break;
     }
 
     if( name[1] == 'w' || name[1] == 'W' )
@@ -55,7 +55,7 @@ int  main(
     int                  n_objects, axis_index;
     object_struct        **objects, *object;
     VIO_Real                 contour_value, slice_pos;
-    BOOLEAN              world_flag;
+    VIO_BOOL              world_flag;
 
     initialize_argument_processing( argc, argv );
 
@@ -71,7 +71,7 @@ int  main(
 
     if( input_volume( input_volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     n_objects = 0;
@@ -89,7 +89,7 @@ int  main(
     }
 
     if( output_graphics_file( output_filename, ASCII_FORMAT, n_objects,
-                              objects ) != OK )
+                              objects ) != VIO_OK )
         return( 1 );
 
     delete_object_list( n_objects, objects );
@@ -355,7 +355,7 @@ static  void  contour_volume_slice(
     VIO_Volume        volume,
     int           axis_index,
     VIO_Real          slice_pos,
-    BOOLEAN       world_flag,
+    VIO_BOOL       world_flag,
     VIO_Real          contour_value,
     lines_struct  *lines )
 {
@@ -369,11 +369,11 @@ static  void  contour_volume_slice(
 
     if( world_flag )
     {
-        world[X] = 0.0;
-        world[Y] = 0.0;
-        world[Z] = 0.0;
+        world[VIO_X] = 0.0;
+        world[VIO_Y] = 0.0;
+        world[VIO_Z] = 0.0;
         world[axis_index] = slice_pos;
-        convert_world_to_voxel( volume, world[X], world[Y], world[Z],
+        convert_world_to_voxel( volume, world[VIO_X], world[VIO_Y], world[VIO_Z],
                                 voxel );
         slice_pos = voxel[axis_index];
     }

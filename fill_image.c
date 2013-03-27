@@ -5,21 +5,21 @@ private  int  paint_fill(
     pixels_struct   *pixels,
     int             x_seed,
     int             y_seed,
-    Real            r_min,
-    Real            r_max,
-    Real            g_min,
-    Real            g_max,
-    Real            b_min,
-    Real            b_max,
+    VIO_Real            r_min,
+    VIO_Real            r_max,
+    VIO_Real            g_min,
+    VIO_Real            g_max,
+    VIO_Real            b_min,
+    VIO_Real            b_max,
     Colour          new_colour );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING         input_filename, output_filename;
-    Real           r_min, r_max, g_min, g_max, b_min, b_max;
-    Real           r_new, g_new, b_new;
+    VIO_STR         input_filename, output_filename;
+    VIO_Real           r_min, r_max, g_min, g_max, b_min, b_max;
+    VIO_Real           r_new, g_new, b_new;
     int            x_seed, y_seed, n_changed;
     pixels_struct  pixels;
 
@@ -44,7 +44,7 @@ int  main(
         return( 1 );
     }
 
-    if( input_rgb_file( input_filename, &pixels ) != OK )
+    if( input_rgb_file( input_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     if( pixels.pixel_type != RGB_PIXEL )
@@ -61,25 +61,25 @@ int  main(
 
     print( "Changed: %d\n", n_changed );
 
-    if( output_rgb_file( output_filename, &pixels ) != OK )
+    if( output_rgb_file( output_filename, &pixels ) != VIO_OK )
         return( 1 );
 
     return( 0 );
 }
 
-private  BOOLEAN  should_change(
+private  VIO_BOOL  should_change(
     pixels_struct   *pixels,
-    Real            r_min,
-    Real            r_max,
-    Real            g_min,
-    Real            g_max,
-    Real            b_min,
-    Real            b_max,
+    VIO_Real            r_min,
+    VIO_Real            r_max,
+    VIO_Real            g_min,
+    VIO_Real            g_max,
+    VIO_Real            b_min,
+    VIO_Real            b_max,
     int             x,
     int             y )
 {
     Colour   col;
-    Real     r, g, b;
+    VIO_Real     r, g, b;
 
     col = PIXEL_RGB_COLOUR(*pixels,x,y);
 
@@ -102,12 +102,12 @@ private  int  paint_fill(
     pixels_struct   *pixels,
     int             x_seed,
     int             y_seed,
-    Real            r_min,
-    Real            r_max,
-    Real            g_min,
-    Real            g_max,
-    Real            b_min,
-    Real            b_max,
+    VIO_Real            r_min,
+    VIO_Real            r_max,
+    VIO_Real            g_min,
+    VIO_Real            g_max,
+    VIO_Real            b_min,
+    VIO_Real            b_max,
     Colour          new_colour )
 {
     int                             x_size, y_size, n_changed;

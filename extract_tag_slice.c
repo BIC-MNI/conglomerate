@@ -21,13 +21,13 @@ int  main(
     VIO_STR               volume_filename, tag_filename, axis_name;
     VIO_Volume               volume;
     FILE                 *file;
-    Real                 min_id, max_id, world[VIO_N_DIMENSIONS];
-    Real                 voxel[VIO_N_DIMENSIONS], slice_pos, value;
-    Real                 tag[VIO_N_DIMENSIONS];
+    VIO_Real                 min_id, max_id, world[VIO_N_DIMENSIONS];
+    VIO_Real                 voxel[VIO_N_DIMENSIONS], slice_pos, value;
+    VIO_Real                 tag[VIO_N_DIMENSIONS];
     int                  int_voxel[VIO_N_DIMENSIONS], sizes[VIO_N_DIMENSIONS];
     int                  n_tags, structure_id, a1, a2, axis;
     int                  block_sizes[VIO_MAX_DIMENSIONS];
-    BOOLEAN              min_present;
+    VIO_BOOL              min_present;
     VIO_progress_struct      progress;
 
     initialize_argument_processing( argc, argv );
@@ -60,15 +60,15 @@ int  main(
     set_n_bytes_cache_threshold( 1 );
     set_default_max_bytes_in_cache( 1 );
 
-    block_sizes[X] = -1;
-    block_sizes[Y] = -1;
-    block_sizes[Z] = -1;
+    block_sizes[VIO_X] = -1;
+    block_sizes[VIO_Y] = -1;
+    block_sizes[VIO_Z] = -1;
     block_sizes[axis] = 1;
     set_default_cache_block_sizes( block_sizes );
 
     if( input_volume( volume_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, NULL ) != OK )
+                      TRUE, &volume, NULL ) != VIO_OK )
         return( 1 );
 
     /* --- create the output tags */
@@ -76,19 +76,19 @@ int  main(
     if( open_file_with_default_suffix( tag_filename,
                                        get_default_tag_file_suffix(),
                                        WRITE_FILE, ASCII_FORMAT,
-                                       &file ) != OK ||
+                                       &file ) != VIO_OK ||
         initialize_tag_file_output( file,
-                "Created by converting volume to tags.", 1 ) != OK )
+                "Created by converting volume to tags.", 1 ) != VIO_OK )
     {
         return( 1 );
     }
 
-    world[X] = 0.0;
-    world[Y] = 0.0;
-    world[Z] = 0.0;
+    world[VIO_X] = 0.0;
+    world[VIO_Y] = 0.0;
+    world[VIO_Z] = 0.0;
     world[axis] = slice_pos;
 
-    convert_world_to_voxel( volume, world[X], world[Y], world[Z], voxel );
+    convert_world_to_voxel( volume, world[VIO_X], world[VIO_Y], world[VIO_Z], voxel );
 
     get_volume_sizes( volume, sizes );
     a1 = (axis + 1) % VIO_N_DIMENSIONS;
@@ -109,21 +109,21 @@ int  main(
         for_less( int_voxel[a2], 0, sizes[a2] )
         {
             value = get_volume_real_value( volume,
-                          int_voxel[X], int_voxel[Y], int_voxel[Z], 0, 0 );
+                          int_voxel[VIO_X], int_voxel[VIO_Y], int_voxel[VIO_Z], 0, 0 );
 
             if( !min_present && value != 0.0 ||
                 min_present && min_id <= value && value <= max_id )
             {
                 convert_3D_voxel_to_world( volume,
-                                           (Real) int_voxel[X],
-                                           (Real) int_voxel[Y],
-                                           (Real) int_voxel[Z],
-                                           &tag[X], &tag[Y], &tag[Z] );
+                                           (VIO_Real) int_voxel[VIO_X],
+                                           (VIO_Real) int_voxel[VIO_Y],
+                                           (VIO_Real) int_voxel[VIO_Z],
+                                           &tag[VIO_X], &tag[VIO_Y], &tag[VIO_Z] );
 
                 structure_id = VIO_ROUND( value );
 
                 if( output_one_tag( file, 1, tag, NULL, NULL,
-                                    &structure_id, NULL, NULL ) != OK )
+                                    &structure_id, NULL, NULL ) != VIO_OK )
                 {
                     return( 1 );
                 }

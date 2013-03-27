@@ -1,21 +1,21 @@
 #include  <bicpl.h>
 
-private  void  print_ellipse_parameters( Point *, Point * );
+private  void  print_ellipse_parameters( VIO_Point *, VIO_Point * );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *input_filename, *landmark_filename, *output_filename;
-    Real                 separations[N_DIMENSIONS];
-    Real                 voxel[N_DIMENSIONS];
-    Real                 min_voxel[N_DIMENSIONS];
-    Real                 max_voxel[N_DIMENSIONS];
+    VIO_Real                 separations[N_DIMENSIONS];
+    VIO_Real                 voxel[N_DIMENSIONS];
+    VIO_Real                 min_voxel[N_DIMENSIONS];
+    VIO_Real                 max_voxel[N_DIMENSIONS];
     char                 history[10000];
-    BOOLEAN              first;
-    Point                min_point, max_point;
-    Volume               volume, new_volume;
+    VIO_BOOL              first;
+    VIO_Point                min_point, max_point;
+    VIO_Volume               volume, new_volume;
     volume_input_struct  volume_input;
     int                  n_objects;
     object_struct        **object_list;
@@ -24,7 +24,7 @@ int  main(
     int                  offset[N_DIMENSIONS];
     marker_struct        *marker;
     progress_struct      progress;
-    static STRING        in_dim_names[] = { MIxspace, MIyspace, MIzspace };
+    static VIO_STR        in_dim_names[] = { MIxspace, MIyspace, MIzspace };
     General_transform    *voxel_to_world_transform;
     Transform            translation;
 
@@ -63,7 +63,7 @@ int  main(
                                  &n_objects, &object_list );
     }
 
-    if( status != OK )
+    if( status != VIO_OK )
         return( 1 );
 
     first = TRUE;
@@ -132,8 +132,8 @@ int  main(
     new_volume->separation[Y] = separations[Y];
     new_volume->separation[Z] = separations[Z];
 
-    make_translation_transform( (Real) offset[X], (Real) offset[Y],
-                                (Real) offset[Z], &translation );
+    make_translation_transform( (VIO_Real) offset[X], (VIO_Real) offset[Y],
+                                (VIO_Real) offset[Z], &translation );
     concat_transforms( &voxel_to_world_transform, &translation,
                        &voxel_to_world_transform );
 
@@ -152,9 +152,9 @@ int  main(
                                     Point_z(marker->position),
                                     &voxel[X], &voxel[Y], &voxel[Z] );
 
-            voxel[X] -= (Real) offset[X];
-            voxel[Y] -= (Real) offset[Y];
-            voxel[Z] -= (Real) offset[Z];
+            voxel[X] -= (VIO_Real) offset[X];
+            voxel[Y] -= (VIO_Real) offset[Y];
+            voxel[Z] -= (VIO_Real) offset[Z];
             if( voxel_is_within_volume( new_volume, voxel ) )
             {
                 SET_VOXEL_3D( new_volume, ROUND(voxel[X]),
@@ -185,16 +185,16 @@ int  main(
 
     print_ellipse_parameters( &min_point, &max_point );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  void  print_ellipse_parameters(
-    Point   *min_point,
-    Point   *max_point )
+    VIO_Point   *min_point,
+    VIO_Point   *max_point )
 {
     int     c;
-    Real    radius[N_DIMENSIONS];
-    Point   centroid;
+    VIO_Real    radius[N_DIMENSIONS];
+    VIO_Point   centroid;
 
     INTERPOLATE_POINTS( centroid, *min_point, *max_point, 0.5 );
 

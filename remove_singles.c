@@ -4,10 +4,10 @@ int main(
     int   argc,
     char  *argv[] )
 {
-    Status  status;
+    VIO_Status  status;
     int     s;
-    STRING  str, prev_str, prev_dir, dir;
-    BOOLEAN last_same, same;
+    VIO_STR  str, prev_str, prev_dir, dir;
+    VIO_BOOL last_same, same;
     FILE    *in_file, *out_file;
     char    *input_filename, *output_filename;
 
@@ -27,7 +27,7 @@ int main(
     last_same = TRUE;
     prev_dir[0] = (char) 0;
 
-    while( input_string( in_file, str, MAX_STRING_LENGTH, ' ' ) == OK )
+    while( input_string( in_file, str, MAX_STRING_LENGTH, ' ' ) == VIO_OK )
     {
         strcpy( dir, str );
         s = strlen(dir);
@@ -54,5 +54,5 @@ int main(
         (void) strcpy( prev_dir, dir );
     }
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

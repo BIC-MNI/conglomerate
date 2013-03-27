@@ -2,22 +2,22 @@
 #include  <bicpl.h>
 
 
-private  Real  evaluate_error(
-    Volume   volume,
-    Real     max_diff );
+private  VIO_Real  evaluate_error(
+    VIO_Volume   volume,
+    VIO_Real     max_diff );
 
 private  void  normalize_intensities(
-    Volume   volume,
-    Real     max_diff );
+    VIO_Volume   volume,
+    VIO_Real     max_diff );
 
 int  main(
     int   argc,
     char  *argv[] )
 {
     char                 *input_filename, *output_filename;
-    Volume               volume;
-    Real                 max_diff;
-    Real                 before, after;
+    VIO_Volume               volume;
+    VIO_Real                 max_diff;
+    VIO_Real                 before, after;
 
     initialize_argument_processing( argc, argv );
 
@@ -31,7 +31,7 @@ int  main(
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                      TRUE, &volume, (minc_input_options *) NULL ) != OK )
+                      TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
         return( 1 );
 
     before = evaluate_error( volume, max_diff );
@@ -53,13 +53,13 @@ int  main(
     return( 0 );
 }
 
-private  Real  evaluate_error(
-    Volume   volume,
-    Real     max_diff )
+private  VIO_Real  evaluate_error(
+    VIO_Volume   volume,
+    VIO_Real     max_diff )
 {
     int   tx, ty, tz, dx, dy, dz, n_voxels;
     int   x, y, z, sizes[N_DIMENSIONS];
-    Real  error, v1, v2, diff;
+    VIO_Real  error, v1, v2, diff;
 
     get_volume_sizes( volume, sizes );
 
@@ -116,23 +116,23 @@ private  Real  evaluate_error(
 }
 
 private  void  normalize_intensities(
-    Volume   volume,
-    Real     max_diff )
+    VIO_Volume   volume,
+    VIO_Real     max_diff )
 {
     int   i, j, tx, ty, tz, dx, dy, dz;
     int   x, y, z, sizes[N_DIMENSIONS];
-    Real  scale, trans, voxel, sum;
-    Real  answer[6], cx, cy, cz;
-    Real  x1, y1, z1, x2, y2, z2;
-    Real  v1, v2, diff;
-    Real  **coefs, constants[6], p[7];
-    Real  min_voxel, max_voxel;
+    VIO_Real  scale, trans, voxel, sum;
+    VIO_Real  answer[6], cx, cy, cz;
+    VIO_Real  x1, y1, z1, x2, y2, z2;
+    VIO_Real  v1, v2, diff;
+    VIO_Real  **coefs, constants[6], p[7];
+    VIO_Real  min_voxel, max_voxel;
 
     get_volume_sizes( volume, sizes );
 
-    cx = (Real) (sizes[0]-1) / 2.0;
-    cy = (Real) (sizes[1]-1) / 2.0;
-    cz = (Real) (sizes[2]-1) / 2.0;
+    cx = (VIO_Real) (sizes[0]-1) / 2.0;
+    cy = (VIO_Real) (sizes[1]-1) / 2.0;
+    cz = (VIO_Real) (sizes[2]-1) / 2.0;
 
     ALLOC2D( coefs, 6, 6 );
 
@@ -188,13 +188,13 @@ private  void  normalize_intensities(
                         y2 = y + dy - cy;
                         z2 = z + dz - cz;
 
-                        p[0] = ((Real) x1 * v1 - (Real) x2 * v2);
-                        p[1] = ((Real) y1 * v1 - (Real) y2 * v2);
-                        p[2] = ((Real) z1 * v1 - (Real) z2 * v2);
+                        p[0] = ((VIO_Real) x1 * v1 - (VIO_Real) x2 * v2);
+                        p[1] = ((VIO_Real) y1 * v1 - (VIO_Real) y2 * v2);
+                        p[2] = ((VIO_Real) z1 * v1 - (VIO_Real) z2 * v2);
 
-                        p[3] = (Real) x1 - (Real) x2;
-                        p[4] = (Real) y1 - (Real) y2;
-                        p[5] = (Real) z1 - (Real) z2;
+                        p[3] = (VIO_Real) x1 - (VIO_Real) x2;
+                        p[4] = (VIO_Real) y1 - (VIO_Real) y2;
+                        p[5] = (VIO_Real) z1 - (VIO_Real) z2;
 
                         p[6] = v1 - v2;
 

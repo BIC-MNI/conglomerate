@@ -1,7 +1,7 @@
 #include  <volume_io.h>
 
-private  Volume   create_two_slice_volume(
-    Volume   volume,
+private  VIO_Volume   create_two_slice_volume(
+    VIO_Volume   volume,
     int      axis );
 
 private  void  usage(
@@ -15,16 +15,16 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     int                  sizes[MAX_DIMENSIONS], new_sizes[MAX_DIMENSIONS];
     int                  a1, a2, axis, slice;
     int                  src_voxel[MAX_DIMENSIONS];
     int                  dest_voxel[MAX_DIMENSIONS];
-    Real                 pos, voxel[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
-    Real                 dest_vox, src_vox;
+    VIO_Real                 pos, voxel[MAX_DIMENSIONS], world[MAX_DIMENSIONS];
+    VIO_Real                 dest_vox, src_vox;
     char                 *src_filename, *axis_name;
     char                 *dest_filename;
-    Volume               volume, slice_volume;
+    VIO_Volume               volume, slice_volume;
 
     initialize_argument_processing( argc, argv );
 
@@ -57,12 +57,12 @@ int  main(
     if( input_volume( src_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE,
                       0.0, 0.0, TRUE, &volume, (minc_input_options *) NULL )
-        != OK )
+        != VIO_OK )
         return( 1 );
 
     if( get_volume_n_dimensions(volume) != 3 )
     {
-        print( "Volume must be 3 dimensional.\n" );
+        print( "VIO_Volume must be 3 dimensional.\n" );
         return( 1 );
     }
 
@@ -127,26 +127,26 @@ int  main(
                             slice_volume, "make_slice_volume:...",
                             (minc_output_options *) NULL );
 
-    if( status != OK )
+    if( status != VIO_OK )
         print( "Unsuccessful.\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
-private  Volume   create_two_slice_volume(
-    Volume   volume,
+private  VIO_Volume   create_two_slice_volume(
+    VIO_Volume   volume,
     int      axis )
 {
     int                c, sizes[MAX_DIMENSIONS];
-    Real               separations[MAX_DIMENSIONS];
+    VIO_Real               separations[MAX_DIMENSIONS];
     int                x, y, z, new_sizes[MAX_DIMENSIONS];
-    Real               new_separations[MAX_DIMENSIONS];
-    Volume             slice_volume;
+    VIO_Real               new_separations[MAX_DIMENSIONS];
+    VIO_Volume             slice_volume;
     General_transform  *orig_transform, gen_convert_voxels, transform;
     Transform          convert_voxels;
     nc_type            nc_data_type;
-    BOOLEAN            signed_flag;
-    Real               voxel_min, voxel_max;
+    VIO_BOOL            signed_flag;
+    VIO_Real               voxel_min, voxel_max;
 
     get_volume_sizes( volume, sizes );
     get_volume_separations( volume, separations );
@@ -166,8 +166,8 @@ private  Volume   create_two_slice_volume(
     }
 
     new_sizes[axis] = 2;
-    new_separations[axis] = separations[axis] * (Real) sizes[axis] /
-                            (Real) new_sizes[axis];
+    new_separations[axis] = separations[axis] * (VIO_Real) sizes[axis] /
+                            (VIO_Real) new_sizes[axis];
 
     set_volume_sizes( slice_volume, new_sizes );
     alloc_volume_data( slice_volume );
@@ -189,9 +189,9 @@ private  Volume   create_two_slice_volume(
 
     make_identity_transform( &convert_voxels );
     Transform_elem( convert_voxels, axis, axis ) =
-                     (Real) sizes[axis] / (Real) new_sizes[axis];
+                     (VIO_Real) sizes[axis] / (VIO_Real) new_sizes[axis];
     Transform_elem( convert_voxels, axis, 3 ) =
-                     (Real) sizes[axis] / 4.0 + 0.5;
+                     (VIO_Real) sizes[axis] / 4.0 + 0.5;
 
     create_linear_transform( &gen_convert_voxels, &convert_voxels );
     concat_general_transforms( &gen_convert_voxels, orig_transform,

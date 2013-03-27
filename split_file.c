@@ -6,7 +6,7 @@ int  main(
     char *argv[] )
 {
     int     n_bytes, file_number, ch, n_bytes_per_file;
-    STRING  output_prefix;
+    VIO_STR  output_prefix;
     char    filename[10000];
     FILE    *file;
 
@@ -26,7 +26,7 @@ int  main(
 
     (void) sprintf( filename, "%s.%03d", output_prefix, file_number );
 
-    if( open_file( filename, WRITE_FILE, BINARY_FORMAT, &file ) != OK )
+    if( open_file( filename, WRITE_FILE, BINARY_FORMAT, &file ) != VIO_OK )
         return( 1 );
 
     while( (ch = getchar()) != EOF )
@@ -43,7 +43,7 @@ int  main(
 
             (void) sprintf( filename, "%s.%03d", output_prefix, file_number );
 
-            if( open_file( filename, WRITE_FILE, BINARY_FORMAT, &file ) != OK )
+            if( open_file( filename, WRITE_FILE, BINARY_FORMAT, &file ) != VIO_OK )
                 return( 1 );
         }
     }

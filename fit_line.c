@@ -3,58 +3,58 @@
 private  int  create_points(
     int            n_objects,
     object_struct  *object_list[],
-    Point          *points[] );
+    VIO_Point          *points[] );
 private  void   fit_line_to_points(
     int            n_points,
-    Point          points[],
+    VIO_Point          points[],
     int            max_points,
-    BOOLEAN        subdivide,
+    VIO_BOOL        subdivide,
     lines_struct   *lines );
 private  int  create_curve_approximating_points(
     int            n_tags,
-    Point          tags[],
+    VIO_Point          tags[],
     int            max_points,
-    BOOLEAN        subdivide,
-    Point          *curve_points[] );
-private  Real  fit_curve(
+    VIO_BOOL        subdivide,
+    VIO_Point          *curve_points[] );
+private  VIO_Real  fit_curve(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[] );
-private  BOOLEAN  should_step(
-    Real   delta_energy,
-    Real   temperature );
-private  Real  evaluate_energy(
+    VIO_Point   curve[] );
+private  VIO_BOOL  should_step(
+    VIO_Real   delta_energy,
+    VIO_Real   temperature );
+private  VIO_Real  evaluate_energy(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[],
-    Real    tag_rms[],
+    VIO_Point   curve[],
+    VIO_Real    tag_rms[],
     int     nearest_segments[],
-    Real    segment_lengths[] );
-private  Real   rms_error_of_point(
-    Point   *point,
+    VIO_Real    segment_lengths[] );
+private  VIO_Real   rms_error_of_point(
+    VIO_Point   *point,
     int     n_points,
-    Point   curve[],
+    VIO_Point   curve[],
     int     *nearest_segment );
-private  Real  rms_to_segment(
-    Point    *point,
-    Point    *p1,
-    Point    *p2 );
-private  Real  evaluate_delta_energy(
+private  VIO_Real  rms_to_segment(
+    VIO_Point    *point,
+    VIO_Point    *p1,
+    VIO_Point    *p2 );
+private  VIO_Real  evaluate_delta_energy(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[],
-    Real    tag_rms[],
+    VIO_Point   curve[],
+    VIO_Real    tag_rms[],
     int     nearest_segments[],
-    Real    segment_lengths[],
+    VIO_Real    segment_lengths[],
     int     index_changed,
     int     *n_tag_changes,
     int     changed_tag[],
-    Real    changed_tag_rms[],
+    VIO_Real    changed_tag_rms[],
     int     new_nearest_segments[],
-    Real    new_segment_lengths[2] );
+    VIO_Real    new_segment_lengths[2] );
 
 #define  DEFAULT_MAX_POINTS  9
 
@@ -62,11 +62,11 @@ int   main(
     int   argc,
     char  *argv[] )
 {
-    Status         status;
+    VIO_Status         status;
     char           *input_filename, *output_filename, *dummy;
     int            n_objects, n_points, max_points;
-    Point          *points;
-    BOOLEAN        subdivide;
+    VIO_Point          *points;
+    VIO_BOOL        subdivide;
     object_struct  **object_list, *object;
 
     initialize_argument_processing( argc, argv );
@@ -82,11 +82,11 @@ int   main(
 
     subdivide = !get_string_argument( "", &dummy );
 
-    status = input_landmark_file( (Volume) NULL, input_filename,
+    status = input_landmark_file( (VIO_Volume) NULL, input_filename,
                                   WHITE, 1.0, BOX_MARKER,
                                   &n_objects, &object_list );
 
-    if( status != OK )
+    if( status != VIO_OK )
         return( 1 );
 
     n_points = create_points( n_objects, object_list, &points );
@@ -101,13 +101,13 @@ int   main(
     status = output_graphics_file( output_filename, ASCII_FORMAT,
                                    1, &object );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  int  create_points(
     int            n_objects,
     object_struct  *object_list[],
-    Point          *points[] )
+    VIO_Point          *points[] )
 {
     int            i, n_points;
     marker_struct  *marker;
@@ -129,13 +129,13 @@ private  int  create_points(
 
 private  void   fit_line_to_points(
     int            n_points,
-    Point          points[],
+    VIO_Point          points[],
     int            max_points,
-    BOOLEAN        subdivide,
+    VIO_BOOL        subdivide,
     lines_struct   *lines )
 {
     int    i, n_curve_points;
-    Point  *curve_points;
+    VIO_Point  *curve_points;
 
     n_curve_points = create_curve_approximating_points( n_points, points,
                                                    max_points, subdivide,
@@ -151,15 +151,15 @@ private  void   fit_line_to_points(
 
 private  int  create_curve_approximating_points(
     int            n_tags,
-    Point          tags[],
+    VIO_Point          tags[],
     int            max_points,
-    BOOLEAN        subdivide,
-    Point          *curve_points[] )
+    VIO_BOOL        subdivide,
+    VIO_Point          *curve_points[] )
 {
     int      i, c, n_points;
-    BOOLEAN  first_time;
-    Point    *curve, *tmp;
-    Real     rms_error;
+    VIO_BOOL  first_time;
+    VIO_Point    *curve, *tmp;
+    VIO_Real     rms_error;
 
     n_points = 2;
     ALLOC( curve, 2 );
@@ -186,9 +186,9 @@ private  int  create_curve_approximating_points(
 
         for_less( i, 1, max_points-1 )
         {
-            Real  ratio;
+            VIO_Real  ratio;
 
-            ratio = (Real) i / (Real) (max_points-1);
+            ratio = (VIO_Real) i / (VIO_Real) (max_points-1);
             INTERPOLATE_POINTS( curve[i], curve[0], curve[max_points-1],
                                 ratio );
         }
@@ -242,18 +242,18 @@ private  int  create_curve_approximating_points(
 #define  START_RANDOM_MOVEMENT_DISTANCE  1.0
 #define  END_RANDOM_MOVEMENT_DISTANCE    0.01
 
-private  Real  fit_curve(
+private  VIO_Real  fit_curve(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[] )
+    VIO_Point   curve[] )
 {
     int    i, n_no_moves;
-    Real   energy, new_energy, temperature, random_distance, rms_error;
-    Real   delta_energy, min_delta_energy, max_delta_energy;
-    Real   *tag_rms, *changed_tag_rms, *segment_lengths;
-    Real   new_segment_lengths[2];
-    Point  save_point;
+    VIO_Real   energy, new_energy, temperature, random_distance, rms_error;
+    VIO_Real   delta_energy, min_delta_energy, max_delta_energy;
+    VIO_Real   *tag_rms, *changed_tag_rms, *segment_lengths;
+    VIO_Real   new_segment_lengths[2];
+    VIO_Point  save_point;
     int    temperature_step, try, point_index, n_successes, max_tries;
     int    max_successes, n_pos_successes, n_tag_changes;
     int    *changed_tag, change, *nearest_segments, *new_nearest_segments;
@@ -285,8 +285,8 @@ private  Real  fit_curve(
         n_successes = 0;
         n_pos_successes = 0;
 
-        random_distance = INTERPOLATE( (Real) temperature_step /
-                                       (Real) (NUM_TEMPERATURE_STEPS-1),
+        random_distance = VIO_INTERPOLATE( (VIO_Real) temperature_step /
+                                       (VIO_Real) (NUM_TEMPERATURE_STEPS-1),
                                        START_RANDOM_MOVEMENT_DISTANCE,
                                        END_RANDOM_MOVEMENT_DISTANCE );
 
@@ -314,9 +314,9 @@ private  Real  fit_curve(
 
 #ifdef DEBUG
 {
-    Real  tmp;
+    VIO_Real  tmp;
     int   tmp_seg[1000];
-    Real  tag_r[1000], seg_len[1000];
+    VIO_Real  tag_r[1000], seg_len[1000];
     tmp = evaluate_energy( n_tags, tags, n_points, curve, tag_r,
                            tmp_seg, seg_len );
     if( !numerically_close( tmp, new_energy, 0.01 ) )
@@ -390,7 +390,7 @@ private  Real  fit_curve(
     rms_error = 0.0;
     for_less( i, 0, n_tags )
         rms_error += tag_rms[i];
-    rms_error /= (Real) n_tags;
+    rms_error /= (VIO_Real) n_tags;
 
     print( "Final energy: %g    Final rms: %g\n", energy, rms_error );
 
@@ -404,24 +404,24 @@ private  Real  fit_curve(
     return( rms_error );
 }
 
-private  BOOLEAN  should_step(
-    Real   delta_energy,
-    Real   temperature )
+private  VIO_BOOL  should_step(
+    VIO_Real   delta_energy,
+    VIO_Real   temperature )
 {
     return( delta_energy < 0.0 ||
             get_random_0_to_1() < exp( -delta_energy / temperature ) );
 }
 
-private  Real  rms_error(
+private  VIO_Real  rms_error(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[],
-    Real    tag_rms[],
+    VIO_Point   curve[],
+    VIO_Real    tag_rms[],
     int     nearest_segment[] )
 {
     int     i;
-    Real    sum_rms;
+    VIO_Real    sum_rms;
 
     sum_rms = 0.0;
 
@@ -435,13 +435,13 @@ private  Real  rms_error(
     return( sum_rms );
 }
 
-private  Real  curve_length(
+private  VIO_Real  curve_length(
     int    n_points,
-    Point  points[],
-    Real   segment_lengths[] )
+    VIO_Point  points[],
+    VIO_Real   segment_lengths[] )
 {
     int   i;
-    Real  len;
+    VIO_Real  len;
 
     len = 0.0;
 
@@ -454,33 +454,33 @@ private  Real  curve_length(
     return( len );
 }
 
-private  Real  evaluate_energy(
+private  VIO_Real  evaluate_energy(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[],
-    Real    tag_rms[],
+    VIO_Point   curve[],
+    VIO_Real    tag_rms[],
     int     nearest_segments[],
-    Real    segment_lengths[] )
+    VIO_Real    segment_lengths[] )
 {
-    Real   energy;
+    VIO_Real   energy;
 
     energy = rms_error( n_tags, tags, n_points, curve, tag_rms,
-                        nearest_segments ) / (Real) n_tags +
+                        nearest_segments ) / (VIO_Real) n_tags +
              CURVE_LENGTH_FACTOR *
              curve_length( n_points, curve, segment_lengths );
 
     return( energy );
 }
 
-private  Real  evaluate_delta_curve_length(
+private  VIO_Real  evaluate_delta_curve_length(
     int     n_points,
-    Point   curve[],
-    Real    segment_lengths[],
+    VIO_Point   curve[],
+    VIO_Real    segment_lengths[],
     int     index_changed,
-    Real    new_segment_lengths[2] )
+    VIO_Real    new_segment_lengths[2] )
 {
-    Real   delta_len;
+    VIO_Real   delta_len;
 
     delta_len = 0.0;
 
@@ -501,23 +501,23 @@ private  Real  evaluate_delta_curve_length(
     return( delta_len );
 }
 
-private  Real  evaluate_delta_avg_rms(
+private  VIO_Real  evaluate_delta_avg_rms(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[],
-    Real    tag_rms[],
+    VIO_Point   curve[],
+    VIO_Real    tag_rms[],
     int     nearest_segments[],
     int     index_changed,
     int     *n_tag_changes,
     int     changed_tag[],
-    Real    changed_tag_rms[],
+    VIO_Real    changed_tag_rms[],
     int     changed_tag_nearest[] )
 {
     int     i, c, n_subpoints, start_point, new_nearest_segment;
-    Point   min_box, max_box;
-    BOOLEAN possible_change, tag_rms_changed;
-    Real    delta_rms, current_rms, new_rms;
+    VIO_Point   min_box, max_box;
+    VIO_BOOL possible_change, tag_rms_changed;
+    VIO_Real    delta_rms, current_rms, new_rms;
 
     min_box = curve[index_changed];
     max_box = curve[index_changed];
@@ -598,28 +598,28 @@ private  Real  evaluate_delta_avg_rms(
     return( delta_rms );
 }
 
-private  Real  evaluate_delta_energy(
+private  VIO_Real  evaluate_delta_energy(
     int     n_tags,
-    Point   tags[],
+    VIO_Point   tags[],
     int     n_points,
-    Point   curve[],
-    Real    tag_rms[],
+    VIO_Point   curve[],
+    VIO_Real    tag_rms[],
     int     nearest_segments[],
-    Real    segment_lengths[],
+    VIO_Real    segment_lengths[],
     int     index_changed,
     int     *n_tag_changes,
     int     changed_tag[],
-    Real    changed_tag_rms[],
+    VIO_Real    changed_tag_rms[],
     int     changed_segments[],
-    Real    new_segment_lengths[2] )
+    VIO_Real    new_segment_lengths[2] )
 {
-    Real   delta;
+    VIO_Real   delta;
 
     delta = evaluate_delta_avg_rms( n_tags, tags, n_points, curve, tag_rms,
                                     nearest_segments,
                                     index_changed, n_tag_changes, changed_tag,
                                     changed_tag_rms, changed_segments ) /
-                                    (Real) n_tags +
+                                    (VIO_Real) n_tags +
             CURVE_LENGTH_FACTOR * evaluate_delta_curve_length(
                                          n_points, curve,
                                          segment_lengths, index_changed,
@@ -628,14 +628,14 @@ private  Real  evaluate_delta_energy(
     return( delta );
 }
 
-private  Real   rms_error_of_point(
-    Point   *point,
+private  VIO_Real   rms_error_of_point(
+    VIO_Point   *point,
     int     n_points,
-    Point   curve[],
+    VIO_Point   curve[],
     int     *nearest_segment )
 {
     int   i;
-    Real  rms, min_rms;
+    VIO_Real  rms, min_rms;
 
     min_rms = 0.0;
 
@@ -653,13 +653,13 @@ private  Real   rms_error_of_point(
     return( min_rms );
 }
 
-private  Real  rms_to_segment(
-    Point    *point,
-    Point    *p1,
-    Point    *p2 )
+private  VIO_Real  rms_to_segment(
+    VIO_Point    *point,
+    VIO_Point    *p1,
+    VIO_Point    *p2 )
 {
-    Vector   v, v12, offset;
-    Real     mag_v12, rms, ratio;
+    VIO_Vector   v, v12, offset;
+    VIO_Real     mag_v12, rms, ratio;
 
     SUB_POINTS( v, *point, *p1 );
     SUB_POINTS( v12, *p2, *p1 );

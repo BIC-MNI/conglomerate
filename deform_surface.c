@@ -2,7 +2,7 @@
 #include  <deform.h>
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
     print_error( "%s  volume_filename\n", executable );
     print_error( "   activity_filename|none   nx ny nz\n" );
@@ -24,21 +24,21 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status            status;
-    STRING            volume_filename, activity_filename;
-    STRING            input_filename, output_filename;
-    STRING            model_filename, normal_direction, original_filename;
-    Real              min_isovalue, max_isovalue, gradient_threshold;
-    Real              model_weight, min_curvature_offset, max_curvature_offset;
-    Real              angle, tolerance, max_distance;
-    Real              separations[N_DIMENSIONS];
-    Real              x_filter_width, y_filter_width, z_filter_width;
+    VIO_Status            status;
+    VIO_STR            volume_filename, activity_filename;
+    VIO_STR            input_filename, output_filename;
+    VIO_STR            model_filename, normal_direction, original_filename;
+    VIO_Real              min_isovalue, max_isovalue, gradient_threshold;
+    VIO_Real              model_weight, min_curvature_offset, max_curvature_offset;
+    VIO_Real              angle, tolerance, max_distance;
+    VIO_Real              separations[N_DIMENSIONS];
+    VIO_Real              x_filter_width, y_filter_width, z_filter_width;
     int               i, n_models, up_to_n_points;
     deform_struct     deform;
     File_formats      file_format;
     int               n_objects;
     object_struct     **object_list;
-    Volume            volume, label_volume, tmp;
+    VIO_Volume            volume, label_volume, tmp;
     polygons_struct   *polygons;
 
     set_alloc_checking( FALSE );
@@ -76,7 +76,7 @@ int  main(
 
         if( add_deformation_model( &deform.deformation_model,
                    up_to_n_points, model_weight, model_filename,
-                   min_curvature_offset, max_curvature_offset ) != OK )
+                   min_curvature_offset, max_curvature_offset ) != VIO_OK )
             return( 1 );
     }
 
@@ -109,7 +109,7 @@ int  main(
                            NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE,
                            &volume, (minc_input_options *) NULL );
 
-    label_volume = (Volume) NULL;
+    label_volume = (VIO_Volume) NULL;
 
     if( x_filter_width > 0.0 && y_filter_width > 0.0 && z_filter_width > 0.0 )
     {
@@ -123,10 +123,10 @@ int  main(
                                           x_filter_width,
                                           y_filter_width, z_filter_width );
 
-        if( label_volume != (Volume) NULL )
+        if( label_volume != (VIO_Volume) NULL )
         {
             delete_volume( label_volume );
-            label_volume = (Volume) NULL;
+            label_volume = (VIO_Volume) NULL;
         }
 
         delete_volume( volume );
@@ -137,23 +137,23 @@ int  main(
     deform.deform_data.volume = volume;
     deform.deform_data.label_volume = label_volume;
 
-    if( status == OK )
+    if( status == VIO_OK )
     {
         status = input_graphics_file( input_filename, &file_format,
                                       &n_objects, &object_list );
     }
 
-    if( status == OK &&
+    if( status == VIO_OK &&
         (n_objects != 1 || object_list[0]->object_type != POLYGONS) )
     {
         (void) fprintf( stderr, "File must contain 1 polygons struct.\n" );
-        status = ERROR;
+        status = VIO_ERROR;
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
         polygons = get_polygons_ptr( object_list[0] );
 
-    if( status == OK && !equal_strings( original_filename, "none" ) )
+    if( status == VIO_OK && !equal_strings( original_filename, "none" ) )
     {
         status = input_original_positions( &deform.deformation_model,
                                            original_filename,
@@ -161,15 +161,15 @@ int  main(
                                            polygons->n_points );
     }
 
-    if( status == OK )
+    if( status == VIO_OK )
         deform_polygons( polygons, &deform );
 
-    if( status == OK )
+    if( status == VIO_OK )
         compute_polygon_normals( polygons );
 
-    if( status == OK )
+    if( status == VIO_OK )
         status = output_graphics_file( output_filename, BINARY_FORMAT,
                                        n_objects, object_list );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

@@ -48,7 +48,7 @@ int  main(
 	VIO_Volume     volume;
 	float      curx, cury, curz;
 	int        voxx, voxy, voxz, sizes[VIO_MAX_DIMENSIONS];
-	Real       voxel[VIO_MAX_DIMENSIONS];
+	VIO_Real       voxel[VIO_MAX_DIMENSIONS];
 	int        i, r, keep_looping, n_coords;
 	FILE*      coordfile;
 	FILE*      glimfile;
@@ -121,7 +121,7 @@ int  main(
 
 			if( input_volume( cur_minc, 3, XYZ_dimension_names,
 									NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-									TRUE, &volume, (minc_input_options *) NULL ) != OK ) {
+									TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK ) {
 				printf("Failed to read %s\n", cur_minc);
 				return( 1 );
 			}

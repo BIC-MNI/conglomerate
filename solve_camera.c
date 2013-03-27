@@ -2,12 +2,12 @@
 #include  <bicpl.h>
 #include  <volume_io.h>
 
-private  BOOLEAN  solve_cameras(
+private  VIO_BOOL  solve_cameras(
     int       n_pairs,
-    Real      (*image1)[2],
-    Real      (*image2)[2],
-    Real      error_in_position,
-    Real      precision,
+    VIO_Real      (*image1)[2],
+    VIO_Real      (*image2)[2],
+    VIO_Real      error_in_position,
+    VIO_Real      precision,
     Interval  *x_rot,
     Interval  *y_rot,
     Interval  *z_rot,
@@ -17,9 +17,9 @@ private  BOOLEAN  solve_cameras(
     Interval  *camera_dist );
 
 private   void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    static  STRING  usage = "\n\
+    static  VIO_STR  usage = "\n\
 Usage: %s \n\
 \n\n";
 
@@ -31,8 +31,8 @@ int  main(
     char  *argv[] )
 {
     int    n_pairs;
-    Real   error_in_position, x1, y1, x2, y2, precision;
-    Real   (*image1)[2], (*image2)[2];
+    VIO_Real   error_in_position, x1, y1, x2, y2, precision;
+    VIO_Real   (*image1)[2], (*image2)[2];
     Interval  x_rot, y_rot, z_rot;
     Interval  x_trans, y_trans, z_trans;
     Interval  camera_distance;
@@ -146,7 +146,7 @@ private  void  transform_interval_point(
     ADD_INTERVALS( *zt, *zt, parms[5] );
 }
 
-private  BOOLEAN  rays_intersect(
+private  VIO_BOOL  rays_intersect(
     Interval  *ox1,
     Interval  *oy1,
     Interval  *oz1,
@@ -188,7 +188,7 @@ private  BOOLEAN  rays_intersect(
     return( INTERVAL_CONTAINS( dot, 0.0 ) );
 }
 
-private  BOOLEAN  is_solution(
+private  VIO_BOOL  is_solution(
     int       n_pairs,
     Interval  (*interval_image1)[2],
     Interval  (*interval_image2)[2],
@@ -223,14 +223,14 @@ private  BOOLEAN  is_solution(
 
 private  void  update_progress(
     progress_struct  *progress,
-    Real             size,
-    Real             *done )
+    VIO_Real             size,
+    VIO_Real             *done )
 {
     int   prev_which, next_which;
 
-    prev_which = ROUND( (Real) N_PROGRESS * (*done) );
+    prev_which = ROUND( (VIO_Real) N_PROGRESS * (*done) );
     *done += size;
-    next_which = ROUND( (Real) N_PROGRESS * (*done) );
+    next_which = ROUND( (VIO_Real) N_PROGRESS * (*done) );
 
     if( next_which != prev_which )
         update_progress_report( progress, next_which );
@@ -238,19 +238,19 @@ private  void  update_progress(
 
 private  void  recursive_solve(
     progress_struct  *progress,
-    Real             size,
-    Real             *done,
+    VIO_Real             size,
+    VIO_Real             *done,
     int       n_pairs,
     Interval  (*interval_image1)[2],
     Interval  (*interval_image2)[2],
     int       next_dim,
     Interval  parms[],
-    Real      precision,
-    BOOLEAN   *found,
+    VIO_Real      precision,
+    VIO_BOOL   *found,
     Interval  solution[] )
 {
     int   dim, p, prev_dim;
-    Real  interval_size, save, midpoint;
+    VIO_Real  interval_size, save, midpoint;
 
     if( !is_solution( n_pairs, interval_image1, interval_image2, parms ) )
     {
@@ -307,12 +307,12 @@ private  void  recursive_solve(
     SET_INTERVAL_MIN( parms[dim], save );
 }
 
-private  BOOLEAN  solve_cameras(
+private  VIO_BOOL  solve_cameras(
     int       n_pairs,
-    Real      (*image1)[2],
-    Real      (*image2)[2],
-    Real      error_in_position,
-    Real      precision,
+    VIO_Real      (*image1)[2],
+    VIO_Real      (*image2)[2],
+    VIO_Real      error_in_position,
+    VIO_Real      precision,
     Interval  *x_rot,
     Interval  *y_rot,
     Interval  *z_rot,
@@ -324,8 +324,8 @@ private  BOOLEAN  solve_cameras(
     Interval  (*interval_image1)[2], (*interval_image2)[2];
     Interval  parms[N_PARMS], solution[N_PARMS];
     int       p;
-    BOOLEAN   solution_found;
-    Real      done;
+    VIO_BOOL   solution_found;
+    VIO_Real      done;
     progress_struct  progress;
 
     SET_INTERVAL( parms[0], 0.0 / 180.0 * PI, 1.0 / 180.0 * PI )

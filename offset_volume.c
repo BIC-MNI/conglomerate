@@ -2,15 +2,15 @@
 #include  <bicpl.h>
 
 private  void  chamfer_volume(
-    Volume   volume );
+    VIO_Volume   volume );
 private  void  peel_volume(
-    Volume   volume,
-    Real     distance );
+    VIO_Volume   volume,
+    VIO_Real     distance );
 
 private  void  usage(
-    STRING  executable )
+    VIO_STR  executable )
 {
-    STRING  usage_str = "\n\
+    VIO_STR  usage_str = "\n\
 Usage: %s input.mnc output.mnc  distance\n\
 \n\
 \n\n";
@@ -22,11 +22,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    STRING               input_filename, output_filename, mask_filename;
-    STRING               *dim_names;
-    Real                 min_mask, max_mask, distance, value;
-    BOOLEAN              mask_volume_present;
-    Volume               volume, mask_volume;
+    VIO_STR               input_filename, output_filename, mask_filename;
+    VIO_STR               *dim_names;
+    VIO_Real                 min_mask, max_mask, distance, value;
+    VIO_BOOL              mask_volume_present;
+    VIO_Volume               volume, mask_volume;
     int                  i, n_dilations, n_neighs, n_changed;
     int                  range_changed[2][N_DIMENSIONS];
     int                  x, y, z, sizes[N_DIMENSIONS];
@@ -44,7 +44,7 @@ int  main(
 
     if( input_volume( input_filename, 3, XYZ_dimension_names,
                       NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume,
-                      NULL ) != OK )
+                      NULL ) != VIO_OK )
         return( 1 );
 
     get_volume_sizes( volume, sizes );
@@ -74,11 +74,11 @@ int  main(
 }
 
 private  void  chamfer_volume(
-    Volume   volume )
+    VIO_Volume   volume )
 {
     int      dx, dy, dz, tx, ty, tz, x, y, z, sizes[N_DIMENSIONS];
     int      n_changed, iter;
-    Real     neigh, current, min_neigh;
+    VIO_Real     neigh, current, min_neigh;
 
     get_volume_sizes( volume, sizes );
     iter = 0;
@@ -93,7 +93,7 @@ private  void  chamfer_volume(
         {
             current = get_volume_real_value( volume, x, y, z, 0, 0 );
 
-            if( current != (Real) iter )
+            if( current != (VIO_Real) iter )
                 continue;
 
             for_inclusive( dx, -1, 1 )
@@ -126,7 +126,7 @@ private  void  chamfer_volume(
 }
 
 private  void  get_3by3(
-    Volume   volume,
+    VIO_Volume   volume,
     int      sizes[],
     int      x,
     int      y,
@@ -255,8 +255,8 @@ private  void  count_connected(
     }
 }
 
-private  BOOLEAN  check_connectivity(
-    Volume   volume,
+private  VIO_BOOL  check_connectivity(
+    VIO_Volume   volume,
     int      sizes[],
     int      x,
     int      y,
@@ -278,13 +278,13 @@ private  BOOLEAN  check_connectivity(
 }
 
 private  void  peel_volume(
-    Volume   volume,
-    Real     distance )
+    VIO_Volume   volume,
+    VIO_Real     distance )
 {
     int      x, y, z, sizes[N_DIMENSIONS];
     int      n_changed, iter;
-    Real     neigh, current, min_neigh;
-    BOOLEAN  can_remove;
+    VIO_Real     neigh, current, min_neigh;
+    VIO_BOOL  can_remove;
 
     get_volume_sizes( volume, sizes );
     iter = 0;

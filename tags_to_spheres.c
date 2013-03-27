@@ -40,7 +40,7 @@ int  main(
 
     if( input_tag_file( input_filename, &n_volumes, &n_tags,
                         &tags, NULL, &weights,
-                        NULL, NULL, NULL ) != OK )
+                        NULL, NULL, NULL ) != VIO_OK )
         return( 1 );
 
     ALLOC( object_list, n_tags );

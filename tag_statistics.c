@@ -5,27 +5,27 @@ private  int  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min_range,
-    Real            y_max_range,
-    Real            *x_min,
-    Real            *x_max,
-    Real            *x_mean,
-    Real            *y_min,
-    Real            *y_max,
-    Real            *y_mean,
-    Real            *z_min,
-    Real            *z_max,
-    Real            *z_mean,
+    VIO_Real            y_min_range,
+    VIO_Real            y_max_range,
+    VIO_Real            *x_min,
+    VIO_Real            *x_max,
+    VIO_Real            *x_mean,
+    VIO_Real            *y_min,
+    VIO_Real            *y_max,
+    VIO_Real            *y_mean,
+    VIO_Real            *z_min,
+    VIO_Real            *z_max,
+    VIO_Real            *z_mean,
     int             *total_in_file );
 
-private  BOOLEAN  get_next_filename(
+private  VIO_BOOL  get_next_filename(
     char      *filename[] )
 {
     static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
+    static    VIO_BOOL  in_list = FALSE;
+    static    VIO_STR   filename_string;
     char               *argument;
-    BOOLEAN            found;
+    VIO_BOOL            found;
 
     found = FALSE;
 
@@ -34,7 +34,7 @@ private  BOOLEAN  get_next_filename(
         if( in_list )
         {
             if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
-                 == OK )
+                 == VIO_OK )
             {
                 *filename = filename_string;
                 found = TRUE;
@@ -58,7 +58,7 @@ private  BOOLEAN  get_next_filename(
             }
             else
             {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK)
                     break;
                 in_list = TRUE;
             }
@@ -71,7 +71,7 @@ private  BOOLEAN  get_next_filename(
     return( found );
 }
 
-private  BOOLEAN  is_left_id(
+private  VIO_BOOL  is_left_id(
     int   id )
 {
     if( id >= 1000 )
@@ -80,7 +80,7 @@ private  BOOLEAN  is_left_id(
     return( id >= 10 && id <= 19 || id == 30 );
 }
 
-private  BOOLEAN  is_right_id(
+private  VIO_BOOL  is_right_id(
     int   id )
 {
     if( id >= 1000 )
@@ -92,7 +92,7 @@ private  BOOLEAN  is_right_id(
 #define  MAX_IDS  1100
 
 private  int   find_left_right_error(
-    BOOLEAN         left,
+    VIO_BOOL         left,
     int             n_objects,
     object_struct   *object_list[],
     int             id_errors[] )
@@ -134,20 +134,20 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *landmark_filename, *error_filename;
-    Real                 *x_mins, *x_maxs, *y_mins, *y_maxs, *z_mins, *z_maxs;
-    Real                 *x_means, *y_means, *z_means;
-    Real                 x_min, x_max, y_min, y_max, z_min, z_max;
-    Real                 x_mean, y_mean, z_mean;
-    Real                 min_value, max_value, mean, std_dev, median;
-    Real                 y_min_range, y_max_range;
-    BOOLEAN              left;
+    VIO_Real                 *x_mins, *x_maxs, *y_mins, *y_maxs, *z_mins, *z_maxs;
+    VIO_Real                 *x_means, *y_means, *z_means;
+    VIO_Real                 x_min, x_max, y_min, y_max, z_min, z_max;
+    VIO_Real                 x_mean, y_mean, z_mean;
+    VIO_Real                 min_value, max_value, mean, std_dev, median;
+    VIO_Real                 y_min_range, y_max_range;
+    VIO_BOOL              left;
     FILE                 *left_right_errors;
     char                 *format;
-    STRING               *filenames;
+    VIO_STR               *filenames;
     int                  id_errors[MAX_IDS];
-    Volume               volume;
+    VIO_Volume               volume;
     volume_input_struct  volume_input;
     int                  n_files, n_objects, n_files_for_patient, total_in_file;
     object_struct        **object_list;
@@ -166,7 +166,7 @@ int  main(
     }
 
     n_files = 0;
-    volume = (Volume) NULL;
+    volume = (VIO_Volume) NULL;
 
     while( get_next_filename( &landmark_filename ) )
     {
@@ -174,7 +174,7 @@ int  main(
             filename_extension_matches( landmark_filename, "mni" ) ||
             filename_extension_matches( landmark_filename, "fre" ) )
         {
-            if( volume != (Volume) NULL )
+            if( volume != (VIO_Volume) NULL )
                 cancel_volume_input( volume, &volume_input );
  
             status = start_volume_input(
@@ -232,7 +232,7 @@ int  main(
             (void) fprintf( left_right_errors, "\n" );
         }
 
-        if( status != OK )
+        if( status != VIO_OK )
             return( 1 );
 
 
@@ -278,7 +278,7 @@ int  main(
 
     status = close_file( left_right_errors );
 
-    if( volume != (Volume) NULL )
+    if( volume != (VIO_Volume) NULL )
         cancel_volume_input( volume, &volume_input );
 
     if( n_samples == 0 )
@@ -348,29 +348,29 @@ int  main(
 
     print( "\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }
 
 private  int  get_stats_for_one_file(
     int             n_objects,
     object_struct   *object_list[],
     int             structure_id,
-    Real            y_min_range,
-    Real            y_max_range,
-    Real            *x_min,
-    Real            *x_max,
-    Real            *x_mean,
-    Real            *y_min,
-    Real            *y_max,
-    Real            *y_mean,
-    Real            *z_min,
-    Real            *z_max,
-    Real            *z_mean,
+    VIO_Real            y_min_range,
+    VIO_Real            y_max_range,
+    VIO_Real            *x_min,
+    VIO_Real            *x_max,
+    VIO_Real            *x_mean,
+    VIO_Real            *y_min,
+    VIO_Real            *y_max,
+    VIO_Real            *y_mean,
+    VIO_Real            *z_min,
+    VIO_Real            *z_max,
+    VIO_Real            *z_mean,
     int             *total_in_file )
 {
     int             i, n_samples;
-    Real            *x_positions, *y_positions, *z_positions;
-    Real            std_dev, median;
+    VIO_Real            *x_positions, *y_positions, *z_positions;
+    VIO_Real            std_dev, median;
     marker_struct   *marker;
 
     *total_in_file = 0;

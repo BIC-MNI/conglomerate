@@ -4,15 +4,15 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Status          status;
+    VIO_Status          status;
     int             resolution;
     char            *output_filename;
     object_struct   *object;
-    Real            cx, cy, cz, rx, ry;
+    VIO_Real            cx, cy, cz, rx, ry;
     int             axis;
-    Point           centre;
+    VIO_Point           centre;
 
-    status = OK;
+    status = VIO_OK;
 
     initialize_argument_processing( argc, argv );
 
@@ -37,11 +37,11 @@ int  main(
 
     status = output_graphics_file( output_filename, ASCII_FORMAT, 1, &object );
 
-    if( status == OK )
+    if( status == VIO_OK )
         delete_object( object );
 
-    if( status == OK )
+    if( status == VIO_OK )
         print( "Lines output.\n" );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

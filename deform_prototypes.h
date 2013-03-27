@@ -15,15 +15,15 @@ public  void  get_line_equilibrium_point(
     int                          axis,
     int                          point_index,
     int                          neighbours[],
-    Real                         curvature_factors[],
-    Real                         max_search_distance,
+    VIO_Real                         curvature_factors[],
+    VIO_Real                         max_search_distance,
     int                          degrees_continuity,
-    Volume                       volume,
-    Volume                       label_volume,
+    VIO_Volume                       volume,
+    VIO_Volume                       label_volume,
     boundary_definition_struct   *boundary_def,
     deformation_model_struct     *deformation_model,
-    Point                        *equilibrium_point,
-    Point                        *boundary_point );
+    VIO_Point                        *equilibrium_point,
+    VIO_Point                        *boundary_point );
 
 public  int  find_axial_plane(
     lines_struct   *lines );
@@ -37,44 +37,44 @@ public  void  deform_polygons_one_iteration(
     deform_struct     *deform_parms,
     int               iteration );
 
-public  BOOLEAN  find_boundary_in_direction(
-    Volume                      volume,
-    Volume                      label_volume,
+public  VIO_BOOL  find_boundary_in_direction(
+    VIO_Volume                      volume,
+    VIO_Volume                      label_volume,
     voxel_coef_struct           *lookup,
     bitlist_3d_struct           *done_bits,
     bitlist_3d_struct           *surface_bits,
-    Real                        model_dist,
-    Point                       *ray_origin,
-    Vector                      *unit_pos_dir,
-    Vector                      *unit_neg_dir,
-    Real                        max_outwards_search_distance,
-    Real                        max_inwards_search_distance,
+    VIO_Real                        model_dist,
+    VIO_Point                       *ray_origin,
+    VIO_Vector                      *unit_pos_dir,
+    VIO_Vector                      *unit_neg_dir,
+    VIO_Real                        max_outwards_search_distance,
+    VIO_Real                        max_inwards_search_distance,
     int                         degrees_continuity,
     boundary_definition_struct  *boundary_def,
-    Real                        *boundary_distance );
+    VIO_Real                        *boundary_distance );
 
 public  int  find_voxel_line_polynomial(
-    Real        coefs[],
+    VIO_Real        coefs[],
     int         degrees_continuity,
     int         x,
     int         y,
     int         z,
-    Real        line_origin[],
-    Real        line_direction[],
-    Real        line_poly[] );
+    VIO_Real        line_origin[],
+    VIO_Real        line_direction[],
+    VIO_Real        line_poly[] );
 
 public  int  find_voxel_line_value_intersection(
-    Real        coefs[],
+    VIO_Real        coefs[],
     int         degrees_continuity,
     int         x,
     int         y,
     int         z,
-    Real        line_origin[],
-    Real        line_direction[],
-    Real        t_min,
-    Real        t_max,
-    Real        isovalue,
-    Real        distances[3] );
+    VIO_Real        line_origin[],
+    VIO_Real        line_direction[],
+    VIO_Real        t_min,
+    VIO_Real        t_max,
+    VIO_Real        isovalue,
+    VIO_Real        distances[3] );
 
 public  void  initialize_deformation_model(
     deformation_model_struct  *model );
@@ -82,28 +82,28 @@ public  void  initialize_deformation_model(
 public  void  print_deformation_model(
     deformation_model_struct   *deformation_model );
 
-public  Status   add_deformation_model(
+public  VIO_Status   add_deformation_model(
     deformation_model_struct   *deformation_model,
     int                        up_to_n_points,
-    Real                       model_weight,
+    VIO_Real                       model_weight,
     char                       model_filename[],
-    Real                       min_curvature_offset,
-    Real                       max_curvature_offset );
+    VIO_Real                       min_curvature_offset,
+    VIO_Real                       max_curvature_offset );
 
 public  void  delete_deformation_model(
     deformation_model_struct  *model );
 
-public  Status  input_original_positions(
+public  VIO_Status  input_original_positions(
     deformation_model_struct  *deform_model,
     char                      position_filename[],
-    Real                      max_position_offset,
+    VIO_Real                      max_position_offset,
     int                       n_deforming_points );
 
-public  BOOLEAN  check_correct_deformation_polygons(
+public  VIO_BOOL  check_correct_deformation_polygons(
     polygons_struct            *polygons,
     deformation_model_struct   *model );
 
-public  BOOLEAN  check_correct_deformation_lines(
+public  VIO_BOOL  check_correct_deformation_lines(
     lines_struct               *lines,
     deformation_model_struct   *model );
 
@@ -112,80 +112,80 @@ public  deform_model_struct  *find_relevent_model(
     int                       point_index );
 
 public  void  get_model_shape_point(
-    Point    *origin,
-    Vector   *pos_model_dir,
-    Vector   *neg_model_dir,
-    Real     dist,
-    Point    *point );
+    VIO_Point    *origin,
+    VIO_Vector   *pos_model_dir,
+    VIO_Vector   *neg_model_dir,
+    VIO_Real     dist,
+    VIO_Point    *point );
 
 public  void  compute_equilibrium_point(
     int                       point_index,
-    BOOLEAN                   boundary_exists,
-    Real                      boundary_dist,
-    Real                      base_length,
-    Real                      model_dist,
-    Vector                    *pos_model_dir,
-    Vector                    *neg_model_dir,
-    Point                     *centroid,
+    VIO_BOOL                   boundary_exists,
+    VIO_Real                      boundary_dist,
+    VIO_Real                      base_length,
+    VIO_Real                      model_dist,
+    VIO_Vector                    *pos_model_dir,
+    VIO_Vector                    *neg_model_dir,
+    VIO_Point                     *centroid,
     deformation_model_struct  *deformation_model,
-    Point                     *equilibrium_point );
+    VIO_Point                     *equilibrium_point );
 
 public  void  compute_model_dirs(
-    Point      *centroid,
-    Vector     *normal,
-    Real       base_length,
-    Point      *model_point,
-    Real       *model_dist,
-    Point      *search_origin,
-    Vector     *pos_model_dir,
-    Vector     *neg_model_dir );
+    VIO_Point      *centroid,
+    VIO_Vector     *normal,
+    VIO_Real       base_length,
+    VIO_Point      *model_point,
+    VIO_Real       *model_dist,
+    VIO_Point      *search_origin,
+    VIO_Vector     *pos_model_dir,
+    VIO_Vector     *neg_model_dir );
 
 public  void  get_model_point(
     deformation_model_struct  *deformation_model,
-    Point                     points[],
+    VIO_Point                     points[],
     int                       point_index,
     int                       n_neighbours,
     int                       neighbours[],
-    Real                      curvatures[],
-    Point                     *centroid,
-    Vector                    *normal,
-    Real                      base_length,
-    Point                     *model_point );
+    VIO_Real                      curvatures[],
+    VIO_Point                     *centroid,
+    VIO_Vector                    *normal,
+    VIO_Real                      base_length,
+    VIO_Point                     *model_point );
 
 public  void  get_neighbours_of_line_vertex(
     lines_struct    *lines,
     int             vertex_index,
     int             neighbours[2] );
 
-public  BOOLEAN  deformation_model_includes_average(
+public  VIO_BOOL  deformation_model_includes_average(
     deformation_model_struct   *model );
 
-public  Real  compute_line_curvature(
+public  VIO_Real  compute_line_curvature(
     lines_struct    *lines,
     int             axis,
     int             point_index,
     int             prev_point_index,
     int             next_point_index );
 
-public  Real  deform_point(
+public  VIO_Real  deform_point(
     int                        point_index,
-    Point                      points[],
-    Point                      *equilibrium_point,
-    Real                       fractional_step,
-    Real                       max_step,
-    BOOLEAN                    position_constrained,
-    Real                       max_position_offset,
-    Point                      original_positions[],
-    Point                      *new_point );
+    VIO_Point                      points[],
+    VIO_Point                      *equilibrium_point,
+    VIO_Real                       fractional_step,
+    VIO_Real                       max_step,
+    VIO_BOOL                    position_constrained,
+    VIO_Real                       max_position_offset,
+    VIO_Point                      original_positions[],
+    VIO_Point                      *new_point );
 
 public  void  compute_line_centroid_and_normal(
     lines_struct     *lines,
     int              axis,
     int              prev_point_index,
     int              next_point_index,
-    Point            *centroid,
-    Vector           *normal,
-    Real             *base_length );
+    VIO_Point            *centroid,
+    VIO_Vector           *normal,
+    VIO_Real             *base_length );
 
 public  int  get_subsampled_neighbours_of_point(
     deformation_model_struct  *deformation_model,
@@ -194,46 +194,46 @@ public  int  get_subsampled_neighbours_of_point(
     int                       vertex_index,
     int                       neighbours[],
     int                       max_neighbours,
-    BOOLEAN                   *interior_flag );
+    VIO_BOOL                   *interior_flag );
 
-public  BOOLEAN  is_point_inside_surface(
-    Volume                      volume,
-    Volume                      label_volume,
+public  VIO_BOOL  is_point_inside_surface(
+    VIO_Volume                      volume,
+    VIO_Volume                      label_volume,
     int                         continuity,
-    Real                        voxel[],
-    Vector                      *direction,
+    VIO_Real                        voxel[],
+    VIO_Vector                      *direction,
     boundary_definition_struct  *boundary_def );
 
 public  void   get_centre_of_cube(
-    Point       *cube,
+    VIO_Point       *cube,
     int         sizes[3],
-    Point       *centre );
+    VIO_Point       *centre );
 
-public  BOOLEAN  contains_value(
-    Real  values[2][2][2],
+public  VIO_BOOL  contains_value(
+    VIO_Real  values[2][2][2],
     int   sizes[3] );
 
-public  BOOLEAN  cube_is_small_enough(
-    Point     cube[2],
+public  VIO_BOOL  cube_is_small_enough(
+    VIO_Point     cube[2],
     int       sizes[3],
-    Real      min_cube_size );
+    VIO_Real      min_cube_size );
 
 public  void  initialize_deform_stats(
     deform_stats  *stats );
 
 public  void  record_error_in_deform_stats(
     deform_stats   *stats,
-    Real           error );
+    VIO_Real           error );
 
 public  void  print_deform_stats(
     deform_stats   *stats,
     int            n_points );
 
-public  BOOLEAN   get_max_point_cube_distance(
-    Point   cube[2],
+public  VIO_BOOL   get_max_point_cube_distance(
+    VIO_Point   cube[2],
     int     sizes[3],
-    Point   *point,
-    Real    *distance );
+    VIO_Point   *point,
+    VIO_Real    *distance );
 
 public  void  initialize_deformation_parameters(
     deform_struct  *deform );
@@ -243,24 +243,24 @@ public  void  delete_deformation_parameters(
 
 public  void  set_boundary_definition(
     boundary_definition_struct  *boundary_def,
-    Real                        min_value,
-    Real                        max_value,
-    Real                        grad_threshold,
-    Real                        angle,
+    VIO_Real                        min_value,
+    VIO_Real                        max_value,
+    VIO_Real                        grad_threshold,
+    VIO_Real                        angle,
     char                        direction,
-    Real                        tolerance );
+    VIO_Real                        tolerance );
 
 public  void  initialize_lookup_volume_coeficients(
     voxel_coef_struct  *lookup );
 
 public  void  lookup_volume_coeficients(
     voxel_coef_struct  *lookup,
-    Volume             volume,
+    VIO_Volume             volume,
     int                degrees_continuity,
     int                x,
     int                y,
     int                z,
-    Real               c[] );
+    VIO_Real               c[] );
 
 public  void  delete_lookup_volume_coeficients(
     voxel_coef_struct  *lookup );

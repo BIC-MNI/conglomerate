@@ -2,14 +2,14 @@
 
 #define  SCALE_FACTOR   1.0
 
-private  BOOLEAN  get_next_filename(
+private  VIO_BOOL  get_next_filename(
     char      *filename[] )
 {
     static    FILE     *file = 0;
-    static    BOOLEAN  in_list = FALSE;
-    static    STRING   filename_string;
+    static    VIO_BOOL  in_list = FALSE;
+    static    VIO_STR   filename_string;
     char               *argument;
-    BOOLEAN            found;
+    VIO_BOOL            found;
 
     found = FALSE;
 
@@ -18,7 +18,7 @@ private  BOOLEAN  get_next_filename(
         if( in_list )
         {
             if( input_string( file, filename_string, MAX_STRING_LENGTH, ' ' )
-                 == OK )
+                 == VIO_OK )
             {
                 *filename = filename_string;
                 found = TRUE;
@@ -42,7 +42,7 @@ private  BOOLEAN  get_next_filename(
             }
             else
             {
-                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != OK)
+                if( open_file( argument, READ_FILE, ASCII_FORMAT, &file ) != VIO_OK)
                     break;
                 in_list = TRUE;
             }
@@ -59,24 +59,24 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-    Status               status;
+    VIO_Status               status;
     char                 *input_filename, *landmark_filename, *output_filename;
-    Real                 separations[MAX_DIMENSIONS];
-    Real                 voxel[MAX_DIMENSIONS];
-    Real                 max_value;
-    Real                 radius, radius_squared;
-    Real                 delta, dx2, dy2, dz2;
+    VIO_Real                 separations[MAX_DIMENSIONS];
+    VIO_Real                 voxel[MAX_DIMENSIONS];
+    VIO_Real                 max_value;
+    VIO_Real                 radius, radius_squared;
+    VIO_Real                 delta, dx2, dy2, dz2;
     char                 history[10000];
-    STRING               *filenames;
+    VIO_STR               *filenames;
     bitlist_3d_struct    bitlist;
-    Volume               volume, new_volume;
+    VIO_Volume               volume, new_volume;
     volume_input_struct  volume_input;
     int                  n_objects, n_files, n_patients, structure_id;
     object_struct        **object_list;
     int                  i, p, x, y, z;
     int                  sizes[N_DIMENSIONS];
     int                  c, min_voxel[N_DIMENSIONS], max_voxel[N_DIMENSIONS];
-    Real                 min_limit, max_limit;
+    VIO_Real                 min_limit, max_limit;
     marker_struct        *marker;
 
     initialize_argument_processing( argc, argv );
@@ -132,7 +132,7 @@ int  main(
                                            GREEN, 1.0, BOX_MARKER,
                                            &n_objects, &object_list );
 
-        if( status != OK )
+        if( status != VIO_OK )
             return( 1 );
 
         for_less( i, 0, n_objects )
@@ -171,7 +171,7 @@ int  main(
                         {
                             min_limit = voxel[c] - radius / separations[c];
                             max_limit = voxel[c] + radius / separations[c];
-                            min_voxel[c] = CEILING( min_limit );
+                            min_voxel[c] = VIO_CEILING( min_limit );
                             if( min_voxel[c] < 0 )
                                 min_voxel[c] = 0;
                             max_voxel[c] = (int) max_limit;
@@ -181,15 +181,15 @@ int  main(
 
                         for_inclusive( x, min_voxel[X], max_voxel[X] )
                         {
-                            delta = ((Real) x - voxel[X]) * separations[X];
+                            delta = ((VIO_Real) x - voxel[X]) * separations[X];
                             dx2 = delta * delta;
                             for_inclusive( y, min_voxel[Y], max_voxel[Y] )
                             {
-                                delta = ((Real) y - voxel[Y]) * separations[Y];
+                                delta = ((VIO_Real) y - voxel[Y]) * separations[Y];
                                 dy2 = delta * delta;
                                 for_inclusive( z, min_voxel[Z], max_voxel[Z] )
                                 {
-                                    delta = ((Real) z - voxel[Z]) *
+                                    delta = ((VIO_Real) z - voxel[Z]) *
                                             separations[Z];
                                     dz2 = delta * delta;
                                     if( dx2 + dy2 + dz2 <= radius_squared &&
@@ -220,7 +220,7 @@ int  main(
     set_volume_voxel_value( new_volume, 0, 0, 0, 0, 0,
                             n_patients * SCALE_FACTOR );
 
-    set_volume_voxel_range( new_volume, 0.0, (Real) n_patients * SCALE_FACTOR );
+    set_volume_voxel_range( new_volume, 0.0, (VIO_Real) n_patients * SCALE_FACTOR );
     set_volume_real_range( new_volume, 0.0, 100.0 );
 
     cancel_volume_input( volume, &volume_input );
@@ -239,5 +239,5 @@ int  main(
                             0.0, 255.0, new_volume, history,
                             (minc_output_options *) NULL );
 
-    return( status != OK );
+    return( status != VIO_OK );
 }

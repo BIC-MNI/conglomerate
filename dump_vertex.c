@@ -5,8 +5,8 @@ int  main(
     int    argc,
     char   *argv[] )
 {
-    Point          *points;
-    STRING         input_filename;
+    VIO_Point          *points;
+    VIO_STR         input_filename;
     int            vertex, n_objects, n_points;
     File_formats   format;
     object_struct  **object_list;
@@ -20,7 +20,7 @@ int  main(
     }
 
     if( input_graphics_file( input_filename, &format, &n_objects,
-                             &object_list ) != OK )
+                             &object_list ) != VIO_OK )
         return( 1 );
 
     n_points = get_object_points( object_list[0], &points );

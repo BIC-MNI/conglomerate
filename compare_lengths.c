@@ -24,11 +24,11 @@ int  main(
     }
 
     if( input_graphics_file( polygons_filename1,
-                             &format, &n_objects1, &objects1 ) != OK )
+                             &format, &n_objects1, &objects1 ) != VIO_OK )
         return( 1 );
 
     if( input_graphics_file( polygons_filename2,
-                             &format, &n_objects2, &objects2 ) != OK )
+                             &format, &n_objects2, &objects2 ) != VIO_OK )
         return( 1 );
 
     if( n_objects1 != 1 || get_object_type( objects1[0] ) != POLYGONS ||
