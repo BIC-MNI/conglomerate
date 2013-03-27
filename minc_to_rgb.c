@@ -54,7 +54,7 @@ int  main(
                       TRUE, &volume, &options ) != VIO_OK )
         return( 1 );
 
-    if( get_volume_data_type(volume) != UNSIGNED_INT )
+    if( get_volume_data_type(volume) != VIO_UNSIGNED_INT )
     {
         print_error( "VIO_Volume is not an RGB Minc file.\n" );
         return( 1 );

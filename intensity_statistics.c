@@ -174,8 +174,8 @@ int  main(
         if( median_required && median_error > 0.0 )
         {
             done = FALSE;
-            if( get_volume_data_type(volume) != FLOAT &&
-                get_volume_data_type(volume) != DOUBLE )
+            if( get_volume_data_type(volume) != VIO_FLOAT &&
+                get_volume_data_type(volume) != VIO_DOUBLE )
             {
                 median_min = convert_value_to_voxel( volume,
                                                      median - median_error );
