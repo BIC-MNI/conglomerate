@@ -280,7 +280,7 @@ private  void  count_connected(
             ny = queue[queue_head][1];
             nz = queue[queue_head][2];
             ++queue_head;
-            for_less( dir, 0, SIZEOF_STATIC_ARRAY( dx ) )
+            for_less( dir, 0, VIO_SIZEOF_STATIC_ARRAY( dx ) )
             {
                 tx = nx + dx[dir];
                 ty = ny + dy[dir];
