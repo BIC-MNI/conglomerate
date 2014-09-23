@@ -48,7 +48,21 @@ my($Usage, $Help);
 
 if (defined ($SurfaceObj)) {
    print ("Creating mask...\n");
-   $Labels = MaskBrainVoxels($SurfaceObj, $Labels);
+
+   # Can have multiple surfaces separated by a colon (no space).
+   my @surfs = split( /:/, $SurfaceObj );  
+   my $obj_mask = undef;
+   if( $#surfs > 0 ) {
+     my @none = ();
+     for( my $i = 0; $i <= $#surfs; $i++ ) {
+       push @none, "none";
+     }
+     $obj_mask = "${TmpDir}/obj_mask_concat.obj";
+     Spawn(['objconcat', @surfs, @none, $obj_mask, 'none' ]);
+   } else {
+     $obj_mask = $SurfaceObj;
+   }
+   $Labels = MaskBrainVoxels($obj_mask, $Labels);
 }
 
 my($Volumes) = GetStructsAndVols($Labels);
@@ -107,7 +121,7 @@ sub CorrectVols {
    }
        
    my($output);
-   Spawn("xfm2param $xfm | grep scale", stdout => \$output);
+   Spawn("xfm2param $xfm | grep scale", verbose => 0, stdout => \$output);
 
    my(@scales) = (split(" ",$output))[1..3];
 
@@ -175,14 +189,23 @@ sub GetStructsAndVols {
     my ($file) = @_;
     
     my($output);
-    Spawn("print_all_labels $file | grep Label", stdout => \$output);
-    
+    Spawn("print_all_labels $file | grep Label", verbose => 0, stdout => \$output);
+
+    my $ret;
+    Spawn("mincinfo -attvalue xspace:step -attvalue yspace:step -attvalue zspace:step $file",
+          verbose => 0, stdout => \$ret );
+    my @sizes = split( "\n", $ret );
+    chomp( $sizes[0] );
+    chomp( $sizes[1] );
+    chomp( $sizes[2] );
+    my $voxel_unit_volume = $sizes[0] * $sizes[1] * $sizes[2];
+
     my(@output) = split ("\n", $output);
     
     my($volume);
     foreach (@output) {
 	my(@tokens) = split ;
-	$volume -> {$tokens[1]} = $tokens[2];
+	$volume -> {$tokens[1]} = $tokens[2] * $voxel_unit_volume;
     }
 
     ($volume);
@@ -216,7 +239,7 @@ sub Initialize
 	  "invert <transform.xfm> prior to using it"],
 	 ["-surface_mask", "string", 1, \$SurfaceObj,
 	  "mask label volume with this surface object prior to volume calculation",
-	  "<surface.obj>"],
+	  "<surface1.obj[:surface2.obj][:surface3.obj]...>"],
 	 ["-lobe_volumes", "string", 1, \$LobeVolumes,
 	  "save lobe volumes in this file", "<lobes.dat>"],
 	 ["-lobe_mapping", "string", 1, \$LobeMap,
@@ -258,7 +281,9 @@ sub Initialize
 
     # Register programs
     RegisterPrograms([qw(print_all_labels
+                         mincinfo
 			 surface_mask2 
+                         objconcat
 			 xfm2param 
 			 xfminvert)]) || die;
     
