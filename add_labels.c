@@ -133,7 +133,7 @@ int  main(
 
     /* --- open the source minc file */
 
-    ncopts = NC_VERBOSE;
+    set_ncopts(NC_VERBOSE);
 
     in_minc_id = miopen( input_filename, NC_NOWRITE );
 

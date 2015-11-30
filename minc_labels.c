@@ -27,12 +27,12 @@
 {
     int   save_opts;
 
-    save_opts = ncopts;
-    ncopts = 0;
+    save_opts =get_ncopts();
+    set_ncopts(0);
 
     *label_var = ncvarid( minc_id, MIlabel_lookup );
 
-    ncopts = save_opts;
+    set_ncopts(save_opts);
 
     return( *label_var != MI_ERROR );
 }
@@ -77,14 +77,14 @@
 
     /* --- set netcdf to verbose mode, to print an errors in variables, etc. */
 
-    save_opts = ncopts;
-    ncopts = NC_VERBOSE;
+    save_opts =get_ncopts();
+    set_ncopts(NC_VERBOSE);
 
     /* --- find the label variable */
 
     if( !get_label_lookup_var( minc_id, &label_var ) )
     {
-        ncopts = save_opts;        /* --- this is okay, return 0 labels */
+        set_ncopts(save_opts);        /* --- this is okay, return 0 labels */
         return( TRUE );
     }
 
@@ -205,7 +205,7 @@
 
     /* --- restore the netcdf options */
 
-    ncopts = save_opts;
+    set_ncopts(save_opts);
 
     return( okay );
 }
@@ -280,8 +280,8 @@
 
     /* --- set netcdf to verbose mode, to print an errors in variables, etc. */
 
-    save_opts = ncopts;
-    ncopts = NC_VERBOSE;
+    save_opts =get_ncopts();
+    set_ncopts(NC_VERBOSE);
 
     /* --- check if label variable exists */
 
@@ -315,7 +315,7 @@
 
     /* --- restore the netcdf options */
 
-    ncopts = save_opts;
+    set_ncopts(save_opts);
 
     return( okay );
 }
