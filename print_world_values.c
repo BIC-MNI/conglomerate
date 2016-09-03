@@ -117,7 +117,7 @@ int  main(
 	fprintf(outputfile, "\n");
 	  
 	while(keep_looping) {
-		if(fscanf(glimfile, "%[^ \t] %*[^\n] %*1[\n]", &cur_minc) > 0) {
+		if(fscanf(glimfile, "%[^ \t] %*[^\n] %*1[\n]", cur_minc) > 0) {
 
 			if( input_volume( cur_minc, 3, XYZ_dimension_names,
 									NC_UNSPECIFIED, FALSE, 0.0, 0.0,

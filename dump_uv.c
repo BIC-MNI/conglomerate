@@ -19,7 +19,7 @@ int  main(
     if( !get_string_argument( NULL, &input_filename ) ||
         !get_string_argument( NULL, &output_filename ) )
     {
-        print_error( "Usage: %s input.obj output.txt\n" );
+        print_error( "Usage: %s input.obj output.txt\n", argv[0] );
         return( 1 );
     }
 

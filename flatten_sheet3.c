@@ -460,7 +460,7 @@ static  void  create_coefficients(
 #endif
 
             if( y < 0.0 )
-                print_error( "Y = %g\n" );
+                print_error( "Y = %g\n", y );
 
             for_less( dim, 0, 2 )
             {

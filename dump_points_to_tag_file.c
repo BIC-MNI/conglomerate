@@ -19,7 +19,7 @@ int  main(
     if( !get_string_argument( NULL, &filename1 ) ||
         !get_string_argument( NULL, &filename2 ) )
     {
-        print_error( "Usage: %s input1.obj [input2.obj] output.txt\n" );
+        print_error( "Usage: %s input1.obj [input2.obj] output.txt\n", argv[0] );
         return( 1 );
     }
 

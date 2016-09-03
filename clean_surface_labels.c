@@ -366,7 +366,9 @@ static void read_scalar( int n_points, int scalar[], char * in_file ) {
 
   FILE * fp = fopen( in_file, "r" );
   for( i = 0; i < n_points; i++ ) {
-    fscanf( fp, "%f", &val );
+    if (fscanf( fp, "%f", &val ) != 1) {
+      print_error("Error reading the file.\n");
+    }
     scalar[i] = (int)( val + 0.25 );  // truncate to nearest if noise from minc ranges.
   }
   fclose( fp );
