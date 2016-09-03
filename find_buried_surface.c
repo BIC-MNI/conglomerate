@@ -160,8 +160,6 @@ int  main(
 
     delete_object_list( n_objects, objects );
 
-    output_alloc_to_file( ".alloc_debug" );
-
     return( 0 );
 }
 

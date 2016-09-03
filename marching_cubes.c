@@ -186,8 +186,6 @@ int  main(
 
     delete_general_transform( &voxel_to_world_transform );
 
-    output_alloc_to_file( ".alloc_stats" );
-
     return( 0 );
 }
 

@@ -253,8 +253,6 @@ int  main(
 
     delete_volume( image );
 
-    output_alloc_to_file( NULL );
-
     return( 0 );
 }
 
