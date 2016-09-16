@@ -1,3 +1,12 @@
+2016-09-16  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* modifications to print_world_values.c
+
+2014-09-23  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* fixed compute_icbm_vols: account for volume of voxel (0.5mm or 1.0mm)
+          and accept multiple surfaces for the brain mask
+        * extended sphere_resample_obj to resample a surface based on a
+          surface map of different size (for hi-res surfaces)
+
 2011-04-27  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* fixed bug in sphere_resample_obj for parsing of lines with 
           leading spaces
