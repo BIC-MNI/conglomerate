@@ -13,7 +13,7 @@
 #@CALLS      : /nil/david/public_bin/print_all_labels
 #@CREATED    : Mon, April 14, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: compute_icbm_vols.in,v 1.3 2014-10-29 20:56:45 claude Exp $
+#@VERSION    : $Id: compute_icbm_vols.in,v 1.3 2014/10/29 20:56:45 claude Exp $
 #-----------------------------------------------------------------------------
 use MNI::Startup;
 use MNI::Spawn;

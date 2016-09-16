@@ -1,3 +1,7 @@
+        New in Release 1.6.8
+        --------------------
+* modifications to print_world_values.c
+
         New in Release 1.6.7
         --------------------
 * extended sphere_resample_obj to resample a surface based on a

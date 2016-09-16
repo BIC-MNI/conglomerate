@@ -11,7 +11,7 @@
               peaks, but the plateau itself is not.
 @CREATED    : February 1, 1999 (Peter Neelin)
 @MODIFIED   : $Log: find_peaks.c,v $
-@MODIFIED   : Revision 1.1  2004-04-22 13:15:01  bert
+@MODIFIED   : Revision 1.1  2004/04/22 13:15:01  bert
 @MODIFIED   : Initial addition to conglomerate
 @MODIFIED   :
  * Revision 1.11  2001/04/18  13:27:00  neelin
@@ -55,7 +55,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/libraries/conglomerate/find_peaks.c,v 1.1 2004-04-22 13:15:01 bert Exp $";
+static char rcsid[]="$Header: /home/claude/CVS/libraries/conglomerate/find_peaks.c,v 1.1 2004/04/22 13:15:01 bert Exp $";
 #endif
 
 #include <stdlib.h>

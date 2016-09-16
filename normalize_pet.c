@@ -6,7 +6,7 @@
 @DESCRIPTION: Program to normalize a volume to a standard intensity.
 @CREATED    : October 27, 1993 (Peter Neelin)
 @MODIFIED   : $Log: normalize_pet.c,v $
-@MODIFIED   : Revision 1.1  2005-03-01 17:21:54  bert
+@MODIFIED   : Revision 1.1  2005/03/01 17:21:54  bert
 @MODIFIED   : Added normalize_pet to the conglomerate
 @MODIFIED   :
  * Revision 1.9  1998/06/25  16:23:57  neelin
