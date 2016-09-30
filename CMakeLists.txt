@@ -200,7 +200,7 @@ ADD_EXECUTABLE(trimesh_set_points   trimesh_set_points.c tri_mesh.c)
 ADD_EXECUTABLE(trimesh_to_polygons   trimesh_to_polygons.c tri_mesh.c)
 ADD_EXECUTABLE(two_surface_resample   two_surface_resample.c)
 ADD_EXECUTABLE(volume_object_evaluate  volume_object_evaluate.c)
-  
+ADD_EXECUTABLE(copy_stats_to_volume    copy_stats_to_volume.c)  
 
 MACRO(PREPARE_SCRIPT input output)
   # minc 1 version
