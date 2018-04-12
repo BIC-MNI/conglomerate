@@ -359,6 +359,7 @@ INSTALL(TARGETS
   transform_objects 
   two_surface_resample 
   volume_object_evaluate
+  copy_stats_to_volume
   DESTINATION bin)
 
 #TODO install models 
