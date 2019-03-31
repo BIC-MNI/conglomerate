@@ -1,5 +1,15 @@
-        New in Release 1.6.7 (not tagged yet, still on-going)
+        New in Release 1.6.8
         --------------------
+* modifications to print_world_values.c
+* fixed compute_icbm_vols: account for volume of voxel (0.5mm or 1.0mm) and accept multiple surfaces for the brain mask
+* extended sphere_resample_obj to resample a surface based on a surface map of different size (for hi-res surfaces)
+
+        New in Release 1.6.7
+        --------------------
+* extended sphere_resample_obj to resample a surface based on a
+  surface map of different size (for hi-res surfaces)
+* fixed compute_icbm_vols: account for volume of voxel (0.5mm or 1.0mm)
+  and accept multiple surfaces for the brain mask
 * fixed bug in sphere_resample_obj for parsing of lines with leading spaces
 * added rgb to volume_object_evaluate for DTI maps
 * extended mincdefrag for large volumes

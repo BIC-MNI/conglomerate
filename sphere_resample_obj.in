@@ -88,6 +88,7 @@ open(OUTY,">${tmpy}");
 open(OUTZ,">${tmpz}");
 my $num_vert;
 my @inobjarray = <INOBJ>;
+close(INOBJ);
 my $counter = 0;
 my $line;
 
@@ -98,31 +99,36 @@ foreach $line(@inobjarray) {
     my @vals = split/\s+/,$line;
     $num_vert = $vals[$#vals];
     chomp( $num_vert );
-
-    # Make sure mapping mesh size is the same as the source mesh size.
-
-    if( $insmarray[3] != $num_vert ) {
-      die "$me: mapping mesh ($insmarray[3] vertices) and source mesh " .
-          "($num_vert vertices) have different sizes\n";
-    }
+    my $npoly = $num_vert * 2 - 4;
 
     # Create control and target meshes of appropriate sizes.
 
     &do_cmd( 'cp', $source_to_target_sm, $refined_mapping );
     &do_cmd( 'create_tetra', $control_mesh, 0, 0, 0, 1, 1, 1, $control_mesh_size );
     &do_cmd( 'create_tetra', $target_mesh, 0, 0, 0, 1, 1, 1, $target_mesh_size );
+    
+    # Subdivide the sm file to have the good number of vertices as in
+    # the object file to resample. We want:
+    #   npoly = control_mesh_size = target_mesh_size
+    # Note: we can refine/coarsen control_mesh_size, but we can only
+    #       refine target_mesh_size.
 
-    while( $control_mesh_size != $target_mesh_size ) {
-      $control_mesh_size = $control_mesh_size*4;
-      if ($control_mesh_size > $target_mesh_size) {
-        die "$me: control mesh is not a subsampling of target mesh\n";
-      }
-      &do_cmd( 'create_tetra', $control_mesh, 0, 0, 0, 1, 1, 1, $control_mesh_size );
+    while( $npoly != $control_mesh_size || $npoly > $target_mesh_size ) {
+      $control_mesh_size /= 4 if( $npoly < $control_mesh_size );
+      $control_mesh_size *= 4 if( $npoly > $control_mesh_size );
+      $target_mesh_size *= 4 if( $npoly > $target_mesh_size );
+      &do_cmd( 'create_tetra', $control_mesh, 0, 0, 0, 1, 1, 1, 
+               $control_mesh_size );
+      &do_cmd( 'create_tetra', $target_mesh, 0, 0, 0, 1, 1, 1, 
+               $target_mesh_size );
       &do_cmd( 'cp', $refined_mapping, $old_mapping );
       &do_cmd( 'refine-surface-map', $old_mapping, $control_mesh,
                $target_mesh, $refined_mapping );
+      unlink( $old_mapping );
     }
-
+    if( $control_mesh_size != $npoly ) {
+      die "$me: control mesh is not a subsampling of surface object\n";
+    }
   } elsif( $counter > $num_vert ) {
     print OUT $line;
   } else {
@@ -135,14 +141,52 @@ foreach $line(@inobjarray) {
       close(OUTY);
       close(OUTZ);
 
+      # A hi-res mapping is used to resample a lo-res object, so
+      # subdivide the lo-res object.
+
+      my $npoly = $num_vert * 2 - 4;
+      if( $npoly < $target_mesh_size ) {
+
+        # Must subdivide values one level at a time.
+        while( $npoly < $target_mesh_size ) {
+          $npoly *= 4;
+          &do_cmd( 'create_tetra', $target_mesh, 0, 0, 0, 1, 1, 1, 
+                   $npoly );
+          &do_cmd( 'subdivide_values', $target_mesh, $tmpx, 
+                   "${tmpdir}/x_tmp.txt" );
+          `mv ${tmpdir}/x_tmp.txt $tmpx`;
+          &do_cmd( 'subdivide_values', $target_mesh, $tmpy, 
+                   "${tmpdir}/y_tmp.txt" );
+          `mv ${tmpdir}/y_tmp.txt $tmpy`;
+          &do_cmd( 'subdivide_values', $target_mesh, $tmpz, 
+                   "${tmpdir}/z_tmp.txt" );
+          `mv ${tmpdir}/z_tmp.txt $tmpz`;
+        }
+      }
+
       # resample the coordinates of the source mesh.
 
-      &do_cmd( "surface-resample", $target_mesh, $target_mesh, $tmpx,
+      my $junk = `head -1 $control_mesh`; chomp($junk);
+      print "control mesh: $junk\n";
+      $junk = `head -1 $target_mesh`; chomp($junk);
+      print "target mesh: $junk\n";
+      $junk = `head -5 $refined_mapping`; chomp($junk);
+      print "mapping: $junk\n";
+      $junk = `wc -l $tmpx`; chomp($junk);
+      print "vector size: $junk\n";
+
+      &do_cmd( "surface-resample", $control_mesh, $target_mesh, $tmpx,
                $refined_mapping, $remapx );
-      &do_cmd( "surface-resample", $target_mesh, $target_mesh, $tmpy,
+      &do_cmd( "surface-resample", $control_mesh, $target_mesh, $tmpy,
                $refined_mapping, $remapy );
-      &do_cmd( "surface-resample", $target_mesh, $target_mesh, $tmpz,
+      &do_cmd( "surface-resample", $control_mesh, $target_mesh, $tmpz,
                $refined_mapping, $remapz );
+      unlink( $tmpx );
+      unlink( $tmpy );
+      unlink( $tmpz );
+      unlink( $control_mesh );
+      unlink( $target_mesh );
+      unlink( $refined_mapping );
 
       # copy the resampled coordinates in surface mesh.
 
@@ -165,7 +209,9 @@ foreach $line(@inobjarray) {
       close(NEWX);
       close(NEWY);
       close(NEWZ);
-
+      unlink( $remapx );
+      unlink( $remapy );
+      unlink( $remapz );
     }
   }
   $counter=$counter+1;
