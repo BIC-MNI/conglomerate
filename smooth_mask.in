@@ -200,8 +200,7 @@ sub Initialize
     $BlurredMask = undef;
     $OutputSpace = undef;
 
-    $ModelDir    = "$FindBin::Bin/../share/avg305/";
-    #$ModelDir    = MNI::DataDir::dir('avg305');
+    $ModelDir    = MNI::DataDir::dir('avg305');
     $Mask        = "average_305_mask_1mm.mnc";
     MNI::DataDir::check_data($ModelDir, [$Mask]);
     $Mask        = "${ModelDir}${Mask}";
