@@ -45,14 +45,14 @@ int  main(
                          int   argc,
                          char  *argv[] )
 {
-        STRING     glim_filename, coordlist_filename, output_filename;
+        VIO_STR     glim_filename, coordlist_filename, output_filename;
         char       cur_minc[255];
         float      *x, *y, *z;
         double     value;
-        Volume     volume;
+        VIO_Volume     volume;
         float      curx, cury, curz;
-        int        voxx, voxy, voxz, sizes[MAX_DIMENSIONS];
-        Real       voxel[MAX_DIMENSIONS];
+        int        voxx, voxy, voxz, sizes[VIO_MAX_DIMENSIONS];
+        VIO_Real       voxel[VIO_MAX_DIMENSIONS];
         int        i, r, keep_looping, n_coords;
         FILE*      coordfile;
         FILE*      glimfile;
@@ -143,7 +143,7 @@ int  main(
 
                         if( input_volume( cur_minc, 3, XYZ_dimension_names,
                                                                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                                                                        TRUE, &volume, (minc_input_options *) NULL ) != OK ) {
+                                                                        TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK ) {
                                 printf("Failed to read %s\n", cur_minc);
                                 return( 1 );
                         }
@@ -156,9 +156,9 @@ int  main(
 
                                 convert_world_to_voxel(volume, x[i], y[i], z[i], voxel);
 
-                                voxx = FLOOR( voxel[0] );
-                                voxy = FLOOR( voxel[1] );
-                                voxz = FLOOR( voxel[2] );
+                                voxx = VIO_FLOOR( voxel[0] );
+                                voxy = VIO_FLOOR( voxel[1] );
+                                voxz = VIO_FLOOR( voxel[2] );
 
                                 printf("Reading %f %f %f (%d %d %d) from %s\n", x[i], y[i], z[i], voxx, voxy, voxz, cur_minc);
 
