@@ -89,7 +89,7 @@ int  main(
 
                     structure_id = VIO_ROUND( value );
 
-                    if( output_one_tag( file, 1, tag, NULL, NULL,
+                    if( output_one_tag( file, 1, tag, NULL, &value,
                                         &structure_id, NULL, NULL ) != VIO_OK )
                     {
                         return( 1 );
