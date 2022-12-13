@@ -1,6 +1,8 @@
 #include  <volume_io.h>
 #include  <bicpl.h>
 
+#include <math.h>
+
 static  VIO_Real  gamma_func(
     VIO_Real   x );
 
@@ -44,7 +46,7 @@ static  VIO_Real  gamma_func(
 {
     VIO_Real   lg, g;
 
-    lg = gamma(x);
+    lg = lgamma(x); /* VF: gamma on linux supposed to calculate log of gamma*/
     g = (VIO_Real) signgam * exp( lg );
 
     return( g );
