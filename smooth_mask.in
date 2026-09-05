@@ -23,8 +23,6 @@
 use warnings "all";
 use FindBin;
 
-require "ctime.pl";
-
 use Getopt::Tabular;
 use MNI::Startup qw(nocputimes);
 use MNI::Spawn;
@@ -181,7 +179,7 @@ sub Initialize
    $Version = "@VERSION@";
    $LongVersion = "version ${Version}: slightly tested perl code. Beware!";
 
-    chop ($ctime = &ctime(time));
+    $ctime = localtime(time);
     $HistoryLine = "$ctime>>> $0 @ARGV\n";
 
     $Clobber     = 0;
