@@ -1,0 +1,65 @@
+# Citation metadata for conglomerate (Citation File Format, https://citation-file-format.github.io/).
+# The author list comes from the commit history and from the history comments in the files.
+
+cff-version: 1.2.0
+title: conglomerate
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - given-names: David
+    family-names: MacDonald
+  - given-names: Robert D.
+    family-names: Vincent
+  - given-names: Peter
+    family-names: Neelin
+  - given-names: Steve M.
+    family-names: Robbins
+  - given-names: Vladimir
+    family-names: Fonov
+    email: vladimir.fonov@gmail.com
+    affiliation: McGill University
+    orcid: "https://orcid.org/0000-0003-3402-7749"
+  - given-names: Claude
+    family-names: Lepage
+  - given-names: Jason
+    family-names: Lerch
+    orcid: "https://orcid.org/0000-0001-6164-2881"
+  - given-names: Andrew L.
+    family-names: Janke
+    orcid: "https://orcid.org/0000-0003-0547-5171"
+  - given-names: D. Louis
+    family-names: Collins
+    affiliation: McGill University
+    orcid: "https://orcid.org/0000-0002-8432-7021"
+  - given-names: Jonathan
+    family-names: Harlap
+  - given-names: Gabriel A.
+    family-names: Devenyi
+    email: gdevenyi@gmail.com
+    affiliation: Douglas Mental Health University Institute
+    orcid: "https://orcid.org/0000-0002-7766-1187"
+  - given-names: Alex P.
+    family-names: Zijdenbos
+  - given-names: Yasser
+    family-names: "Ad-Dab'bagh"
+  - given-names: Weiqian
+    family-names: Dai
+  - given-names: Oliver
+    family-names: Lyttelton
+  - given-names: Greg
+    family-names: Ward
+  - given-names: John G.
+    family-names: Sled
+    orcid: "https://orcid.org/0000-0002-4461-283X"
+repository-code: "https://github.com/BIC-MNI/conglomerate"
+abstract: >-
+  Conglomerate of low-level volume and object manipulation tools for MINC
+  files.
+keywords:
+  - MINC
+  - medical imaging
+  - neuroimaging
+  - image processing
+  - surface
+license-url: "https://github.com/BIC-MNI/conglomerate/blob/master/COPYING"
